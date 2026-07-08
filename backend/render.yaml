@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: multimarg-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # You can add placeholder environment variables here
+      - key: FRONTEND_ORIGIN
+        value: https://your-frontend.vercel.app # TODO: Update this in the Render Dashboard
+      - key: USE_FIREBASE
+        value: "false" # Uses mock data by default

@@ -1,0 +1,27 @@
+[03-Sep-2025 09:26:35 UTC] PHP Warning:  Undefined array key "destination" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-book.php on line 15
+[04-Sep-2025 08:58:53 UTC] PHP Warning:  Undefined array key "destination" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-book.php on line 15
+[04-Sep-2025 09:27:44 UTC] PHP Warning:  Undefined array key "destination" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-book.php on line 15
+[04-Sep-2025 09:39:50 UTC] PHP Warning:  Undefined array key "destination" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-book.php on line 15
+[04-Sep-2025 09:40:49 UTC] PHP Warning:  Undefined array key "destination" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-book.php on line 15
+[04-Oct-2025 18:12:59 UTC] PHP Warning:  Undefined array key "awb_no" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-track.php on line 7
+[04-Oct-2025 18:12:59 UTC] PHP Warning:  Undefined array key "status" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-track.php on line 8
+[04-Oct-2025 18:12:59 UTC] PHP Warning:  Undefined array key "location" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-track.php on line 11
+[09-Oct-2025 11:12:09 UTC] PHP Warning:  Undefined array key "pdffile" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 11
+[09-Oct-2025 11:22:26 UTC] PHP Warning:  Undefined global variable $_SESSION in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:22:26 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:22:26 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:22:55 UTC] PHP Warning:  Undefined global variable $_SESSION in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:22:55 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:22:55 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 2
+[09-Oct-2025 11:25:36 UTC] PHP Warning:  Undefined array key "pdffile" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 11
+[09-Oct-2025 11:25:36 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 12
+[09-Oct-2025 11:25:36 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 15
+[09-Oct-2025 11:28:20 UTC] PHP Warning:  Undefined array key "voucher" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 11
+[09-Oct-2025 11:28:20 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 13
+[09-Oct-2025 11:28:20 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 16
+[09-Oct-2025 11:29:30 UTC] PHP Warning:  Undefined array key "voucher" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 11
+[09-Oct-2025 11:29:30 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 13
+[09-Oct-2025 11:29:30 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 16
+[09-Oct-2025 11:29:51 UTC] PHP Warning:  Undefined array key "voucher" in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 11
+[09-Oct-2025 11:29:51 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 13
+[09-Oct-2025 11:29:51 UTC] PHP Warning:  Trying to access array offset on null in /home4/sky4lwgx/soft.sky4logistics.co.in/add/add-cash.php on line 16

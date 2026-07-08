@@ -1,0 +1,12 @@
+php_flag output_buffering on
+
+php_value session.cookie_lifetime 0
+php_value session.gc_maxlifetime 1440
+# Replace domain.com with the real domain name
+# This example is for redirecting whatever domain to the same domain with www. on the front
+# Swap domain.com and www.domain.com between the 2 lines to have it do the reverse
+# Make sure PHP errors don't break header() redirects
+php_value output_buffering On
+
+# Ensure cookies (sessions) work across www and non-www
+# Replace example.com with your domain

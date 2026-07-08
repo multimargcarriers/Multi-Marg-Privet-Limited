@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Waybill</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f6f6f6;
+      margin: 0;
+      padding: 0;
+    }
+    .awb-container {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      margin: auto;
+      padding: 5mm;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin: 0 0 15px;
+      letter-spacing: 1px;
+      color: #333;
+    }
+    .section {
+      margin-bottom: 15px;
+    }
+    .section-title {
+      background: #004080;
+      color: #fff;
+      padding: 5px 8px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+    th {
+      background: #f2f2f2;
+      text-align: left;
+    }
+    .charges th, .charges td {
+      width: 50%;
+    }
+    .flex {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    .remarks {
+      margin-top: 10px;
+      font-size: 12px;
+      padding: 8px;
+      border: 1px dashed #999;
+      background: #fcfcfc;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 25px;
+      font-size: 12px;
+      color: #666;
+    }
+    @media print {
+      body { background: #fff; }
+      .awb-container { border: none; padding: 5mm; }
+      .section-title { background: #000; color: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="awb-container">
+
+       <!-- Consignor -->
+    <div class="section">
+      <center>
+      <p class="section-title">
+      <span style="font-size: 30px;">MULTIMARG CARRIERS PVT. LTD.</span><br>
+       LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND<br>
+       Contact:05944-324033 | info@multimargcarriers.co.in<br>
+        GST No:05AANCM3054E1ZN</p></center>
+    </div>
+
+    <!-- AWB Info -->
+    <div class="section">
+      <div class="section-title">AWB Details</div>
+      <table>
+        <tr>
+          <th>AWB No</th><td id="awb_no">203586</td>
+          <th>Date</th><td id="awb_date">16-09-2025</td>
+          <th>Time</th><td id="awb_time">23:22:22</td>
+          <th>Delivery Type</th><td colspan="5" id="delivery_type">DOOR</td>
+        </tr>
+       
+      </table>
+    </div>
+
+    <!-- Consignee -->
+    <div class="section">
+      <div class="section-title">Parties</div>
+      <table>
+        <tr><th>Consignor</th><td id="consignee">U. S. AUTO CONTROLS PVT LTD</td></tr>
+        <tr><th>Consignee</th><td id="consignee">HARIHARESHWAR AUTO TECH PVT LTD</td></tr>
+        <tr><th>Bill To</th><td id="bill_to">U. S. AUTO CONTROLS PVT LTD</td></tr>
+      </table>
+    </div>
+
+    <!-- Shipment -->
+    <div class="section">
+      <div class="section-title">Shipment Info</div>
+      <table>
+        <tr>
+          <th>Origin</th><td id="origin">PUNE</td>
+          <th>Destination</th><td id="destination">PANTNAGAR</td>
+          <th>Mode</th><td id="mode">AIR</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Items -->
+    <div class="section">
+      <div class="section-title">Shipment Items</div>
+      <table>
+        <tr>
+          <th>Box</th><th>Invoice No</th><th>Date</th><th>Qty</th>
+          <th>Part No</th><th>Value</th><th>E-Way Bill</th>
+        </tr>
+        <tr>
+          <td id="box">7-Bag</td>
+          <td id="invoice_no">3252</td>
+          <td id="invoice_date">16-09-2025</td>
+          <td id="qty">10225</td>
+          <td id="part_no">DH102502</td>
+          <td id="invoice_value">₹20,944.00</td>
+          <td id="eway">DG101340</td>
+        </tr>
+       
+      </table>
+    </div>
+
+    <!-- Charges -->
+    <div class="section">
+      <div class="section-title">Charges</div>
+      <table >
+        <tr><th>Freight Charge</th><td id="freight">-</td>
+        <th>AWB Charge</th><td id="awb_charge">-</td></tr>
+        <tr><th>Pickup Charge</th><td id="pickup">-</td><th>Delivery Charge</th><td id="delivery">-</td></tr>
+        <tr><th>Packaging Charge</th><td id="packaging">-</td><th>Handling Charge</th><td id="handling">-</td></tr>
+        
+       <!--  <tr><th colspan="2">Sub Total</th><td id="sub_total" colspan="2">-</td></tr>
+        <tr><th colspan="2">GST @ 18%</th><td id="gst" colspan="2">-</td></tr>
+        <tr><th colspan="2"><strong>Grand Total</strong></th><td id="grand_total" colspan="2"><strong>-</strong></td></tr>-->
+      </table>
+    </div>
+
+    <!-- Remarks -->
+    <div class="remarks">
+      NOTE: Quantity and quality not checked. We are not responsible for leakage & damage.  
+      Subject to Uttarakhand jurisdiction only.
+    </div>
+
+    <!-- Signatures -->
+    <div class="flex">
+      <div>Sender’s Signature: __________</div>
+      <div>Receiver’s Sign & Stamp: __________</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      Booked by <span id="booking_clerk">Sanjit</span> | Date: <span id="awb_date_footer">16-09-2025</span> | Time: <span id="awb_time_footer">23:22:22</span>
+    </div>
+
+  </div>
+
+  <!-- Example JS data injection -->
+  <script>
+    document.getElementById("freight").innerText = "₹1500";
+    
+    document.getElementById("awb_charge").innerText = "₹1500";
+  </script>
+</body>
+</html>

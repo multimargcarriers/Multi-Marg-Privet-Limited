@@ -1,0 +1,107 @@
+const express = require("express");
+const router = express.Router();
+const { useMockDB, db, mockData } = require("../config/firebase");
+const { v4: uuidv4 } = require("uuid");
+const { success, created, error } = require("../utils/response");
+const { asyncHandler } = require("../middleware/errorHandler");
+const { getOrSet, delCache } = require("../config/redis");
+const { body, validationResult } = require("express-validator");
+
+const CACHE_KEY = "clients";
+
+// Get all clients
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const data = await getOrSet(
+      CACHE_KEY,
+      async () => {
+        if (useMockDB) {
+          return mockData.clients;
+        }
+        const snapshot = await db.collection("clients").get();
+        const clients = [];
+        snapshot.forEach((doc) => {
+          clients.push({ id: doc.id, ...doc.data() });
+        });
+        return clients;
+      },
+      300,
+    );
+    return success(res, { message: "Clients fetched successfully", data });
+  }),
+);
+
+// Create client
+router.post(
+  "/",
+  [
+    body("name").notEmpty().withMessage("Client name is required"),
+    body("gst").notEmpty().withMessage("GST is required"),
+    body("address").notEmpty().withMessage("Address is required"),
+    body("contact").notEmpty().withMessage("Contact person is required"),
+    body("email").notEmpty().isEmail().withMessage("Valid email is required"),
+  ],
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return error(res, { message: "Validation failed", statusCode: 400, details: errors.array() });
+    }
+
+    const newClient = req.body;
+    newClient.status = "Active";
+    newClient.createdAt = new Date().toISOString();
+
+    if (useMockDB) {
+      newClient.id = uuidv4();
+      mockData.clients.push(newClient);
+      await delCache(CACHE_KEY);
+      return created(res, { message: "Client created successfully", data: newClient });
+    }
+
+    const docRef = await db.collection("clients").add(newClient);
+    await delCache(CACHE_KEY);
+    return created(res, { message: "Client created successfully", data: { id: docRef.id, ...newClient } });
+  }),
+);
+// Update client
+router.put(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (useMockDB) {
+      const idx = mockData.clients.findIndex((c) => c.id === id);
+      if (idx === -1) return error(res, { message: "Client not found", statusCode: 404 });
+      mockData.clients[idx] = { ...mockData.clients[idx], ...req.body };
+      await delCache(CACHE_KEY);
+      return success(res, { message: "Client updated successfully", data: mockData.clients[idx] });
+    }
+    const doc = await db.collection("clients").doc(id).get();
+    if (!doc.exists) return error(res, { message: "Client not found", statusCode: 404 });
+    await db.collection("clients").doc(id).update(req.body);
+    await delCache(CACHE_KEY);
+    return success(res, { message: "Client updated successfully", data: { id, ...req.body } });
+  }),
+);
+
+// Delete client
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (useMockDB) {
+      const idx = mockData.clients.findIndex((c) => c.id === id);
+      if (idx === -1) return error(res, { message: "Client not found", statusCode: 404 });
+      mockData.clients = mockData.clients.filter((c) => c.id !== id);
+      await delCache(CACHE_KEY);
+      return success(res, { message: "Client deleted successfully" });
+    }
+    const doc = await db.collection("clients").doc(id).get();
+    if (!doc.exists) return error(res, { message: "Client not found", statusCode: 404 });
+    await db.collection("clients").doc(id).delete();
+    await delCache(CACHE_KEY);
+    return success(res, { message: "Client deleted successfully" });
+  }),
+);
+
+module.exports = router;

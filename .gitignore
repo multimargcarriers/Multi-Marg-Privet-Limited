@@ -1,0 +1,14 @@
+node_modules/
+.env
+.DS_Store
+dist/
+build/
+backend/uploads/
+frontend/dist/
+frontend/build/
+.vscode/
+npm-debug.log
+*error.log
+*combined.log
+logs/
+backend/logs/
