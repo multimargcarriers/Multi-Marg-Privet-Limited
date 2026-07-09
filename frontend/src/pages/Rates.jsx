@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Eye, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import { AuthContext } from "../context/AuthContext";
@@ -344,12 +344,12 @@ const Rates = () => {
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Client ⇅</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Origin ⇅</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Destination ⇅</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Awb Charge ⇅</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit ⇅</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete ⇅</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Client â‡…</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Origin â‡…</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Destination â‡…</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Awb Charge â‡…</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit â‡…</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete â‡…</th>
               </tr>
             </thead>
             <tbody>
@@ -374,7 +374,7 @@ const Rates = () => {
                       {item.destination}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                      ₹{item.awbCharge || "0"}
+                      â‚¹{item.awbCharge || "0"}
                     </td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -382,7 +382,7 @@ const Rates = () => {
                           onClick={() => handleEditClick(item)} 
                           style={{ backgroundColor: "#6366f1", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
                         >
-                          <Eye size={16} />
+                          <Edit size={16} />
                         </button>
                       </div>
                     </td>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, Eye, Trash2 } from "lucide-react";
+import { Search, Edit, Trash2 } from "lucide-react";
 
 const CashsheetReports = () => {
   const [data, setData] = useState([]);
@@ -188,7 +188,7 @@ const CashsheetReports = () => {
                     </td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0" }}>
                       <button style={{ backgroundColor: "#6366f1", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}>
-                        <Eye size={16} />
+                        <Edit size={16} />
                       </button>
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
