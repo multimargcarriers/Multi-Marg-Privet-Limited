@@ -41,8 +41,7 @@ const Home = () => {
             zIndex: -2
           }}
         >
-          {/* Using a placeholder logistics video URL. You can replace this src with your own generated MP4 file later! */}
-          <source src="https://cdn.pixabay.com/video/2020/05/24/40061-424856424_large.mp4" type="video/mp4" />
+          <source src="/i_dont_want_logo_gemini_i_want.mp4" type="video/mp4" />
         </video>
         
         {/* Dark overlay to make text readable */}
