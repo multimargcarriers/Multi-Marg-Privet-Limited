@@ -32,7 +32,7 @@ const Home = () => {
             zIndex: -2
           }}
         >
-          <source src="/i_dont_want_logo_gemini_i_want.mp4" type="video/mp4" />
+          <source src="/Final.mp4" type="video/mp4" />
         </video>
         
         {/* Dark overlay to make text readable on the left, but leave video clear on the right */}
