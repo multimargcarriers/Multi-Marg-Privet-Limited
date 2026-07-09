@@ -1,116 +1,179 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Truck, ShieldCheck, Globe, Map, Package, Clock, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
+  const [activeTab, setActiveTab] = useState('track');
+
   return (
-    <div style={{ paddingBottom: '4rem' }}>
+    <div>
+      {/* Floating Side Action Buttons */}
+      <div className="floating-side-nav">
+        <button className="floating-btn bg-green">Enquire Now</button>
+        <button className="floating-btn bg-red">Pickup Request</button>
+      </div>
+
       {/* Hero Section */}
-      <section className="gradient-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', paddingTop: '80px', color: 'white' }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem', alignItems: 'center' }}>
-          
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '50px', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: '500', letterSpacing: '1px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-              DELIVERING EXCELLENCE ACROSS INDIA
-            </div>
-            <h1 style={{ fontSize: '3.5rem', marginBottom: '1.5rem', lineHeight: '1.1', color: 'white' }}>
-              Your Trusted <br/>
-              <span className="gradient-text">Logistics Partner</span>
-            </h1>
-            <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.8)', marginBottom: '2.5rem', maxWidth: '500px', lineHeight: '1.7' }}>
-              Fast, reliable, and secure cargo solutions. Multimarg Carriers connects your business to the world with seamless road, train, and air logistics.
-            </p>
-            
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Link to="/contact" className="btn btn-primary" style={{ padding: '0.9rem 2rem', fontSize: '1.1rem' }}>
-                Get a Quote <ArrowRight size={20} />
-              </Link>
-              <Link to="/services" className="btn btn-outline" style={{ padding: '0.9rem 2rem', fontSize: '1.1rem', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}>
-                Our Services
-              </Link>
-            </div>
-          </motion.div>
+      <section style={{ 
+        position: 'relative', 
+        minHeight: '85vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundImage: 'linear-gradient(rgba(0, 31, 57, 0.6), rgba(0, 31, 57, 0.6)), url("https://images.unsplash.com/photo-1586528116311-ad8ed7c1590e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        paddingTop: '4rem',
+        paddingBottom: '8rem' // Extra padding at bottom for overlapping widget
+      }}>
+        
+        <div className="container" style={{ textAlign: 'center', color: 'white', zIndex: 1 }}>
+          <h2 style={{ fontSize: '1.8rem', fontWeight: '500', marginBottom: '1rem', letterSpacing: '2px', textTransform: 'uppercase' }}>
+            You set the destination
+          </h2>
+          <h1 style={{ fontSize: '4.5rem', fontWeight: '900', marginBottom: '2rem', lineHeight: '1.1' }}>
+            WE CREATE THE PATH
+          </h1>
+          <p style={{ fontSize: '1.25rem', maxWidth: '800px', margin: '0 auto', opacity: 0.9 }}>
+            As India's fastest growing end-to-end logistics partner, we simplify transportation, warehousing, and supply chain management.
+          </p>
+        </div>
 
-          {/* Hero Tracking Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="glass-dark"
-            style={{ padding: '2.5rem', borderRadius: '16px' }}
-          >
-            <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: '1.5rem' }}>Track Your Shipment</h3>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', marginBottom: '2rem' }}>
-              Enter your LR Number or Booking ID to instantly track the status of your cargo.
-            </p>
-            
-            <form onSubmit={(e) => { e.preventDefault(); alert("Tracking feature coming soon!"); }}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.8)' }}>LR Number</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 205096"
-                  style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.2)', color: 'white', outline: 'none', fontSize: '1rem' }}
-                />
+        {/* Tracking Widget - Overlapping bottom of Hero */}
+        <div style={{ position: 'absolute', bottom: '-40px', left: 0, right: 0, zIndex: 10 }}>
+          <div className="container" style={{ maxWidth: '1000px' }}>
+            <div style={{ background: 'white', borderRadius: '4px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden' }}>
+              
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', backgroundColor: '#f9f9f9' }}>
+                <button 
+                  onClick={() => setActiveTab('track')}
+                  style={{ flex: 1, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', background: activeTab === 'track' ? 'white' : 'transparent', borderTop: activeTab === 'track' ? '3px solid var(--primary-red)' : '3px solid transparent', color: activeTab === 'track' ? 'var(--primary-red)' : 'var(--text-light)', fontWeight: activeTab === 'track' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <Search size={18} /> Track Shipment
+                </button>
+                <button 
+                  onClick={() => setActiveTab('branch')}
+                  style={{ flex: 1, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', background: activeTab === 'branch' ? 'white' : 'transparent', borderTop: activeTab === 'branch' ? '3px solid var(--primary-red)' : '3px solid transparent', color: activeTab === 'branch' ? 'var(--primary-red)' : 'var(--text-light)', fontWeight: activeTab === 'branch' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <MapPin size={18} /> Branch Locator
+                </button>
+                <button 
+                  onClick={() => setActiveTab('pickup')}
+                  style={{ flex: 1, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', background: activeTab === 'pickup' ? 'white' : 'transparent', borderTop: activeTab === 'pickup' ? '3px solid var(--primary-red)' : '3px solid transparent', color: activeTab === 'pickup' ? 'var(--primary-red)' : 'var(--text-light)', fontWeight: activeTab === 'pickup' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <Truck size={18} /> Pickup Request
+                </button>
+                <button 
+                  onClick={() => setActiveTab('pincode')}
+                  style={{ flex: 1, padding: '1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', background: activeTab === 'pincode' ? 'white' : 'transparent', borderTop: activeTab === 'pincode' ? '3px solid var(--primary-red)' : '3px solid transparent', color: activeTab === 'pincode' ? 'var(--primary-red)' : 'var(--text-light)', fontWeight: activeTab === 'pincode' ? '700' : '500', cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <Navigation size={18} /> Serviceable Pincode
+                </button>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                Track Now
-              </button>
-            </form>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <div>
-                <h4 style={{ color: 'white', fontSize: '1.5rem', margin: 0 }}>4+</h4>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', margin: 0 }}>Major Branches</p>
-              </div>
-              <div>
-                <h4 style={{ color: 'white', fontSize: '1.5rem', margin: 0 }}>200+</h4>
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', margin: 0 }}>Clients Served</p>
+
+              {/* Tab Content */}
+              <div style={{ padding: '2rem' }}>
+                {activeTab === 'track' && (
+                  <form style={{ display: 'flex', gap: '1rem' }} onSubmit={(e) => e.preventDefault()}>
+                    <select style={{ padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none', width: '200px' }}>
+                      <option>LR Number</option>
+                      <option>Reference No.</option>
+                      <option>E-Way Bill No.</option>
+                    </select>
+                    <input 
+                      type="text" 
+                      placeholder="Enter Number Here..."
+                      style={{ flex: 1, padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
+                    />
+                    <button type="submit" className="btn btn-red" style={{ padding: '0 2rem' }}>Track</button>
+                  </form>
+                )}
+                {activeTab === 'branch' && (
+                  <form style={{ display: 'flex', gap: '1rem' }} onSubmit={(e) => e.preventDefault()}>
+                     <select style={{ flex: 1, padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}>
+                      <option>Select State</option>
+                      <option>Maharashtra</option>
+                      <option>Delhi</option>
+                      <option>Uttarakhand</option>
+                    </select>
+                    <select style={{ flex: 1, padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}>
+                      <option>Select City</option>
+                    </select>
+                    <button type="submit" className="btn btn-red" style={{ padding: '0 2rem' }}>Search</button>
+                  </form>
+                )}
+                {activeTab === 'pickup' && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-light)' }}>Pickup Request form functionality coming soon.</div>
+                )}
+                {activeTab === 'pincode' && (
+                   <form style={{ display: 'flex', gap: '1rem' }} onSubmit={(e) => e.preventDefault()}>
+                    <input 
+                      type="text" 
+                      placeholder="Enter 6-digit Pincode"
+                      style={{ flex: 1, padding: '0.8rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
+                    />
+                    <button type="submit" className="btn btn-red" style={{ padding: '0 2rem' }}>Check Availability</button>
+                  </form>
+                )}
               </div>
             </div>
-          </motion.div>
-
+          </div>
         </div>
       </section>
 
-      {/* Services Overview */}
-      <section className="section-padding" style={{ background: '#f8fafc' }}>
+      {/* spacer for the overlapping widget */}
+      <div style={{ height: '80px', background: 'var(--bg-light-grey)' }}></div>
+
+      {/* What We Offer / Services */}
+      <section className="section-padding" style={{ background: 'var(--bg-light-grey)' }}>
         <div className="container">
           <div className="section-title">
-            <h2 style={{ color: '#0f172a' }}>Comprehensive Logistics Solutions</h2>
-            <p>We provide tailored transportation services to meet the complex demands of modern supply chains.</p>
+            <h2>What We Offer</h2>
+            <p>Comprehensive logistics solutions tailored to meet the dynamic demands of modern businesses.</p>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            <motion.div whileHover={{ y: -5 }} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: 'rgba(79, 70, 229, 0.1)', padding: '1rem', borderRadius: '12px', width: 'max-content', color: 'var(--primary-color)' }}>
-                <Truck size={32} />
-              </div>
-              <h3 style={{ fontSize: '1.3rem' }}>Road Logistics</h3>
-              <p style={{ color: 'var(--text-light)' }}>Full Truck Load (FTL) and Part Truck Load (PTL) services across our vast network with real-time tracking.</p>
-            </motion.div>
+            {/* Card 1 */}
+            <div style={{ background: 'white', padding: '3rem 2rem', textAlign: 'center', borderBottom: '4px solid transparent', transition: 'all 0.3s', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
+                 onMouseEnter={(e) => { e.currentTarget.style.borderBottomColor = 'var(--primary-red)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                 onMouseLeave={(e) => { e.currentTarget.style.borderBottomColor = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Truck size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.5rem auto' }} />
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Road Logistics (FTL / PTL)</h3>
+              <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>High-volume and flexible cargo transport options connecting every corner of the country.</p>
+              <Link to="/services" style={{ color: 'var(--primary-red)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                Read More <span>&rarr;</span>
+              </Link>
+            </div>
 
-            <motion.div whileHover={{ y: -5 }} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: 'rgba(56, 189, 248, 0.1)', padding: '1rem', borderRadius: '12px', width: 'max-content', color: 'var(--accent-color)' }}>
-                <Map size={32} />
-              </div>
-              <h3 style={{ fontSize: '1.3rem' }}>Train Cargo</h3>
-              <p style={{ color: 'var(--text-light)' }}>Cost-effective and highly secure rail transport for bulk goods with guaranteed transit times.</p>
-            </motion.div>
+            {/* Card 2 */}
+            <div style={{ background: 'white', padding: '3rem 2rem', textAlign: 'center', borderBottom: '4px solid transparent', transition: 'all 0.3s', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
+                 onMouseEnter={(e) => { e.currentTarget.style.borderBottomColor = 'var(--primary-red)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                 onMouseLeave={(e) => { e.currentTarget.style.borderBottomColor = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Globe size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.5rem auto' }} />
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Train & Air Cargo</h3>
+              <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>Cost-effective rail and time-critical air freight leveraging our premium partnerships.</p>
+              <Link to="/services" style={{ color: 'var(--primary-red)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                Read More <span>&rarr;</span>
+              </Link>
+            </div>
 
-            <motion.div whileHover={{ y: -5 }} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '12px', width: 'max-content', color: '#10b981' }}>
-                <Globe size={32} />
-              </div>
-              <h3 style={{ fontSize: '1.3rem' }}>Air Freight</h3>
-              <p style={{ color: 'var(--text-light)' }}>Time-critical cargo deliveries leveraging our premium airline partnerships for immediate dispatch.</p>
-            </motion.div>
+            {/* Card 3 */}
+            <div style={{ background: 'white', padding: '3rem 2rem', textAlign: 'center', borderBottom: '4px solid transparent', transition: 'all 0.3s', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
+                 onMouseEnter={(e) => { e.currentTarget.style.borderBottomColor = 'var(--primary-red)'; e.currentTarget.style.transform = 'translateY(-5px)'; }}
+                 onMouseLeave={(e) => { e.currentTarget.style.borderBottomColor = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <Package size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.5rem auto' }} />
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Warehousing</h3>
+              <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>State-of-the-art secure facilities with inventory management and distribution support.</p>
+              <Link to="/services" style={{ color: 'var(--primary-red)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                Read More <span>&rarr;</span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -119,73 +182,41 @@ const Home = () => {
       <section className="section-padding">
         <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '4rem', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: '#0f172a' }}>Why Businesses Trust Multimarg</h2>
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-light)', marginBottom: '2rem', lineHeight: '1.8' }}>
-              With years of operational excellence, we ensure your supply chain never stops. Our extensive network and dedicated fleet guarantee that your shipments are handled with precision.
+            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: 'var(--primary-blue)' }}>Why Businesses Trust Multimarg</h2>
+            <div style={{ width: '60px', height: '3px', background: 'var(--primary-red)', marginBottom: '2rem' }}></div>
+            <p style={{ fontSize: '1.05rem', color: 'var(--text-light)', marginBottom: '2rem', lineHeight: '1.8' }}>
+              With operational excellence and a dedicated fleet, we ensure your supply chain never stops. Our extensive network guarantees that your shipments are handled with absolute precision.
             </p>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <ShieldCheck size={24} color="var(--primary-color)" style={{ marginTop: '4px' }} />
+                <ShieldCheck size={32} color="var(--primary-red)" />
                 <div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>100% Safe & Secure</h4>
-                  <p style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>End-to-end insurance and rigorous safety protocols for all cargo.</p>
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>100% Safe</h4>
+                  <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Secure handling and strict protocols.</p>
                 </div>
               </div>
               
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <Clock size={24} color="var(--primary-color)" style={{ marginTop: '4px' }} />
+                <Clock size={32} color="var(--primary-red)" />
                 <div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>On-Time Delivery</h4>
-                  <p style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>Optimized routing ensures we meet strict delivery deadlines.</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <Package size={24} color="var(--primary-color)" style={{ marginTop: '4px' }} />
-                <div>
-                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Modern Infrastructure</h4>
-                  <p style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>Digital PODs, automated billing, and a state-of-the-art tracking dashboard.</p>
+                  <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>On-Time</h4>
+                  <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Optimized routing for swift deliveries.</p>
                 </div>
               </div>
             </div>
           </div>
           
-          <div style={{ position: 'relative' }}>
-            <div style={{ width: '100%', height: '500px', borderRadius: '24px', background: 'linear-gradient(45deg, #f1f5f9, #e2e8f0)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               {/* This is a placeholder for a real image, but we'll make it look like a stylized graphic */}
-               <Truck size={150} color="#cbd5e1" />
-            </div>
-            {/* Floating badge */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }} 
-              transition={{ repeat: Infinity, duration: 3 }}
-              style={{ position: 'absolute', bottom: '-20px', left: '-20px', background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: '1rem' }}
-            >
-              <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '50%', color: '#10b981' }}>
-                <Globe size={28} />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, fontSize: '1.2rem' }}>Nationwide</h4>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)' }}>Coverage Area</p>
-              </div>
-            </motion.div>
+          <div>
+            <img 
+              src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+              alt="Logistics Operations" 
+              style={{ width: '100%', borderRadius: '4px', boxShadow: 'var(--shadow-lg)' }}
+            />
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section style={{ margin: '4rem 2rem', position: 'relative' }}>
-        <div className="container gradient-bg" style={{ borderRadius: '24px', padding: '4rem 2rem', textAlign: 'center', color: 'white' }}>
-          <h2 style={{ color: 'white', fontSize: '2.5rem', marginBottom: '1.5rem' }}>Ready to optimize your logistics?</h2>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.1rem', marginBottom: '2.5rem', maxWidth: '600px', margin: '0 auto 2.5rem auto' }}>
-            Get in touch with our supply chain experts today to get a customized quote for your transportation needs.
-          </p>
-          <Link to="/contact" className="btn btn-white" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem' }}>
-            Contact Us Today
-          </Link>
-        </div>
-      </section>
     </div>
   );
 };

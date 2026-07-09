@@ -1,132 +1,141 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Truck, Menu, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Phone, Mail, Menu, X, Truck } from 'lucide-react';
 
 const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const navLinks = [
-    { name: 'Home', path: '/' },
     { name: 'About Us', path: '/about' },
-    { name: 'Services', path: '/services' },
-    { name: 'Branches', path: '/branches' },
+    { name: 'Our Services', path: '/services' },
+    { name: 'Industries We Serve', path: '/industries' },
+    { name: 'Network', path: '/branches' },
   ];
 
   return (
-    <header style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      transition: 'all 0.3s ease',
-      padding: isScrolled ? '1rem 0' : '1.5rem 0',
-      background: isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-      backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-      boxShadow: isScrolled ? '0 4px 6px -1px rgba(0, 0, 0, 0.05)' : 'none',
-      borderBottom: isScrolled ? '1px solid rgba(0,0,0,0.05)' : '1px solid transparent'
-    }}>
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <header style={{ position: 'relative', width: '100%', zIndex: 100, boxShadow: 'var(--shadow-sm)', backgroundColor: 'white' }}>
+      
+      {/* Top Bar (Deep Blue) */}
+      <div style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.4rem 0', fontSize: '0.85rem' }}>
+        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <a href="tel:+919045015097" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Phone size={14} /> +91 90450-15097
+            </a>
+            <a href="mailto:info@multimargcarriers.co.in" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Mail size={14} /> info@multimargcarriers.co.in
+            </a>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {/* Social icons temporarily removed due to lucide-react deprecation */}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Header (White) */}
+      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem' }}>
         
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 101 }}>
-          <div style={{
-            background: 'linear-gradient(135deg, var(--primary-color), var(--accent-color))',
-            padding: '0.5rem', borderRadius: '8px', color: 'white', display: 'flex'
-          }}>
-            <Truck size={24} />
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101 }}>
+          <div style={{ color: 'var(--primary-blue)' }}>
+            <Truck size={36} strokeWidth={2} />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.25rem', margin: 0, color: isScrolled || mobileMenuOpen ? 'var(--secondary-color)' : 'white' }}>Multimarg Carriers</h1>
-            <p style={{ fontSize: '0.7rem', margin: 0, color: isScrolled || mobileMenuOpen ? 'var(--text-light)' : 'rgba(255,255,255,0.8)', letterSpacing: '1px' }}>PVT LTD</p>
+            <h1 style={{ fontSize: '1.4rem', margin: 0, color: 'var(--primary-blue)', letterSpacing: '-0.5px' }}>
+              MULTIMARG <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
+            </h1>
+            <p style={{ fontSize: '0.65rem', margin: 0, color: 'var(--text-main)', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: '500' }}>
+              Simplifying Your Business
+            </p>
           </div>
         </Link>
 
         {/* Desktop Nav */}
-        <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }} className="desktop-nav">
+        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }} className="desktop-nav">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               to={link.path}
               style={{
-                fontSize: '0.95rem',
-                fontWeight: location.pathname === link.path ? '600' : '500',
-                color: isScrolled ? (location.pathname === link.path ? 'var(--primary-color)' : 'var(--text-main)') : 'white',
-                borderBottom: location.pathname === link.path ? `2px solid ${isScrolled ? 'var(--primary-color)' : 'white'}` : '2px solid transparent',
-                paddingBottom: '0.25rem'
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)',
+                transition: 'color 0.2s',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'}
             >
               {link.name}
             </Link>
           ))}
-          <Link to="/contact" className={isScrolled ? "btn btn-primary" : "btn btn-white"} style={{ padding: '0.5rem 1.5rem' }}>
-            Contact Us
-          </Link>
-          {/* Dashboard Link */}
-          <a href="http://localhost:5173" target="_blank" rel="noreferrer" style={{ fontSize: '0.9rem', fontWeight: '500', color: isScrolled ? 'var(--text-light)' : 'rgba(255,255,255,0.8)', textDecoration: 'underline' }}>
-            Staff Login
-          </a>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', marginLeft: '1rem' }}>
+            <Link to="/contact" className="btn btn-outline-red">
+              Contact Us
+            </Link>
+            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
+              Customer Login
+            </a>
+          </div>
         </nav>
 
         {/* Mobile Toggle */}
         <button 
           className="mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ background: 'transparent', border: 'none', color: isScrolled || mobileMenuOpen ? 'var(--secondary-color)' : 'white', cursor: 'pointer', zIndex: 101 }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', zIndex: 101 }}
         >
           {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
       {/* Mobile Nav */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            style={{
-              position: 'absolute', top: '100%', left: 0, right: 0,
-              background: 'white', padding: '2rem',
-              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-              display: 'flex', flexDirection: 'column', gap: '1.5rem',
-              borderTop: '1px solid #f1f5f9'
-            }}
-            className="mobile-menu"
-          >
-            {navLinks.map((link) => (
-              <Link 
-                key={link.name} 
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  fontSize: '1.1rem',
-                  fontWeight: location.pathname === link.path ? '600' : '500',
-                  color: location.pathname === link.path ? 'var(--primary-color)' : 'var(--text-main)'
-                }}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary" style={{ justifyContent: 'center' }}>
+      {mobileMenuOpen && (
+        <div
+          style={{
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            background: 'white', padding: '1rem 2rem 2rem 2rem',
+            boxShadow: 'var(--shadow-md)',
+            display: 'flex', flexDirection: 'column', gap: '1rem',
+            borderTop: '1px solid var(--border-color)'
+          }}
+          className="mobile-menu"
+        >
+          {navLinks.map((link) => (
+            <Link 
+              key={link.name} 
+              to={link.path}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                fontSize: '1rem',
+                fontWeight: '500',
+                padding: '0.5rem 0',
+                borderBottom: '1px solid #f0f0f0',
+                color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'
+              }}
+            >
+              {link.name}
+            </Link>
+          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%' }}>
               Contact Us
             </Link>
-            <a href="http://localhost:5173" target="_blank" rel="noreferrer" style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-light)', marginTop: '1rem' }}>
-              Staff Login (Admin)
+            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%' }}>
+              Customer Login
             </a>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
+      
       <style>{`
-        @media (min-width: 769px) { .mobile-toggle, .mobile-menu { display: none !important; } }
-        @media (max-width: 768px) { .desktop-nav { display: none !important; } }
+        .social-icon { color: rgba(255,255,255,0.8); transition: color 0.2s; display: flex; }
+        .social-icon:hover { color: white; }
+        @media (min-width: 992px) { .mobile-toggle, .mobile-menu { display: none !important; } }
+        @media (max-width: 991px) { .desktop-nav { display: none !important; } }
       `}</style>
     </header>
   );
