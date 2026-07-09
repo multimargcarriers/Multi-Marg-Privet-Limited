@@ -163,7 +163,7 @@ const Trips = () => {
 
       {showForm && (
         <form onSubmit={handleSave} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+          <div className="grid-2-col">
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip No</label>
               <input type="text" className="form-control" value={form.tripNo} onChange={e => setForm({...form, tripNo: e.target.value})} />
@@ -194,7 +194,7 @@ const Trips = () => {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+          <div className="grid-2-col">
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Driver Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <input type="text" className="form-control" value={form.driverName} onChange={e => setForm({...form, driverName: formatTitleCase(e.target.value)})} required />

@@ -135,7 +135,7 @@ const CashSheet = () => {
       )}
 
       <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "3rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+        <div className="grid-2-col">
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Amount<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
@@ -166,7 +166,7 @@ const CashSheet = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+        <div className="grid-2-col">
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Cash In/Out<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>

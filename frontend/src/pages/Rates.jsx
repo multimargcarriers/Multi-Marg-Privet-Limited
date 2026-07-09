@@ -191,7 +191,7 @@ const Rates = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Title & Add Button */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+      <div className="header-flex">
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Rates Master</h3>
         {!isAdding && !editing && (
           <button 
@@ -216,7 +216,7 @@ const Rates = () => {
             <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
               <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit Rate Details" : "Add New Rate"}</h4>
               <form onSubmit={handleSave}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+            <div className="grid-2-col">
               <div style={{ gridColumn: "span 2" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client<span style={{ color: "#ef4444" }}>*</span></label>
                 <div style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", borderRadius: "6px" }}>

@@ -109,7 +109,7 @@ const Tracking = () => {
       )}
 
       <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "2.5rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+        <div className="grid-2-col">
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Awb No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
@@ -139,7 +139,7 @@ const Tracking = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+        <div className="grid-2-col">
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>

@@ -99,7 +99,7 @@ const Analytics = () => {
       </div>
 
       {/* Analytics Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div className="grid-auto-large">
         
         {/* Sales by Client Pie Chart */}
         <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
