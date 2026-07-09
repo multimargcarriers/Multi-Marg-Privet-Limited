@@ -101,21 +101,21 @@ const GST = () => {
         </button>
       </div>
 
-      <div className="glass-panel" style={{ padding: "0.5rem", overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
+      <div className="glass-panel" style={{ overflowX: "auto" }}>
+        <table className="table" style={{ width: "100%", minWidth: "1200px" }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>Date</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>Invoice No</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>Client</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>GSTIN</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>SAC/HSN</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>Taxable Value</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>IGST</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>CGST</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>SGST</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", borderRight: "1px solid #f3f4f6" }}>Total Tax</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600" }}>Grand Total</th>
+            <tr>
+              <th>Date</th>
+              <th>Invoice No</th>
+              <th>Client</th>
+              <th>GSTIN</th>
+              <th>SAC/HSN</th>
+              <th>Taxable Value</th>
+              <th>IGST</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>Total Tax</th>
+              <th>Grand Total</th>
             </tr>
           </thead>
           <tbody>
@@ -125,18 +125,18 @@ const GST = () => {
               <tr><td colSpan="11" style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>No data available</td></tr>
             ) : (
               data.map((item, index) => (
-                <tr key={index} style={{ borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", color: "#4b5563" }}>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{item.date || "-"}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{item.invoice || "-"}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{item.client || "-"}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{item.gstin || "-"}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{item.sac || "-"}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{parseFloat(item.taxable || 0).toFixed(2)}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{parseFloat(item.igst || 0).toFixed(2)}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{parseFloat(item.cgst || 0).toFixed(2)}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{parseFloat(item.sgst || 0).toFixed(2)}</td>
-                  <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6" }}>{parseFloat(item.totalTax || 0).toFixed(2)}</td>
-                  <td style={{ padding: "12px 16px" }}>{parseFloat(item.total || 0).toFixed(2)}</td>
+                <tr key={index}>
+                  <td>{item.date || "-"}</td>
+                  <td>{item.invoice || "-"}</td>
+                  <td>{item.client || "-"}</td>
+                  <td>{item.gstin || "-"}</td>
+                  <td>{item.sac || "-"}</td>
+                  <td>{parseFloat(item.taxable || 0).toFixed(2)}</td>
+                  <td>{parseFloat(item.igst || 0).toFixed(2)}</td>
+                  <td>{parseFloat(item.cgst || 0).toFixed(2)}</td>
+                  <td>{parseFloat(item.sgst || 0).toFixed(2)}</td>
+                  <td>{parseFloat(item.totalTax || 0).toFixed(2)}</td>
+                  <td style={{ fontWeight: "600" }}>{parseFloat(item.total || 0).toFixed(2)}</td>
                 </tr>
               ))
             )}
