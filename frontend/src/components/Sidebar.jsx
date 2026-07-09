@@ -24,8 +24,14 @@ import {
   Activity
 } from "lucide-react";
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
+
+  const handleLinkClick = () => {
+    if (window.innerWidth <= 768 && setIsSidebarOpen) {
+      setIsSidebarOpen(false);
+    }
+  };
 
   const menuItems = [
     {
@@ -201,6 +207,7 @@ const Sidebar = ({ isOpen }) => {
                     key={cIndex}
                     to={child.path}
                     title={!isOpen ? child.name : ""}
+                    onClick={handleLinkClick}
                     style={({ isActive }) => ({
                       display: "flex",
                       alignItems: "center",
@@ -235,6 +242,7 @@ const Sidebar = ({ isOpen }) => {
               key={index}
               to={item.path}
               title={!isOpen ? item.name : ""}
+              onClick={handleLinkClick}
               style={({ isActive }) => ({
                 display: "flex",
                 alignItems: "center",
