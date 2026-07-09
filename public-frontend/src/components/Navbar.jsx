@@ -38,8 +38,13 @@ const Navbar = () => {
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: scrolled ? '0.75rem 2rem' : '1.25rem 2rem', transition: 'padding 0.3s ease' }}>
         
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', zIndex: 101 }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 101, textDecoration: 'none' }}>
           <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '45px' : '55px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
+          <div>
+            <h1 style={{ fontSize: scrolled ? '1.2rem' : '1.4rem', margin: 0, color: 'var(--primary-blue)', letterSpacing: '-0.5px', fontWeight: '800', transition: 'all 0.3s ease' }}>
+              MULTIMARG <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
+            </h1>
+          </div>
         </Link>
 
         {/* Desktop Nav */}
