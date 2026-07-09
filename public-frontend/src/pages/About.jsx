@@ -75,7 +75,7 @@ const About = () => {
             >
               <h2 style={{ fontSize: '2.5rem', color: 'var(--primary-blue)', marginBottom: '1.5rem' }}>Our Journey</h2>
               <p style={{ fontSize: '1.1rem', color: 'var(--text-light)', marginBottom: '1.5rem', lineHeight: 1.8 }}>
-                We provide full rang of transportation. At MULTIMARG CARRIERS PRIVATE LIMITED, we specialize in providing efficient, reliable, and cost-effective logistics solutions that cater to the unique needs of businesses across industries.
+                We provide full range of transportation. At MULTIMARG CARRIERS PRIVATE LIMITED, we specialize in providing efficient, reliable, and cost-effective logistics solutions that cater to the unique needs of businesses across industries.
               </p>
               <p style={{ fontSize: '1.1rem', color: 'var(--text-light)', marginBottom: '2rem', lineHeight: 1.8 }}>
                 With years of expertise in the logistics and supply chain sector, we are committed to delivering exceptional services, from transportation and warehousing to inventory management and distribution. Our advanced technology, professional team, and extensive network ensure that your goods reach their destination on time and in perfect condition.
