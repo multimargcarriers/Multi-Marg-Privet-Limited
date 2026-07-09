@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { CheckCircle, Loader2, ShoppingCart, Trash2 } from "lucide-react";
-import SearchableSelect from "../components/SearchableSelect";
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -28,6 +29,23 @@ const Purchase = () => {
   const [success, setSuccess] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "vendor") {
+      setVendors([...vendors, data]);
+      setFormData({ ...formData, vendor: data.name || data.vendor });
+    }
+  };
   
   useEffect(() => {
     fetchData();
@@ -147,12 +165,12 @@ const Purchase = () => {
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Vendor Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
             </label>
-            <SearchableSelect 
+            <CreatableDropdown 
               options={vendors} 
               value={formData.vendor} 
-              onChange={(c) => setFormData({ ...formData, vendor: c })} 
+              onChange={(val) => setFormData({ ...formData, vendor: val })} 
+              onCreate={(name) => handleCreateNew("vendor", name)}
               placeholder="-- Please select the Vendor --" 
-              displayKey="name" 
             />
           </div>
           <div className="form-group">
@@ -290,6 +308,14 @@ const Purchase = () => {
           )}
         />
       </div>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

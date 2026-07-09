@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { CheckCircle, Loader2 } from "lucide-react";
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 
 const API = "http://localhost:5000/api";
 
@@ -16,13 +18,30 @@ const Tracking = () => {
   const [success, setSuccess] = useState(false);
   const [locations, setLocations] = useState([]);
   
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "city") {
+      setLocations([...locations, data]);
+      setFormData({ ...formData, location: data.city });
+    }
+  };
+  
   useEffect(() => {
     // Fetch cities for the location dropdown
     const fetchCities = async () => {
       try {
         const res = await axios.get(`${API}/cities`);
         if (res.data.success) {
-          setLocations(res.data.data.map(c => c.city));
+          setLocations(res.data.data);
         }
       } catch (err) {
         console.error("Failed to fetch cities", err);
@@ -125,22 +144,13 @@ const Tracking = () => {
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
               Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
             </label>
-            <select 
-              className="form-control" 
-              name="location" 
+            <CreatableDropdown 
+              options={locations} 
               value={formData.location} 
-              onChange={handleChange} 
-              required
-            >
-              <option value="">-- Please select the Location --</option>
-              {locations.map((loc, i) => (
-                <option key={i} value={loc}>{loc}</option>
-              ))}
-              {/* Fallback if no cities exist in DB yet */}
-              {!locations.includes("Delhi Terminal") && <option value="Delhi Terminal">Delhi Terminal</option>}
-              {!locations.includes("Mumbai Terminal") && <option value="Mumbai Terminal">Mumbai Terminal</option>}
-              {!locations.includes("Jaipur") && <option value="Jaipur">Jaipur</option>}
-            </select>
+              onChange={(loc) => setFormData({ ...formData, location: loc })} 
+              onCreate={(name) => handleCreateNew("city", name)}
+              placeholder="-- Please select the Location --" 
+            />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
@@ -195,6 +205,14 @@ const Tracking = () => {
           </button>
         </div>
       </form>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

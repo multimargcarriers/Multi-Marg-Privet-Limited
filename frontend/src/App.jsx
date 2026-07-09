@@ -22,6 +22,7 @@ import SalesReports from "./pages/reports/SalesReports";
 import PurchaseReports from "./pages/reports/PurchaseReports";
 import CashsheetReports from "./pages/reports/CashsheetReports";
 import ClientTripReports from "./pages/reports/ClientTripReports";
+import Analytics from "./pages/Analytics";
 
 import MiscBill from "./pages/MiscBill";
 import POD from "./pages/POD";
@@ -37,15 +38,17 @@ import SystemLogs from "./pages/SystemLogs";
 import Tracking from "./pages/Tracking";
 import { AuthProvider } from "./context/AuthContext";
 import { DialogProvider } from "./context/DialogContext";
+import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <DialogProvider>
-          <Routes>
+      <ToastProvider>
+        <AuthProvider>
+          <DialogProvider>
+            <Routes>
           <Route path="/" element={<Login />} />
 
           {/* Protected Routes */}
@@ -100,6 +103,7 @@ function App() {
             
             {/* Reports */}
             <Route element={<ProtectedRoute requiredPermission="reports" />}>
+              <Route path="/reports/analytics" element={<Analytics />} />
               <Route path="/reports/gst" element={<GST />} />
               <Route path="/reports/mis" element={<MISReports />} />
               <Route path="/reports/unbilled" element={<UnbilledReports />} />
@@ -118,9 +122,10 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </DialogProvider>
-      </AuthProvider>
+            </Routes>
+          </DialogProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

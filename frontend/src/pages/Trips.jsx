@@ -6,6 +6,8 @@ import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoade
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
+import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 
 const API = "http://localhost:5000/api";
 
@@ -16,10 +18,37 @@ const Trips = () => {
 
   const [trips, setTrips] = useState([]);
   const [clients, setClients] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+  const [pendingField, setPendingField] = useState({ index: null, field: "" });
+
+  const handleCreateNew = (type, field, name, index = null) => {
+    setModalType(type);
+    setPendingField({ index, field });
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") setClients([...clients, data]);
+    else if (modalType === "city") setCities([...cities, data]);
+    else if (modalType === "vendor") setVendors([...vendors, data]);
+
+    const name = data.name || data.client || data.city;
+    if (pendingField.index !== null) {
+      updateMaterialRow(pendingField.index, pendingField.field, name);
+    } else {
+      setForm({ ...form, [pendingField.field]: name });
+    }
+  };
   
   const initialFormState = {
     tripNo: "", date: "", vehicleType: "", vehicleRate: "", vehicleNo: "",
@@ -36,12 +65,16 @@ const Trips = () => {
 
   const fetchData = async () => {
     try {
-      const [tripsRes, clientsRes] = await Promise.all([
+      const [tripsRes, clientsRes, vendorsRes, citiesRes] = await Promise.all([
         axios.get(`${API}/trips`),
-        axios.get(`${API}/clients`)
+        axios.get(`${API}/clients`),
+        axios.get(`${API}/vendors`),
+        axios.get(`${API}/cities`)
       ]);
       if (tripsRes.data.success) setTrips(tripsRes.data.data || []);
       if (clientsRes.data.success) setClients(clientsRes.data.data || []);
+      if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
+      if (citiesRes.data.success) setCities(citiesRes.data.data || []);
     } catch (err) { console.error("Fetch data error", err); }
     finally { setLoading(false); }
   };
@@ -157,29 +190,50 @@ const Trips = () => {
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Vehicle No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" placeholder="-- Please select the Vehicle no --" value={form.vehicleNo} onChange={e => setForm({...form, vehicleNo: e.target.value})} required />
+              <input type="text" className="form-control" placeholder="-- Please select the Vehicle no --" value={form.vehicleNo} onChange={e => setForm({...form, vehicleNo: formatAllCaps(e.target.value)})} required />
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Driver Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" value={form.driverName} onChange={e => setForm({...form, driverName: e.target.value})} required />
+              <input type="text" className="form-control" value={form.driverName} onChange={e => setForm({...form, driverName: formatTitleCase(e.target.value)})} required />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Vendor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" placeholder="-- Please select the Vendor --" value={form.vendor} onChange={e => setForm({...form, vendor: e.target.value})} required />
+              <CreatableDropdown 
+                options={vendors} 
+                value={form.vendor} 
+                onChange={(val) => setForm({ ...form, vendor: val })} 
+                onCreate={(name) => handleCreateNew("vendor", "vendor", name)}
+                placeholder="-- Please select the Vendor --" 
+                format={formatAllCaps}
+              />
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" value={form.origin} onChange={e => setForm({...form, origin: e.target.value})} required />
+              <CreatableDropdown 
+                options={cities} 
+                value={form.origin} 
+                onChange={(city) => setForm({ ...form, origin: city })} 
+                onCreate={(name) => handleCreateNew("city", "origin", name)}
+                placeholder="-- Please select the Origin --" 
+                format={formatAllCaps}
+              />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" value={form.destination} onChange={e => setForm({...form, destination: e.target.value})} required />
+              <CreatableDropdown 
+                options={cities} 
+                value={form.destination} 
+                onChange={(city) => setForm({ ...form, destination: city })} 
+                onCreate={(name) => handleCreateNew("city", "destination", name)}
+                placeholder="-- Please select the Destination --" 
+                format={formatAllCaps}
+              />
             </div>
           </div>
 
@@ -198,10 +252,17 @@ const Trips = () => {
             
             {form.materialDetails.map((mat, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr 0.8fr 0.8fr 1fr 1fr 1fr 1fr 30px", gap: "8px", minWidth: "1200px", marginBottom: "8px", alignItems: "center" }}>
-                <CreatableDropdown options={clients} value={mat.clientName} onChange={val => updateMaterialRow(i, "clientName", val)} placeholder="-- Client --" />
+                <CreatableDropdown 
+                  options={clients} 
+                  value={mat.clientName} 
+                  onChange={val => updateMaterialRow(i, "clientName", val)} 
+                  onCreate={(name) => handleCreateNew("client", "clientName", name, i)}
+                  placeholder="-- Client --" 
+                  format={formatAllCaps}
+                />
                 <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.lrNo} onChange={e => updateMaterialRow(i, "lrNo", e.target.value)} />
-                <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignor} onChange={e => updateMaterialRow(i, "consignor", e.target.value)} />
-                <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignee} onChange={e => updateMaterialRow(i, "consignee", e.target.value)} />
+                <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignor} onChange={e => updateMaterialRow(i, "consignor", formatAllCaps(e.target.value))} />
+                <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignee} onChange={e => updateMaterialRow(i, "consignee", formatAllCaps(e.target.value))} />
                 <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={mat.box} onChange={e => updateMaterialRow(i, "box", e.target.value)} />
                 <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" step="0.01" value={mat.weight} onChange={e => updateMaterialRow(i, "weight", e.target.value)} />
                 <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" step="0.01" value={mat.chWeight} onChange={e => updateMaterialRow(i, "chWeight", e.target.value)} />
@@ -306,6 +367,14 @@ const Trips = () => {
           <p className="text-muted">Currently viewing the {view} tab.</p>
         </div>
       )}
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

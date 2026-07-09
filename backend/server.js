@@ -37,7 +37,11 @@ app.use(
 // CORS
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+    origin: [
+      "http://localhost:5173", 
+      "https://multimarg.vercel.app", 
+      process.env.FRONTEND_ORIGIN
+    ].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -128,6 +132,7 @@ const salesRoutes = require("./src/routes/sales");
 const purchaseReportRoutes = require("./src/routes/purchase-report");
 const usersRoutes = require("./src/routes/users");
 const logsRoutes = require("./src/routes/logs");
+const analyticsRoutes = require("./src/routes/analytics");
 
 // ============================================================
 // Mount Routes
@@ -135,6 +140,7 @@ const logsRoutes = require("./src/routes/logs");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/analytics", analyticsRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/vendors", vendorsRoutes);
 app.use("/api/bookings", bookingsRoutes);

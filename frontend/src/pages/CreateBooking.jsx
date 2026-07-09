@@ -3,7 +3,9 @@ import axios from "axios";
 import { CheckCircle, FileText, Loader2, MapPin } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
+import { formatAllCaps } from "../utils/formatters";
 
 const API = "http://localhost:5000/api";
 
@@ -40,6 +42,38 @@ const CreateBooking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+  const [pendingField, setPendingField] = useState("");
+
+  const handleCreateNew = (type, field, name) => {
+    setModalType(type);
+    setPendingField(field);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") {
+      setClients([...clients, data]);
+    } else if (modalType === "city") {
+      setCities([...cities, data]);
+    }
+
+    if (pendingField === "origin") {
+      setFormData({ ...formData, origin: data.city, originState: data.state || "", originCode: data.stateCode || "" });
+    } else if (pendingField === "destination") {
+      setFormData({ ...formData, destination: data.city, destState: data.state || "", destCode: data.stateCode || "" });
+    } else if (pendingField === "client") {
+      setFormData({ ...formData, client: data.name || data.client });
+    } else if (pendingField === "consignor") {
+      setFormData({ ...formData, consignor: data.name || data.client });
+    } else if (pendingField === "consignee") {
+      setFormData({ ...formData, consignee: data.name || data.client });
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,20 +122,7 @@ const CreateBooking = () => {
     setIsSubmitting(true);
     setSuccess(null);
     try {
-      // Auto-create client if it doesn't exist
-      const clientExists = clients.some(
-        (c) => (c.client || c.name).toLowerCase() === formData.client.trim().toLowerCase()
-      );
-      if (!clientExists && formData.client.trim() !== "") {
-        try {
-          const newClientRes = await axios.post(`${API}/clients`, { name: formData.client.trim() });
-          if (newClientRes.data.success) {
-            setClients([...clients, newClientRes.data.data]);
-          }
-        } catch (err) {
-          console.error("Failed to auto-create client", err);
-        }
-      }
+      // Removed old silent auto-create logic because we now use QuickAddModal for professional creation
 
       const response = await axios.post(`${API}/bookings`, formData);
       if (response.data.success) {
@@ -189,11 +210,18 @@ const CreateBooking = () => {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Awb No</label>
-            <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={handleChange} />
+            <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={(e) => setFormData({...formData, consignment: formatAllCaps(e.target.value)})} />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Billed To<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <SearchableSelect options={clients} value={formData.client} onChange={(client) => setFormData({ ...formData, client })} placeholder="-- Please select the Client --" displayKey="name" />
+            <CreatableDropdown 
+              options={clients} 
+              value={formData.client} 
+              onChange={(val) => setFormData({ ...formData, client: val })} 
+              onCreate={(name) => handleCreateNew("client", "client", name)}
+              placeholder="-- Please select the Client --" 
+              format={formatAllCaps}
+            />
           </div>
 
           <div className="form-group">
@@ -213,20 +241,48 @@ const CreateBooking = () => {
 
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Consignor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <CreatableDropdown options={clients} value={formData.consignor} onChange={(val) => setFormData({ ...formData, consignor: val })} placeholder="-- Please select the Consignor --" />
+            <CreatableDropdown 
+              options={clients} 
+              value={formData.consignor} 
+              onChange={(val) => setFormData({ ...formData, consignor: val })} 
+              onCreate={(name) => handleCreateNew("client", "consignor", name)}
+              placeholder="-- Please select the Consignor --" 
+              format={formatAllCaps}
+            />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Consignee<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <CreatableDropdown options={clients} value={formData.consignee} onChange={(val) => setFormData({ ...formData, consignee: val })} placeholder="-- Please select the Consignee --" />
+            <CreatableDropdown 
+              options={clients} 
+              value={formData.consignee} 
+              onChange={(val) => setFormData({ ...formData, consignee: val })} 
+              onCreate={(name) => handleCreateNew("client", "consignee", name)}
+              placeholder="-- Please select the Consignee --" 
+              format={formatAllCaps}
+            />
           </div>
 
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <SearchableSelect options={cities} value={formData.origin} onChange={(city, opt) => setFormData({ ...formData, origin: city, originState: opt?.state || "", originCode: opt?.stateCode || "" })} placeholder="-- Please select the Origin --" displayKey="city" />
+            <CreatableDropdown 
+              options={cities} 
+              value={formData.origin} 
+              onChange={(city, opt) => setFormData({ ...formData, origin: city, originState: opt?.state || "", originCode: opt?.stateCode || "" })} 
+              onCreate={(name) => handleCreateNew("city", "origin", name)}
+              placeholder="-- Please select the Origin --" 
+              format={formatAllCaps}
+            />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <SearchableSelect options={cities} value={formData.destination} onChange={(city, opt) => setFormData({ ...formData, destination: city, destState: opt?.state || "", destCode: opt?.stateCode || "" })} placeholder="-- Please select the Destination --" displayKey="city" />
+            <CreatableDropdown 
+              options={cities} 
+              value={formData.destination} 
+              onChange={(city, opt) => setFormData({ ...formData, destination: city, destState: opt?.state || "", destCode: opt?.stateCode || "" })} 
+              onCreate={(name) => handleCreateNew("city", "destination", name)}
+              placeholder="-- Please select the Destination --" 
+              format={formatAllCaps}
+            />
           </div>
         </div>
 
@@ -246,7 +302,7 @@ const CreateBooking = () => {
         </div>
         {formData.invoiceDetails.map((inv, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", e.target.value)} />
+            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="date" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
@@ -385,6 +441,14 @@ const CreateBooking = () => {
           </button>
         </div>
       </form>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

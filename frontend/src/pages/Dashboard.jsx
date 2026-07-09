@@ -1,26 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity } from 'lucide-react';
+import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
-
-const revenueData = [
-  { name: 'Jan', revenue: 4000 },
-  { name: 'Feb', revenue: 3000 },
-  { name: 'Mar', revenue: 2000 },
-  { name: 'Apr', revenue: 2780 },
-  { name: 'May', revenue: 1890 },
-  { name: 'Jun', revenue: 2390 },
-  { name: 'Jul', revenue: 3490 },
-];
-
-const bookingsData = [
-  { name: 'Delhi', bookings: 400 },
-  { name: 'Pune', bookings: 300 },
-  { name: 'Mumbai', bookings: 200 },
-  { name: 'Bangalore', bookings: 278 },
-  { name: 'Kolkata', bookings: 189 },
-];
 
 const StatCard = ({ title, value, icon, subtitle, trend }) => (
   <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -34,7 +16,9 @@ const StatCard = ({ title, value, icon, subtitle, trend }) => (
       </div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-      <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', fontWeight: '600' }}><ArrowUpRight size={14} /> {trend}</span>
+      <span style={{ color: trend.startsWith('-') ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', fontWeight: '600' }}>
+        {trend.startsWith('-') ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />} {trend}
+      </span>
       <span style={{ color: '#94a3b8' }}>{subtitle}</span>
     </div>
   </div>
@@ -80,10 +64,10 @@ const Dashboard = () => {
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        <StatCard title="Total Clients" value={stats?.newClients || 191} icon={<Users size={24} />} trend="+5.2%" subtitle="Active client base" />
-        <StatCard title="Monthly Revenue" value={`₹ ${(stats?.earnings || 345000).toLocaleString()}`} icon={<DollarSign size={24} />} trend="+12.4%" subtitle="vs. previous month" />
-        <StatCard title="Active Bookings" value={stats?.newBookings || 1337} icon={<FileText size={24} />} trend="+3.1%" subtitle="Dispatched this week" />
-        <StatCard title="Network Hubs" value={stats?.totalInvoices || 37} icon={<Globe size={24} />} trend="+1" subtitle="Active cities" />
+        <StatCard title="Total Clients" value={stats?.totalClients || 0} icon={<Users size={24} />} trend="+Active" subtitle="Registered clients" />
+        <StatCard title="Total Revenue" value={`₹ ${((stats?.totalCashIn || 0) + (stats?.totalBillsAmount || 0)).toLocaleString()}`} icon={<DollarSign size={24} />} trend="+Gross" subtitle="Cash In & Bills" />
+        <StatCard title="Total Cash Out" value={`₹ ${(stats?.totalCashOut || 0).toLocaleString()}`} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
+        <StatCard title="Total Bookings" value={stats?.totalBookings || 0} icon={<FileText size={24} />} trend="+Logistics" subtitle="Dispatched total" />
       </div>
 
       {/* Charts Section */}
@@ -96,7 +80,7 @@ const Dashboard = () => {
           </div>
           <div style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={stats?.revenueData || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -124,7 +108,7 @@ const Dashboard = () => {
           </div>
           <div style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bookingsData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+              <BarChart data={stats?.bookingsData || []} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />

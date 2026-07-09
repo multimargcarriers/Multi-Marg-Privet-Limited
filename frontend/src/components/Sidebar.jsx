@@ -21,7 +21,8 @@ import {
   Package,
   Edit,
   Shield,
-  Activity
+  Activity,
+  TrendingUp
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
@@ -140,6 +141,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       isHeader: true,
       permission: "reports",
       children: [
+        { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} /> },
         { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} /> },
         { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} /> },
         { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} /> },

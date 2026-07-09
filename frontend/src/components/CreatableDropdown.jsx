@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Plus, X } from "lucide-react";
 
-const CreatableDropdown = ({ options, value, onChange, placeholder = "Select or type to create..." }) => {
+const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "Select or type to create...", format }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef(null);
@@ -28,25 +28,29 @@ const CreatableDropdown = ({ options, value, onChange, placeholder = "Select or 
   const filteredOptions = options.filter((opt) => {
     if (query === value && value !== "") return true;
     const q = query.toLowerCase();
-    const name = opt.client || opt.name || "";
+    const name = opt.client || opt.name || opt.city || "";
     return name.toLowerCase().includes(q);
   });
 
   const exactMatch = options.some((opt) => {
-    const name = opt.client || opt.name || "";
+    const name = opt.client || opt.name || opt.city || "";
     return name.toLowerCase() === query.trim().toLowerCase();
   });
 
-  const handleSelect = (selectedValue) => {
+  const handleSelect = (selectedValue, selectedOption) => {
     setQuery(selectedValue);
-    onChange(selectedValue);
+    onChange(selectedValue, selectedOption);
     setIsOpen(false);
   };
 
   const handleChange = (e) => {
-    setQuery(e.target.value);
+    let val = e.target.value;
+    if (format) {
+      val = format(val);
+    }
+    setQuery(val);
     setIsOpen(true);
-    if (e.target.value === "") {
+    if (val === "") {
       onChange("");
     }
   };
@@ -118,11 +122,11 @@ const CreatableDropdown = ({ options, value, onChange, placeholder = "Select or 
           }}
         >
           {filteredOptions.length > 0 && filteredOptions.map((opt, idx) => {
-            const name = opt.client || opt.name;
+            const name = opt.client || opt.name || opt.city || "";
             return (
               <div 
                 key={opt.id || idx}
-                onClick={() => handleSelect(name)}
+                onClick={() => handleSelect(name, opt)}
                 style={{ 
                   padding: "0.75rem", 
                   cursor: "pointer",
@@ -141,7 +145,14 @@ const CreatableDropdown = ({ options, value, onChange, placeholder = "Select or 
 
           {!exactMatch && query.trim() !== "" && query !== value && (
             <div 
-              onClick={() => handleSelect(query.trim())}
+              onClick={() => {
+                if (onCreate) {
+                  onCreate(query.trim());
+                  setIsOpen(false);
+                } else {
+                  handleSelect(query.trim());
+                }
+              }}
               style={{ 
                 display: "flex",
                 alignItems: "center",

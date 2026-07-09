@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import SearchableSelect from "../../components/SearchableSelect";
+import CreatableDropdown from "../../components/CreatableDropdown";
+import QuickAddModal from "../../components/QuickAddModal";
 
 const ClientTripReports = () => {
   const [data, setData] = useState([]);
@@ -11,6 +12,23 @@ const ClientTripReports = () => {
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") {
+      setClients([...clients, data]);
+      setFilters({ ...filters, client: data.name || data.client });
+    }
+  };
 
   useEffect(() => {
     fetchClients();
@@ -119,12 +137,12 @@ const ClientTripReports = () => {
         <div>
           <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase" }}>Client</label>
           <div style={{ maxWidth: "100%" }}>
-            <SearchableSelect 
+            <CreatableDropdown 
               options={clients} 
               value={filters.client} 
               onChange={(c) => setFilters({ ...filters, client: c })} 
+              onCreate={(name) => handleCreateNew("client", name)}
               placeholder="-- Please select the Client --" 
-              displayKey="name" 
             />
           </div>
         </div>
@@ -271,6 +289,14 @@ const ClientTripReports = () => {
           </div>
         </div>
       </div>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

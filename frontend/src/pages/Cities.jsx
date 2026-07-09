@@ -3,6 +3,7 @@ import axios from "axios";
 import { Eye, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { formatAllCaps } from "../utils/formatters";
 
 const Cities = () => {
   const { user } = useContext(AuthContext);
@@ -145,7 +146,7 @@ const Cities = () => {
               <input 
                 type="text" 
                 value={form.city} 
-                onChange={(e) => setForm({ ...form, city: e.target.value })} 
+                onChange={(e) => setForm({ ...form, city: formatAllCaps(e.target.value) })} 
                 required
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
@@ -155,7 +156,7 @@ const Cities = () => {
               <input 
                 type="text" 
                 value={form.short} 
-                onChange={(e) => setForm({ ...form, short: e.target.value })} 
+                onChange={(e) => setForm({ ...form, short: formatAllCaps(e.target.value) })} 
                 placeholder="e.g. DEL"
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
@@ -165,8 +166,8 @@ const Cities = () => {
               <input 
                 type="text" 
                 value={form.state} 
-                placeholder="e.g. Delhi"
-                onChange={(e) => setForm({ ...form, state: e.target.value })} 
+                placeholder="e.g. DELHI"
+                onChange={(e) => setForm({ ...form, state: formatAllCaps(e.target.value) })} 
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
             </div>

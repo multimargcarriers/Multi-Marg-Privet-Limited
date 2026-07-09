@@ -3,6 +3,7 @@ import axios from "axios";
 import { Eye, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 
 const Clients = () => {
   const { user } = useContext(AuthContext);
@@ -176,7 +177,7 @@ const Clients = () => {
                 type="text" 
                 value={form.name} 
                 placeholder="Enter Client Name"
-                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                onChange={(e) => setForm({ ...form, name: formatAllCaps(e.target.value) })} 
                 required
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
@@ -197,7 +198,7 @@ const Clients = () => {
                 type="text" 
                 value={form.contact} 
                 placeholder="Enter Contact Person"
-                onChange={(e) => setForm({ ...form, contact: e.target.value })} 
+                onChange={(e) => setForm({ ...form, contact: formatTitleCase(e.target.value) })} 
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
             </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FileText, Search, Download, Send, CheckCircle, Loader2 } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 
 const API = "http://localhost:5000/api";
 
@@ -12,6 +14,23 @@ const GenerateBill = () => {
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") {
+      setClients([...clients, data]);
+      setFilters({ ...filters, client: data.name || data.client });
+    }
+  };
 
   const [filters, setFilters] = useState({
     invoicePrefix: "MCPL/26-27/",
@@ -132,12 +151,12 @@ const GenerateBill = () => {
 
         <div className="form-group" style={{ marginBottom: "1.5rem" }}>
           <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Client<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-          <SearchableSelect 
+          <CreatableDropdown 
             options={clients} 
             value={filters.client} 
-            onChange={(c) => setFilters({ ...filters, client: c })} 
+            onChange={(val) => setFilters({ ...filters, client: val })} 
+            onCreate={(name) => handleCreateNew("client", name)}
             placeholder="-- Please select the Client --" 
-            displayKey="name" 
           />
         </div>
 
@@ -223,6 +242,14 @@ const GenerateBill = () => {
           </table>
         )}
       </div>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import axios from "axios";
 import { Eye, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
 
 const Vendors = () => {
   const { user } = useContext(AuthContext);
@@ -196,7 +197,7 @@ const Vendors = () => {
                 type="text" 
                 value={form.name} 
                 placeholder="Enter Vendor Name"
-                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                onChange={(e) => setForm({ ...form, name: formatAllCaps(e.target.value) })} 
                 required
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
@@ -246,7 +247,7 @@ const Vendors = () => {
                 type="text" 
                 value={form.contact} 
                 placeholder="Contact Person Name"
-                onChange={(e) => setForm({ ...form, contact: e.target.value })} 
+                onChange={(e) => setForm({ ...form, contact: formatTitleCase(e.target.value) })} 
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
             </div>
@@ -256,7 +257,7 @@ const Vendors = () => {
                 type="text" 
                 value={form.phno} 
                 placeholder="Phone Number"
-                onChange={(e) => setForm({ ...form, phno: e.target.value })} 
+                onChange={(e) => setForm({ ...form, phno: formatPhoneNumber(e.target.value) })} 
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
               />
             </div>

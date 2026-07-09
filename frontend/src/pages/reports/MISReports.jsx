@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import SearchableSelect from "../../components/SearchableSelect";
+import CreatableDropdown from "../../components/CreatableDropdown";
+import QuickAddModal from "../../components/QuickAddModal";
 import { Search, Download } from "lucide-react";
 
 const API = "http://localhost:5000/api";
@@ -11,6 +12,23 @@ const MISReports = () => {
   const [clients, setClients] = useState([]);
   const [filters, setFilters] = useState({ client: "", fr: "", to: "" });
   const [loading, setLoading] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") {
+      setClients([...clients, data]);
+      setFilters({ ...filters, client: data.name || data.client });
+    }
+  };
 
   useEffect(() => { 
     fetchClients();
@@ -96,12 +114,12 @@ const MISReports = () => {
           
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>CLIENT</label>
-            <SearchableSelect 
+            <CreatableDropdown 
               options={clients} 
               value={filters.client} 
               onChange={(c) => setFilters({ ...filters, client: c })} 
+              onCreate={(name) => handleCreateNew("client", name)}
               placeholder="-- Select Client --" 
-              displayKey="name" 
             />
           </div>
           
@@ -191,6 +209,14 @@ const MISReports = () => {
           </tbody>
         </table>
       </div>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

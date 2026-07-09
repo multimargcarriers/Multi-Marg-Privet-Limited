@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { Eye, Trash2 } from "lucide-react";
-import SearchableSelect from "../components/SearchableSelect";
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 
@@ -24,6 +25,26 @@ const Rates = () => {
     roadExpressRate: "", roadExpressPickup: "", roadExpressDelivery: ""
   };
   const [form, setForm] = useState(initialFormState);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+  const [pendingField, setPendingField] = useState("");
+
+  const handleCreateNew = (type, field, name) => {
+    setModalType(type);
+    setPendingField(field);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") setClients([...clients, data]);
+    else if (modalType === "city") setCities([...cities, data]);
+
+    const name = data.name || data.client || data.city;
+    setForm({ ...form, [pendingField]: name });
+  };
 
   // Pagination and search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -177,32 +198,32 @@ const Rates = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div style={{ gridColumn: "span 2" }}>
               <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client<span style={{ color: "#ef4444" }}>*</span></label>
-              <SearchableSelect
+              <CreatableDropdown
                 options={clients}
                 value={form.client}
                 onChange={(client) => setForm({ ...form, client })}
+                onCreate={(name) => handleCreateNew("client", "client", name)}
                 placeholder="-- Please select the Client --"
-                displayKey="name"
               />
             </div>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Origin<span style={{ color: "#ef4444" }}>*</span></label>
-              <SearchableSelect
+              <CreatableDropdown
                 options={cities}
                 value={form.origin}
                 onChange={(origin) => setForm({ ...form, origin })}
+                onCreate={(name) => handleCreateNew("city", "origin", name)}
                 placeholder="-- Please select Origin --"
-                displayKey="city"
               />
             </div>
             <div>
               <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Destination<span style={{ color: "#ef4444" }}>*</span></label>
-              <SearchableSelect
+              <CreatableDropdown
                 options={cities}
                 value={form.destination}
                 onChange={(destination) => setForm({ ...form, destination })}
+                onCreate={(name) => handleCreateNew("city", "destination", name)}
                 placeholder="-- Please select Destination --"
-                displayKey="city"
               />
             </div>
             <div style={{ gridColumn: "span 2" }}>
@@ -417,6 +438,14 @@ const Rates = () => {
           </div>
         </div>
       </div>
+      
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };
