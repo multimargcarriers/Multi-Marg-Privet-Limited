@@ -1,73 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Phone, Mail, Menu, X, Truck } from 'lucide-react';
+import { Menu, X, PhoneCall } from 'lucide-react';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navLinks = [
     { name: 'About Us', path: '/about' },
-    { name: 'Our Services', path: '/services' },
-    { name: 'Industries We Serve', path: '/industries' },
+    { name: 'Services', path: '/services' },
+    { name: 'Industries', path: '/industries' },
     { name: 'Network', path: '/branches' },
   ];
 
   return (
-    <header style={{ position: 'relative', width: '100%', zIndex: 100, boxShadow: 'var(--shadow-sm)', backgroundColor: 'white' }}>
+    <header style={{ 
+      position: 'fixed', 
+      top: 0, 
+      width: '100%', 
+      zIndex: 1000, 
+      transition: 'all 0.3s ease',
+      backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'white',
+      backdropFilter: scrolled ? 'blur(10px)' : 'none',
+      boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
+      borderBottom: scrolled ? 'none' : '1px solid var(--border-color)'
+    }}>
       
-      {/* Top Bar (Deep Blue) */}
-      <div style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.4rem 0', fontSize: '0.85rem' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <a href="tel:+919045015097" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Phone size={14} /> +91 90450-15097
-            </a>
-            <a href="mailto:info@multimargcarriers.co.in" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Mail size={14} /> info@multimargcarriers.co.in
-            </a>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {/* Social icons temporarily removed due to lucide-react deprecation */}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Header (White) */}
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem' }}>
+      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: scrolled ? '0.75rem 2rem' : '1.25rem 2rem', transition: 'padding 0.3s ease' }}>
         
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', zIndex: 101 }}>
-          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '55px', objectFit: 'contain' }} />
+          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '45px' : '55px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
         </Link>
 
         {/* Desktop Nav */}
-        <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }} className="desktop-nav">
+        <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }} className="desktop-nav">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               to={link.path}
               style={{
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
                 color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)',
-                transition: 'color 0.2s',
+                position: 'relative',
+                padding: '0.5rem 0'
               }}
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
               onMouseLeave={(e) => e.currentTarget.style.color = location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'}
             >
               {link.name}
+              {location.pathname === link.path && (
+                <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '2px', backgroundColor: 'var(--primary-red)' }}></div>
+              )}
             </Link>
           ))}
           
-          <div style={{ display: 'flex', gap: '0.75rem', marginLeft: '1rem' }}>
-            <Link to="/contact" className="btn btn-outline-red">
-              Contact Us
-            </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700' }}>
+              <PhoneCall size={18} />
+              <span>+91 90450-15097</span>
+            </div>
             <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
-              Customer Login
+              Login
             </a>
           </div>
         </nav>
@@ -102,7 +108,7 @@ const Navbar = () => {
               style={{
                 fontSize: '1rem',
                 fontWeight: '500',
-                padding: '0.5rem 0',
+                padding: '0.75rem 0',
                 borderBottom: '1px solid #f0f0f0',
                 color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'
               }}
@@ -110,11 +116,15 @@ const Navbar = () => {
               {link.name}
             </Link>
           ))}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
+              <PhoneCall size={18} />
+              <span>+91 90450-15097</span>
+            </div>
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Contact Us
             </Link>
-            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%' }}>
+            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
               Customer Login
             </a>
           </div>
@@ -122,10 +132,8 @@ const Navbar = () => {
       )}
       
       <style>{`
-        .social-icon { color: rgba(255,255,255,0.8); transition: color 0.2s; display: flex; }
-        .social-icon:hover { color: white; }
-        @media (min-width: 992px) { .mobile-toggle, .mobile-menu { display: none !important; } }
-        @media (max-width: 991px) { .desktop-nav { display: none !important; } }
+        @media (min-width: 1024px) { .mobile-toggle, .mobile-menu { display: none !important; } }
+        @media (max-width: 1023px) { .desktop-nav { display: none !important; } }
       `}</style>
     </header>
   );
