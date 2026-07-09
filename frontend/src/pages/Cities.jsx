@@ -4,6 +4,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatAllCaps } from "../utils/formatters";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Cities = () => {
   const { user } = useContext(AuthContext);
@@ -147,86 +148,93 @@ const Cities = () => {
         )}
       </div>
 
-      {/* Form Section */}
-      {(isAdding || editing) && (
-        <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit City Details" : "Add New City"}</h4>
-          <form onSubmit={handleSave}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>City Name<span style={{ color: "#ef4444" }}>*</span></label>
-                <input 
-                  type="text" 
-                  value={form.city} 
-                  onChange={(e) => setForm({ ...form, city: formatAllCaps(e.target.value) })} 
-                  required
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
-                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Short Code</label>
-                <input 
-                  type="text" 
-                  value={form.short} 
-                  onChange={(e) => setForm({ ...form, short: formatAllCaps(e.target.value) })} 
-                  placeholder="e.g. DEL"
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
-                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State</label>
-                <input 
-                  type="text" 
-                  value={form.state} 
-                  placeholder="e.g. DELHI"
-                  onChange={(e) => setForm({ ...form, state: formatAllCaps(e.target.value) })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
-                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State Code (GST)</label>
-                <input 
-                  type="text" 
-                  value={form.stateCode} 
-                  placeholder="e.g. 07"
-                  onChange={(e) => setForm({ ...form, stateCode: e.target.value })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
-                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                />
-              </div>
+      {/* ADD/EDIT FORM SECTION */}
+      <AnimatePresence>
+        {(isAdding || editing) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{
+              backgroundColor: "white",
+              borderRadius: "12px",
+              padding: "2rem",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              marginBottom: "2rem",
+              border: "1px solid #e2e8f0"
+            }}>
+              <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit City Details" : "Add New City"}</h4>
+              <form onSubmit={handleSave}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>City Name<span style={{ color: "#ef4444" }}>*</span></label>
+                    <input 
+                      type="text" 
+                      value={form.city} 
+                      onChange={(e) => setForm({ ...form, city: formatAllCaps(e.target.value) })} 
+                      required
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Short Code</label>
+                    <input 
+                      type="text" 
+                      value={form.short} 
+                      onChange={(e) => setForm({ ...form, short: formatAllCaps(e.target.value) })} 
+                      placeholder="e.g. DEL"
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State</label>
+                    <input 
+                      type="text" 
+                      value={form.state} 
+                      placeholder="e.g. DELHI"
+                      onChange={(e) => setForm({ ...form, state: formatAllCaps(e.target.value) })} 
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State Code (GST)</label>
+                    <input 
+                      type="text" 
+                      value={form.stateCode} 
+                      placeholder="e.g. 07"
+                      onChange={(e) => setForm({ ...form, stateCode: e.target.value })} 
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                    />
+                  </div>
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
+                  <button 
+                    type="button"
+                    onClick={() => { setEditing(null); setIsAdding(false); setForm(initialFormState); }}
+                    style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
+                    onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
+                  >
+                    {editing ? "Save Changes" : "Save City"}
+                  </button>
+                </div>
+              </form>
             </div>
-            
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
-              <button 
-                type="button"
-                onClick={() => { setEditing(null); setIsAdding(false); setForm(initialFormState); }}
-                style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
-                onMouseOver={(e) => { e.target.style.backgroundColor = "#f1f5f9"; e.target.style.color = "#0f172a"; }}
-                onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#64748b"; }}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-                onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
-                onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
-              >
-                {editing ? "Save Changes" : "Save City"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Table Section */}
+      {/* TABLE SECTION */}
       <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "10px" }}>
         
         {/* Toolbar */}

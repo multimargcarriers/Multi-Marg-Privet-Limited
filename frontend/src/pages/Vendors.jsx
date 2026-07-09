@@ -4,6 +4,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Vendors = () => {
   const { user } = useContext(AuthContext);
@@ -178,10 +179,18 @@ const Vendors = () => {
       </div>
 
       {/* Form Section */}
-      {(isAdding || editing) && (
-        <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
-          <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit Vendor Details" : "Add New Vendor"}</h4>
-          <form onSubmit={handleSave}>
+      <AnimatePresence>
+        {(isAdding || editing) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
+              <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit Vendor Details" : "Add New Vendor"}</h4>
+              <form onSubmit={handleSave}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.5rem" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Code Initial</label>
@@ -335,7 +344,9 @@ const Vendors = () => {
             </div>
           </form>
         </div>
-      )}
+      </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Table Section */}
       <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "10px" }}>
