@@ -21,23 +21,50 @@ const Home = () => {
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundImage: 'linear-gradient(rgba(0, 31, 57, 0.6), rgba(0, 31, 57, 0.6)), url("https://images.unsplash.com/photo-1586528116311-ad8ed7c1590e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
         paddingTop: '4rem',
-        paddingBottom: '8rem' // Extra padding at bottom for overlapping widget
+        paddingBottom: '8rem',
+        overflow: 'hidden'
       }}>
+        {/* HTML5 Video Background */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: -2
+          }}
+        >
+          {/* Using a placeholder logistics video URL. You can replace this src with your own generated MP4 file later! */}
+          <source src="https://cdn.pixabay.com/video/2020/05/24/40061-424856424_large.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Dark overlay to make text readable */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 31, 57, 0.65)',
+          zIndex: -1
+        }}></div>
         
         <div className="container" style={{ textAlign: 'center', color: 'white', zIndex: 1 }}>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '500', marginBottom: '1rem', letterSpacing: '2px', textTransform: 'uppercase' }}>
-            You set the destination
+            Empowering Your Supply Chain
           </h2>
           <h1 style={{ fontSize: '4.5rem', fontWeight: '900', marginBottom: '2rem', lineHeight: '1.1' }}>
-            WE CREATE THE PATH
+            NATIONWIDE LOGISTICS
           </h1>
           <p style={{ fontSize: '1.25rem', maxWidth: '800px', margin: '0 auto', opacity: 0.9 }}>
-            As India's fastest growing end-to-end logistics partner, we simplify transportation, warehousing, and supply chain management.
+            Experience seamless transportation, secure warehousing, and real-time tracking with Multimarg Carriers. We deliver excellence across every route.
           </p>
         </div>
 

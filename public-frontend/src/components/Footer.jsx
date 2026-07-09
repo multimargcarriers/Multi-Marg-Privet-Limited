@@ -10,11 +10,8 @@ const Footer = () => {
           
           {/* Brand Col */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: 'white' }}>
-              <Truck size={32} />
-              <div>
-                <h2 style={{ fontSize: '1.3rem', margin: 0, color: 'white' }}>MULTIMARG CARRIERS</h2>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '40px', objectFit: 'contain' }} />
             </div>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.7', marginBottom: '1.5rem', color: '#b0c4de' }}>
               India's leading end-to-end logistics partner. We simplify your supply chain with our extensive network, dedicated fleet, and cutting-edge technology.

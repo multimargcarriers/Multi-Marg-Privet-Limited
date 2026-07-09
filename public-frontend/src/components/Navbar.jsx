@@ -39,18 +39,8 @@ const Navbar = () => {
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem' }}>
         
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101 }}>
-          <div style={{ color: 'var(--primary-blue)' }}>
-            <Truck size={36} strokeWidth={2} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '1.4rem', margin: 0, color: 'var(--primary-blue)', letterSpacing: '-0.5px' }}>
-              MULTIMARG <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
-            </h1>
-            <p style={{ fontSize: '0.65rem', margin: 0, color: 'var(--text-main)', letterSpacing: '2px', textTransform: 'uppercase', fontWeight: '500' }}>
-              Simplifying Your Business
-            </p>
-          </div>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', zIndex: 101 }}>
+          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '55px', objectFit: 'contain' }} />
         </Link>
 
         {/* Desktop Nav */}
