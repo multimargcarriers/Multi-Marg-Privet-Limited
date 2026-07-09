@@ -35,14 +35,14 @@ const Home = () => {
           <source src="/i_dont_want_logo_gemini_i_want.mp4" type="video/mp4" />
         </video>
         
-        {/* Dark overlay to make text readable */}
+        {/* Dark overlay to make text readable on the left, but leave video clear on the right */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           width: '100%',
           height: '100%',
-          backgroundColor: 'rgba(30, 58, 138, 0.7)', /* Royal Blue Overlay */
+          background: 'linear-gradient(to right, rgba(11, 27, 61, 0.95) 0%, rgba(11, 27, 61, 0.6) 45%, rgba(0,0,0,0) 80%)',
           zIndex: -1
         }}></div>
         
