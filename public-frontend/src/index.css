@@ -8,8 +8,8 @@
   
   --bg-color: #ffffff;
   --bg-light-grey: #f8fafc;
-  --text-main: #1e293b;
-  --text-light: #64748b;
+  --text-main: #0f172a; /* Deep dark slate for max contrast */
+  --text-light: #334155; /* Dark grey for secondary text */
   --border-color: #e0e0e0;
   
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
@@ -35,7 +35,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
-  color: var(--text-main);
+  color: inherit;
 }
 
 a {
@@ -184,6 +184,12 @@ ul {
   
   .brand-name {
     font-size: 1rem !important;
+  }
+
+  /* Responsive typography overrides */
+  h1 { 
+    font-size: 2.2rem !important; 
+    line-height: 1.3 !important; 
   }
 }
 

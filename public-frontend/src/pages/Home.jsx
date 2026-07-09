@@ -53,11 +53,11 @@ const Home = () => {
             <div style={{ display: 'inline-block', padding: '0.4rem 1rem', background: 'rgba(234, 88, 12, 0.2)', border: '1px solid var(--primary-red)', borderRadius: '50px', marginBottom: '1.5rem', fontSize: '0.85rem', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '1px', color: '#ffedd5' }}>
               Optimizing Supply Chains
             </div>
-            <h1 style={{ fontSize: '4rem', fontWeight: '900', marginBottom: '1.5rem', lineHeight: '1.1', textTransform: 'uppercase', color: 'white' }}>
-              Nationwide <br/> <span style={{ color: 'var(--primary-red)' }}>Logistics</span>
+            <h1 style={{ fontSize: '3rem', fontWeight: '900', marginBottom: '1.5rem', lineHeight: '1.1', textTransform: 'uppercase', color: 'white' }}>
+              Deliver Packages In Any Way <br/> <span style={{ color: 'var(--primary-red)' }}>Seamless Import & Export</span>
             </h1>
             <p style={{ fontSize: '1.15rem', marginBottom: '2.5rem', opacity: 0.9, lineHeight: '1.7', maxWidth: '500px' }}>
-              Experience seamless transportation, secure warehousing, and real-time tracking. Multimarg Carriers delivers operational excellence across every route in India.
+              Connecting Your World – Fast, Reliable Domestic Logistics by Air, Train, and Road. Unlocking Global Opportunities, One Trade at a Time.
             </p>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <Link to="/about" className="btn btn-red" style={{ padding: '1rem 2rem' }}>
@@ -207,16 +207,16 @@ const Home = () => {
                <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                  <ShieldCheck size={36} color="var(--primary-red)" />
                </div>
-               <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'white' }}>Zero Pilferage</h4>
-               <p style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Rigorous security checks and 100% insured transit.</p>
+               <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'white' }}>Safety And Reliability</h4>
+               <p style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Safety First, Reliability Always. Rigorous security checks and 100% insured transit.</p>
              </div>
              
              <div>
                <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                  <Clock size={36} color="var(--primary-red)" />
                </div>
-               <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'white' }}>Rapid Turnaround</h4>
-               <p style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Strict adherence to delivery SLA and optimized routing.</p>
+               <h4 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'white' }}>Seamless Journeys</h4>
+               <p style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Effortless Transport. Strict adherence to delivery SLA and optimized routing.</p>
              </div>
 
              <div>

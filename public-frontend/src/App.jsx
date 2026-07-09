@@ -5,6 +5,11 @@ import Footer from './components/Footer';
 
 // Pages
 import Home from './pages/Home';
+import About from './pages/About';
+import Services from './pages/Services';
+import Industries from './pages/Industries';
+import Branches from './pages/Branches';
+import Contact from './pages/Contact';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -23,7 +28,11 @@ function App() {
       <main style={{ minHeight: '100vh' }}>
         <Routes>
           <Route path="/" element={<Home />} />
-          {/* We will add About, Services, Branches, Contact later */}
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/industries" element={<Industries />} />
+          <Route path="/branches" element={<Branches />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>

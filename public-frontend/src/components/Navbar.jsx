@@ -16,6 +16,7 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
+    { name: 'Home', path: '/' },
     { name: 'About Us', path: '/about' },
     { name: 'Services', path: '/services' },
     { name: 'Industries', path: '/industries' },
@@ -75,7 +76,7 @@ const Navbar = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700' }}>
               <PhoneCall size={18} />
-              <span>+91 90450-15097</span>
+              <span>+05944-324033</span>
             </div>
             <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
               Login
@@ -124,7 +125,7 @@ const Navbar = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
               <PhoneCall size={18} />
-              <span>+91 90450-15097</span>
+              <span>+05944-324033</span>
             </div>
             <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Contact Us

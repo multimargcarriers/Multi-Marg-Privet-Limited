@@ -25,7 +25,7 @@ const Footer = () => {
               <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '45px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'brightness(0) invert(1)' }} />
             </Link>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.8', color: '#94a3b8' }}>
-              We simplify your supply chain with our extensive network, dedicated fleet, and cutting-edge technology. Experience logistics excellence.
+              Multimarg Carriers Pvt Ltd handles the transportation, storage, and distribution of goods, ensuring products move efficiently from suppliers to customers. We provide services like freight forwarding, warehousing, supply chain management, and last-mile delivery.
             </p>
           </div>
 
@@ -57,11 +57,11 @@ const Footer = () => {
             <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <MapPin size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span>Sector 1, Plot No 12, Transport Nagar, Pune, Maharashtra 411044</span>
+                <span>LIG-194, AVAS VIKAS, RUDRAPUR, UK-263153</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <PhoneCall size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span>+91 90450-15097</span>
+                <span>+05944-324033</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <Mail size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
