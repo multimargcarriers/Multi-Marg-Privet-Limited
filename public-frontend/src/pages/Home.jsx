@@ -13,7 +13,7 @@ const Home = () => {
         minHeight: '100vh', 
         display: 'flex', 
         alignItems: 'center',
-        paddingTop: '80px',
+        paddingTop: '140px', /* Increased padding to prevent navbar from hiding content on mobile */
         overflow: 'hidden'
       }}>
         {/* HTML5 Video Background */}
