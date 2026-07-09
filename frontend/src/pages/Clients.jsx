@@ -13,6 +13,7 @@ const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const initialFormState = {
     codeInitial: "MCPL",
@@ -82,6 +83,7 @@ const Clients = () => {
         }
       }
       setForm(initialFormState);
+      setIsAdding(false);
     } catch (err) {
       console.error("Save error", err);
       fetchClients();
@@ -142,108 +144,133 @@ const Clients = () => {
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
-      {/* Title */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <h3 style={{ fontSize: "1.6rem", color: "#64748b", margin: 0, fontWeight: "500" }}>{editing ? "Edit Client" : "Add Client"}</h3>
+      {/* Title & Add Button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Clients Master</h3>
+        {!isAdding && !editing && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+          >
+            + Add New
+          </button>
+        )}
       </div>
 
       {/* Form Section */}
-      <div style={{ marginBottom: "2rem" }}>
-        <form onSubmit={handleSave}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Code Initial</label>
-              <input 
-                type="text" 
-                value={form.codeInitial} 
-                onChange={(e) => setForm({ ...form, codeInitial: e.target.value })} 
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", backgroundColor: "#f1f5f9", color: "#94a3b8", cursor: "not-allowed" }}
-                readOnly
-              />
+      {(isAdding || editing) && (
+        <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
+          <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit Client Details" : "Add New Client"}</h4>
+          <form onSubmit={handleSave}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Code Initial</label>
+                <input 
+                  type="text" 
+                  value={form.codeInitial} 
+                  onChange={(e) => setForm({ ...form, codeInitial: e.target.value })} 
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#f1f5f9", color: "#475569", outline: "none", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Code</label>
+                <input 
+                  type="text" 
+                  value={form.clientCode} 
+                  onChange={(e) => setForm({ ...form, clientCode: e.target.value })} 
+                  placeholder="e.g. 001"
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Name<span style={{ color: "#ef4444" }}>*</span></label>
+                <input 
+                  type="text" 
+                  value={form.name} 
+                  placeholder="Enter Client Name"
+                  onChange={(e) => setForm({ ...form, name: formatAllCaps(e.target.value) })} 
+                  required
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>GST<span style={{ color: "#ef4444" }}>*</span></label>
+                <input 
+                  type="text" 
+                  value={form.gst} 
+                  placeholder="Enter GST"
+                  onChange={(e) => setForm({ ...form, gst: e.target.value })} 
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Contact Person</label>
+                <input 
+                  type="text" 
+                  value={form.contact} 
+                  placeholder="Enter Contact Person"
+                  onChange={(e) => setForm({ ...form, contact: formatTitleCase(e.target.value) })} 
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Email</label>
+                <input 
+                  type="email" 
+                  value={form.email} 
+                  placeholder="Enter Email"
+                  onChange={(e) => setForm({ ...form, email: e.target.value })} 
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Address<span style={{ color: "#ef4444" }}>*</span></label>
+                <textarea 
+                  value={form.address} 
+                  placeholder="Enter Address"
+                  onChange={(e) => setForm({ ...form, address: e.target.value })} 
+                  required
+                  rows="2"
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", resize: "none", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
             </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Code</label>
-              <input 
-                type="text" 
-                value={form.clientCode} 
-                onChange={(e) => setForm({ ...form, clientCode: e.target.value })} 
-                placeholder="e.g. 001"
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Name<span style={{ color: "#ef4444" }}>*</span></label>
-              <input 
-                type="text" 
-                value={form.name} 
-                placeholder="Enter Client Name"
-                onChange={(e) => setForm({ ...form, name: formatAllCaps(e.target.value) })} 
-                required
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>GST<span style={{ color: "#ef4444" }}>*</span></label>
-              <input 
-                type="text" 
-                value={form.gst} 
-                placeholder="Enter GST"
-                onChange={(e) => setForm({ ...form, gst: e.target.value })} 
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Contact Person</label>
-              <input 
-                type="text" 
-                value={form.contact} 
-                placeholder="Enter Contact Person"
-                onChange={(e) => setForm({ ...form, contact: formatTitleCase(e.target.value) })} 
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Email</label>
-              <input 
-                type="email" 
-                value={form.email} 
-                placeholder="Enter Email"
-                onChange={(e) => setForm({ ...form, email: e.target.value })} 
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-              />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Address<span style={{ color: "#ef4444" }}>*</span></label>
-              <textarea 
-                value={form.address} 
-                placeholder="Enter Address"
-                onChange={(e) => setForm({ ...form, address: e.target.value })} 
-                required
-                rows="2"
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569", resize: "none" }}
-              />
-            </div>
-          </div>
 
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
-            <button 
-              type="submit"
-              style={{ backgroundColor: "#6366f1", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "4px", fontWeight: "500", cursor: "pointer", textTransform: "uppercase", fontSize: "0.9rem" }}
-            >
-              {editing ? "UPDATE CLIENT" : "ADD CLIENT"}
-            </button>
-            {editing && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
               <button 
                 type="button"
-                onClick={() => { setEditing(null); setForm(initialFormState); }}
-                style={{ marginLeft: "1rem", backgroundColor: "#94a3b8", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "4px", fontWeight: "500", cursor: "pointer", textTransform: "uppercase", fontSize: "0.9rem" }}
+                onClick={() => { setEditing(null); setIsAdding(false); setForm(initialFormState); }}
+                style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+                onMouseOver={(e) => { e.target.style.backgroundColor = "#f1f5f9"; e.target.style.color = "#0f172a"; }}
+                onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#64748b"; }}
               >
-                CANCEL
+                Cancel
               </button>
-            )}
-          </div>
-        </form>
-      </div>
+              <button 
+                type="submit"
+                style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+                onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
+                onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
+              >
+                {editing ? "Save Changes" : "Save Client"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Table Section */}
       <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "10px" }}>

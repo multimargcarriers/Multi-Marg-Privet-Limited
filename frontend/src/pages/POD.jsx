@@ -11,6 +11,7 @@ const POD = () => {
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
   const [podList, setPodList] = useState([]);
+  const [isAdding, setIsAdding] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [lrNo, setLrNo] = useState("");
@@ -70,35 +71,86 @@ const POD = () => {
       fetchPODs();
     }
     setUploading(false);
+    setIsAdding(false);
   };
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+      {/* Title & Add Button */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <div>
-          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>POD Upload</h3>
-          <p className="text-muted">Upload Proof of Delivery documents for bookings.</p>
+          <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600", display: 'flex', alignItems: 'center' }}>
+            <FileText size={24} style={{ marginRight: '10px', color: '#4F46E5' }} /> POD Upload
+          </h3>
+          <p style={{ color: "#64748b", margin: "5px 0 0 34px", fontSize: "0.9rem" }}>Upload Proof of Delivery documents for bookings.</p>
         </div>
+        {!isAdding && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+          >
+            + Add POD
+          </button>
+        )}
       </div>
 
-      <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-        <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>Upload New POD</h4>
-        <form onSubmit={handleUpload}>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 200 }}>
-              <label className="form-label">LR No</label>
-              <input className="form-control" value={lrNo} onChange={(e) => setLrNo(e.target.value)} placeholder="Enter LR number" required />
+      {/* Form Section */}
+      {isAdding && (
+        <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
+          <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>Upload New POD</h4>
+          <form onSubmit={handleUpload}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>LR No<span style={{ color: "#ef4444" }}>*</span></label>
+                <input 
+                  className="form-control" 
+                  value={lrNo} 
+                  onChange={(e) => setLrNo(e.target.value)} 
+                  placeholder="Enter LR number" 
+                  required 
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>POD File (PDF/Image)<span style={{ color: "#ef4444" }}>*</span></label>
+                <input 
+                  type="file" 
+                  className="form-control" 
+                  style={{ width: "100%", padding: "0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} 
+                  onChange={(e) => setSelectedFile(e.target.files[0])} 
+                  accept=".pdf,.jpg,.jpeg,.png" 
+                  required 
+                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                />
+              </div>
             </div>
-            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 200 }}>
-              <label className="form-label">POD File (PDF/Image)</label>
-              <input type="file" className="form-control" style={{ padding: "0.5rem 1.2rem", height: "auto" }} onChange={(e) => setSelectedFile(e.target.files[0])} accept=".pdf,.jpg,.jpeg,.png" required />
+            
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
+              <button 
+                type="button"
+                onClick={() => setIsAdding(false)}
+                style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+                onMouseOver={(e) => { e.target.style.backgroundColor = "#f1f5f9"; e.target.style.color = "#0f172a"; }}
+                onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#64748b"; }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={uploading} 
+                style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)", display: 'flex', alignItems: 'center', gap: '8px' }}
+                onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
+                onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
+              >
+                <Upload size={18} /> {uploading ? "Uploading..." : "Upload POD"}
+              </button>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={uploading} style={{ height: 50 }}>
-              <Upload size={18} /> {uploading ? "Uploading..." : "Upload"}
-            </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
 
       <Table
         headers={["LR No", "File Name", "Upload Date", "Status", "Actions"]}
