@@ -5,7 +5,7 @@ import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const GenerateBill = () => {
   const [bookings, setBookings] = useState([]);
@@ -231,7 +231,7 @@ const GenerateBill = () => {
                   <td style={{ padding: "1rem" }}>{item.mode || "-"}</td>
                   <td style={{ padding: "1rem" }}>{item.origin}</td>
                   <td style={{ padding: "1rem" }}>{item.destination}</td>
-                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}>₹ {parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</td>
+                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}>â‚¹ {parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</td>
                   <td style={{ padding: "1rem" }}>{item.dispatch_date || item.date || item.createdAt ? new Date(item.dispatch_date || item.date || item.createdAt).toLocaleDateString() : "-"}</td>
                 </tr>
               ))}

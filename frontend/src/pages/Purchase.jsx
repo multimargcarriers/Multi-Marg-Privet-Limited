@@ -7,7 +7,7 @@ import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Purchase = () => {
   const { user } = useContext(AuthContext);
@@ -294,9 +294,9 @@ const Purchase = () => {
               <td className="font-semibold"><ShoppingCart size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.vendor}</td>
               <td>{item.billNo || "-"}</td>
               <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
-              <td>₹ {parseFloat(item.taxable || 0).toFixed(2)}</td>
-              <td>₹ {parseFloat(item.gst || 0).toFixed(2)}</td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}>₹ {parseFloat(item.total || 0).toFixed(2)}</td>
+              <td>â‚¹ {parseFloat(item.taxable || 0).toFixed(2)}</td>
+              <td>â‚¹ {parseFloat(item.gst || 0).toFixed(2)}</td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}>â‚¹ {parseFloat(item.total || 0).toFixed(2)}</td>
               <td>
                 {isSuperAdmin && (
                   <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Delete">

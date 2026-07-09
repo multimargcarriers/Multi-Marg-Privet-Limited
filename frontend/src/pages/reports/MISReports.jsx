@@ -5,7 +5,7 @@ import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import { Search, Download } from "lucide-react";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const MISReports = () => {
   const [data, setData] = useState([]);

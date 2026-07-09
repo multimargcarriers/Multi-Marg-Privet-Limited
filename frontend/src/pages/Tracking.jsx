@@ -4,7 +4,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Tracking = () => {
   const [formData, setFormData] = useState({

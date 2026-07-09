@@ -7,7 +7,7 @@ import QuickAddModal from "../components/QuickAddModal";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CreateBooking = () => {
   const [formData, setFormData] = useState({
