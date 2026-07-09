@@ -45,110 +45,135 @@ let firebaseInitialized = false;
 // ============================================================
 // Mock Data State (used when Firebase is not configured)
 // ============================================================
-const mockData = {
-  clients: seedClients,
-  vendors: seedVendors,
-  bookings: seedBookings,
-  branches: [
-    {
-      id: "b1",
-      codeInitial: "MCPL",
-      code: "004",
-      branch: "JAMSHEDPUR",
-      name: "AKASH DEBNATH",
-      address: "H.NO 16, ROAD NO 3A, BIRSANAGAR, ZONE NO 4, JAMSHEDPUR- 831019",
-      phno: "7209877637",
-      email: "info@amishkainfotech.co.in",
-      status: "Active",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "b2",
-      codeInitial: "MCPL",
-      code: "003",
-      branch: "PANTNAGAR",
-      name: "DHRUV KUMAR",
-      address: "RUDRAPUR",
-      phno: "9045015097",
-      email: "info@multimargcarriers.co.in",
-      status: "Active",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "b3",
-      codeInitial: "MCPL",
-      code: "002",
-      branch: "PUNE",
-      name: "DEEPAK BHARTI",
-      address: "PUNE",
-      phno: "9045015097",
-      email: "info@sky4logistics.co.in",
-      status: "Active",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "b4",
-      codeInitial: "MCPL",
-      code: "001",
-      branch: "DELHI",
-      name: "DHARMENDRA PURI",
-      address: "DELHI",
-      phno: "7503112217",
-      email: "d.puri@multimargcarriers.co.in",
-      status: "Active",
-      createdAt: new Date().toISOString(),
-    }
-  ],
-  cities: seedCities,
-  rates: [
-    {
-      id: "r1",
-      from: "Jamshedpur",
-      to: "Mumbai",
-      rate: 3500,
-      per: "ton",
-      type: "FTL",
-      status: "Active",
-    },
-    {
-      id: "r2",
-      from: "Jamshedpur",
-      to: "Delhi",
-      rate: 3200,
-      per: "ton",
-      type: "FTL",
-      status: "Active",
-    },
-    {
-      id: "r3",
-      from: "Mumbai",
-      to: "Jamshedpur",
-      rate: 3000,
-      per: "ton",
-      type: "FTL",
-      status: "Active",
-    },
-  ],
-  trips: seedTrips.length > 0 ? seedTrips : [],
-  bills: seedBills,
-  cashEntries: [
-    {
-      id: "ce1",
-      amount: 9000.00,
-      type: "out",
-      date: "2026-01-10T00:00:00.000Z",
-      remarks: "AMISHKA INFOTECH",
-      vouchers: [],
-      createdAt: new Date().toISOString()
-    }
-  ],
-  podEntries: [],
-  purchases: seedPurchases.length > 0 ? seedPurchases : [],
-  vendorOutstanding: seedVendorOutstanding.length > 0 ? seedVendorOutstanding : [],
-  boxEntries: [],
-  voucherEntries: [],
-  systemLogs: [],
-};
+const localDbPath = path.join(__dirname, "local_db.json");
+
+let mockData = {};
+
+if (fs.existsSync(localDbPath)) {
+  try {
+    mockData = JSON.parse(fs.readFileSync(localDbPath, "utf-8"));
+  } catch (err) {
+    console.error("Error reading local_db.json, falling back to seed data:", err);
+  }
+}
+
+// Fallback if empty or failed to load
+if (!mockData.clients) {
+  mockData = {
+    clients: seedClients,
+    vendors: seedVendors,
+    bookings: seedBookings,
+    branches: [
+      {
+        id: "b1",
+        codeInitial: "MCPL",
+        code: "004",
+        branch: "JAMSHEDPUR",
+        name: "AKASH DEBNATH",
+        address: "H.NO 16, ROAD NO 3A, BIRSANAGAR, ZONE NO 4, JAMSHEDPUR- 831019",
+        phno: "7209877637",
+        email: "info@amishkainfotech.co.in",
+        status: "Active",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "b2",
+        codeInitial: "MCPL",
+        code: "003",
+        branch: "PANTNAGAR",
+        name: "DHRUV KUMAR",
+        address: "RUDRAPUR",
+        phno: "9045015097",
+        email: "info@multimargcarriers.co.in",
+        status: "Active",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "b3",
+        codeInitial: "MCPL",
+        code: "002",
+        branch: "PUNE",
+        name: "DEEPAK BHARTI",
+        address: "PUNE",
+        phno: "9045015097",
+        email: "info@sky4logistics.co.in",
+        status: "Active",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "b4",
+        codeInitial: "MCPL",
+        code: "001",
+        branch: "DELHI",
+        name: "DHARMENDRA PURI",
+        address: "DELHI",
+        phno: "7503112217",
+        email: "d.puri@multimargcarriers.co.in",
+        status: "Active",
+        createdAt: new Date().toISOString(),
+      }
+    ],
+    cities: seedCities,
+    rates: [
+      {
+        id: "r1",
+        from: "Jamshedpur",
+        to: "Mumbai",
+        rate: 3500,
+        per: "ton",
+        type: "FTL",
+        status: "Active",
+      },
+      {
+        id: "r2",
+        from: "Jamshedpur",
+        to: "Delhi",
+        rate: 3200,
+        per: "ton",
+        type: "FTL",
+        status: "Active",
+      },
+      {
+        id: "r3",
+        from: "Mumbai",
+        to: "Jamshedpur",
+        rate: 3000,
+        per: "ton",
+        type: "FTL",
+        status: "Active",
+      },
+    ],
+    trips: seedTrips.length > 0 ? seedTrips : [],
+    bills: seedBills,
+    cashEntries: [
+      {
+        id: "ce1",
+        amount: 9000.00,
+        type: "out",
+        date: "2026-01-10T00:00:00.000Z",
+        remarks: "AMISHKA INFOTECH",
+        vouchers: [],
+        createdAt: new Date().toISOString()
+      }
+    ],
+    podEntries: [],
+    purchases: seedPurchases.length > 0 ? seedPurchases : [],
+    vendorOutstanding: seedVendorOutstanding.length > 0 ? seedVendorOutstanding : [],
+    boxEntries: [],
+    voucherEntries: [],
+    systemLogs: [],
+  };
+}
+
+// Auto-save mechanism for mockData
+let lastSavedStr = JSON.stringify(mockData);
+setInterval(() => {
+  const currentStr = JSON.stringify(mockData);
+  if (currentStr !== lastSavedStr) {
+    fs.writeFileSync(localDbPath, currentStr, "utf-8");
+    lastSavedStr = currentStr;
+  }
+}, 2000);
 
 // ============================================================
 // Initialize Firebase Admin SDK
