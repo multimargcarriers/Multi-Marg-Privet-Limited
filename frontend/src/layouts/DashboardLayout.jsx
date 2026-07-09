@@ -19,8 +19,8 @@ const DashboardLayout = () => {
 
   return (
     <div className="app-container">
-      <Sidebar isOpen={isSidebarOpen} />
-      <div className="main-content" style={{ marginLeft: isSidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)', width: `calc(100% - ${isSidebarOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed-width)'})` }}>
+      <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
         <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
         <div className="page-content">
           <Outlet />

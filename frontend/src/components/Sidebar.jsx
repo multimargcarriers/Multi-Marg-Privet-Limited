@@ -163,23 +163,7 @@ const Sidebar = ({ isOpen }) => {
   ];
 
   return (
-    <div
-      style={{
-        width: isOpen ? "var(--sidebar-width)" : "var(--sidebar-collapsed-width)",
-        height: "calc(100vh - var(--topbar-height))",
-        position: "fixed",
-        top: "var(--topbar-height)",
-        left: 0,
-        padding: isOpen ? "1rem" : "1rem 0.5rem",
-        borderRight: "1px solid var(--border-color)",
-        background: "#ffffff",
-        display: "flex",
-        flexDirection: "column",
-        zIndex: 90,
-        transition: "width var(--transition), padding var(--transition)",
-        overflowX: "hidden"
-      }}
-    >
+    <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       <nav
         style={{
           flex: 1,
