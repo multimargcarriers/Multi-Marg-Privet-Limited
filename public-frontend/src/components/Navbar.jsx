@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, PhoneCall } from 'lucide-react';
+import { Menu, X, PhoneCall, ChevronDown } from 'lucide-react';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [clickedDropdown, setClickedDropdown] = useState(null);
+  const clickTimeoutRef = useRef(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -12,15 +14,41 @@ const Navbar = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    };
   }, []);
+
+  const handleDropdownClick = (name) => {
+    if (clickedDropdown === name) {
+      // Toggle off if already clicked
+      setClickedDropdown(null);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+    } else {
+      // Toggle on and set 10 second timeout
+      setClickedDropdown(name);
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+      
+      clickTimeoutRef.current = setTimeout(() => {
+        setClickedDropdown(null);
+      }, 10000);
+    }
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'About Us', path: '/about' },
     { name: 'Services', path: '/services' },
     { name: 'Industries', path: '/industries' },
-    { name: 'Network', path: '/branches' },
+    { 
+      name: 'Company', 
+      isDropdown: true,
+      items: [
+        { name: 'About Us', path: '/about' },
+        { name: 'Network', path: '/branches' },
+      ]
+    },
+    { name: 'Get Quote', path: '/quote' },
   ];
 
   return (
@@ -51,26 +79,100 @@ const Navbar = () => {
         {/* Desktop Nav */}
         <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }} className="desktop-nav">
           {navLinks.map((link) => (
-            <Link 
-              key={link.name} 
-              to={link.path}
-              style={{
-                fontSize: '0.95rem',
-                fontWeight: '500',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)',
-                position: 'relative',
-                padding: '0.5rem 0'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'}
-            >
-              {link.name}
-              {location.pathname === link.path && (
-                <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '2px', backgroundColor: 'var(--primary-red)' }}></div>
-              )}
-            </Link>
+            link.isDropdown ? (
+              <div 
+                key={link.name} 
+                className={`dropdown-container ${clickedDropdown === link.name ? 'clicked-open' : ''}`} 
+                style={{ position: 'relative' }}
+              >
+                <div 
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: link.items.some(item => location.pathname === item.path) ? 'var(--primary-red)' : 'var(--text-main)',
+                    cursor: 'pointer',
+                    padding: '0.5rem 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'color 0.2s ease'
+                  }}
+                  className="dropdown-trigger"
+                  onClick={() => handleDropdownClick(link.name)}
+                >
+                  {link.name} <ChevronDown size={16} />
+                  {link.items.some(item => location.pathname === item.path) && (
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '2px', backgroundColor: 'var(--primary-red)' }}></div>
+                  )}
+                </div>
+                <div className="dropdown-menu" style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '-1rem',
+                  backgroundColor: 'white',
+                  minWidth: '200px',
+                  boxShadow: 'var(--shadow-lg)',
+                  borderRadius: '8px',
+                  padding: '0.5rem 0',
+                  display: 'none',
+                  flexDirection: 'column',
+                  zIndex: 100,
+                  border: '1px solid var(--border-color)',
+                  marginTop: '0.5rem'
+                }}>
+                  {link.items.map(subItem => (
+                    <Link
+                      key={subItem.name}
+                      to={subItem.path}
+                      onClick={() => setClickedDropdown(null)} // close dropdown on link click
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        color: location.pathname === subItem.path ? 'var(--primary-red)' : 'var(--text-main)',
+                        fontSize: '0.9rem',
+                        fontWeight: '500',
+                        display: 'block',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-light-grey)';
+                        e.currentTarget.style.color = 'var(--primary-red)';
+                        e.currentTarget.style.paddingLeft = '1.75rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = location.pathname === subItem.path ? 'var(--primary-red)' : 'var(--text-main)';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                    >
+                      {subItem.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Link 
+                key={link.name} 
+                to={link.path}
+                style={{
+                  fontSize: '0.95rem',
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)',
+                  position: 'relative',
+                  padding: '0.5rem 0'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'}
+              >
+                {link.name}
+                {location.pathname === link.path && (
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '2px', backgroundColor: 'var(--primary-red)' }}></div>
+                )}
+              </Link>
+            )
           ))}
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem' }}>
@@ -107,20 +209,50 @@ const Navbar = () => {
           className="mobile-menu"
         >
           {navLinks.map((link) => (
-            <Link 
-              key={link.name} 
-              to={link.path}
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                padding: '0.75rem 0',
-                borderBottom: '1px solid #f0f0f0',
-                color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'
-              }}
-            >
-              {link.name}
-            </Link>
+            link.isDropdown ? (
+              <div key={link.name} style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  padding: '0.75rem 0',
+                  color: 'var(--primary-blue)',
+                  borderBottom: '1px solid #f0f0f0'
+                }}>
+                  {link.name}
+                </div>
+                {link.items.map(subItem => (
+                  <Link 
+                    key={subItem.name}
+                    to={subItem.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{
+                      fontSize: '0.95rem',
+                      fontWeight: '500',
+                      padding: '0.75rem 0 0.75rem 1.5rem',
+                      borderBottom: '1px solid #f0f0f0',
+                      color: location.pathname === subItem.path ? 'var(--primary-red)' : 'var(--text-main)'
+                    }}
+                  >
+                    {subItem.name}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <Link 
+                key={link.name} 
+                to={link.path}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  padding: '0.75rem 0',
+                  borderBottom: '1px solid #f0f0f0',
+                  color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'
+                }}
+              >
+                {link.name}
+              </Link>
+            )
           ))}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
@@ -138,8 +270,45 @@ const Navbar = () => {
       )}
       
       <style>{`
-        @media (min-width: 1024px) { .mobile-toggle, .mobile-menu { display: none !important; } }
-        @media (max-width: 1023px) { .desktop-nav { display: none !important; } }
+        @media (min-width: 1024px) { 
+          .mobile-toggle, .mobile-menu { display: none !important; } 
+        }
+        @media (max-width: 1023px) { 
+          .desktop-nav { display: none !important; } 
+        }
+        
+        /* Hover state OR clicked open state */
+        .dropdown-container:hover .dropdown-trigger,
+        .dropdown-container.clicked-open .dropdown-trigger {
+          color: var(--primary-red) !important;
+        }
+        
+        .dropdown-container:hover .dropdown-menu,
+        .dropdown-container.clicked-open .dropdown-menu {
+          display: flex !important;
+          animation: dropdownFadeIn 0.2s ease forwards;
+        }
+
+        /* Bridge the physical gap between trigger and menu to maintain hover */
+        .dropdown-menu::before {
+          content: '';
+          position: absolute;
+          top: -15px;
+          left: 0;
+          right: 0;
+          height: 15px;
+        }
+
+        @keyframes dropdownFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `}</style>
     </header>
   );
