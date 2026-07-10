@@ -148,7 +148,7 @@ const GetQuote = () => {
                     <Headset size={32} />
                     <div>
                       <span>Need Help? Call Us</span>
-                      <h4>+91 98765 43210</h4>
+                      <h4>+05944-324033</h4>
                     </div>
                   </div>
                 </div>
