@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calculator, User, Mail, Phone, MapPin, 
   Package, Scale, Ruler, Truck, Clock, 
-  IndianRupee, CheckCircle2, ChevronRight 
+  IndianRupee, CheckCircle2, ChevronRight, Plane,
+  ShieldCheck, BadgePercent, Headset
 } from 'lucide-react';
 import './GetQuote.css';
 import { useToast } from '../context/ToastContext';
@@ -16,6 +17,7 @@ const GetQuote = () => {
     origin: '',
     destination: '',
     itemType: 'Cartons/Boxes',
+    transportMode: 'Road (Standard)',
     weight: '',
     length: '',
     breadth: '',
@@ -50,10 +52,24 @@ const GetQuote = () => {
       const distanceFactor = Math.abs(originLen - destLen) * 50 + 200;
       const weightFactor = weightNum * 15;
       
-      const estimatedAmount = Math.round(baseRate + distanceFactor + weightFactor);
+      let modeMultiplier = 1;
+      let daysMultiplier = 1;
+      
+      if (formData.transportMode.includes('Air')) {
+        modeMultiplier = 3.5;
+        daysMultiplier = 0.3; // faster
+      } else if (formData.transportMode.includes('Express')) {
+        modeMultiplier = 1.5;
+        daysMultiplier = 0.6;
+      } else if (formData.transportMode.includes('Train')) {
+        modeMultiplier = 0.8;
+        daysMultiplier = 1.4; // slower but cheaper
+      }
+
+      const estimatedAmount = Math.round((baseRate + distanceFactor + weightFactor) * modeMultiplier);
       
       // Mock days
-      const estimatedDays = Math.max(2, Math.min(10, Math.round((distanceFactor / 100) + (weightNum / 50))));
+      const estimatedDays = Math.max(1, Math.min(15, Math.round(((distanceFactor / 100) + (weightNum / 50)) * daysMultiplier)));
 
       setQuoteResult({
         amount: estimatedAmount,
@@ -89,6 +105,57 @@ const GetQuote = () => {
         </div>
 
         <motion.div className="quote-content" layout>
+          <AnimatePresence mode="popLayout">
+            {!quoteResult && !isCalculating && (
+              <motion.div
+                className="quote-trust-panel"
+                layout
+                initial={{ opacity: 0, scale: 0.9, x: -30 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: -30 }}
+                transition={{ duration: 0.5, type: 'spring', bounce: 0.3 }}
+              >
+                <div className="trust-panel-content">
+                  <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '45px', marginBottom: '1rem', objectFit: 'contain' }} />
+                  <h2>Why Multimarg Carriers?</h2>
+                  <p>Experience hassle-free logistics tailored to your business needs.</p>
+                  
+                  <div className="trust-features">
+                    <div className="trust-feature">
+                      <div className="trust-icon"><ShieldCheck size={24} /></div>
+                      <div>
+                        <h4>100% Safe & Insured</h4>
+                        <p>Complete protection for your valuable cargo.</p>
+                      </div>
+                    </div>
+                    <div className="trust-feature">
+                      <div className="trust-icon"><Clock size={24} /></div>
+                      <div>
+                        <h4>On-Time Guarantee</h4>
+                        <p>We stick to schedules so you never face delays.</p>
+                      </div>
+                    </div>
+                    <div className="trust-feature">
+                      <div className="trust-icon"><BadgePercent size={24} /></div>
+                      <div>
+                        <h4>Transparent Pricing</h4>
+                        <p>No hidden fees. You pay exactly what is agreed upon.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="trust-support-box">
+                    <Headset size={32} />
+                    <div>
+                      <span>Need Help? Call Us</span>
+                      <h4>+91 98765 43210</h4>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Left Form Side */}
           <motion.div 
             className="quote-form-card"
@@ -97,6 +164,11 @@ const GetQuote = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+              <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '28px', objectFit: 'contain' }} />
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>Official Estimate Form</span>
+            </div>
+            
             <form onSubmit={calculateQuote}>
               
               {/* Personal Details */}
@@ -145,7 +217,7 @@ const GetQuote = () => {
                       <input type="text" name="destination" value={formData.destination} onChange={handleInputChange} className="form-input" placeholder="City or Pincode" required />
                     </div>
                   </div>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <div className="form-group">
                     <label>Type of Item</label>
                     <div className="input-with-icon">
                       <Package />
@@ -156,6 +228,20 @@ const GetQuote = () => {
                         <option value="Machinery">Industrial Machinery</option>
                         <option value="Documents">Documents / Parcels</option>
                         <option value="Other">Other / Miscellaneous</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Mode of Transport</label>
+                    <div className="input-with-icon">
+                      <Plane />
+                      <select name="transportMode" value={formData.transportMode} onChange={handleInputChange} className="form-select">
+                        <option value="Company Best Suggestion">✨ Company Best Suggestion (Let us decide)</option>
+                        <option value="Road (Standard)">🚛 Road (Standard)</option>
+                        <option value="Road (Express)">🚀 Road (Express)</option>
+                        <option value="Air (Fastest)">✈️ Air (Fastest)</option>
+                        <option value="Train (Economical)">🚂 Train (Economical)</option>
+                        <option value="Sea / Water">🚢 Sea / Water</option>
                       </select>
                     </div>
                   </div>
@@ -218,9 +304,12 @@ const GetQuote = () => {
                 ) : (
                   <div className="result-content ticket-style">
                 <div className="ticket-header">
-                  <div className="success-badge">
-                    <CheckCircle2 size={20} color="#4ade80" />
-                    <span>Estimate Ready</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <img src="/mc.png" alt="Logo" style={{ height: '24px', objectFit: 'contain' }} />
+                    <div className="success-badge">
+                      <CheckCircle2 size={16} color="#10b981" />
+                      <span>Estimate Ready</span>
+                    </div>
                   </div>
                   <p className="ticket-id">QUOTE-#{Math.floor(Math.random() * 90000) + 10000}</p>
                 </div>
@@ -267,7 +356,9 @@ const GetQuote = () => {
                       <span>₹</span>
                       {quoteResult.amount.toLocaleString('en-IN')}
                     </h2>
-                    <p className="price-sub">*Excludes applicable taxes & duties</p>
+                    <p className="price-sub" style={{ fontSize: '0.65rem', color: 'var(--text-light)', opacity: 0.8, lineHeight: '1.4', marginTop: '0.5rem' }}>
+                      *This is an estimated price. Taxes are exempted from this price; extra tax will be charged based on government rules.
+                    </p>
                   </div>
                 </div>
 
