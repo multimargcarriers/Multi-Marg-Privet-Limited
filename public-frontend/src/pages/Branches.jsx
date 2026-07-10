@@ -12,7 +12,7 @@ const Branches = () => {
     {
       name: "North India Hub",
       branches: [
-        { city: "Rudrapur, Uttarakhand", address: "LIG-194, AVAS VIKAS, RUDRAPUR, UK-263153", phone: "+05944-324033", type: "Corporate Office" },
+        { city: "Rudrapur, Uttarakhand", address: "LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153", phone: "+05944-324033", type: "Corporate Office" },
         { city: "Chandigarh", address: "Phase 1, Industrial Area", phone: "+91-XXXXXXXXXX", type: "Branch Office" },
         { city: "Jaipur", address: "VKI Area, Jaipur", phone: "+91-XXXXXXXXXX", type: "Branch Office" }
       ]

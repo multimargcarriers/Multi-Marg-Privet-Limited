@@ -10,7 +10,7 @@ const Footer = () => {
       <div style={{ background: 'var(--primary-red)', padding: '2rem 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <h3 style={{ fontSize: '1.5rem', color: 'white', margin: 0, fontWeight: '500' }}>Ready to transform your supply chain?</h3>
-          <Link to="/contact" style={{ background: 'white', color: 'var(--primary-red)', padding: '0.75rem 2rem', borderRadius: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <Link to="/quote" style={{ background: 'white', color: 'var(--primary-red)', padding: '0.75rem 2rem', borderRadius: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Get a Free Quote
           </Link>
         </div>
@@ -57,7 +57,7 @@ const Footer = () => {
             <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <MapPin size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span>LIG-194, AVAS VIKAS, RUDRAPUR, UK-263153</span>
+                <span>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <PhoneCall size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />

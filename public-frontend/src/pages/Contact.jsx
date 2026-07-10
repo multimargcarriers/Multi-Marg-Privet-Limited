@@ -56,7 +56,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem', color: 'var(--text-main)' }}>Address</h3>
-                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6 }}>LIG-194, AVAS VIKAS, RUDRAPUR, UK-263153</p>
+                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6 }}>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</p>
                   </div>
                 </div>
 

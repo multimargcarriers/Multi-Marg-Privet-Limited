@@ -63,7 +63,7 @@ const Home = () => {
               <Link to="/about" className="btn btn-red" style={{ padding: '1rem 2rem' }}>
                 Discover More
               </Link>
-              <Link to="/contact" className="btn" style={{ background: 'transparent', border: '1px solid white', color: 'white', padding: '1rem 2rem' }}>
+              <Link to="/quote" className="btn" style={{ background: 'transparent', border: '1px solid white', color: 'white', padding: '1rem 2rem' }}>
                 Get a Quote
               </Link>
             </div>

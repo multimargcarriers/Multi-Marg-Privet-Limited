@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Truck, PackageSearch, Warehouse, Globe, Zap, Navigation } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Services = () => {
   const fadeInUp = {
@@ -152,9 +153,9 @@ const Services = () => {
             <p style={{ fontSize: '1.2rem', opacity: 0.9, marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
               Contact our experts today for a customized logistics solution tailored to your specific requirements.
             </p>
-            <a href="/contact" className="btn btn-red" style={{ fontSize: '1.1rem', padding: '1rem 2.5rem' }}>
+            <Link to="/quote" className="btn btn-red" style={{ fontSize: '1.1rem', padding: '1rem 2.5rem' }}>
               Request a Quote
-            </a>
+            </Link>
           </motion.div>
         </div>
       </section>
