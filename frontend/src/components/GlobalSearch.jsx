@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, Package, Users, Truck, FileText, X } from 'lucide-react';
+import { Search, Loader2, Package, Users, Truck, FileText, X, Compass } from 'lucide-react';
 import axios from 'axios';
 
 const GlobalSearch = ({ isMobile = false }) => {
@@ -10,6 +10,24 @@ const GlobalSearch = ({ isMobile = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+
+  const MENU_ITEMS = [
+    { type: 'Menu', id: 'm1', title: 'Dashboard', subtitle: 'View main dashboard', link: '/' },
+    { type: 'Menu', id: 'm2', title: 'Create LR (Booking)', subtitle: 'Add a new Booking', link: '/bookings/create' },
+    { type: 'Menu', id: 'm3', title: 'Bookings List', subtitle: 'View all Bookings', link: '/bookings' },
+    { type: 'Menu', id: 'm4', title: 'Add Trip', subtitle: 'Create a new Trip', link: '/trips/create' },
+    { type: 'Menu', id: 'm5', title: 'Trips List', subtitle: 'View all Trips', link: '/trips' },
+    { type: 'Menu', id: 'm6', title: 'Add Client', subtitle: 'Create a new Client', link: '/clients/create' },
+    { type: 'Menu', id: 'm7', title: 'Clients List', subtitle: 'View all Clients', link: '/clients' },
+    { type: 'Menu', id: 'm8', title: 'Add Vendor', subtitle: 'Create a new Vendor', link: '/vendors/create' },
+    { type: 'Menu', id: 'm9', title: 'Vendors List', subtitle: 'View all Vendors', link: '/vendors' },
+    { type: 'Menu', id: 'm10', title: 'Generate Bill', subtitle: 'Create a new Bill', link: '/bills/generate' },
+    { type: 'Menu', id: 'm11', title: 'Bills List', subtitle: 'View all Bills', link: '/bills' },
+    { type: 'Menu', id: 'm12', title: 'Cities List', subtitle: 'Manage Cities', link: '/cities' },
+    { type: 'Menu', id: 'm13', title: 'Branches List', subtitle: 'Manage Branches', link: '/branches' },
+    { type: 'Menu', id: 'm14', title: 'Reports', subtitle: 'View Analytics & Reports', link: '/reports' },
+    { type: 'Menu', id: 'm15', title: 'Tracking', subtitle: 'Track Shipments', link: '/tracking' },
+  ];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -39,10 +57,22 @@ const GlobalSearch = ({ isMobile = false }) => {
           headers: { Authorization: `Bearer ${token}` }
         });
         
+        let allResults = [];
+        
+        const qLower = query.toLowerCase();
+        const navMatches = MENU_ITEMS.filter(item => 
+          item.title.toLowerCase().includes(qLower) || 
+          item.subtitle.toLowerCase().includes(qLower)
+        ).slice(0, 4);
+        
+        allResults.push(...navMatches);
+
         if (response.data?.success) {
-          setResults(response.data.data);
-          setIsOpen(true);
+          allResults.push(...response.data.data);
         }
+        
+        setResults(allResults);
+        setIsOpen(true);
       } catch (error) {
         console.error("Search failed:", error);
       } finally {
@@ -62,6 +92,7 @@ const GlobalSearch = ({ isMobile = false }) => {
 
   const getIcon = (type) => {
     switch (type) {
+      case 'Menu': return <Compass size={16} style={{ color: '#0ea5e9' }} />;
       case 'Booking': return <Package size={16} style={{ color: 'var(--primary-color)' }} />;
       case 'Client': return <Users size={16} style={{ color: '#2563eb' }} />;
       case 'Vendor': return <Users size={16} style={{ color: '#16a34a' }} />;
@@ -84,13 +115,8 @@ const GlobalSearch = ({ isMobile = false }) => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: isMobile ? 'transparent' : 'rgba(255, 255, 255, 0.15)',
-          borderRadius: '8px',
-          padding: '0.4rem 0.8rem',
-          border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.2)',
-          borderBottom: isMobile ? '1px solid var(--border-color)' : '1px solid rgba(255, 255, 255, 0.2)',
-          transition: 'all 0.3s ease',
-          boxShadow: isOpen && !isMobile ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
+          width: '100%',
+          background: 'transparent'
         }}
       >
         <Search size={16} color={isMobile ? "var(--text-muted)" : "#fff"} />
@@ -146,8 +172,7 @@ const GlobalSearch = ({ isMobile = false }) => {
             </div>
           ) : (
             <div style={{ padding: '0.5rem 0' }}>
-              {/* Group results by type */}
-              {['Booking', 'Client', 'Vendor', 'Trip', 'Bill'].map(type => {
+              {['Menu', 'Booking', 'Client', 'Vendor', 'Trip', 'Bill'].map(type => {
                 const typeResults = results.filter(r => r.type === type);
                 if (typeResults.length === 0) return null;
 
