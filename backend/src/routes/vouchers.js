@@ -66,8 +66,8 @@ router.post(
           folder: "multimarg/vouchers",
           resource_type: "auto",
         });
-        entry.cloudinaryUrl = uploadResult.secure_url;
-        entry.cloudinaryPublicId = uploadResult.public_id;
+        entry.cloudinaryUrl = uploadResult.url;
+        entry.cloudinaryPublicId = uploadResult.publicId;
         delete entry.fileData;
       } catch (uploadErr) {
         // Fallback: keep local fileData

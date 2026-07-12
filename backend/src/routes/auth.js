@@ -76,7 +76,7 @@ router.put(
       try {
         const uploadResult = await uploadFile(req.file.path, { folder: "avatars" });
         if (uploadResult.success) {
-          photoUrl = uploadResult.secure_url;
+          photoUrl = uploadResult.url;
         } else {
           // Fallback to local storage if Cloudinary is disabled or fails
           photoUrl = `/uploads/avatars/${req.file.filename}`;

@@ -72,8 +72,8 @@ router.post(
           folder: "multimarg/pod",
           resource_type: "auto",
         });
-        entry.cloudinaryUrl = uploadResult.secure_url;
-        entry.cloudinaryPublicId = uploadResult.public_id;
+        entry.cloudinaryUrl = uploadResult.url;
+        entry.cloudinaryPublicId = uploadResult.publicId;
       } catch (uploadErr) {
         // Fallback: continue without cloudinary
         entry.fileData = fileData;
