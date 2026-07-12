@@ -1,11 +1,12 @@
 import React from 'react';
-import { IndianRupee } from 'lucide-react';
 
-const RupeeIcon = ({ size = 14, style = {}, className = "", color = "currentColor" }) => (
-  <IndianRupee 
-    size={size} 
-    color={color}
-    style={{ display: 'inline-block', verticalAlign: '-2px', ...style }} 
+const RupeeIcon = ({ size = 14, style = {}, className = "" }) => (
+  <img 
+    src="/rupee_symbol.png" 
+    alt="Rupee"
+    width={size}
+    height={size}
+    style={{ display: 'inline-block', verticalAlign: 'middle', ...style }} 
     className={className} 
   />
 );
