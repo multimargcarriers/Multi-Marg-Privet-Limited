@@ -10,8 +10,12 @@ const Footer = () => {
           
           {/* Brand Col */}
           <div>
-            <Link to="/">
-              <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '45px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'brightness(0) invert(1)' }} />
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', marginBottom: '1.5rem' }}>
+              <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '45px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px' }}>
+                <span style={{ color: 'white' }}>MULTIMARG </span>
+                <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
+              </span>
             </Link>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.8', color: '#94a3b8' }}>
               Multimarg Carriers Pvt Ltd handles the transportation, storage, and distribution of goods, ensuring products move efficiently from suppliers to customers. We provide services like freight forwarding, warehousing, supply chain management, and last-mile delivery.
