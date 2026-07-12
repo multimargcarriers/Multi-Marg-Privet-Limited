@@ -63,7 +63,7 @@ router.get(
           if (booking.status === 'Booked' || !booking.status) {
             let bookingRev = Number(booking.totalAmount) || Number(booking.freight_charge);
             if (!bookingRev && booking.chargedWeight) {
-                bookingRev = Number(booking.chargedWeight) * 12.5; // Estimate ₹12.5 per kg for realistic mock data
+                bookingRev = Number(booking.chargedWeight) * 12.5; // Estimate Rs.12.5 per kg for realistic mock data
             }
             unbilledRevenue += bookingRev || 0;
           }

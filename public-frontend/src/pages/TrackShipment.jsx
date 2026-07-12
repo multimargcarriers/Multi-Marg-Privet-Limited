@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck } from 'lucide-react';
+import RupeeIcon from '../components/RupeeIcon';
 
 const TrackShipment = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -215,7 +216,7 @@ const TrackShipment = () => {
                         marginBottom: index !== trackingResult.timeline.length - 1 ? '2.5rem' : 0,
                         position: 'relative',
                         zIndex: 2,
-                        opacity: event.completed ? 1 : 0.5
+                        opacity: event.completed <RupeeIcon size={14} /> 1 : 0.5
                       }}>
                         {/* Icon */}
                         <div style={{ 

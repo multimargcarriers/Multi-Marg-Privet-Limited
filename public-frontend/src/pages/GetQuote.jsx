@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calculator, User, Mail, Phone, MapPin, 
-  Package, Scale, Ruler, Truck, Clock, 
-  IndianRupee, CheckCircle2, ChevronRight, Plane,
+  Package, Scale, Ruler, Truck, Clock, CheckCircle2, ChevronRight, Plane,
   ShieldCheck, BadgePercent, Headset
 } from 'lucide-react';
 import './GetQuote.css';
 import { useToast } from '../context/ToastContext';
+import RupeeIcon from '../components/RupeeIcon';
 
 const GetQuote = () => {
   const [formData, setFormData] = useState({
@@ -353,7 +353,7 @@ const GetQuote = () => {
                   <div className="ticket-price-box">
                     <span className="price-label">Estimated Total Budget</span>
                     <h2 className="price-amount">
-                      <span>₹</span>
+                      <span><RupeeIcon size={14} /></span>
                       {quoteResult.amount.toLocaleString('en-IN')}
                     </h2>
                     <p className="price-sub" style={{ fontSize: '0.65rem', color: 'var(--text-light)', opacity: 0.8, lineHeight: '1.4', marginTop: '0.5rem' }}>

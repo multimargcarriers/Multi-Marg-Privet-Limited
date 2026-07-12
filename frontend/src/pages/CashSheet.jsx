@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { CheckCircle, Loader2, Trash2, IndianRupee } from "lucide-react";
+import { CheckCircle, Loader2, Trash2 } from "lucide-react";
 import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import RupeeIcon from '../components/RupeeIcon';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -234,19 +235,19 @@ const CashSheet = () => {
         <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center" }}>
           <p className="text-muted" style={{ marginBottom: "0.5rem", fontWeight: "500" }}>Total Cash In</p>
           <h3 style={{ color: "#10b981", margin: 0, fontSize: "2rem", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IndianRupee size={28} /> {totalIncome.toFixed(2)}
+            <RupeeIcon size={28} /> {totalIncome.toFixed(2)}
           </h3>
         </div>
         <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center" }}>
           <p className="text-muted" style={{ marginBottom: "0.5rem", fontWeight: "500" }}>Total Cash Out</p>
           <h3 style={{ color: "#ef4444", margin: 0, fontSize: "2rem", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IndianRupee size={28} /> {totalExpense.toFixed(2)}
+            <RupeeIcon size={28} /> {totalExpense.toFixed(2)}
           </h3>
         </div>
         <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center" }}>
           <p className="text-muted" style={{ marginBottom: "0.5rem", fontWeight: "500" }}>Net Balance</p>
           <h3 style={{ color: netBalance >= 0 ? "#10b981" : "#ef4444", margin: 0, fontSize: "2rem", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IndianRupee size={28} /> {netBalance.toFixed(2)}
+            <RupeeIcon size={28} /> {netBalance.toFixed(2)}
           </h3>
         </div>
       </div>
@@ -270,7 +271,7 @@ const CashSheet = () => {
                 </span>
               </td>
               <td style={{ fontWeight: "600", color: (item.type === "in" || item.type === "income") ? "#10b981" : "#ef4444" }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}><IndianRupee size={14} /> {parseFloat(item.amount || 0).toFixed(2)}</div>
+                <div style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={14} /> {parseFloat(item.amount || 0).toFixed(2)}</div>
               </td>
               <td>{item.remarks || "-"}</td>
               <td>

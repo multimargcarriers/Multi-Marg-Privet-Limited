@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, IndianRupee } from 'lucide-react';
+import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
+import RupeeIcon from '../components/RupeeIcon';
 
 const StatCard = ({ title, value, icon, subtitle, trend }) => (
   <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -65,8 +66,8 @@ const Dashboard = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <StatCard title="Total Clients" value={stats?.totalClients || 0} icon={<Users size={24} />} trend="+Active" subtitle="Registered clients" />
-        <StatCard title="Total Revenue" value={<span style={{ display: 'flex', alignItems: 'center' }}><IndianRupee size={28} /> {((stats?.totalCashIn || 0) + (stats?.totalBillsAmount || 0)).toLocaleString()}</span>} icon={<DollarSign size={24} />} trend="+Gross" subtitle="Cash In & Bills" />
-        <StatCard title="Total Cash Out" value={<span style={{ display: 'flex', alignItems: 'center' }}><IndianRupee size={28} /> {(stats?.totalCashOut || 0).toLocaleString()}</span>} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
+        <StatCard title="Total Revenue" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {((stats?.totalCashIn || 0) + (stats?.totalBillsAmount || 0)).toLocaleString()}</span>} icon={<DollarSign size={24} />} trend="+Gross" subtitle="Cash In & Bills" />
+        <StatCard title="Total Cash Out" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {(stats?.totalCashOut || 0).toLocaleString()}</span>} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
         <StatCard title="Total Bookings" value={stats?.totalBookings || 0} icon={<FileText size={24} />} trend="+Logistics" subtitle="Dispatched total" />
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, HelpCircle, Package, Shield, Globe } from 'lucide-react';
+import RupeeIcon from '../components/RupeeIcon';
 
 const FAQItem = ({ question, answer, isOpen, onClick }) => {
   return (
@@ -30,7 +31,7 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => {
       >
         <span>{question}</span>
         <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
+          animate={{ rotate: isOpen <RupeeIcon size={14} /> 180 : 0 }}
           transition={{ duration: 0.3 }}
         >
           <ChevronDown color="var(--primary-red)" />
@@ -179,7 +180,7 @@ const FAQ = () => {
                         border: 'none',
                         backgroundColor: activeCategory === category.id ? '#e8f4fd' : 'transparent',
                         color: activeCategory === category.id ? 'var(--primary-blue)' : 'var(--text-light)',
-                        fontWeight: activeCategory === category.id ? 600 : 400,
+                        fontWeight: activeCategory === category.id <RupeeIcon size={14} /> 600 : 400,
                         cursor: 'pointer',
                         transition: 'all 0.2s',
                         textAlign: 'left'
