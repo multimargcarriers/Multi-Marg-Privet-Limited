@@ -382,7 +382,7 @@ const CreateBooking = () => {
             display: "flex",
             justifyContent: "flex-end",
             gap: "1rem",
-            borderTop: "1px solid rgba(0₹₹₹.05)",
+            borderTop: "1px solid rgba(0, 0, 0, 0.05)",
             paddingTop: "1.5rem",
           }}
         >

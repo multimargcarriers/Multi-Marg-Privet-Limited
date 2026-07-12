@@ -44,7 +44,7 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, onConf
           overflow: 'hidden',
           transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-20px)',
           transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-          border: '1px solid rgba(0₹₹₹.1)',
+          border: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
         <div style={{ padding: '24px 24px 16px', textAlign: 'center' }}>

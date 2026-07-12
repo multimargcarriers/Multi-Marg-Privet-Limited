@@ -60,7 +60,7 @@ const BillView1 = () => {
       </div>
 
       <div className="glass-panel" style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "2rem", paddingBottom: "1.5rem", borderBottom: "2px dashed rgba(0₹₹₹.1)" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem", paddingBottom: "1.5rem", borderBottom: "2px dashed rgba(0, 0, 0, 0.1)" }}>
           <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: "50px", marginBottom: "0.5rem" }} />
           <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem", fontWeight: 600 }}>Transport & Logistics Services</p>
           <p style={{ margin: "0.25rem 0 0", color: "var(--text-muted)", fontSize: "0.85rem" }}>GST: 08ABCDE1234F1Z5 | PAN: ABCDE1234F</p>
@@ -91,11 +91,11 @@ const BillView1 = () => {
           </thead>
           <tbody>
             <tr>
-              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>1</td>
-              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Transport Charges - {bill.description || `LR #${bill.lrNo || "-"}`}</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>1</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>1</td>
+              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Transport Charges - {bill.description || `LR #${bill.lrNo || "-"}`}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>1</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
             </tr>
           </tbody>
           <tfoot>
@@ -118,7 +118,7 @@ const BillView1 = () => {
           </tfoot>
         </table>
 
-        <div style={{ borderTop: "2px dashed rgba(0₹₹₹.1)", paddingTop: "1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+        <div style={{ borderTop: "2px dashed rgba(0, 0, 0, 0.1)", paddingTop: "1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
           <p style={{ margin: "0.25rem 0" }}><strong>Terms & Conditions:</strong></p>
           <p style={{ margin: "0.25rem 0" }}>1. Payment due within 30 days.</p>
           <p style={{ margin: "0.25rem 0" }}>2. Interest charged on overdue payments.</p>

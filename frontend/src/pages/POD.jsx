@@ -117,7 +117,7 @@ const POD = () => {
                       onChange={(e) => setLrNo(e.target.value)} 
                       placeholder="Enter LR number" 
                       required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     />
@@ -127,7 +127,7 @@ const POD = () => {
                     <input 
                       type="file" 
                       className="form-control" 
-                      style={{ width: "100%", padding: "0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} 
+                      style={{ width: "100%", padding: "0.6rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }} 
                       onChange={(e) => setSelectedFile(e.target.files[0])} 
                       accept=".pdf,.jpg,.jpeg,.png" 
                       required 

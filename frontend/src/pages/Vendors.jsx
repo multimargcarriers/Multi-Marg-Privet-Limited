@@ -198,7 +198,7 @@ const Vendors = () => {
                   type="text" 
                   value={form.codeInitial} 
                   onChange={(e) => setForm({ ...form, codeInitial: e.target.value })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#f1f5f9", color: "#475569", outline: "none", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#f1f5f9", color: "#475569", outline: "none", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   readOnly
                 />
               </div>
@@ -209,7 +209,7 @@ const Vendors = () => {
                   value={form.vendorCode} 
                   onChange={(e) => setForm({ ...form, vendorCode: e.target.value })} 
                   placeholder="e.g. 001"
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -222,7 +222,7 @@ const Vendors = () => {
                   placeholder="Enter Vendor Name"
                   onChange={(e) => setForm({ ...form, name: formatAllCaps(e.target.value) })} 
                   required
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -234,7 +234,7 @@ const Vendors = () => {
                   value={form.gst} 
                   placeholder="Enter GST"
                   onChange={(e) => setForm({ ...form, gst: e.target.value })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -245,7 +245,7 @@ const Vendors = () => {
                   value={form.branch} 
                   onChange={(e) => setForm({ ...form, branch: e.target.value })} 
                   required
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 >
@@ -261,7 +261,7 @@ const Vendors = () => {
                   value={form.mode} 
                   onChange={(e) => setForm({ ...form, mode: e.target.value })} 
                   required
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 >
@@ -279,7 +279,7 @@ const Vendors = () => {
                   value={form.contact} 
                   placeholder="Contact Person Name"
                   onChange={(e) => setForm({ ...form, contact: formatTitleCase(e.target.value) })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -291,7 +291,7 @@ const Vendors = () => {
                   value={form.phno} 
                   placeholder="Phone Number"
                   onChange={(e) => setForm({ ...form, phno: formatPhoneNumber(e.target.value) })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -303,7 +303,7 @@ const Vendors = () => {
                   value={form.email} 
                   placeholder="Email Address"
                   onChange={(e) => setForm({ ...form, email: e.target.value })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -316,7 +316,7 @@ const Vendors = () => {
                   onChange={(e) => setForm({ ...form, address: e.target.value })} 
                   required
                   rows="2"
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", resize: "none", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", resize: "none", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />

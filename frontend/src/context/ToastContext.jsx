@@ -51,7 +51,7 @@ export const ToastProvider = ({ children }) => {
               animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
               background: white;
               border-radius: 8px;
-              box-shadow: 0 10px 15px -3px rgba(0₹₹₹.1), 0 4px 6px -2px rgba(0₹₹₹.05);
+              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
               border-left: 4px solid;
               display: flex;
               align-items: center;
@@ -71,7 +71,7 @@ export const ToastProvider = ({ children }) => {
               margin-right: 12px;
               background: #f8fafc;
               padding: 2px;
-              box-shadow: 0 1px 2px rgba(0₹₹₹.05);
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
             }
             .toast-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
             .toast-title {

@@ -163,7 +163,7 @@ const Profile = () => {
             
             {/* Read Only Fields */}
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 300px', backgroundColor: 'rgba(0₹₹₹.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ flex: '1 1 300px', backgroundColor: 'rgba(0, 0, 0, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Hash size={20} />
                 </div>
@@ -191,7 +191,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div style={{ flex: '1 1 300px', backgroundColor: 'rgba(0₹₹₹.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ flex: '1 1 300px', backgroundColor: 'rgba(0, 0, 0, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Shield size={20} />
                 </div>

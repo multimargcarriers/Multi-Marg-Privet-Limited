@@ -57,7 +57,7 @@ const UpdateInvoice = () => {
         <div className="glass-panel" style={{ padding: 0, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "rgba(0₹₹₹.02)" }}>
+              <tr style={{ background: "rgba(0, 0, 0, 0.02)" }}>
                 <th style={{ padding: "1rem", textAlign: "left" }}>Bill No</th>
                 <th style={{ padding: "1rem", textAlign: "left" }}>Client</th>
                 <th style={{ padding: "1rem", textAlign: "left" }}>Amount</th>
@@ -66,7 +66,7 @@ const UpdateInvoice = () => {
             </thead>
             <tbody>
               {filtered.map((item, index) => (
-                <tr key={index} style={{ borderTop: "1px solid rgba(0₹₹₹.05)", cursor: "pointer", background: selectedBill?.id === item.id ? "rgba(13, 110, 253, 0.05)" : "transparent" }}
+                <tr key={index} style={{ borderTop: "1px solid rgba(0, 0, 0, 0.05)", cursor: "pointer", background: selectedBill?.id === item.id ? "rgba(13, 110, 253, 0.05)" : "transparent" }}
                   onClick={() => handleSelect(item)}>
                   <td style={{ padding: "1rem", fontWeight: 600 }}>#{item.billNo || item.id?.slice(-6) || index + 1}</td>
                   <td style={{ padding: "1rem" }}>{item.client}</td>

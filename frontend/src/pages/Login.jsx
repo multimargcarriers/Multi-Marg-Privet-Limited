@@ -36,8 +36,8 @@ const Login = () => {
   return (
     <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
       {/* Animated Background Elements */}
-      <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(13₹10₹53₹.15), transparent 70%)', top: '-10%', left: '-10%', borderRadius: '50%', animation: 'float 8s ease-in-out infinite alternate' }} />
-      <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(92₹67₹55₹.15), transparent 70%)', bottom: '-10%', right: '-5%', borderRadius: '50%', animation: 'float 10s ease-in-out infinite alternate-reverse' }} />
+      <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(13, 110, 253, 0.15), transparent 70%)', top: '-10%', left: '-10%', borderRadius: '50%', animation: 'float 8s ease-in-out infinite alternate' }} />
+      <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(92, 167, 155, 0.15), transparent 70%)', bottom: '-10%', right: '-5%', borderRadius: '50%', animation: 'float 10s ease-in-out infinite alternate-reverse' }} />
 
       <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '3rem 2.5rem', zIndex: 10, animation: 'slide-in-up 0.6s ease-out' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>

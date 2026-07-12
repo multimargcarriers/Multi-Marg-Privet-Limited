@@ -176,7 +176,7 @@ const Cities = () => {
                       value={form.city} 
                       onChange={(e) => setForm({ ...form, city: formatAllCaps(e.target.value) })} 
                       required
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     />
                   </div>
                   <div>
@@ -186,7 +186,7 @@ const Cities = () => {
                       value={form.short} 
                       onChange={(e) => setForm({ ...form, short: formatAllCaps(e.target.value) })} 
                       placeholder="e.g. DEL"
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     />
                   </div>
                   <div>
@@ -196,7 +196,7 @@ const Cities = () => {
                       value={form.state} 
                       placeholder="e.g. DELHI"
                       onChange={(e) => setForm({ ...form, state: formatAllCaps(e.target.value) })} 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     />
                   </div>
                   <div>
@@ -206,7 +206,7 @@ const Cities = () => {
                       value={form.stateCode} 
                       placeholder="e.g. 07"
                       onChange={(e) => setForm({ ...form, stateCode: e.target.value })} 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     />
                   </div>
                 </div>
