@@ -209,29 +209,29 @@ const GenerateBill = () => {
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "rgba(0,0,0,0.02)" }}>
-                <th style={{ padding: "1rem", textAlign: "left", width: 50, borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+              <tr style={{ background: "rgba(0₹₹₹.02)" }}>
+                <th style={{ padding: "1rem", textAlign: "left", width: 50, borderBottom: "1px solid rgba(0₹₹₹.05)" }}>
                   <input type="checkbox" onChange={(e) => setSelected(e.target.checked ? filteredBookings.map(b => b.id) : [])} checked={selected.length === filteredBookings.length && filteredBookings.length > 0} />
                 </th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>LR No</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Client</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Mode</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Origin</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Destination</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Freight</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Date</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>LR No</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Client</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Mode</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Origin</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Destination</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Freight</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Date</th>
               </tr>
             </thead>
             <tbody>
               {filteredBookings.map((item, index) => (
-                <tr key={index} style={{ borderBottom: "1px solid rgba(0,0,0,0.05)", cursor: "pointer", background: selected.includes(item.id) ? "rgba(13, 110, 253, 0.05)" : "transparent" }} onClick={() => toggleSelect(item.id)}>
+                <tr key={index} style={{ borderBottom: "1px solid rgba(0₹₹₹.05)", cursor: "pointer", background: selected.includes(item.id) ? "rgba(13, 110, 253, 0.05)" : "transparent" }} onClick={() => toggleSelect(item.id)}>
                   <td style={{ padding: "1rem" }}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelect(item.id)} onClick={(e) => e.stopPropagation()} /></td>
                   <td style={{ padding: "1rem", fontWeight: 600 }}>#{item.awb || item.consignment || item.id?.slice(-6) || index + 1}</td>
                   <td style={{ padding: "1rem" }}>{item.client}</td>
                   <td style={{ padding: "1rem" }}>{item.mode || "-"}</td>
                   <td style={{ padding: "1rem" }}>{item.origin}</td>
                   <td style={{ padding: "1rem" }}>{item.destination}</td>
-                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}>â‚¹ {parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</td>
+                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}>₹ {parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</td>
                   <td style={{ padding: "1rem" }}>{item.dispatch_date || item.date || item.createdAt ? new Date(item.dispatch_date || item.date || item.createdAt).toLocaleDateString() : "-"}</td>
                 </tr>
               ))}

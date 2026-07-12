@@ -31,7 +31,7 @@ const BillView2 = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem", padding: "1.5rem", background: "rgba(0,0,0,0.02)", borderRadius: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem", padding: "1.5rem", background: "rgba(0₹₹₹.02)", borderRadius: 12 }}>
           <div>
             <p style={{ margin: "0 0 0.5rem", fontWeight: 600, fontSize: "0.9rem", textTransform: "uppercase", color: "var(--text-muted)" }}>Bill To</p>
             <p style={{ margin: "0.25rem 0", fontWeight: 600 }}>Client Name</p>
@@ -57,33 +57,33 @@ const BillView2 = () => {
           </thead>
           <tbody>
             <tr>
-              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>1</td>
-              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>Transport Charges - LR #LR001</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>500</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>₹ 10.00</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>₹ 5,000.00</td>
+              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>1</td>
+              <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>Transport Charges - LR #LR001</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>500</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>? 10.00</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>? 5₹00.00</td>
             </tr>
           </tbody>
         </table>
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "2rem" }}>
           <div style={{ width: 300 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-              <span>Subtotal</span><span>₹ 5,000.00</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>
+              <span>Subtotal</span><span>? 5₹00.00</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-              <span>CGST (2.5%)</span><span>₹ 125.00</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>
+              <span>CGST (2.5%)</span><span>? 125.00</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-              <span>SGST (2.5%)</span><span>₹ 125.00</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid rgba(0₹₹₹.05)" }}>
+              <span>SGST (2.5%)</span><span>? 125.00</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 0", fontWeight: 700, fontSize: "1.1rem", color: "var(--primary-color)" }}>
-              <span>Total</span><span>₹ 5,250.00</span>
+              <span>Total</span><span>? 5₹50.00</span>
             </div>
           </div>
         </div>
 
-        <div style={{ borderTop: "1px solid rgba(0,0,0,0.1)", paddingTop: "1rem", display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+        <div style={{ borderTop: "1px solid rgba(0₹₹₹.1)", paddingTop: "1rem", display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "var(--text-muted)" }}>
           <div>
             <p style={{ margin: "0.25rem 0", fontWeight: 600 }}>Amount in Words:</p>
             <p style={{ margin: "0.25rem 0" }}>Rupees Five Thousand Two Hundred Fifty Only</p>

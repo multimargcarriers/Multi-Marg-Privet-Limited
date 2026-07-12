@@ -72,7 +72,7 @@ const UnbilledReports = () => {
                    {item.status || "Unbilled"}
                  </span>
               </td>
-              <td style={{ fontWeight: "600", color: "#111827" }}>₹ {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
+              <td style={{ fontWeight: "600", color: "#111827" }}>? {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
             </tr>
           )}
         />

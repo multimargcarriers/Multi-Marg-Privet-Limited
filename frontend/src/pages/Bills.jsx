@@ -67,7 +67,7 @@ const Bills = () => {
 
       <Table
         loading={loading}
-        headers={["Bill No", "Date", "Client", "Amount (₹)", "Status", "Actions"]}
+        headers={["Bill No", "Date", "Client", "Amount (?)", "Status", "Actions"]}
         data={bills}
         renderRow={(b, i) => (
           <tr key={b.id || i}>

@@ -75,7 +75,7 @@ const AllBills = () => {
           <tr key={item.id || index}>
             <td className="font-semibold">#{item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client}</td>
-            <td>₹ {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
+            <td>? {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
             <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
             <td>
               <span style={{

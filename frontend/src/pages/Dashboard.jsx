@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard } from 'lucide-react';
+import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, IndianRupee } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 
@@ -65,8 +65,8 @@ const Dashboard = () => {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <StatCard title="Total Clients" value={stats?.totalClients || 0} icon={<Users size={24} />} trend="+Active" subtitle="Registered clients" />
-        <StatCard title="Total Revenue" value={`₹ ${((stats?.totalCashIn || 0) + (stats?.totalBillsAmount || 0)).toLocaleString()}`} icon={<DollarSign size={24} />} trend="+Gross" subtitle="Cash In & Bills" />
-        <StatCard title="Total Cash Out" value={`₹ ${(stats?.totalCashOut || 0).toLocaleString()}`} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
+        <StatCard title="Total Revenue" value={<span style={{ display: 'flex', alignItems: 'center' }}><IndianRupee size={28} /> {((stats?.totalCashIn || 0) + (stats?.totalBillsAmount || 0)).toLocaleString()}</span>} icon={<DollarSign size={24} />} trend="+Gross" subtitle="Cash In & Bills" />
+        <StatCard title="Total Cash Out" value={<span style={{ display: 'flex', alignItems: 'center' }}><IndianRupee size={28} /> {(stats?.totalCashOut || 0).toLocaleString()}</span>} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
         <StatCard title="Total Bookings" value={stats?.totalBookings || 0} icon={<FileText size={24} />} trend="+Logistics" subtitle="Dispatched total" />
       </div>
 
@@ -89,7 +89,7 @@ const Dashboard = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} tickFormatter={(val) => `₹${val/1000}k`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} tickFormatter={(val) => `?${val/1000}k`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: 'none', color: 'white' }}
                   itemStyle={{ color: '#818cf8' }}

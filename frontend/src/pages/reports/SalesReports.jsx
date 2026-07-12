@@ -71,8 +71,8 @@ const SalesReports = () => {
                    {item.status ? item.status.toUpperCase() : "PENDING"}
                  </span>
               </td>
-              <td>₹ {parseFloat(item.taxable || item.amount || 0).toFixed(2)}</td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}>₹ {parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
+              <td>? {parseFloat(item.taxable || item.amount || 0).toFixed(2)}</td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}>? {parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
             </tr>
           )}
         />

@@ -153,7 +153,7 @@ const IAM = () => {
                       value={formData.name} 
                       onChange={e => setFormData({...formData, name: e.target.value})} 
                       required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     />
@@ -165,7 +165,7 @@ const IAM = () => {
                       value={formData.email} 
                       onChange={e => setFormData({...formData, email: e.target.value})} 
                       required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     />
@@ -178,7 +178,7 @@ const IAM = () => {
                         value={formData.password} 
                         onChange={e => setFormData({...formData, password: e.target.value})} 
                         required={!formData.id} 
-                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
                         onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                         onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                       />
@@ -190,7 +190,7 @@ const IAM = () => {
                     <select 
                       value={formData.role} 
                       onChange={e => setFormData({...formData, role: e.target.value})}
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     >

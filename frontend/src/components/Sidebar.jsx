@@ -193,7 +193,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         className="sidebar-nav"
       >
         <div className="sidebar-search-mobile" style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0₹₹₹.03)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
             <Search size={16} color="var(--text-muted)" />
             {isExpanded && (
               <input type="text" placeholder="Search resources..." style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.85rem', color: 'var(--text-dark)' }} />

@@ -38,7 +38,7 @@ export const TablePageSkeleton = () => {
 
         {/* Table Data Rows */}
         {[1, 2, 3, 4, 5, 6].map((row) => (
-          <div key={row} style={{ display: 'flex', gap: '1rem', padding: '1rem 0', borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
+          <div key={row} style={{ display: 'flex', gap: '1rem', padding: '1rem 0', borderBottom: '1px solid rgba(0₹₹₹.03)' }}>
             <SkeletonBox width="20%" height="16px" />
             <SkeletonBox width="15%" height="16px" />
             <SkeletonBox width="25%" height="16px" />

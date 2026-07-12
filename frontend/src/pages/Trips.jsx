@@ -312,7 +312,7 @@ const Trips = () => {
             <button key={key}
               onClick={() => setView(key)}
               style={{
-                flex: 1, padding: "0.75rem", borderRadius: 12, border: view === key ? "2px solid var(--primary-color)" : "1px solid rgba(0,0,0,0.1)",
+                flex: 1, padding: "0.75rem", borderRadius: 12, border: view === key ? "2px solid var(--primary-color)" : "1px solid rgba(0₹₹₹.1)",
                 background: view === key ? "rgba(13, 110, 253, 0.05)" : "transparent", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8
               }}>
               <Icon size={18} color={view === key ? "var(--primary-color)" : "var(--text-muted)"} />

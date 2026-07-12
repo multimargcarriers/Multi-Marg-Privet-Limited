@@ -219,7 +219,7 @@ const Rates = () => {
             <div className="grid-2-col">
               <div style={{ gridColumn: "span 2" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client<span style={{ color: "#ef4444" }}>*</span></label>
-                <div style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", borderRadius: "6px" }}>
+                <div style={{ boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
                     options={clients}
                     value={form.client}
@@ -231,7 +231,7 @@ const Rates = () => {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Origin<span style={{ color: "#ef4444" }}>*</span></label>
-                <div style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", borderRadius: "6px" }}>
+                <div style={{ boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
                     options={cities}
                     value={form.origin}
@@ -243,7 +243,7 @@ const Rates = () => {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Destination<span style={{ color: "#ef4444" }}>*</span></label>
-                <div style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)", borderRadius: "6px" }}>
+                <div style={{ boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
                     options={cities}
                     value={form.destination}
@@ -261,7 +261,7 @@ const Rates = () => {
                   placeholder="Enter Awb Charge" 
                   onChange={(e) => setForm({ ...form, awbCharge: e.target.value })} 
                   required 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
@@ -271,54 +271,54 @@ const Rates = () => {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "2rem" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Air Rate<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.airRate} onChange={(e) => setForm({ ...form, airRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.airRate} onChange={(e) => setForm({ ...form, airRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Air Pickup<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.airPickup} onChange={(e) => setForm({ ...form, airPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.airPickup} onChange={(e) => setForm({ ...form, airPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Air Delivery<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.airDelivery} onChange={(e) => setForm({ ...form, airDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.airDelivery} onChange={(e) => setForm({ ...form, airDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Train Rate<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.trainRate} onChange={(e) => setForm({ ...form, trainRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.trainRate} onChange={(e) => setForm({ ...form, trainRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Train Pickup<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.trainPickup} onChange={(e) => setForm({ ...form, trainPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.trainPickup} onChange={(e) => setForm({ ...form, trainPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Train Delivery<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.trainDelivery} onChange={(e) => setForm({ ...form, trainDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.trainDelivery} onChange={(e) => setForm({ ...form, trainDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Rate<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadRate} onChange={(e) => setForm({ ...form, roadRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadRate} onChange={(e) => setForm({ ...form, roadRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Pickup<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadPickup} onChange={(e) => setForm({ ...form, roadPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadPickup} onChange={(e) => setForm({ ...form, roadPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Delivery<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadDelivery} onChange={(e) => setForm({ ...form, roadDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadDelivery} onChange={(e) => setForm({ ...form, roadDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Express Rate<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadExpressRate} onChange={(e) => setForm({ ...form, roadExpressRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadExpressRate} onChange={(e) => setForm({ ...form, roadExpressRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Express Pickup<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadExpressPickup} onChange={(e) => setForm({ ...form, roadExpressPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadExpressPickup} onChange={(e) => setForm({ ...form, roadExpressPickup: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Road Express Delivery<span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" value={form.roadExpressDelivery} onChange={(e) => setForm({ ...form, roadExpressDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
+                <input type="text" value={form.roadExpressDelivery} onChange={(e) => setForm({ ...form, roadExpressDelivery: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0₹₹₹.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
               </div>
             </div>
 
@@ -408,7 +408,7 @@ const Rates = () => {
                       {item.destination}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                      â‚¹{item.awbCharge || "0"}
+                      ₹{item.awbCharge || "0"}
                     </td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>

@@ -117,7 +117,7 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
             zIndex: 100,
             padding: "0.5rem",
             background: "#ffffff",
-            border: "1px solid rgba(0,0,0,0.1)",
+            border: "1px solid rgba(0₹₹₹.1)",
             boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
           }}
         >
@@ -163,7 +163,7 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
                 transition: "background 0.2s",
                 color: "var(--primary-color)",
                 fontWeight: 600,
-                borderTop: filteredOptions.length > 0 ? "1px solid rgba(0,0,0,0.05)" : "none",
+                borderTop: filteredOptions.length > 0 ? "1px solid rgba(0₹₹₹.05)" : "none",
                 marginTop: filteredOptions.length > 0 ? "4px" : "0"
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = "rgba(13, 110, 253, 0.05)"}

@@ -72,7 +72,7 @@ const BookingsList = () => {
 
       <Table
         loading={loading}
-        headers={["LR No", "Date", "Client", "Origin", "Destination", "Freight (₹)", "Status", "Actions"]}
+        headers={["LR No", "Date", "Client", "Origin", "Destination", "Freight (?)", "Status", "Actions"]}
         data={filtered}
         renderRow={(item, index) => (
           <tr key={index}>
@@ -81,7 +81,7 @@ const BookingsList = () => {
             <td>{item.client}</td>
             <td>{item.origin}</td>
             <td>{item.destination}</td>
-            <td>₹ {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
+            <td>? {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
             <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>Active</span></td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
