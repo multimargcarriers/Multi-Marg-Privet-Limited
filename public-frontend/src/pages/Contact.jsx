@@ -186,6 +186,20 @@ const Contact = () => {
           </div>
         </div>
       </section>
+
+      {/* Map Section */}
+      <section style={{ height: '500px', width: '100%' }}>
+        <iframe 
+          src="https://maps.google.com/maps?q=MULTIMARG%20CARRIERS%20Pvt%20Ltd,%20Rudrapur,%20Uttarakhand&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+          width="100%" 
+          height="100%" 
+          style={{ border: 0 }} 
+          allowFullScreen="" 
+          loading="lazy" 
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Multimarg Carriers Location"
+        ></iframe>
+      </section>
     </div>
   );
 };

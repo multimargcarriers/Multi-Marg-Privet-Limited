@@ -40,12 +40,14 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Services', path: '/services' },
     { name: 'Industries', path: '/industries' },
+    { name: 'Track Shipment', path: '/track' },
     { 
       name: 'Company', 
       isDropdown: true,
       items: [
         { name: 'About Us', path: '/about' },
         { name: 'Network', path: '/branches' },
+        { name: 'FAQ', path: '/faq' },
       ]
     },
     { name: 'Get Quote', path: '/quote' },
@@ -64,7 +66,7 @@ const Navbar = () => {
       borderBottom: scrolled ? 'none' : '1px solid var(--border-color)'
     }}>
       
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: scrolled ? '0.5rem 1rem' : '1rem 1rem', transition: 'padding 0.3s ease' }}>
+      <div className="container" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', paddingTop: scrolled ? '0.5rem' : '1rem', paddingBottom: scrolled ? '0.5rem' : '1rem', transition: 'padding 0.3s ease', gap: '3rem' }}>
         
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101, textDecoration: 'none' }}>
@@ -77,7 +79,7 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }} className="desktop-nav">
+        <nav style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flex: 1 }} className="desktop-nav">
           {navLinks.map((link) => (
             link.isDropdown ? (
               <div 
@@ -97,7 +99,8 @@ const Navbar = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    transition: 'color 0.2s ease'
+                    transition: 'color 0.2s ease',
+                    whiteSpace: 'nowrap'
                   }}
                   className="dropdown-trigger"
                   onClick={() => handleDropdownClick(link.name)}
@@ -162,7 +165,8 @@ const Navbar = () => {
                   letterSpacing: '0.5px',
                   color: location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)',
                   position: 'relative',
-                  padding: '0.5rem 0'
+                  padding: '0.5rem 0',
+                  whiteSpace: 'nowrap'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
                 onMouseLeave={(e) => e.currentTarget.style.color = location.pathname === link.path ? 'var(--primary-red)' : 'var(--text-main)'}
@@ -175,8 +179,8 @@ const Navbar = () => {
             )
           ))}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginLeft: '1rem', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
               <PhoneCall size={18} />
               <span>+05944-324033</span>
             </div>
@@ -190,7 +194,7 @@ const Navbar = () => {
         <button 
           className="mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', zIndex: 101 }}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', zIndex: 101, marginLeft: 'auto' }}
         >
           {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>

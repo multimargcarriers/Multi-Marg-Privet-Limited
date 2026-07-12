@@ -5,17 +5,6 @@ import { MapPin, PhoneCall, Mail, ArrowRight } from 'lucide-react';
 const Footer = () => {
   return (
     <footer style={{ background: 'var(--primary-blue-dark)', color: '#e2e8f0' }}>
-      
-      {/* Top CTA Banner */}
-      <div style={{ background: 'var(--primary-red)', padding: '2rem 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.5rem', color: 'white', margin: 0, fontWeight: '500' }}>Ready to transform your supply chain?</h3>
-          <Link to="/quote" style={{ background: 'white', color: 'var(--primary-red)', padding: '0.75rem 2rem', borderRadius: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Get a Free Quote
-          </Link>
-        </div>
-      </div>
-
       <div className="container" style={{ paddingTop: '4rem', paddingBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '4rem', marginBottom: '3rem' }}>
           
@@ -37,6 +26,7 @@ const Footer = () => {
               <li><Link to="/about" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> About Us</Link></li>
               <li><Link to="/industries" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Industries We Serve</Link></li>
               <li><Link to="/branches" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Network & Branches</Link></li>
+              <li><Link to="/careers" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Careers</Link></li>
             </ul>
           </div>
 
@@ -68,7 +58,22 @@ const Footer = () => {
                 <span>info@multimargcarriers.co.in</span>
               </li>
             </ul>
+            
           </div>
+        </div>
+
+        {/* Full Width Footer Map */}
+        <div style={{ width: '100%', height: '350px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '2.5rem' }}>
+          <iframe 
+            src="https://maps.google.com/maps?q=MULTIMARG%20CARRIERS%20Pvt%20Ltd,%20Rudrapur,%20Uttarakhand&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+            width="100%" 
+            height="100%" 
+            style={{ border: 0 }} 
+            allowFullScreen="" 
+            loading="lazy" 
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Multimarg Carriers Location"
+          ></iframe>
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', color: '#64748b' }}>

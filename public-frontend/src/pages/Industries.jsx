@@ -43,7 +43,7 @@ const Industries = () => {
       name: "Construction",
       icon: <Hammer size={40} color="var(--primary-blue)" />,
       desc: "On-site delivery of building materials to keep your projects on schedule.",
-      image: "https://images.unsplash.com/photo-1504307651254-35680f356f58?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+      image: "/construction_materials.png"
     }
   ];
 

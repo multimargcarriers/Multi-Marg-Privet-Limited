@@ -56,6 +56,19 @@ ul {
   position: relative;
 }
 
+.nav-container {
+  width: 100%;
+  margin: 0 auto;
+  padding-left: 4rem;
+  padding-right: 4rem;
+}
+@media (max-width: 1024px) {
+  .nav-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -182,6 +195,10 @@ ul {
     padding: 0 1rem;
   }
   
+  .nav-container {
+    padding: 0 1rem;
+  }
+  
   .brand-name {
     font-size: 1rem !important;
   }
@@ -200,4 +217,5 @@ ul {
   letter-spacing: -0.5px;
   font-weight: 800;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
