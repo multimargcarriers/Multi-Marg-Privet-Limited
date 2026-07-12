@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
-import { Bell, Search, Menu, Plus } from 'lucide-react';
+import { Bell, Menu, Plus } from 'lucide-react';
+import GlobalSearch from './GlobalSearch';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -16,8 +17,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
         </button>
         <img src="/mc.png" alt="Logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
         <div className="topbar-search">
-          <Search size={16} color="#fff" />
-          <input type="text" placeholder="Search..." style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', color: '#fff', fontSize: '0.9rem' }} />
+          <GlobalSearch />
         </div>
       </div>
 

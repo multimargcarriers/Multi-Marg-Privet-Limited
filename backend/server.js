@@ -133,6 +133,7 @@ const purchaseReportRoutes = require("./src/routes/purchase-report");
 const usersRoutes = require("./src/routes/users");
 const logsRoutes = require("./src/routes/logs");
 const analyticsRoutes = require("./src/routes/analytics");
+const searchRoutes = require("./src/routes/search");
 
 // ============================================================
 // Mount Routes
@@ -140,6 +141,7 @@ const analyticsRoutes = require("./src/routes/analytics");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/vendors", vendorsRoutes);
