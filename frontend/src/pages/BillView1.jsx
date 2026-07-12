@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { FileText, Printer, Cloud, Download } from "lucide-react";
 import axios from "axios";
+import RupeeIcon from '../components/RupeeIcon';
 
 const BillView1 = () => {
   const { id } = useParams();
@@ -94,26 +95,26 @@ const BillView1 = () => {
               <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>1</td>
               <td style={{ padding: "0.75rem 1rem", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Transport Charges - {bill.description || `LR #${bill.lrNo || "-"}`}</td>
               <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>1</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}><RupeeIcon size={14} /> {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}><RupeeIcon size={14} /> {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
               <td colSpan={4} style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 600 }}>Taxable Amount</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>? {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}><RupeeIcon size={14} /> {parseFloat(bill.taxable || bill.amount).toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan={4} style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 600 }}>CGST @ {(parseFloat(bill.gst) / 2 || 2.5).toFixed(1)}%</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>? {parseFloat(bill.cgst || 0).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}><RupeeIcon size={14} /> {parseFloat(bill.cgst || 0).toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan={4} style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 600 }}>SGST @ {(parseFloat(bill.gst) / 2 || 2.5).toFixed(1)}%</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}>? {parseFloat(bill.sgst || 0).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right" }}><RupeeIcon size={14} /> {parseFloat(bill.sgst || 0).toFixed(2)}</td>
             </tr>
             <tr style={{ background: "rgba(13, 110, 253, 0.05)" }}>
               <td colSpan={4} style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 700, fontSize: "1.1rem" }}>Total Amount</td>
-              <td style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 700, fontSize: "1.1rem", color: "var(--primary-color)" }}>? {parseFloat(bill.total || bill.amount).toFixed(2)}</td>
+              <td style={{ padding: "0.75rem 1rem", textAlign: "right", fontWeight: 700, fontSize: "1.1rem", color: "var(--primary-color)" }}><RupeeIcon size={14} /> {parseFloat(bill.total || bill.amount).toFixed(2)}</td>
             </tr>
           </tfoot>
         </table>

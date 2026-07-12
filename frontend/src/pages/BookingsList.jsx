@@ -6,6 +6,7 @@ import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import RupeeIcon from '../components/RupeeIcon';
 
 const BookingsList = () => {
   const { user } = useContext(AuthContext);
@@ -81,7 +82,7 @@ const BookingsList = () => {
             <td>{item.client}</td>
             <td>{item.origin}</td>
             <td>{item.destination}</td>
-            <td>? {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
+            <td><RupeeIcon size={14} /> {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
             <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>Active</span></td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>

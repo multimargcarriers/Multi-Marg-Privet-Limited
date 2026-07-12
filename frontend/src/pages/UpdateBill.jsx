@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, FileText } from "lucide-react";
+import RupeeIcon from '../components/RupeeIcon';
 
 const UpdateBill = () => {
   const [bills, setBills] = useState([]);
@@ -70,7 +71,7 @@ const UpdateBill = () => {
                   onClick={() => handleSelect(item)}>
                   <td style={{ padding: "1rem", fontWeight: 600 }}>#{item.billNo || item.id?.slice(-6) || index + 1}</td>
                   <td style={{ padding: "1rem" }}>{item.client}</td>
-                  <td style={{ padding: "1rem" }}>? {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
+                  <td style={{ padding: "1rem" }}><RupeeIcon size={14} /> {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
                   <td style={{ padding: "1rem" }}>{item.status || "Pending"}</td>
                 </tr>
               ))}

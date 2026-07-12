@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
 import { Search } from "lucide-react";
+import RupeeIcon from '../../components/RupeeIcon';
 
 const UnbilledReports = () => {
   const [data, setData] = useState([]);
@@ -72,7 +73,7 @@ const UnbilledReports = () => {
                    {item.status || "Unbilled"}
                  </span>
               </td>
-              <td style={{ fontWeight: "600", color: "#111827" }}>? {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
+              <td style={{ fontWeight: "600", color: "#111827" }}><RupeeIcon size={14} /> {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
             </tr>
           )}
         />

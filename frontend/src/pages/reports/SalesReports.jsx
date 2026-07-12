@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
 import { Search } from "lucide-react";
+import RupeeIcon from '../../components/RupeeIcon';
 
 const SalesReports = () => {
   const [data, setData] = useState([]);
@@ -71,8 +72,8 @@ const SalesReports = () => {
                    {item.status ? item.status.toUpperCase() : "PENDING"}
                  </span>
               </td>
-              <td>? {parseFloat(item.taxable || item.amount || 0).toFixed(2)}</td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}>? {parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
+              <td><RupeeIcon size={14} /> {parseFloat(item.taxable || item.amount || 0).toFixed(2)}</td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
             </tr>
           )}
         />

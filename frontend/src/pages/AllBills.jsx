@@ -5,6 +5,7 @@ import { Eye, FileText, Search, Download, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import RupeeIcon from '../components/RupeeIcon';
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
@@ -75,7 +76,7 @@ const AllBills = () => {
           <tr key={item.id || index}>
             <td className="font-semibold">#{item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client}</td>
-            <td>? {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
+            <td><RupeeIcon size={14} /> {parseFloat(item.amount || item.total || 0).toFixed(2)}</td>
             <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
             <td>
               <span style={{
