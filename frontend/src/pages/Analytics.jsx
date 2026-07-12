@@ -1,3 +1,4 @@
+import RupeeIcon from '../components/RupeeIcon';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { 
@@ -74,25 +75,25 @@ const Analytics = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         <StatCard 
           title="Outstanding Receivables" 
-          value={`? ${(data.outstandingReceivables || 0).toLocaleString('en-IN')}`} 
+          value={<span style={{display:'flex',alignItems:'center'}}><RupeeIcon size={24}/> &nbsp;{(data.outstandingReceivables || 0).toLocaleString('en-IN')}</span>} 
           icon={<AlertCircle size={24} color="#ef4444" />} 
           subtitle="Unpaid Generated Bills" 
         />
         <StatCard 
           title="Unbilled Revenue" 
-          value={`? ${(data.unbilledRevenue || 0).toLocaleString('en-IN')}`} 
+          value={<span style={{display:'flex',alignItems:'center'}}><RupeeIcon size={24}/> &nbsp;{(data.unbilledRevenue || 0).toLocaleString('en-IN')}</span>} 
           icon={<FileText size={24} />} 
           subtitle="Bookings not yet billed" 
         />
         <StatCard 
           title="Total Paid (Realized)" 
-          value={`? ${(data.paidAmount || 0).toLocaleString('en-IN')}`} 
+          value={<span style={{display:'flex',alignItems:'center'}}><RupeeIcon size={24}/> &nbsp;{(data.paidAmount || 0).toLocaleString('en-IN')}</span>} 
           icon={<DollarSign size={24} color="#10b981" />} 
           subtitle="Cleared Invoices" 
         />
         <StatCard 
           title="Total Tax Liability" 
-          value={`? ${(data.taxLiability || 0).toLocaleString('en-IN')}`} 
+          value={<span style={{display:'flex',alignItems:'center'}}><RupeeIcon size={24}/> &nbsp;{(data.taxLiability || 0).toLocaleString('en-IN')}</span>} 
           icon={<TrendingUp size={24} color="#f59e0b" />} 
           subtitle="Total GST Collected" 
         />
@@ -122,7 +123,7 @@ const Analytics = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `? ${value.toLocaleString('en-IN')}`} />
+                <Tooltip formatter={(value) => `₹ ${value.toLocaleString('en-IN')}`} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -140,9 +141,9 @@ const Analytics = () => {
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tickFormatter={(val) => `?${Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} 
+                  tickFormatter={(val) => `₹ ${Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} 
                 />
-                <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value) => `? ${value.toLocaleString('en-IN')}`} />
+                <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value) => `₹ ${value.toLocaleString('en-IN')}`} />
                 <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={50}>
                   {data.financialStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.name === 'Paid' ? '#10b981' : '#ef4444'} />
@@ -164,9 +165,9 @@ const Analytics = () => {
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tickFormatter={(val) => `?${Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} 
+                  tickFormatter={(val) => `₹ ${Intl.NumberFormat('en-IN', { notation: 'compact', compactDisplay: 'short' }).format(val)}`} 
                 />
-                <Tooltip formatter={(value) => `? ${value.toLocaleString('en-IN')}`} />
+                <Tooltip formatter={(value) => `₹ ${value.toLocaleString('en-IN')}`} />
                 <Legend />
                 <Line type="monotone" dataKey="In" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 <Line type="monotone" dataKey="Out" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
