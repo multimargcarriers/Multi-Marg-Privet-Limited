@@ -132,12 +132,12 @@ const GST = () => {
                   <td>{item.client || "-"}</td>
                   <td>{item.gstin || "-"}</td>
                   <td>{item.sac || "-"}</td>
-                  <td><RupeeIcon size={14} /> {parseFloat(item.taxable || 0).toFixed(2)}</td>
-                  <td><RupeeIcon size={14} /> {parseFloat(item.igst || 0).toFixed(2)}</td>
-                  <td><RupeeIcon size={14} /> {parseFloat(item.cgst || 0).toFixed(2)}</td>
-                  <td><RupeeIcon size={14} /> {parseFloat(item.sgst || 0).toFixed(2)}</td>
-                  <td><RupeeIcon size={14} /> {parseFloat(item.totalTax || 0).toFixed(2)}</td>
-                  <td style={{ fontWeight: "600" }}><RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}</td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.igst || 0).toFixed(2)}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.cgst || 0).toFixed(2)}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.sgst || 0).toFixed(2)}</span></td>
+                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.totalTax || 0).toFixed(2)}</span></td>
+                  <td style={{ fontWeight: "600" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>
                 </tr>
               ))
             )}

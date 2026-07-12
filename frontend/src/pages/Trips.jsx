@@ -347,7 +347,7 @@ const Trips = () => {
                     </div>
                 ) : "-"}
               </td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {item.totalAmount || "0.00"}</td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{item.totalAmount || "0.00"}</span></td>
               <td>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: "pointer" }}><FileText size={16} /></button>

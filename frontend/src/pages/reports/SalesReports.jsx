@@ -72,8 +72,8 @@ const SalesReports = () => {
                    {item.status ? item.status.toUpperCase() : "PENDING"}
                  </span>
               </td>
-              <td><RupeeIcon size={14} /> {parseFloat(item.taxable || item.amount || 0).toFixed(2)}</td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || item.amount || 0).toFixed(2)}</span></td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || item.amount || 0).toFixed(2)}</span></td>
             </tr>
           )}
         />

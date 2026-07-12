@@ -295,9 +295,9 @@ const Purchase = () => {
               <td className="font-semibold"><ShoppingCart size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.vendor}</td>
               <td>{item.billNo || "-"}</td>
               <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
-              <td><RupeeIcon size={14} /> {parseFloat(item.taxable || 0).toFixed(2)}</td>
-              <td><RupeeIcon size={14} /> {parseFloat(item.gst || 0).toFixed(2)}</td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}</td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.gst || 0).toFixed(2)}</span></td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>
               <td>
                 {isSuperAdmin && (
                   <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Delete">

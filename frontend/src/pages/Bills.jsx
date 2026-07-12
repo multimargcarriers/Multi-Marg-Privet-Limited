@@ -74,7 +74,7 @@ const Bills = () => {
           <tr key={b.id || i}>
             <td>{b.id}</td>
             <td>{b.client || "-"}</td>
-            <td><RupeeIcon size={14} /> {b.amount || "-"}</td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{b.amount || "-"}</span></td>
             <td>
               {b.createdAt ? new Date(b.createdAt).toLocaleString() : "-"}
             </td>

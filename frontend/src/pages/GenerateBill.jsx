@@ -232,7 +232,7 @@ const GenerateBill = () => {
                   <td style={{ padding: "1rem" }}>{item.mode || "-"}</td>
                   <td style={{ padding: "1rem" }}>{item.origin}</td>
                   <td style={{ padding: "1rem" }}>{item.destination}</td>
-                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</td>
+                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</span></td>
                   <td style={{ padding: "1rem" }}>{item.dispatch_date || item.date || item.createdAt ? new Date(item.dispatch_date || item.date || item.createdAt).toLocaleDateString() : "-"}</td>
                 </tr>
               ))}
