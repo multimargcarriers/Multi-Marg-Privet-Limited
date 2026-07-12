@@ -252,7 +252,19 @@ const IAM = () => {
           <tr key={u.id || index}>
             <td><strong>{u.name}</strong></td>
             <td>{u.email}</td>
-            <td><span className="badge" style={{ background: u.role === 'SuperAdmin' ? '#4f46e5' : '#10b981' }}>{u.role}</span></td>
+            <td>
+              <span 
+                className="badge" 
+                style={
+                  u.role === 'SuperAdmin' 
+                    ? { background: 'transparent', color: 'var(--primary-color)', border: '1px solid var(--primary-color)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }
+                    : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }
+                }
+              >
+                {u.role === 'SuperAdmin' && <Shield size={12} />}
+                {u.role}
+              </span>
+            </td>
             <td style={{ fontSize: '0.85rem' }}>
               {u.permissions.includes('all') ? 'Full Access' : u.permissions.join(', ') || 'None'}
             </td>

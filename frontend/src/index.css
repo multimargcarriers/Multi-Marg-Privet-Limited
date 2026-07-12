@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Premium Deep Indigo & Sky Palette */
-  --primary-color: #4F46E5; /* Indigo 600 */
-  --primary-hover: #4338CA; /* Indigo 700 */
-  --primary-glow: rgba(79, 70, 229, 0.4);
-  --secondary-color: #0F172A; /* Slate 900 */
-  --accent-color: #38BDF8; /* Sky 400 */
+  /* Google & AWS Professional Palette */
+  --primary-color: #1a73e8; /* Google Blue */
+  --primary-hover: #1557b0; /* Darker Google Blue */
+  --primary-glow: rgba(26, 115, 232, 0.4);
+  --secondary-color: #232F3E; /* AWS Dark Slate */
+  --accent-color: #FF9900; /* Amazon Orange */
   
   /* Soft & Clean Backgrounds */
   --bg-color: #F8FAFC; /* Slate 50 */
@@ -15,7 +15,7 @@
   
   /* Borders and Lines */
   --border-color: rgba(226, 232, 240, 0.8); /* Slate 200 soft */
-  --border-focus: #818CF8; /* Indigo 400 */
+  --border-focus: #1a73e8; /* Google Blue focus */
   
   /* Typography */
   --text-dark: #1E293B; /* Slate 800 */
