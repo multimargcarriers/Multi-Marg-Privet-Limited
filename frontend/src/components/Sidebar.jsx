@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import {
@@ -22,11 +22,14 @@ import {
   Edit,
   Shield,
   Activity,
-  TrendingUp
+  TrendingUp,
+  Search
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
+  const [isHovered, setIsHovered] = useState(false);
+  const isExpanded = isOpen || isHovered;
 
   const handleLinkClick = () => {
     if (window.innerWidth <= 768 && setIsSidebarOpen) {
@@ -171,7 +174,12 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   ];
 
   return (
-    <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+    <div 
+      className={`sidebar ${isExpanded ? 'open' : 'closed'}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ overflowX: 'hidden' }}
+    >
       <nav
         style={{
           flex: 1,
@@ -184,13 +192,22 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         }}
         className="sidebar-nav"
       >
+        <div className="sidebar-search-mobile" style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            <Search size={16} color="var(--text-muted)" />
+            {isExpanded && (
+              <input type="text" placeholder="Search resources..." style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.85rem', color: 'var(--text-dark)' }} />
+            )}
+          </div>
+        </div>
+
         {menuItems
           .filter(item => !item.permission || hasPermission(item.permission))
           .map((item, index) => {
           if (item.isHeader) {
             return (
               <div key={index} style={{ marginTop: "1rem" }}>
-                {isOpen && (
+                {isExpanded && (
                   <div
                     style={{
                       fontSize: "0.75rem",
@@ -208,14 +225,14 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
                   <NavLink
                     key={cIndex}
                     to={child.path}
-                    title={!isOpen ? child.name : ""}
+                    title={!isExpanded ? child.name : ""}
                     onClick={handleLinkClick}
                     style={({ isActive }) => ({
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: isOpen ? "flex-start" : "center",
-                      gap: isOpen ? "1rem" : "0",
-                      padding: isOpen ? "0.75rem 1rem" : "0.75rem 0",
+                      justifyContent: isExpanded ? "flex-start" : "center",
+                      gap: isExpanded ? "1rem" : "0",
+                      padding: isExpanded ? "0.75rem 1rem" : "0.75rem 0",
                       borderRadius: "4px",
                       textDecoration: "none",
                       color: isActive
@@ -224,7 +241,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
                       background: isActive
                         ? "rgba(255, 153, 0, 0.1)"
                         : "transparent",
-                      borderLeft: isActive && isOpen ? "3px solid var(--primary-color)" : (isActive && !isOpen ? "3px solid var(--primary-color)" : "3px solid transparent"),
+                      borderLeft: isActive && isExpanded ? "3px solid var(--primary-color)" : (isActive && !isExpanded ? "3px solid var(--primary-color)" : "3px solid transparent"),
                       fontWeight: isActive ? "600" : "500",
                       transition: "var(--transition)",
                       marginBottom: "0.25rem",
@@ -233,7 +250,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '24px', flexShrink: 0 }}>
                       {child.icon}
                     </div>
-                    {isOpen && <span style={{ whiteSpace: "nowrap" }}>{child.name}</span>}
+                    {isExpanded && <span style={{ whiteSpace: "nowrap" }}>{child.name}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -243,21 +260,21 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
             <NavLink
               key={index}
               to={item.path}
-              title={!isOpen ? item.name : ""}
+              title={!isExpanded ? item.name : ""}
               onClick={handleLinkClick}
               style={({ isActive }) => ({
                 display: "flex",
                 alignItems: "center",
-                justifyContent: isOpen ? "flex-start" : "center",
-                gap: isOpen ? "1rem" : "0",
-                padding: isOpen ? "0.75rem 1rem" : "0.75rem 0",
+                justifyContent: isExpanded ? "flex-start" : "center",
+                gap: isExpanded ? "1rem" : "0",
+                padding: isExpanded ? "0.75rem 1rem" : "0.75rem 0",
                 borderRadius: "4px",
                 textDecoration: "none",
                 color: isActive ? "var(--primary-color)" : "var(--text-muted)",
                 background: isActive
                   ? "rgba(255, 153, 0, 0.1)"
                   : "transparent",
-                borderLeft: isActive && isOpen ? "3px solid var(--primary-color)" : (isActive && !isOpen ? "3px solid var(--primary-color)" : "3px solid transparent"),
+                borderLeft: isActive && isExpanded ? "3px solid var(--primary-color)" : (isActive && !isExpanded ? "3px solid var(--primary-color)" : "3px solid transparent"),
                 fontWeight: isActive ? "600" : "500",
                 transition: "var(--transition)",
                 marginBottom: "0.25rem",
@@ -266,7 +283,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '24px', flexShrink: 0 }}>
                 {item.icon}
               </div>
-              {isOpen && <span style={{ whiteSpace: "nowrap" }}>{item.name}</span>}
+              {isExpanded && <span style={{ whiteSpace: "nowrap" }}>{item.name}</span>}
             </NavLink>
           );
         })}
@@ -275,12 +292,12 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
         <button
           onClick={logout}
-          title={!isOpen ? "Log Out" : ""}
+          title={!isExpanded ? "Log Out" : ""}
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: isOpen ? "flex-start" : "center",
-            gap: isOpen ? "1rem" : "0",
+            justifyContent: isExpanded ? "flex-start" : "center",
+            gap: isExpanded ? "1rem" : "0",
             padding: "0.75rem 1rem",
             color: "#ef4444",
             textDecoration: "none",
@@ -294,7 +311,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           }}
         >
           <LogOut size={20} />
-          {isOpen && <span style={{ whiteSpace: "nowrap" }}>Log Out</span>}
+          {isExpanded && <span style={{ whiteSpace: "nowrap" }}>Log Out</span>}
         </button>
       </div>
     </div>

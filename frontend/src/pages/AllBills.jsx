@@ -87,11 +87,13 @@ const AllBills = () => {
               </span>
             </td>
             <td>
-              <button onClick={() => window.open(`/bills/view1/${item.id}`, "_blank")} style={{ marginRight: 8, background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer" }}><Eye size={18} /></button>
-              <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${item.id}/pdf`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><Download size={18} /></button>
-              {isSuperAdmin && (
-                <button onClick={() => handleDelete(item.id)} style={{ marginLeft: 8, background: "transparent", border: "none", color: "#dc2626", cursor: "pointer" }}><Trash2 size={18} /></button>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <button onClick={() => window.open(`/bills/view1/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
+                <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${item.id}/pdf`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Download size={18} /></button>
+                {isSuperAdmin && (
+                  <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>
+                )}
+              </div>
             </td>
           </tr>
         )}

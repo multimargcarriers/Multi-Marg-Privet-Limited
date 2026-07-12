@@ -43,6 +43,13 @@ export const AuthProvider = ({ children }) => {
     navigate('/');
   };
 
+  const updateUser = (userData, userToken) => {
+    setUser(userData);
+    if (userToken) setToken(userToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    if (userToken) localStorage.setItem('token', userToken);
+  };
+
   const hasPermission = (moduleName) => {
     if (!user) return false;
     // Fallback for stale localStorage data
@@ -55,7 +62,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

@@ -42,6 +42,8 @@ import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
+import Profile from "./pages/Profile";
+
 function App() {
   return (
     <BrowserRouter>
@@ -55,6 +57,7 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
 
             {/* IAM - SuperAdmin Only */}

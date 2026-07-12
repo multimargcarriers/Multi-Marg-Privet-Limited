@@ -84,11 +84,13 @@ const BookingsList = () => {
             <td>₹ {parseFloat(item.freight || item.frieght || 0).toFixed(2)}</td>
             <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>Active</span></td>
             <td>
-              <button onClick={() => navigate(`/bills?lr=${item.awb || item.id}`)} style={{ marginRight: 8, background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer" }}><Eye size={18} /></button>
-              <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}><Printer size={18} /></button>
-              {isSuperAdmin && (
-                <button onClick={() => handleDelete(item.id)} style={{ marginLeft: 8, background: "transparent", border: "none", color: "#dc2626", cursor: "pointer" }}><Trash2 size={18} /></button>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <button onClick={() => navigate(`/bills?lr=${item.awb || item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
+                <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Printer size={18} /></button>
+                {isSuperAdmin && (
+                  <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>
+                )}
+              </div>
             </td>
           </tr>
         )}

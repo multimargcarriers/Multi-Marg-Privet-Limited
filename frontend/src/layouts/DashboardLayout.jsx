@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import RightSidebar from '../components/RightSidebar';
 import Topbar from '../components/Topbar';
 
 const DashboardLayout = () => {
@@ -26,6 +27,7 @@ const DashboardLayout = () => {
           <Outlet />
         </div>
       </div>
+      <RightSidebar />
     </div>
   );
 };
