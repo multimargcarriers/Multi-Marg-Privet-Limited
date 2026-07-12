@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Download } from "lucide-react";
+import RupeeIcon from '../components/RupeeIcon';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -131,12 +132,12 @@ const GST = () => {
                   <td>{item.client || "-"}</td>
                   <td>{item.gstin || "-"}</td>
                   <td>{item.sac || "-"}</td>
-                  <td>{parseFloat(item.taxable || 0).toFixed(2)}</td>
-                  <td>{parseFloat(item.igst || 0).toFixed(2)}</td>
-                  <td>{parseFloat(item.cgst || 0).toFixed(2)}</td>
-                  <td>{parseFloat(item.sgst || 0).toFixed(2)}</td>
-                  <td>{parseFloat(item.totalTax || 0).toFixed(2)}</td>
-                  <td style={{ fontWeight: "600" }}>{parseFloat(item.total || 0).toFixed(2)}</td>
+                  <td><RupeeIcon size={14} /> {parseFloat(item.taxable || 0).toFixed(2)}</td>
+                  <td><RupeeIcon size={14} /> {parseFloat(item.igst || 0).toFixed(2)}</td>
+                  <td><RupeeIcon size={14} /> {parseFloat(item.cgst || 0).toFixed(2)}</td>
+                  <td><RupeeIcon size={14} /> {parseFloat(item.sgst || 0).toFixed(2)}</td>
+                  <td><RupeeIcon size={14} /> {parseFloat(item.totalTax || 0).toFixed(2)}</td>
+                  <td style={{ fontWeight: "600" }}><RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}</td>
                 </tr>
               ))
             )}

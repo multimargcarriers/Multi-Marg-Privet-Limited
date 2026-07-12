@@ -3,6 +3,7 @@ import axios from "axios";
 import Table from "../components/Table";
 import { TablePageSkeleton } from "../components/SkeletonLoader";
 import { Trash2 } from "lucide-react";
+import RupeeIcon from '../components/RupeeIcon';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 
@@ -73,7 +74,7 @@ const Bills = () => {
           <tr key={b.id || i}>
             <td>{b.id}</td>
             <td>{b.client || "-"}</td>
-            <td>{b.amount || "-"}</td>
+            <td><RupeeIcon size={14} /> {b.amount || "-"}</td>
             <td>
               {b.createdAt ? new Date(b.createdAt).toLocaleString() : "-"}
             </td>

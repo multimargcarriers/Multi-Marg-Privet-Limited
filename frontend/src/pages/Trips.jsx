@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 import { Plus, Truck, FileText, ClipboardList, CheckCircle, Loader2 } from "lucide-react";
+import RupeeIcon from '../components/RupeeIcon';
 import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -346,7 +347,7 @@ const Trips = () => {
                     </div>
                 ) : "-"}
               </td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}>{item.totalAmount || "0.00"}</td>
+              <td style={{ fontWeight: "600", color: "#10b981" }}><RupeeIcon size={14} /> {item.totalAmount || "0.00"}</td>
               <td>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: "pointer" }}><FileText size={16} /></button>
