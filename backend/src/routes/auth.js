@@ -6,6 +6,7 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { generateToken, authenticateToken } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
 const { createUploadMiddleware, handleMulterError } = require("../middleware/upload");
+const { uploadFile } = require("../config/cloudinary");
 
 router.post(
   "/login",
@@ -72,7 +73,18 @@ router.put(
     let photoUrl = undefined;
 
     if (req.file) {
-      photoUrl = `/uploads/avatars/${req.file.filename}`;
+      try {
+        const uploadResult = await uploadFile(req.file.path, { folder: "avatars" });
+        if (uploadResult.success) {
+          photoUrl = uploadResult.secure_url;
+        } else {
+          // Fallback to local storage if Cloudinary is disabled or fails
+          photoUrl = `/uploads/avatars/${req.file.filename}`;
+        }
+      } catch (error) {
+        console.error("Cloudinary upload failed:", error);
+        photoUrl = `/uploads/avatars/${req.file.filename}`;
+      }
     }
 
     const updates = {};
