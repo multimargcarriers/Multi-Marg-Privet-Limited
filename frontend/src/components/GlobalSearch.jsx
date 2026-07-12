@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, Package, Users, Truck, FileText, X, Compass } from 'lucide-react';
 import axios from 'axios';
 
-const GlobalSearch = ({ isMobile = false }) => {
+const GlobalSearch = ({ isMobile = false, onResultClick }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +88,7 @@ const GlobalSearch = ({ isMobile = false }) => {
     setQuery('');
     setIsOpen(false);
     navigate(result.link);
+    if (onResultClick) onResultClick();
   };
 
   const getIcon = (type) => {

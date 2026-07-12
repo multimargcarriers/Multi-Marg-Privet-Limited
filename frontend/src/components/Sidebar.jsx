@@ -195,7 +195,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       >
         <div className="sidebar-search-mobile" style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
           {isExpanded ? (
-            <GlobalSearch isMobile={true} />
+            <GlobalSearch isMobile={true} onResultClick={handleLinkClick} />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Search size={16} color="var(--text-muted)" />
