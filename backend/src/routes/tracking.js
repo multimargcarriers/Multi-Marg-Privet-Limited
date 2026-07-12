@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -9,37 +9,6 @@ const { body, validationResult } = require("express-validator");
 
 const CACHE_KEY = "tracking";
 
-if (!mockData.tracking) {
-  mockData.tracking = [
-    {
-      id: "tr1",
-      awb: "LR-10001",
-      date: new Date().toISOString(),
-      location: "Delhi Terminal",
-      status: "In Transit",
-      remarks: "Shipment received at Delhi hub",
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "tr2",
-      awb: "LR-10002",
-      date: new Date().toISOString(),
-      location: "Mumbai Terminal",
-      status: "Delivered",
-      remarks: "Delivered to consignee",
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: "tr3",
-      awb: "LR-10003",
-      date: new Date().toISOString(),
-      location: "Jaipur",
-      status: "Picked Up",
-      remarks: "Shipment picked up from consignor",
-      updatedAt: new Date().toISOString(),
-    },
-  ];
-}
 
 // Get all tracking entries
 router.get(
@@ -48,7 +17,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.tracking;
+
         const snapshot = await db
           .collection("tracking")
           .orderBy("updatedAt", "desc")
@@ -68,10 +37,6 @@ router.get(
   "/:awb",
   asyncHandler(async (req, res) => {
     const { awb } = req.params;
-    if (useMockDB) {
-      const entries = mockData.tracking.filter((t) => t.awb === awb);
-      return success(res, "Tracking entries fetched successfully", entries);
-    }
     const snapshot = await db
       .collection("tracking")
       .where("awb", "==", awb)
@@ -100,12 +65,6 @@ router.post(
     entry.date = entry.date || new Date().toISOString();
     entry.updatedAt = new Date().toISOString();
 
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.tracking.push(entry);
-      await delCache(CACHE_KEY);
-      return created(res, "Tracking entry created successfully", entry);
-    }
     const docRef = await db.collection("tracking").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "Tracking entry created successfully", {
@@ -120,13 +79,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.tracking.findIndex((t) => t.id === id);
-      if (idx === -1) return error(res, "Tracking entry not found", 404);
-      mockData.tracking.splice(idx, 1);
-      await delCache(CACHE_KEY);
-      return success(res, "Tracking entry deleted successfully");
-    }
     const doc = await db.collection("tracking").doc(id).get();
     if (!doc.exists) return error(res, "Tracking entry not found", 404);
     await db.collection("tracking").doc(id).delete();

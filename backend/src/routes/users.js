@@ -1,25 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error, created } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { authenticateToken } = require("../middleware/auth");
 const { v4: uuidv4 } = require("uuid");
 
 // Initialize mock users if needed
-if (!mockData.users) {
-  mockData.users = [
-    {
-      id: "mock_user_1",
-      name: "Praveen",
-      email: "praveen.pr105@gmail.com",
-      role: "SuperAdmin",
-      permissions: ["all"],
-      password: "123456",
-      createdAt: new Date().toISOString()
-    }
-  ];
-}
 
 // Middleware to ensure user is SuperAdmin
 const requireSuperAdmin = (req, res, next) => {
@@ -38,10 +25,6 @@ router.use(requireSuperAdmin);
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    if (useMockDB) {
-      const safeUsers = mockData.users.map(({ password, ...u }) => u);
-      return success(res, { message: "Users fetched successfully", data: safeUsers });
-    }
     
     const snapshot = await db.collection("users").get();
     const users = [];
@@ -74,15 +57,10 @@ router.post(
       createdAt: new Date().toISOString()
     };
 
-    if (useMockDB) {
-      const exists = mockData.users.find(u => u.email === email);
-      if (exists) return error(res, { message: "Email already exists", statusCode: 400 });
-      mockData.users.push(newUser);
-    } else {
       const snapshot = await db.collection("users").where("email", "==", email).get();
       if (!snapshot.empty) return error(res, { message: "Email already exists", statusCode: 400 });
       await db.collection("users").doc(newUser.id).set(newUser);
-    }
+    
 
     const { password: _, ...safeUser } = newUser;
     return created(res, { message: "User created successfully", data: safeUser });
@@ -99,13 +77,6 @@ router.put(
     const updates = { name, email, role, permissions };
     if (password) updates.password = password; // Only update if provided
 
-    if (useMockDB) {
-      const idx = mockData.users.findIndex(u => u.id === id);
-      if (idx === -1) return error(res, { message: "User not found", statusCode: 404 });
-      mockData.users[idx] = { ...mockData.users[idx], ...updates };
-      const { password: _, ...safeUser } = mockData.users[idx];
-      return success(res, { message: "User updated successfully", data: safeUser });
-    }
 
     const docRef = db.collection("users").doc(id);
     const doc = await docRef.get();
@@ -125,12 +96,6 @@ router.delete(
        return error(res, { message: "Cannot delete yourself", statusCode: 400 });
     }
 
-    if (useMockDB) {
-      const idx = mockData.users.findIndex(u => u.id === id);
-      if (idx === -1) return error(res, { message: "User not found", statusCode: 404 });
-      mockData.users.splice(idx, 1);
-      return success(res, { message: "User deleted successfully" });
-    }
 
     const docRef = db.collection("users").doc(id);
     const doc = await docRef.get();

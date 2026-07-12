@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { generateToken, authenticateToken } = require("../middleware/auth");
@@ -21,18 +21,6 @@ router.post(
 
     const { email, password } = req.body;
 
-    if (useMockDB) {
-      const mockUser = mockData.users?.find(
-        (u) => u.email === email && u.password === password
-      );
-
-      if (mockUser) {
-        const { password: _, ...userData } = mockUser;
-        const token = generateToken(userData);
-        return success(res, { message: "Login successful", data: { user: userData, token } });
-      }
-      return error(res, { message: "Invalid Email or Password", statusCode: 401 });
-    }
 
     // Real Firebase Authentication
     const usersRef = db.collection("users");
@@ -102,31 +90,7 @@ router.put(
     console.log("=== DEBUG PROFILE UPDATE ===");
     console.log("userId from token:", userId);
     console.log("newId requested:", newId);
-    console.log("Mock Users available IDs:", mockData.users?.map(u => u.id));
 
-    if (useMockDB) {
-      if (newId && newId !== userId) {
-        const idExists = mockData.users?.find((u) => u.id === newId);
-        if (idExists) {
-          console.log("Error: newId already taken");
-          return error(res, { message: "User ID is already taken", statusCode: 400 });
-        }
-      }
-
-      const idx = mockData.users?.findIndex((u) => u.id === userId);
-      console.log("Found user at index:", idx);
-      if (idx !== undefined && idx !== -1) {
-        mockData.users[idx] = { ...mockData.users[idx], ...updates };
-        if (newId && newId !== userId) {
-          mockData.users[idx].id = newId;
-        }
-        const { password: _, ...userData } = mockData.users[idx];
-        updatedUserData = userData;
-      } else {
-        console.log("Error: User not found in mockData");
-        return error(res, { message: "User not found", statusCode: 404 });
-      }
-    } else {
       const docRef = db.collection("users").doc(userId);
       const doc = await docRef.get();
       if (!doc.exists) {
@@ -153,7 +117,7 @@ router.put(
       }
       
       delete updatedUserData.password;
-    }
+    
 
     // Generate new token with updated user data
     const token = generateToken(updatedUserData);

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");
@@ -16,26 +16,6 @@ router.get(
     const data = await getOrSet(
       `${CACHE_KEY}_${fr || "all"}_${to || "all"}`,
       async () => {
-        if (useMockDB) {
-          let bills = [...mockData.bills];
-          if (fr)
-            bills = bills.filter((b) => new Date(b.createdAt) >= new Date(fr));
-          if (to)
-            bills = bills.filter((b) => new Date(b.createdAt) <= new Date(to));
-          return bills.map((b) => ({
-            date: b.date || b.createdAt,
-            invoice: b.billNo,
-            client: b.client,
-            gstin: b.gstin || "08ABCDE1234F1Z5",
-            sac: b.sac || "996511",
-            taxable: b.taxable || b.amount || 0,
-            igst: b.igst || (b.gst === 5 ? 0 : b.cgst || 0),
-            cgst: b.cgst || 0,
-            sgst: b.sgst || 0,
-            totalTax: b.totalTax || (b.igst || 0) + (b.cgst || 0) + (b.sgst || 0),
-            total: b.total || b.amount || 0,
-          }));
-        }
         const snapshot = await db.collection("bills").get();
         const bills = [];
         snapshot.forEach((doc) => bills.push({ id: doc.id, ...doc.data() }));

@@ -1,4 +1,4 @@
-const { mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { logger } = require("../config/logger");
 
 /**
@@ -8,8 +8,11 @@ const { logger } = require("../config/logger");
  */
 exports.getSystemLogs = async (req, res, next) => {
   try {
-    // Reverse the logs so the newest are at the top
-    const logs = (mockData.systemLogs || []).slice().reverse();
+    const snapshot = await db.collection("systemLogs").orderBy("timestamp", "desc").get();
+    const logs = [];
+    snapshot.forEach((doc) => {
+      logs.push({ id: doc.id, ...doc.data() });
+    });
     
     res.status(200).json({
       success: true,

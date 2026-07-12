@@ -21,21 +21,15 @@ class DatabaseTransport extends Transport {
 
     try {
       // Lazy load to avoid circular dependencies
-      const { mockData } = require('./firebase');
-      if (mockData && mockData.systemLogs) {
-        // Keep only the last 1000 logs to prevent memory leaks in production
-        if (mockData.systemLogs.length >= 1000) {
-          mockData.systemLogs.shift();
-        }
-        
-        mockData.systemLogs.push({
-          id: 'log-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      const { db } = require('./firebase');
+      if (db) {
+        db.collection("systemLogs").add({
           timestamp: info.timestamp || new Date().toISOString(),
           level: info.level,
           message: info.message,
           stack: info.stack || null,
           meta: Object.keys(info).length > 3 ? info : null // Anything extra
-        });
+        }).catch(err => console.error("Error writing to Firestore log:", err));
       }
     } catch (err) {
       console.error("Error writing to DB log:", err);

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -9,26 +9,6 @@ const { body, validationResult } = require("express-validator");
 
 const CACHE_KEY = "cashEntries";
 
-if (!mockData.cashEntries) {
-  mockData.cashEntries = [
-    {
-      id: "ce1",
-      amount: 50000,
-      type: "in",
-      date: new Date().toISOString(),
-      remarks: "Client payment received",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "ce2",
-      amount: 15000,
-      type: "out",
-      date: new Date().toISOString(),
-      remarks: "Fuel expense",
-      createdAt: new Date().toISOString(),
-    },
-  ];
-}
 
 router.get(
   "/",
@@ -36,7 +16,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.cashEntries;
+
         const snapshot = await db
           .collection("cashEntries")
           .orderBy("date", "desc")
@@ -65,12 +45,6 @@ router.post(
     const entry = req.body;
     entry.date = entry.date || new Date().toISOString();
     entry.createdAt = new Date().toISOString();
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.cashEntries.push(entry);
-      await delCache(CACHE_KEY);
-      return created(res, "Cash entry created successfully", entry);
-    }
     const docRef = await db.collection("cashEntries").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "Cash entry created successfully", {
@@ -84,13 +58,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.cashEntries.findIndex((e) => e.id === id);
-      if (idx === -1) return error(res, "Cash entry not found", 404);
-      mockData.cashEntries = mockData.cashEntries.filter((e) => e.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, "Cash entry deleted successfully");
-    }
     const doc = await db.collection("cashEntries").doc(id).get();
     if (!doc.exists) return error(res, "Cash entry not found", 404);
     await db.collection("cashEntries").doc(id).delete();

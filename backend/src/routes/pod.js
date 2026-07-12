@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs");
@@ -12,16 +12,6 @@ const { uploadFile } = require("../config/cloudinary");
 
 const CACHE_KEY = "podEntries";
 
-if (!mockData.podEntries) {
-  mockData.podEntries = [
-    {
-      id: "pod1",
-      lrNo: "LR-10001",
-      fileName: "pod_delhi.pdf",
-      uploadedAt: new Date().toISOString(),
-    },
-  ];
-}
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, "../../uploads/pod");
@@ -35,7 +25,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.podEntries;
+
         const snapshot = await db
           .collection("pod")
           .orderBy("uploadedAt", "desc")
@@ -80,12 +70,6 @@ router.post(
       }
     }
 
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.podEntries.push(entry);
-      await delCache(CACHE_KEY);
-      return created(res, "POD entry created successfully", entry);
-    }
     const docRef = await db.collection("pod").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "POD entry created successfully", {

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");
@@ -23,27 +23,23 @@ router.get(
         let rawBills = [];
         let rawBookings = [];
 
-        if (useMockDB) {
-          clientsCount = mockData.clients?.length || 0;
-          totalBookings = mockData.bookings?.length || 0;
-          rawCash = mockData.cashEntries || [];
-          rawBills = mockData.bills || [];
-          rawBookings = mockData.bookings || [];
-        } else {
           // Real Firebase Firestore logic
-          const clientsSnapshot = await db.collection("clients").count().get();
+          const [clientsSnapshot, bookingsSnapshot, cashSnapshot, billsSnapshot] = await Promise.all([
+            db.collection("clients").count().get(),
+            db.collection("bookings").get(),
+            db.collection("cashEntries").get(),
+            db.collection("bills").get()
+          ]);
+
           clientsCount = clientsSnapshot.data().count;
 
-          const bookingsSnapshot = await db.collection("bookings").get();
           totalBookings = bookingsSnapshot.size;
           bookingsSnapshot.forEach(doc => rawBookings.push(doc.data()));
 
-          const cashSnapshot = await db.collection("cashEntries").get();
           cashSnapshot.forEach(doc => rawCash.push(doc.data()));
 
-          const billsSnapshot = await db.collection("bills").get();
           billsSnapshot.forEach(doc => rawBills.push(doc.data()));
-        }
+
 
         // Aggregate Cash
         rawCash.forEach(entry => {

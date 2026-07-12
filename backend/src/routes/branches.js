@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -9,31 +9,6 @@ const { body, param, validationResult } = require("express-validator");
 
 const CACHE_KEY = "branches";
 
-// Extend mockData with branches
-if (!mockData.branches) {
-  mockData.branches = [
-    {
-      id: "b1",
-      codeInitial: "MCPL",
-      code: "BR001",
-      branch: "Delhi Main",
-      name: "Delhi Contact",
-      address: "123, Main Road, Delhi",
-      phno: "9876543210",
-      email: "delhi@multimarg.com",
-    },
-    {
-      id: "b2",
-      codeInitial: "MCPL",
-      code: "BR002",
-      branch: "Mumbai West",
-      name: "Mumbai Contact",
-      address: "456, Link Road, Mumbai",
-      phno: "9876543211",
-      email: "mumbai@multimarg.com",
-    },
-  ];
-}
 
 // Get all branches
 router.get(
@@ -42,7 +17,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.branches;
+
         const snapshot = await db.collection("branches").get();
         const branches = [];
         snapshot.forEach((doc) => branches.push({ id: doc.id, ...doc.data() }));
@@ -71,12 +46,6 @@ router.post(
 
     const newBranch = req.body;
     newBranch.createdAt = new Date().toISOString();
-    if (useMockDB) {
-      newBranch.id = uuidv4();
-      mockData.branches.push(newBranch);
-      await delCache(CACHE_KEY);
-      return created(res, { message: "Branch created successfully", data: newBranch });
-    }
     const docRef = await db.collection("branches").add(newBranch);
     await delCache(CACHE_KEY);
     return created(res, { message: "Branch created successfully", data: { id: docRef.id, ...newBranch } });
@@ -93,13 +62,6 @@ router.put(
       return error(res, { message: "Validation failed", statusCode: 400, details: errors.array() });
 
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.branches.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, { message: "Branch not found", statusCode: 404 });
-      mockData.branches[idx] = { ...mockData.branches[idx], ...req.body };
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Branch updated successfully", data: mockData.branches[idx] });
-    }
     const doc = await db.collection("branches").doc(id).get();
     if (!doc.exists) return error(res, { message: "Branch not found", statusCode: 404 });
     await db.collection("branches").doc(id).update(req.body);
@@ -113,13 +75,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.branches.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, { message: "Branch not found", statusCode: 404 });
-      mockData.branches = mockData.branches.filter((b) => b.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Branch deleted successfully" });
-    }
     const doc = await db.collection("branches").doc(id).get();
     if (!doc.exists) return error(res, { message: "Branch not found", statusCode: 404 });
     await db.collection("branches").doc(id).delete();

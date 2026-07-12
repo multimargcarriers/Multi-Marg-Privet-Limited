@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -10,22 +10,6 @@ const { uploadFile } = require("../config/cloudinary");
 
 const CACHE_KEY = "voucherEntries";
 
-if (!mockData.voucherEntries) {
-  mockData.voucherEntries = [
-    {
-      id: "vch1",
-      voucherNo: "VCH-001",
-      fileName: "voucher_001.pdf",
-      uploadedAt: new Date().toISOString(),
-    },
-    {
-      id: "vch2",
-      voucherNo: "VCH-002",
-      fileName: "voucher_002.pdf",
-      uploadedAt: new Date().toISOString(),
-    },
-  ];
-}
 
 router.get(
   "/",
@@ -33,7 +17,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.voucherEntries;
+
         const snapshot = await db
           .collection("vouchers")
           .orderBy("uploadedAt", "desc")
@@ -74,12 +58,6 @@ router.post(
       }
     }
 
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.voucherEntries.push(entry);
-      await delCache(CACHE_KEY);
-      return created(res, "Voucher entry created successfully", entry);
-    }
     const docRef = await db.collection("vouchers").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "Voucher entry created successfully", {

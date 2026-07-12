@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");
@@ -16,53 +16,6 @@ router.get(
     const data = await getOrSet(
       `${CACHE_KEY}_${client || "all"}_${from || "all"}_${to || "all"}`,
       async () => {
-        if (useMockDB) {
-          let bookings = [...(mockData.bookings || [])];
-          if (client)
-            bookings = bookings.filter(
-              (b) => b.client?.toLowerCase() === client.toLowerCase(),
-            );
-          if (from)
-            bookings = bookings.filter(
-              (b) => new Date(b.date) >= new Date(from),
-            );
-          if (to)
-            bookings = bookings.filter((b) => new Date(b.date) <= new Date(to));
-
-          return {
-            summary: {
-              totalBookings: bookings.length,
-              totalFreight: bookings.reduce(
-                (s, b) => s + parseFloat(b.freight || b.frieght || 0),
-                0,
-              ),
-              totalBoxes: bookings.reduce(
-                (s, b) => s + parseInt(b.box || 0),
-                0,
-              ),
-              totalWeight: bookings.reduce(
-                (s, b) => s + parseFloat(b.charge_wt || b.weight || 0),
-                0,
-              ),
-            },
-            bookings: bookings.map((b) => ({
-              awb: b.lrNumber || b.awb || b.id,
-              date: b.date,
-              consignor: b.consignor || "-",
-              consignee: b.consignee || "-",
-              origin: b.origin,
-              destination: b.destination,
-              mode: b.mode || "Road",
-              invoice: b.invoice_no || "-",
-              invoiceDate: b.invoice_date || "-",
-              partNumber: b.part_number || "-",
-              box: b.box || 0,
-              quantity: b.quantity || 0,
-              weight: b.charge_wt || b.weight || 0,
-              status: b.status || "Booked",
-            })),
-          };
-        }
 
         // Real Firebase logic
         let query = db.collection("bookings");

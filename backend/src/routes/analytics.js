@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");
@@ -15,21 +15,17 @@ router.get(
         let rawBookings = [];
         let rawCash = [];
 
-        if (useMockDB) {
-          rawBills = mockData.bills || [];
-          rawBookings = mockData.bookings || [];
-          rawCash = mockData.cashEntries || [];
-        } else {
           // Fetch from Firebase
-          const billsSnap = await db.collection("bills").get();
+          const [billsSnap, bookingsSnap, cashSnap] = await Promise.all([
+            db.collection("bills").get(),
+            db.collection("bookings").get(),
+            db.collection("cashEntries").get()
+          ]);
+
           billsSnap.forEach(doc => rawBills.push(doc.data()));
-
-          const bookingsSnap = await db.collection("bookings").get();
           bookingsSnap.forEach(doc => rawBookings.push(doc.data()));
-
-          const cashSnap = await db.collection("cashEntries").get();
           cashSnap.forEach(doc => rawCash.push(doc.data()));
-        }
+        
 
         let outstandingReceivables = 0;
         let paidAmount = 0;

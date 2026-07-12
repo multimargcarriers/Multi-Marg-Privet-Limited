@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { body, validationResult } = require("express-validator");
@@ -31,10 +31,6 @@ router.post(
 
     // If billId is provided, update bill status to "invoiced"
     if (billId) {
-      if (useMockDB) {
-        const bill = (mockData.bills || []).find((b) => b.id === billId);
-        if (bill) bill.status = "invoiced";
-      } else {
         const doc = await db.collection("bills").doc(billId).get();
         if (doc.exists) {
           await db
@@ -46,7 +42,7 @@ router.post(
             });
         }
       }
-    }
+    
 
     return success(res, "Invoice email sent successfully", {
       to,

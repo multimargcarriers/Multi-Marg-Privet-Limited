@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");
@@ -16,36 +16,6 @@ router.get(
     const data = await getOrSet(
       `${CACHE_KEY}_${from || "all"}_${to || "all"}_${vendor || "all"}`,
       async () => {
-        if (useMockDB) {
-          let purchases = [...(mockData.purchases || [])];
-          if (from)
-            purchases = purchases.filter(
-              (p) => new Date(p.date) >= new Date(from),
-            );
-          if (to)
-            purchases = purchases.filter(
-              (p) => new Date(p.date) <= new Date(to),
-            );
-          if (vendor)
-            purchases = purchases.filter(
-              (p) => p.vendor?.toLowerCase() === vendor.toLowerCase(),
-            );
-
-          return {
-            totalPurchases: purchases.reduce(
-              (s, p) => s + parseFloat(p.total || 0),
-              0,
-            ),
-            count: purchases.length,
-            purchases: purchases.map((p) => ({
-              vendor: p.vendor,
-              date: p.date,
-              items: p.items,
-              total: p.total,
-              remarks: p.remarks,
-            })),
-          };
-        }
 
         let query = db.collection("purchases");
         if (vendor) query = query.where("vendor", "==", vendor);
@@ -89,26 +59,6 @@ router.get(
   asyncHandler(async (req, res) => {
     const { from, to } = req.query;
 
-    if (useMockDB) {
-      let purchases = [...(mockData.purchases || [])];
-      if (from)
-        purchases = purchases.filter((p) => new Date(p.date) >= new Date(from));
-      if (to)
-        purchases = purchases.filter((p) => new Date(p.date) <= new Date(to));
-
-      return success(res, "Purchase summary fetched successfully", {
-        totalPurchases: purchases.reduce(
-          (s, p) => s + parseFloat(p.total || 0),
-          0,
-        ),
-        totalCount: purchases.length,
-        averagePerPurchase:
-          purchases.length > 0
-            ? purchases.reduce((s, p) => s + parseFloat(p.total || 0), 0) /
-              purchases.length
-            : 0,
-      });
-    }
 
     const snapshot = await db.collection("purchases").get();
     const purchases = [];

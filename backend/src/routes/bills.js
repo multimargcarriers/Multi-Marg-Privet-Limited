@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -11,38 +11,6 @@ const { uploadBase64 } = require("../config/cloudinary");
 
 const CACHE_KEY = "bills";
 
-if (!mockData.bills) {
-  mockData.bills = [
-    {
-      id: "bill1",
-      billNo: "MCPL/25-26/001",
-      client: "Tata Motors",
-      amount: 5250,
-      total: 5250,
-      status: "paid",
-      createdAt: new Date().toISOString(),
-      gst: 5,
-      taxable: 5000,
-      cgst: 125,
-      sgst: 125,
-      lrNo: "LR-10001",
-    },
-    {
-      id: "bill2",
-      billNo: "MCPL/25-26/002",
-      client: "Reliance Retail",
-      amount: 12000,
-      total: 12000,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      gst: 12,
-      taxable: 10714.29,
-      cgst: 642.86,
-      sgst: 642.86,
-      lrNo: "LR-10002",
-    },
-  ];
-}
 
 // Get all bills
 router.get(
@@ -51,7 +19,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.bills;
+
         const snapshot = await db
           .collection("bills")
           .orderBy("createdAt", "desc")
@@ -71,11 +39,6 @@ router.get(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const bill = mockData.bills.find((b) => b.id === id);
-      if (!bill) return error(res, "Bill not found", 404);
-      return success(res, "Bill fetched successfully", bill);
-    }
     const doc = await db.collection("bills").doc(id).get();
     if (!doc.exists) return error(res, "Bill not found", 404);
     return success(res, "Bill fetched successfully", {
@@ -92,12 +55,9 @@ router.get(
     const { id } = req.params;
     let bill;
 
-    if (useMockDB) {
-      bill = mockData.bills.find((b) => b.id === id || b.billNo === id);
-    } else {
       const doc = await db.collection("bills").doc(id).get();
       if (doc.exists) bill = { id: doc.id, ...doc.data() };
-    }
+
 
     if (!bill) return error(res, "Bill not found", 404);
 
@@ -162,12 +122,9 @@ router.post(
     const { id } = req.params;
     let bill;
 
-    if (useMockDB) {
-      bill = mockData.bills.find((b) => b.id === id || b.billNo === id);
-    } else {
       const doc = await db.collection("bills").doc(id).get();
       if (doc.exists) bill = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!bill) return error(res, "Bill not found", 404);
 
@@ -190,11 +147,8 @@ router.post(
     }
 
     // Save URL to database
-    if (useMockDB) {
-      bill.pdfUrl = uploadResult.url;
-    } else {
       await db.collection("bills").doc(id).update({ pdfUrl: uploadResult.url });
-    }
+    
     
     await delCache(CACHE_KEY);
     return success(res, "PDF generated and uploaded successfully", { url: uploadResult.url });
@@ -218,11 +172,6 @@ router.post(
     const generated = [];
     for (const bookingId of bookingIds) {
       let booking;
-      if (useMockDB) {
-        booking = mockData.bookings.find(
-          (b) => b.id === bookingId || b.lrNumber === bookingId,
-        );
-      }
       if (!booking) {
         const doc = await db.collection("bookings").doc(bookingId).get();
         if (doc.exists) booking = { id: doc.id, ...doc.data() };
@@ -235,7 +184,9 @@ router.post(
         const cgst = gstAmt / 2;
         const sgst = gstAmt / 2;
         const total = taxable + gstAmt;
-        const billNo = invoiceNo || `MCPL/25-26/${String(mockData.bills.length + generated.length + 1).padStart(3, "0")}`;
+        const countSnap = await db.collection("bills").count().get();
+        const totalBills = countSnap.data().count;
+        const billNo = invoiceNo || `MCPL/25-26/${String(totalBills + generated.length + 1).padStart(3, "0")}`;
         const bill = {
           id: uuidv4(),
           billNo,
@@ -250,17 +201,13 @@ router.post(
           status: "pending",
           createdAt: invoiceDate ? new Date(invoiceDate).toISOString() : new Date().toISOString(),
         };
-        if (useMockDB) {
-          mockData.bills.push(bill);
-          booking.status = "Billed";
-        } else {
           await db.collection("bookings").doc(booking.id).update({ status: "Billed" });
           // Save the generated bill to the bills collection
           await db.collection("bills").doc(bill.id).set(bill);
         }
         generated.push(bill);
       }
-    }
+    
     await delCache(CACHE_KEY);
     await delCache("bookings"); // Clear bookings cache since their status changed
     return success(res, "Bills generated successfully", {
@@ -288,7 +235,9 @@ router.post(
     const gstAmt = parseFloat(amount) - taxable;
     const cgst = gstAmt / 2;
     const sgst = gstAmt / 2;
-    const billNo = `MCPL/25-26/${String(mockData.bills.length + 1).padStart(3, "0")}`;
+    const countSnap = await db.collection("bills").count().get();
+    const totalBills = countSnap.data().count;
+    const billNo = `MCPL/25-26/${String(totalBills + 1).padStart(3, "0")}`;
     const bill = {
       id: uuidv4(),
       billNo,
@@ -305,11 +254,8 @@ router.post(
       status: "pending",
       createdAt: new Date().toISOString(),
     };
-    if (useMockDB) {
-      mockData.bills.push(bill);
-    } else {
       await db.collection("bills").add(bill);
-    }
+    
     await delCache(CACHE_KEY);
     return created(res, "Miscellaneous bill created successfully", bill);
   }),
@@ -320,13 +266,6 @@ router.put(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.bills.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, "Bill not found", 404);
-      mockData.bills[idx] = { ...mockData.bills[idx], ...req.body };
-      await delCache(CACHE_KEY);
-      return success(res, "Bill updated successfully", mockData.bills[idx]);
-    }
     const doc = await db.collection("bills").doc(id).get();
     if (!doc.exists) return error(res, "Bill not found", 404);
     await db.collection("bills").doc(id).update(req.body);
@@ -340,13 +279,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.bills.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, "Bill not found", 404);
-      mockData.bills = mockData.bills.filter((b) => b.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, "Bill deleted successfully");
-    }
     const doc = await db.collection("bills").doc(id).get();
     if (!doc.exists) return error(res, "Bill not found", 404);
     await db.collection("bills").doc(id).delete();

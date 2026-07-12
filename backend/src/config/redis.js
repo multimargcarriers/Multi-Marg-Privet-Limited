@@ -56,16 +56,39 @@ async function initRedis() {
   }
 }
 
+const memoryCache = new Map();
+const memoryCacheExpiry = new Map();
+
 /**
  * Get cached data by key
  * @param {string} key
  * @returns {Promise<object|null>}
  */
 async function getCache(key) {
+  // 1. Ultra-fast Memory Cache
+  if (memoryCache.has(key)) {
+    if (Date.now() < memoryCacheExpiry.get(key)) {
+      return memoryCache.get(key);
+    } else {
+      memoryCache.delete(key);
+      memoryCacheExpiry.delete(key);
+    }
+  }
+
+  // 2. Redis Fallback
   if (!client || !isConnected) return null;
   try {
     const data = await client.get(key);
-    return data ? JSON.parse(data) : null;
+    if (data) {
+      const parsed = JSON.parse(data);
+      const ttl = await client.ttl(key);
+      if (ttl > 0) {
+        memoryCache.set(key, parsed);
+        memoryCacheExpiry.set(key, Date.now() + ttl * 1000);
+      }
+      return parsed;
+    }
+    return null;
   } catch (error) {
     console.warn(`[Redis] Get cache error for key "${key}":`, error.message);
     return null;
@@ -79,6 +102,11 @@ async function getCache(key) {
  * @param {number} ttlSeconds - Time to live in seconds (default: 300 = 5 min)
  */
 async function setCache(key, value, ttlSeconds = 300) {
+  // Set memory cache
+  memoryCache.set(key, value);
+  memoryCacheExpiry.set(key, Date.now() + ttlSeconds * 1000);
+
+  // Set Redis
   if (!client || !isConnected) return;
   try {
     await client.setEx(key, ttlSeconds, JSON.stringify(value));
@@ -93,6 +121,10 @@ async function setCache(key, value, ttlSeconds = 300) {
  */
 function delCache(key) {
   invalidationTimestamps.set(key, Date.now());
+  
+  memoryCache.delete(key);
+  memoryCacheExpiry.delete(key);
+
   if (!client || !isConnected) return Promise.resolve();
   
   return client.del(key).catch(error => {
@@ -105,6 +137,9 @@ function delCache(key) {
  * @param {string} pattern
  */
 function invalidatePattern(pattern) {
+  memoryCache.clear();
+  memoryCacheExpiry.clear();
+
   if (!client || !isConnected) return Promise.resolve();
   
   return client.keys(pattern).then(keys => {
@@ -128,16 +163,15 @@ function invalidatePattern(pattern) {
 async function getOrSet(key, fetchFn, ttlSeconds = 300) {
   const cached = await getCache(key);
   if (cached !== null) {
-    console.log(`[Redis] Cache HIT for "${key}"`);
+    console.log(`[Memory/Redis] Cache HIT for "${key}"`);
     return cached;
   }
-  console.log(`[Redis] Cache MISS for "${key}"`);
+  console.log(`[Memory/Redis] Cache MISS for "${key}"`);
   
   const fetchStartTime = Date.now();
   const data = await fetchFn();
   
   if (data) {
-    // Check if the key was invalidated while we were fetching
     const lastInvalidated = invalidationTimestamps.get(key) || 0;
     if (lastInvalidated > fetchStartTime) {
       console.log(`[Redis] Skipped setting cache for "${key}" due to concurrent invalidation`);

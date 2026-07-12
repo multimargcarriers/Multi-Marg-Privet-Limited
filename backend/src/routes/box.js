@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -10,22 +10,6 @@ const { uploadFile } = require("../config/cloudinary");
 
 const CACHE_KEY = "boxEntries";
 
-if (!mockData.boxEntries) {
-  mockData.boxEntries = [
-    {
-      id: "bx1",
-      description: "Client documents - Tata Motors",
-      fileName: "box_tata.pdf",
-      uploadedAt: new Date().toISOString(),
-    },
-    {
-      id: "bx2",
-      description: "Invoice copies - Reliance",
-      fileName: "box_reliance.pdf",
-      uploadedAt: new Date().toISOString(),
-    },
-  ];
-}
 
 router.get(
   "/",
@@ -33,7 +17,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.boxEntries;
+
         const snapshot = await db
           .collection("box")
           .orderBy("uploadedAt", "desc")
@@ -74,12 +58,6 @@ router.post(
       }
     }
 
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.boxEntries.push(entry);
-      await delCache(CACHE_KEY);
-      return created(res, "Box entry created successfully", entry);
-    }
     const docRef = await db.collection("box").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "Box entry created successfully", {

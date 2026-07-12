@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { generatePDF } = require("../utils/pdfGenerator");
@@ -12,14 +12,9 @@ router.get(
     const { id } = req.params;
     let booking;
 
-    if (useMockDB) {
-      booking = (mockData.bookings || []).find(
-        (b) => b.id === id || b.lrNumber === id,
-      );
-    } else {
       const doc = await db.collection("bookings").doc(id).get();
       if (doc.exists) booking = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!booking) return error(res, "Booking not found", 404);
 
@@ -97,12 +92,9 @@ router.get(
     const { id } = req.params;
     let booking;
 
-    if (useMockDB) {
-      booking = (mockData.bookings || []).find((b) => b.id === id || b.lrNumber === id);
-    } else {
       const doc = await db.collection("bookings").doc(id).get();
       if (doc.exists) booking = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!booking) return error(res, "Booking not found", 404);
 
@@ -125,12 +117,9 @@ router.get(
     const { id } = req.params;
     let bill;
 
-    if (useMockDB) {
-      bill = (mockData.bills || []).find((b) => b.id === id || b.billNo === id);
-    } else {
       const doc = await db.collection("bills").doc(id).get();
       if (doc.exists) bill = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!bill) return error(res, "Bill not found", 404);
 
@@ -192,12 +181,9 @@ router.get(
     const { id } = req.params;
     let trip;
 
-    if (useMockDB) {
-      trip = (mockData.trips || []).find((t) => t.id === id);
-    } else {
       const doc = await db.collection("trips").doc(id).get();
       if (doc.exists) trip = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!trip) return error(res, "Trip not found", 404);
 
@@ -253,12 +239,9 @@ router.get(
     const { id } = req.params;
     let trip;
 
-    if (useMockDB) {
-      trip = (mockData.trips || []).find((t) => t.id === id);
-    } else {
       const doc = await db.collection("trips").doc(id).get();
       if (doc.exists) trip = { id: doc.id, ...doc.data() };
-    }
+    
 
     if (!trip) return error(res, "Trip not found", 404);
 

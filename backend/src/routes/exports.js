@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 
@@ -24,17 +24,12 @@ router.get(
   asyncHandler(async (req, res) => {
     const { client } = req.params;
     let entries = [];
-    if (useMockDB) {
-      entries = (mockData.outstanding || []).filter(
-        (o) => o.client?.toLowerCase() === client.toLowerCase(),
-      );
-    } else {
       const snapshot = await db
         .collection("outstanding")
         .where("client", "==", client)
         .get();
       snapshot.forEach((doc) => entries.push({ id: doc.id, ...doc.data() }));
-    }
+    
     const csv = toCSV(
       ["Date", "Amount", "Client", "Particulars", "Bank Name"],
       entries,
@@ -54,17 +49,12 @@ router.get(
   asyncHandler(async (req, res) => {
     const { client } = req.params;
     let bookings = [];
-    if (useMockDB) {
-      bookings = (mockData.bookings || []).filter(
-        (b) => b.client?.toLowerCase() === client.toLowerCase(),
-      );
-    } else {
       const snapshot = await db
         .collection("bookings")
         .where("client", "==", client)
         .get();
       snapshot.forEach((doc) => bookings.push({ id: doc.id, ...doc.data() }));
-    }
+    
     const csv = toCSV(
       [
         "LR No",
@@ -95,11 +85,8 @@ router.get(
   "/bookings",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) data = mockData.bookings || [];
-    else {
-      const snapshot = await db.collection("bookings").get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
+    const snapshot = await db.collection("bookings").get();
+    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const csv = toCSV(
       [
         "LR No",
@@ -128,11 +115,8 @@ router.get(
   "/bills",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) data = mockData.bills || [];
-    else {
       const snapshot = await db.collection("bills").get();
       snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
     const csv = toCSV(
       [
         "Bill No",
@@ -159,11 +143,8 @@ router.get(
   "/tripsheet",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) data = mockData.trips || [];
-    else {
-      const snapshot = await db.collection("trips").get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
+    const snapshot = await db.collection("trips").get();
+    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const csv = toCSV(
       [
         "Trip No",
@@ -188,11 +169,8 @@ router.get(
   "/cashsheet",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) data = mockData.cashEntries || [];
-    else {
-      const snapshot = await db.collection("cashEntries").get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
+    const snapshot = await db.collection("cashEntries").get();
+    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const csv = toCSV(["Date", "Type", "Amount", "Remarks"], data);
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", "attachment; filename=cashsheet.csv");
@@ -205,11 +183,8 @@ router.get(
   "/gst",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) data = mockData.bills || [];
-    else {
-      const snapshot = await db.collection("bills").get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
+    const snapshot = await db.collection("bills").get();
+    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const csv = toCSV(
       [
         "Invoice No",
@@ -234,17 +209,12 @@ router.get(
   "/unbilled",
   asyncHandler(async (req, res) => {
     let data = [];
-    if (useMockDB) {
-      data = (mockData.bookings || []).filter(
-        (b) => b.status === "Booked" || !b.status,
-      );
-    } else {
       const snapshot = await db
         .collection("bookings")
         .where("status", "==", "Booked")
         .get();
       snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    }
+    
     const csv = toCSV(
       [
         "LR No",

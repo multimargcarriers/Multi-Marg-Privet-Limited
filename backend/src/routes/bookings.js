@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -44,12 +44,6 @@ router.post(
     booking.status = "Booked";
     booking.lrNumber = generateLRNumber();
 
-    if (useMockDB) {
-      booking.id = uuidv4();
-      mockData.bookings.push(booking);
-      await delCache(CACHE_KEY);
-      return created(res, "Booking created successfully", booking);
-    }
 
     const docRef = await db.collection("bookings").add(booking);
     await delCache(CACHE_KEY);
@@ -67,7 +61,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.bookings;
+
         const snapshot = await db
           .collection("bookings")
           .orderBy("date", "desc")
@@ -88,13 +82,6 @@ router.put(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.bookings.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, "Booking not found", 404);
-      mockData.bookings[idx] = { ...mockData.bookings[idx], ...req.body };
-      await delCache(CACHE_KEY);
-      return success(res, "Booking updated successfully", mockData.bookings[idx]);
-    }
     const doc = await db.collection("bookings").doc(id).get();
     if (!doc.exists) return error(res, "Booking not found", 404);
     await db.collection("bookings").doc(id).update(req.body);
@@ -108,13 +95,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.bookings.findIndex((b) => b.id === id);
-      if (idx === -1) return error(res, "Booking not found", 404);
-      mockData.bookings = mockData.bookings.filter((b) => b.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, "Booking deleted successfully");
-    }
     const doc = await db.collection("bookings").doc(id).get();
     if (!doc.exists) return error(res, "Booking not found", 404);
     await db.collection("bookings").doc(id).delete();

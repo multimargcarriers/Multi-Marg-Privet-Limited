@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -16,9 +16,6 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) {
-          return mockData.clients;
-        }
         const snapshot = await db.collection("clients").get();
         const clients = [];
         snapshot.forEach((doc) => {
@@ -52,12 +49,6 @@ router.post(
     newClient.status = "Active";
     newClient.createdAt = new Date().toISOString();
 
-    if (useMockDB) {
-      newClient.id = uuidv4();
-      mockData.clients.push(newClient);
-      await delCache(CACHE_KEY);
-      return created(res, { message: "Client created successfully", data: newClient });
-    }
 
     const docRef = await db.collection("clients").add(newClient);
     await delCache(CACHE_KEY);
@@ -69,13 +60,6 @@ router.put(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.clients.findIndex((c) => c.id === id);
-      if (idx === -1) return error(res, { message: "Client not found", statusCode: 404 });
-      mockData.clients[idx] = { ...mockData.clients[idx], ...req.body };
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Client updated successfully", data: mockData.clients[idx] });
-    }
     const doc = await db.collection("clients").doc(id).get();
     if (!doc.exists) return error(res, { message: "Client not found", statusCode: 404 });
     await db.collection("clients").doc(id).update(req.body);
@@ -89,13 +73,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.clients.findIndex((c) => c.id === id);
-      if (idx === -1) return error(res, { message: "Client not found", statusCode: 404 });
-      mockData.clients = mockData.clients.filter((c) => c.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Client deleted successfully" });
-    }
     const doc = await db.collection("clients").doc(id).get();
     if (!doc.exists) return error(res, { message: "Client not found", statusCode: 404 });
     await db.collection("clients").doc(id).delete();

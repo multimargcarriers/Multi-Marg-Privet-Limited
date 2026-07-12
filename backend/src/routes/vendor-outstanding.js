@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -9,26 +9,6 @@ const { body, validationResult } = require("express-validator");
 
 const CACHE_KEY = "vendorOutstanding";
 
-if (!mockData.vendorOutstanding) {
-  mockData.vendorOutstanding = [
-    {
-      id: "vo1",
-      date: new Date().toISOString(),
-      amount: 35000,
-      vendor: "Ashok Transports",
-      remarks: "Trip payment",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "vo2",
-      date: new Date().toISOString(),
-      amount: 18000,
-      vendor: "Global Logistics",
-      remarks: "Fuel bill payment",
-      createdAt: new Date().toISOString(),
-    },
-  ];
-}
 
 // Get all vendor outstanding entries
 router.get(
@@ -37,7 +17,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) return mockData.vendorOutstanding;
+
         const snapshot = await db
           .collection("vendorOutstanding")
           .orderBy("date", "desc")
@@ -61,16 +41,6 @@ router.get(
   "/vendor/:vendor",
   asyncHandler(async (req, res) => {
     const { vendor } = req.params;
-    if (useMockDB) {
-      const entries = mockData.vendorOutstanding.filter(
-        (o) => o.vendor.toLowerCase() === vendor.toLowerCase(),
-      );
-      return success(
-        res,
-        "Vendor outstanding entries fetched successfully",
-        entries,
-      );
-    }
     const snapshot = await db
       .collection("vendorOutstanding")
       .where("vendor", "==", vendor)
@@ -103,16 +73,6 @@ router.post(
     entry.date = entry.date || new Date().toISOString();
     entry.createdAt = new Date().toISOString();
 
-    if (useMockDB) {
-      entry.id = uuidv4();
-      mockData.vendorOutstanding.push(entry);
-      await delCache(CACHE_KEY);
-      return created(
-        res,
-        "Vendor outstanding entry created successfully",
-        entry,
-      );
-    }
     const docRef = await db.collection("vendorOutstanding").add(entry);
     await delCache(CACHE_KEY);
     return created(res, "Vendor outstanding entry created successfully", {
@@ -127,14 +87,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.vendorOutstanding.findIndex((o) => o.id === id);
-      if (idx === -1)
-        return error(res, "Vendor outstanding entry not found", 404);
-      mockData.vendorOutstanding.splice(idx, 1);
-      await delCache(CACHE_KEY);
-      return success(res, "Vendor outstanding entry deleted successfully");
-    }
     const doc = await db.collection("vendorOutstanding").doc(id).get();
     if (!doc.exists)
       return error(res, "Vendor outstanding entry not found", 404);

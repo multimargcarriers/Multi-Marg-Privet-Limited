@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { useMockDB, db, mockData } = require("../config/firebase");
+const { db } = require("../config/firebase");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
@@ -16,9 +16,6 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        if (useMockDB) {
-          return mockData.vendors;
-        }
         const snapshot = await db.collection("vendors").get();
         const vendors = [];
         snapshot.forEach((doc) => {
@@ -55,12 +52,6 @@ router.post(
     newVendor.status = "Active";
     newVendor.createdAt = new Date().toISOString();
 
-    if (useMockDB) {
-      newVendor.id = uuidv4();
-      mockData.vendors.push(newVendor);
-      await delCache(CACHE_KEY);
-      return created(res, { message: "Vendor created successfully", data: newVendor });
-    }
 
     const docRef = await db.collection("vendors").add(newVendor);
     await delCache(CACHE_KEY);
@@ -72,13 +63,6 @@ router.put(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.vendors.findIndex((v) => v.id === id);
-      if (idx === -1) return error(res, { message: "Vendor not found", statusCode: 404 });
-      mockData.vendors[idx] = { ...mockData.vendors[idx], ...req.body };
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Vendor updated successfully", data: mockData.vendors[idx] });
-    }
     const doc = await db.collection("vendors").doc(id).get();
     if (!doc.exists) return error(res, { message: "Vendor not found", statusCode: 404 });
     await db.collection("vendors").doc(id).update(req.body);
@@ -92,13 +76,6 @@ router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if (useMockDB) {
-      const idx = mockData.vendors.findIndex((v) => v.id === id);
-      if (idx === -1) return error(res, { message: "Vendor not found", statusCode: 404 });
-      mockData.vendors = mockData.vendors.filter((v) => v.id !== id);
-      await delCache(CACHE_KEY);
-      return success(res, { message: "Vendor deleted successfully" });
-    }
     const doc = await db.collection("vendors").doc(id).get();
     if (!doc.exists) return error(res, { message: "Vendor not found", statusCode: 404 });
     await db.collection("vendors").doc(id).delete();
