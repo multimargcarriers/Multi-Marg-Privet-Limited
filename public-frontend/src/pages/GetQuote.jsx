@@ -352,8 +352,8 @@ const GetQuote = () => {
 
                   <div className="ticket-price-box">
                     <span className="price-label">Estimated Total Budget</span>
-                    <h2 className="price-amount">
-                      <span><RupeeIcon size={14} /></span>
+                    <h2 className="price-amount" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <RupeeIcon size="0.8em" />
                       {quoteResult.amount.toLocaleString('en-IN')}
                     </h2>
                     <p className="price-sub" style={{ fontSize: '0.65rem', color: 'var(--text-light)', opacity: 0.8, lineHeight: '1.4', marginTop: '0.5rem' }}>
