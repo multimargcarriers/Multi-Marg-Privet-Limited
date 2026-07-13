@@ -16,19 +16,15 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-
         const snapshot = await db.collection("cities").get();
         const cities = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          // Filter out dynamically added garbage cities
-          if (data.short && data.short.trim() !== "") {
-            cities.push({ id: doc.id, ...data });
-          }
+          cities.push({ id: doc.id, ...data });
         });
         return cities;
       },
-      86400 // Cache for 24 hours to completely eliminate read quota issues
+      86400 // Cache for 24 hours
     );
     return success(res, { message: "Cities fetched successfully", data });
   }),

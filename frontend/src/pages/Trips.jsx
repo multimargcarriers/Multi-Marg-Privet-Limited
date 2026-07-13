@@ -217,20 +217,24 @@ const Trips = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <SearchableSelect 
+              <CreatableDropdown 
                 options={cities} 
                 value={form.origin} 
                 onChange={(city) => setForm({ ...form, origin: city })} 
+                onCreate={(name) => handleCreateNew("city", "origin", name)}
                 placeholder="-- Please select the Origin --" 
+                format={formatAllCaps}
               />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <SearchableSelect 
+              <CreatableDropdown 
                 options={cities} 
                 value={form.destination} 
                 onChange={(city) => setForm({ ...form, destination: city })} 
+                onCreate={(name) => handleCreateNew("city", "destination", name)}
                 placeholder="-- Please select the Destination --" 
+                format={formatAllCaps}
               />
             </div>
           </div>
