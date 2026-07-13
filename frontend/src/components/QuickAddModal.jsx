@@ -6,13 +6,18 @@ import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/form
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName }) => {
+const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName, editingItem }) => {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
+      if (editingItem) {
+        // We are editing an existing item, populate all its fields
+        setFormData(editingItem);
+        return;
+      }
       let formattedName = initialName || "";
       if (formattedName) {
         if (type === "city" || type === "client" || type === "vendor" || type === "branch") {
@@ -36,13 +41,19 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      let endpoint = `${API}/api/${type === "city" ? "cities" : type === "branch" ? "branches" : type + "s"}`;
-      const res = await axios.post(endpoint, formData);
-      addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} created successfully!`, "success");
-      onSave(res.data.data);
-      onClose();
+      if (editingItem) {
+        // Defer PUT request to parent component
+        onSave(formData);
+        onClose();
+      } else {
+        let endpoint = `${API}/api/${type === "city" ? "cities" : type === "branch" ? "branches" : type + "s"}`;
+        const res = await axios.post(endpoint, formData);
+        addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} created successfully!`, "success");
+        onSave(res.data.data);
+        onClose();
+      }
     } catch (err) {
-      addToast(err.response?.data?.message || `Failed to create ${type}`, "error");
+      addToast(err.response?.data?.message || `Failed to process ${type}`, "error");
     } finally {
       setLoading(false);
     }
@@ -148,13 +159,22 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <h2 style={{ 
             margin: 0, 
-            fontSize: "1.4rem", 
+            fontSize: "1.25rem", 
+            color: "#1e293b", 
             fontWeight: "700",
-            background: "linear-gradient(135deg, #1e293b, #475569)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent"
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem"
           }}>
-            Create New {type.charAt(0).toUpperCase() + type.slice(1)}
+            <span style={{ 
+              background: "#e0e7ff", 
+              color: "#4f46e5", 
+              width: "32px", height: "32px", 
+              borderRadius: "8px", 
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "1.2rem"
+            }}>+</span>
+            {editingItem ? `Complete ${type.charAt(0).toUpperCase() + type.slice(1)} Profile` : `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`}
           </h2>
           <button type="button" onClick={onClose} style={{ 
             background: "#f1f5f9", border: "none", cursor: "pointer", 

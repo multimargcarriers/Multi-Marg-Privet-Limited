@@ -4,9 +4,10 @@ import axios from "axios";
 import { Edit, Trash2 } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import SearchableSelect from "../components/SearchableSelect";
-import QuickAddModal from "../components/QuickAddModal";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useNotification } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Rates = () => {
@@ -15,11 +16,18 @@ const Rates = () => {
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
   const [rates, setRates] = useState([]);
-  const [cities, setCities] = useState([]);
   const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null);
+  const [cities, setCities] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+
+  const { refreshNotifications } = useNotification();
+  const { addToast } = useToast();
+
+  const [loading, setLoading] = useState(true);
 
   const initialFormState = {
     client: "", origin: "", destination: "", awbCharge: "",
@@ -30,30 +38,31 @@ const Rates = () => {
   };
   const [form, setForm] = useState(initialFormState);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [modalInitialName, setModalInitialName] = useState("");
-  const [pendingField, setPendingField] = useState("");
+  const handleCreateNew = async (type, field, name) => {
+    try {
+      const endpoint = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/${type === 'city' ? 'cities' : type + 's'}`;
+      let payload = { isIncomplete: true };
+      if (type === 'city') payload.city = name;
+      else payload.name = name;
+      
+      const res = await axios.post(endpoint, payload);
+      const data = res.data.data;
+      
+      if (type === 'client') setClients([...clients, data]);
+      else if (type === 'city') setCities([...cities, data]);
 
-  const handleCreateNew = (type, field, name) => {
-    setModalType(type);
-    setPendingField(field);
-    setModalInitialName(name);
-    setModalOpen(true);
-  };
-
-  const handleModalSave = (data) => {
-    if (modalType === "client") setClients([...clients, data]);
-    else if (modalType === "city") setCities([...cities, data]);
-
-    const name = data.name || data.client || data.city;
-    setForm({ ...form, [pendingField]: name });
+      const entityName = data.name || data.client || data.city;
+      setForm({ ...form, [field]: entityName });
+      
+      addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} details are incomplete. Please fill in the ${type} details.`, "warning");
+      refreshNotifications();
+    } catch (e) {
+      console.error(e);
+      addToast(`Failed to create ${type}`, "error");
+    }
   };
 
   // Pagination and search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => { 
     fetchRates(); 
@@ -474,14 +483,6 @@ const Rates = () => {
           </div>
         </div>
       </div>
-      
-      <QuickAddModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)}
-        onSave={handleModalSave}
-        type={modalType}
-        initialName={modalInitialName}
-      />
     </div>
   );
 };

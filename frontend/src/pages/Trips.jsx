@@ -8,8 +8,9 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
 import SearchableSelect from "../components/SearchableSelect";
-import QuickAddModal from "../components/QuickAddModal";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
+import { useNotification } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -27,28 +28,35 @@ const Trips = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [modalInitialName, setModalInitialName] = useState("");
-  const [pendingField, setPendingField] = useState({ index: null, field: "" });
+  const { refreshNotifications } = useNotification();
+  const { addToast } = useToast();
 
-  const handleCreateNew = (type, field, name, index = null) => {
-    setModalType(type);
-    setPendingField({ index, field });
-    setModalInitialName(name);
-    setModalOpen(true);
-  };
+  const handleCreateNew = async (type, field, name, index = null) => {
+    try {
+      const endpoint = `${API}/${type === 'city' ? 'cities' : type + 's'}`;
+      let payload = { isIncomplete: true };
+      if (type === 'city') payload.city = name;
+      else payload.name = name;
+      
+      const res = await axios.post(endpoint, payload);
+      const data = res.data.data;
+      
+      if (type === 'client') setClients([...clients, data]);
+      else if (type === 'city') setCities([...cities, data]);
+      else if (type === 'vendor') setVendors([...vendors, data]);
 
-  const handleModalSave = (data) => {
-    if (modalType === "client") setClients([...clients, data]);
-    else if (modalType === "city") setCities([...cities, data]);
-    else if (modalType === "vendor") setVendors([...vendors, data]);
-
-    const name = data.name || data.client || data.city;
-    if (pendingField.index !== null) {
-      updateMaterialRow(pendingField.index, pendingField.field, name);
-    } else {
-      setForm({ ...form, [pendingField.field]: name });
+      const entityName = data.name || data.client || data.city;
+      if (index !== null) {
+        updateMaterialRow(index, field, entityName);
+      } else {
+        setForm({ ...form, [field]: entityName });
+      }
+      
+      addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} details are incomplete. Please fill in the ${type} details.`, "warning");
+      refreshNotifications();
+    } catch (e) {
+      console.error(e);
+      addToast(`Failed to create ${type}`, "error");
     }
   };
   
@@ -370,15 +378,8 @@ const Trips = () => {
         </div>
       )}
 
-      <QuickAddModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)}
-        onSave={handleModalSave}
-        type={modalType}
-        initialName={modalInitialName}
-      />
-    </div>
-  );
-};
+      </div>
+    );
+  };
 
 export default Trips;

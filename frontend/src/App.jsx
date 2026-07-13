@@ -37,8 +37,9 @@ import IAM from "./pages/IAM";
 import SystemLogs from "./pages/SystemLogs";
 import Tracking from "./pages/Tracking";
 import { AuthProvider } from "./context/AuthContext";
-import { DialogProvider } from "./context/DialogContext";
 import { ToastProvider } from "./context/ToastContext";
+import { DialogProvider } from "./context/DialogContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
@@ -50,7 +51,8 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <DialogProvider>
-            <Routes>
+            <NotificationProvider>
+              <Routes>
           <Route path="/" element={<Login />} />
 
           {/* Protected Routes */}
@@ -126,6 +128,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </NotificationProvider>
           </DialogProvider>
         </AuthProvider>
       </ToastProvider>

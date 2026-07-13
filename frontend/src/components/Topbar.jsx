@@ -1,13 +1,66 @@
-import React, { useContext } from 'react';
-import { Bell, Menu, Plus } from 'lucide-react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { Bell, Menu, Plus, AlertCircle } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
+import QuickAddModal from './QuickAddModal';
+import axios from 'axios';
+import { useToast } from '../context/ToastContext';
 
 const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
   const { user, hasPermission } = useContext(AuthContext);
+  const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
+  const { addToast } = useToast();
   const userName = user?.name || 'User';
   const userRole = user?.role || 'Admin';
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // QuickAddModal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
+  const [editingItem, setEditingItem] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleNotificationClick = (item) => {
+    setDropdownOpen(false);
+    setModalType(item.type);
+    setModalInitialName(item.name);
+    setEditingItem(item);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = async (data) => {
+    // We update the item via PUT using its ID
+    if (!editingItem) return;
+    
+    try {
+      const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
+      const endpoint = `${API}/${editingItem.type === 'city' ? 'cities' : editingItem.type + 's'}/${editingItem.id}`;
+      
+      // Merge with data and set isIncomplete false
+      const payload = { ...data, isIncomplete: false };
+      
+      await axios.put(endpoint, payload);
+      addToast(`${editingItem.type} details completed successfully!`, "success");
+      refreshNotifications();
+    } catch (e) {
+      console.error(e);
+      addToast(`Failed to update ${editingItem.type}`, "error");
+    }
+  };
 
   return (
     <div style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 100 }}>
@@ -22,7 +75,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="topbar-right">
-        {/* Quick Action Buttons - Topbar */}
+        {/* Quick Action Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }} className="hide-on-mobile">
           {(!user || hasPermission('operations')) && (
             <NavLink to="/bookings/create" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary-color)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
@@ -41,9 +94,66 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
           )}
         </div>
 
-        <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}>
-          <Bell size={20} />
-        </button>
+        {/* Notifications */}
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
+          <button 
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', position: 'relative', display: 'flex', alignItems: 'center' }}
+          >
+            <Bell size={20} />
+            {totalIncomplete > 0 && (
+              <span style={{
+                position: 'absolute', top: '-5px', right: '-8px',
+                background: '#ef4444', color: 'white', borderRadius: '50%',
+                padding: '0.1rem 0.4rem', fontSize: '0.7rem', fontWeight: 'bold'
+              }}>
+                {totalIncomplete}
+              </span>
+            )}
+          </button>
+          
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: '10px',
+              width: '300px', background: 'white', borderRadius: '8px',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+              border: '1px solid #e2e8f0', color: '#1e293b', zIndex: 1000
+            }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600' }}>
+                Notifications ({totalIncomplete})
+              </div>
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {incompleteItems.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                    No pending notifications!
+                  </div>
+                ) : (
+                  incompleteItems.map(item => (
+                    <div 
+                      key={item.id} 
+                      onClick={() => handleNotificationClick(item)}
+                      style={{ 
+                        padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                        display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseOut={e => e.currentTarget.style.background = 'white'}
+                    >
+                      <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>Incomplete {item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>"{item.name}" requires more details. Click to complete.</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Profile */}
         <NavLink to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', cursor: 'pointer' }}>
           <div style={{ textAlign: 'right', display: window.innerWidth > 768 ? 'block' : 'none' }}>
             <h6 style={{ fontSize: '0.85rem', marginBottom: '0', fontWeight: 600, color: '#ffffff' }}>{userName}</h6>
@@ -57,6 +167,14 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
           />
         </NavLink>
       </div>
+
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
     </div>
   );
 };

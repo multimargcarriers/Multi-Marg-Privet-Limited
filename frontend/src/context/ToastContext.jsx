@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { CheckCircle, XCircle, X } from "lucide-react";
+import { CheckCircle, XCircle, X, AlertTriangle } from "lucide-react";
 
 const ToastContext = createContext();
 
@@ -62,6 +62,7 @@ export const ToastProvider = ({ children }) => {
               position: relative;
             }
             .toast-success { border-left-color: #10b981; }
+            .toast-warning { border-left-color: #eab308; }
             .toast-error { border-left-color: #ef4444; }
             .toast-logo {
               width: 32px;
@@ -122,12 +123,12 @@ export const ToastProvider = ({ children }) => {
             />
             {/* Fallback Icon */}
             <div style={{ display: 'none', marginRight: '12px', alignItems: 'center', justifyContent: 'center' }}>
-               {t.type === 'success' ? <CheckCircle size={28} color="#10b981" /> : <XCircle size={28} color="#ef4444" />}
+               {t.type === 'success' ? <CheckCircle size={28} color="#10b981" /> : t.type === 'warning' ? <AlertTriangle size={28} color="#eab308" /> : <XCircle size={28} color="#ef4444" />}
             </div>
             
             <div className="toast-content">
               <h4 className="toast-title">
-                {t.type === "success" ? "Success" : "Error"}
+                {t.type === "success" ? "Success" : t.type === "warning" ? "Warning" : "Error"}
               </h4>
               <p className="toast-message">{t.message}</p>
             </div>

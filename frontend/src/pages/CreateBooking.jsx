@@ -3,9 +3,10 @@ import axios from "axios";
 import { CheckCircle, FileText, Loader2, MapPin } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
-import QuickAddModal from "../components/QuickAddModal";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
+import { useNotification } from "../context/NotificationContext";
+import { useToast } from "../context/ToastContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -43,35 +44,35 @@ const CreateBooking = () => {
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [modalInitialName, setModalInitialName] = useState("");
-  const [pendingField, setPendingField] = useState("");
+  const { refreshNotifications } = useNotification();
+  const { addToast } = useToast();
 
-  const handleCreateNew = (type, field, name) => {
-    setModalType(type);
-    setPendingField(field);
-    setModalInitialName(name);
-    setModalOpen(true);
-  };
+  const handleCreateNew = async (type, field, name) => {
+    try {
+      const endpoint = `${API}/${type === 'city' ? 'cities' : type + 's'}`;
+      let payload = { isIncomplete: true };
+      if (type === 'city') payload.city = name;
+      else payload.name = name;
+      
+      const res = await axios.post(endpoint, payload);
+      const data = res.data.data;
+      
+      if (type === 'client') setClients([...clients, data]);
+      else if (type === 'city') setCities([...cities, data]);
 
-  const handleModalSave = (data) => {
-    if (modalType === "client") {
-      setClients([...clients, data]);
-    } else if (modalType === "city") {
-      setCities([...cities, data]);
-    }
-
-    if (pendingField === "origin") {
-      setFormData({ ...formData, origin: data.city, originState: data.state || "", originCode: data.stateCode || "" });
-    } else if (pendingField === "destination") {
-      setFormData({ ...formData, destination: data.city, destState: data.state || "", destCode: data.stateCode || "" });
-    } else if (pendingField === "client") {
-      setFormData({ ...formData, client: data.name || data.client });
-    } else if (pendingField === "consignor") {
-      setFormData({ ...formData, consignor: data.name || data.client });
-    } else if (pendingField === "consignee") {
-      setFormData({ ...formData, consignee: data.name || data.client });
+      if (field === "origin") {
+        setFormData({ ...formData, origin: data.city || data.name, originState: "", originCode: "" });
+      } else if (field === "destination") {
+        setFormData({ ...formData, destination: data.city || data.name, destState: "", destCode: "" });
+      } else {
+        setFormData({ ...formData, [field]: data.name || data.client || data.city });
+      }
+      
+      addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} details are incomplete. Please fill in the ${type} details.`, "warning");
+      refreshNotifications();
+    } catch (e) {
+      console.error(e);
+      addToast(`Failed to create ${type}`, "error");
     }
   };
 
@@ -441,14 +442,6 @@ const CreateBooking = () => {
           </button>
         </div>
       </form>
-
-      <QuickAddModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)}
-        onSave={handleModalSave}
-        type={modalType}
-        initialName={modalInitialName}
-      />
     </div>
   );
 };

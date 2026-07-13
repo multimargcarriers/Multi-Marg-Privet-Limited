@@ -114,6 +114,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const authRoutes = require("./src/routes/auth");
 const dashboardRoutes = require("./src/routes/dashboard");
 const clientsRoutes = require("./src/routes/clients");
+const notificationsRoutes = require("./src/routes/notifications");
 const vendorsRoutes = require("./src/routes/vendors");
 const bookingsRoutes = require("./src/routes/bookings");
 const branchesRoutes = require("./src/routes/branches");
@@ -148,6 +149,7 @@ const searchRoutes = require("./src/routes/search");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/notifications", notificationsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/clients", clientsRoutes);
