@@ -145,7 +145,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder = "Search...",
               No cities found matching "{query}"
             </div>
           ) : (
-            filteredOptions.map((opt) => (
+            filteredOptions.slice(0, 10).map((opt) => (
               <div 
                 key={opt.id}
                 onClick={() => handleSelect(opt)}

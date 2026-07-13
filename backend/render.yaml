@@ -13,4 +13,4 @@ services:
       - key: FRONTEND_ORIGIN
         value: https://your-frontend.vercel.app # TODO: Update this in the Render Dashboard
       - key: USE_FIREBASE
-        value: "false" # Uses mock data by default
+        value: "true" # Uses mock data by default

@@ -1,7 +1,13 @@
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const path = require("path");
+const dns = require('dns');
+const dotenv = require("dotenv");
+
+// Fix ISP DNS and IPv6 routing issues causing MongoDB and Redis connection timeouts
+dns.setDefaultResultOrder('ipv4first');
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+
 const morgan = require("morgan");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -13,6 +19,7 @@ dotenv.config();
 // Import configs
 const { logger } = require("./src/config/logger");
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
+const { initAnalyticsCron } = require("./src/jobs/analyticsJob");
 
 // Import services (initialized on demand)
 let redisClient = null;
@@ -238,6 +245,7 @@ async function initializeServices() {
 
 async function startServer() {
   await initializeServices();
+  initAnalyticsCron();
 
   const server = app.listen(PORT, () => {
     logger.info(`========================================`);

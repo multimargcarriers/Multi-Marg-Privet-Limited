@@ -9,8 +9,10 @@ const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 const path = require("path");
 const fs = require("fs");
+const { MongoClient } = require("mongodb");
+const FirestoreToMongoAdapter = require("./dbAdapter");
 
-let db = null;
+let firebaseDb = null;
 let auth = null;
 let firebaseInitialized = false;
 
@@ -21,7 +23,8 @@ function initFirebase() {
   const useFirebase = process.env.USE_FIREBASE === "true";
 
   if (!useFirebase) {
-    throw new Error("[Firebase] USE_FIREBASE is not set to true. Real database is required.");
+    console.log("[Firebase] USE_FIREBASE is false. Firebase disabled.");
+    return { firebaseDb: null, auth: null };
   }
 
   try {
@@ -50,14 +53,14 @@ function initFirebase() {
       databaseURL,
     });
 
-    db = getFirestore(app);
+    firebaseDb = getFirestore(app);
     auth = getAuth(app);
     firebaseInitialized = true;
 
     console.log("[Firebase] Initialized successfully.");
     console.log(`[Firebase] Project: ${serviceAccount.project_id || "unknown"}`);
 
-    return { db, auth };
+    return { firebaseDb, auth };
   } catch (error) {
     console.error("[Firebase] Initialization error:", error.message);
     throw error;
@@ -67,8 +70,39 @@ function initFirebase() {
 // Initialize on module load
 const initResult = initFirebase();
 
+// Initialize MongoDB adapter
+const adapter = new FirestoreToMongoAdapter(null, initResult.firebaseDb);
+
+async function initMongo() {
+  try {
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.warn("[MongoDB] MONGODB_URI not found in env. Running in Firebase-only fallback mode.");
+      return;
+    }
+    const client = new MongoClient(mongoUri, { family: 4 });
+    await client.connect();
+    
+    let dbName = "multimarg";
+    try {
+      const parsedUrl = new URL(mongoUri);
+      if (parsedUrl.pathname && parsedUrl.pathname.length > 1) {
+         dbName = parsedUrl.pathname.substring(1);
+      }
+    } catch(e) { /* ignore url parse error */ }
+
+    adapter.mongoDb = client.db(dbName);
+    console.log(`[MongoDB] Connected successfully to database: ${dbName}`);
+  } catch (err) {
+    console.error("[MongoDB] Connection error:", err.message);
+  }
+}
+
+// Start connection process in background
+initMongo();
+
 module.exports = {
-  db: initResult.db,
+  db: adapter,
   auth: initResult.auth,
   firebaseInitialized,
   initFirebase,

@@ -19,8 +19,7 @@ router.get(
 
         const snapshot = await db
           .collection("trips")
-          .orderBy("date", "desc")
-          .get();
+          .orderBy("date", "desc").limit(100).get();
         const trips = [];
         snapshot.forEach((doc) => trips.push({ id: doc.id, ...doc.data() }));
         return trips;

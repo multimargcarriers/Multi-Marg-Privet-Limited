@@ -7,7 +7,7 @@ import {
   LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { DollarSign, FileText, AlertCircle, TrendingUp, Activity } from 'lucide-react';
+import { DollarSign, FileText, AlertCircle, TrendingUp, Activity, RefreshCw } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -32,23 +32,39 @@ const StatCard = ({ title, value, icon, subtitle }) => (
 const Analytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics`);
+      if (response.data.success) {
+        setData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics`);
-        if (response.data.success) {
-          setData(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching analytics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAnalytics();
   }, []);
+
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics/sync`);
+      if (response.data.success) {
+        setData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error syncing stats:', error);
+      alert('Failed to sync analytics. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -66,8 +82,31 @@ const Analytics = () => {
           <h3 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>Deep Analytics</h3>
           <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Automated aggregation based on your financial reports.</p>
         </div>
-        <div style={{ padding: '0.5rem 1rem', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>
-          <Activity size={18} color="#6366f1" /> Reports Synced
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+            Last Updated: {data?.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'Never'}
+          </span>
+          <button 
+            onClick={handleSync}
+            disabled={syncing}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              backgroundColor: syncing ? '#94a3b8' : '#6366f1', 
+              color: 'white', 
+              borderRadius: '8px', 
+              border: 'none', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              fontSize: '0.9rem', 
+              fontWeight: '500', 
+              cursor: syncing ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            <RefreshCw size={16} className={syncing ? "spin-animation" : ""} />
+            {syncing ? 'Syncing...' : 'Sync Analytics'}
+          </button>
         </div>
       </div>
 

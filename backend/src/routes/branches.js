@@ -18,7 +18,7 @@ router.get(
       CACHE_KEY,
       async () => {
 
-        const snapshot = await db.collection("branches").get();
+        const snapshot = await db.collection("branches").limit(100).get();
         const branches = [];
         snapshot.forEach((doc) => branches.push({ id: doc.id, ...doc.data() }));
         return branches;

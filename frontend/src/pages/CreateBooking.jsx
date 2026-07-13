@@ -264,24 +264,20 @@ const CreateBooking = () => {
 
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <CreatableDropdown 
+            <SearchableSelect 
               options={cities} 
               value={formData.origin} 
               onChange={(city, opt) => setFormData({ ...formData, origin: city, originState: opt?.state || "", originCode: opt?.stateCode || "" })} 
-              onCreate={(name) => handleCreateNew("city", "origin", name)}
               placeholder="-- Please select the Origin --" 
-              format={formatAllCaps}
             />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <CreatableDropdown 
+            <SearchableSelect 
               options={cities} 
               value={formData.destination} 
               onChange={(city, opt) => setFormData({ ...formData, destination: city, destState: opt?.state || "", destCode: opt?.stateCode || "" })} 
-              onCreate={(name) => handleCreateNew("city", "destination", name)}
               placeholder="-- Please select the Destination --" 
-              format={formatAllCaps}
             />
           </div>
         </div>

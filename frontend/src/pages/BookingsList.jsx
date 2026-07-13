@@ -28,6 +28,7 @@ const BookingsList = () => {
     finally { setLoading(false); }
   };
 
+
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
       title: "Delete Booking",
@@ -44,8 +45,8 @@ const BookingsList = () => {
   };
 
   const filtered = bookings.filter(b =>
-    !search || (b.client || "").toLowerCase().includes(search.toLowerCase()) ||
-    (b.awb || "").toLowerCase().includes(search.toLowerCase()) ||
+    !search || (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
+    (b.awb || b.lrNo || "").toLowerCase().includes(search.toLowerCase()) ||
     (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
     (b.destination || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -77,16 +78,16 @@ const BookingsList = () => {
         data={filtered}
         renderRow={(item, index) => (
           <tr key={index}>
-            <td className="font-semibold">#{item.awb || item.id?.slice(-6) || index + 1}</td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
-            <td>{item.client}</td>
-            <td>{item.origin}</td>
-            <td>{item.destination}</td>
-            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.freight || item.frieght || 0).toFixed(2)}</span></td>
-            <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>Active</span></td>
+            <td className="font-semibold">#{item.awb || item.lrNo || item.id?.slice(-6) || index + 1}</td>
+            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
+            <td>{item.client || item.consignor || "-"}</td>
+            <td>{item.origin || "-"}</td>
+            <td>{item.destination || "-"}</td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.freight_charge || item.freight || item.frieght || item.weight || 0).toFixed(2)}</span></td>
+            <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>{item.status || "Active"}</span></td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                <button onClick={() => navigate(`/bills?lr=${item.awb || item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
+                <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
                 <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Printer size={18} /></button>
                 {isSuperAdmin && (
                   <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>

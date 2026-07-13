@@ -7,6 +7,7 @@ import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoade
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
+import SearchableSelect from "../components/SearchableSelect";
 import QuickAddModal from "../components/QuickAddModal";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 
@@ -216,24 +217,20 @@ const Trips = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <CreatableDropdown 
+              <SearchableSelect 
                 options={cities} 
                 value={form.origin} 
                 onChange={(city) => setForm({ ...form, origin: city })} 
-                onCreate={(name) => handleCreateNew("city", "origin", name)}
                 placeholder="-- Please select the Origin --" 
-                format={formatAllCaps}
               />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <CreatableDropdown 
+              <SearchableSelect 
                 options={cities} 
                 value={form.destination} 
                 onChange={(city) => setForm({ ...form, destination: city })} 
-                onCreate={(name) => handleCreateNew("city", "destination", name)}
                 placeholder="-- Please select the Destination --" 
-                format={formatAllCaps}
               />
             </div>
           </div>

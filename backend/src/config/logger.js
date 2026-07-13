@@ -22,7 +22,7 @@ class DatabaseTransport extends Transport {
     try {
       // Lazy load to avoid circular dependencies
       const { db } = require('./firebase');
-      if (db) {
+      if (db && db.mongoDb) {
         db.collection("systemLogs").add({
           timestamp: info.timestamp || new Date().toISOString(),
           level: info.level,

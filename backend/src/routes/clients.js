@@ -16,7 +16,7 @@ router.get(
     const data = await getOrSet(
       CACHE_KEY,
       async () => {
-        const snapshot = await db.collection("clients").get();
+        const snapshot = await db.collection("clients").limit(100).get();
         const clients = [];
         snapshot.forEach((doc) => {
           clients.push({ id: doc.id, ...doc.data() });

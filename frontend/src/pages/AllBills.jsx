@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
+
 import { Eye, FileText, Search, Download, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -45,7 +46,7 @@ const AllBills = () => {
 
   const filtered = bills.filter(b =>
     !search || (b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
-    (b.client || "").toLowerCase().includes(search.toLowerCase())
+    (b.client || b.billedTo || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -75,7 +76,7 @@ const AllBills = () => {
         renderRow={(item, index) => (
           <tr key={item.id || index}>
             <td className="font-semibold">#{item.billNo || item.id?.slice(-6) || index + 1}</td>
-            <td>{item.client}</td>
+            <td>{item.client || item.billedTo || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.amount || item.total || 0).toFixed(2)}</span></td>
             <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
             <td>
