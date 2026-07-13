@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Download } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
+import Table from '../components/Table';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -102,47 +103,28 @@ const GST = () => {
         </button>
       </div>
 
-      <div className="glass-panel" style={{ overflowX: "auto" }}>
-        <table className="table" style={{ width: "100%", minWidth: "1200px" }}>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Invoice No</th>
-              <th>Client</th>
-              <th>GSTIN</th>
-              <th>SAC/HSN</th>
-              <th>Taxable Value</th>
-              <th>IGST</th>
-              <th>CGST</th>
-              <th>SGST</th>
-              <th>Total Tax</th>
-              <th>Grand Total</th>
+      <div className="glass-panel" style={{ overflowX: "auto", padding: "1rem" }}>
+        <Table
+          loading={loading}
+          pagination={true}
+          headers={["Date", "Invoice No", "Client", "GSTIN", "SAC/HSN", "Taxable Value", "IGST", "CGST", "SGST", "Total Tax", "Grand Total"]}
+          data={data}
+          renderRow={(item, index) => (
+            <tr key={index}>
+              <td style={{ whiteSpace: "nowrap" }}>{item.date || "-"}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{item.invoice || "-"}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{item.client || "-"}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{item.gstin || "-"}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{item.sac || "-"}</td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.igst || 0).toFixed(2)}</span></td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.cgst || 0).toFixed(2)}</span></td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.sgst || 0).toFixed(2)}</span></td>
+              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.totalTax || 0).toFixed(2)}</span></td>
+              <td style={{ fontWeight: "600" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>
             </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan="11" style={{ textAlign: "center", padding: "2rem" }}>Loading...</td></tr>
-            ) : data.length === 0 ? (
-              <tr><td colSpan="11" style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>No data available</td></tr>
-            ) : (
-              data.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.date || "-"}</td>
-                  <td>{item.invoice || "-"}</td>
-                  <td>{item.client || "-"}</td>
-                  <td>{item.gstin || "-"}</td>
-                  <td>{item.sac || "-"}</td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.igst || 0).toFixed(2)}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.cgst || 0).toFixed(2)}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.sgst || 0).toFixed(2)}</span></td>
-                  <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.totalTax || 0).toFixed(2)}</span></td>
-                  <td style={{ fontWeight: "600" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+          )}
+        />
       </div>
     </div>
   );

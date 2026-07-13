@@ -55,6 +55,7 @@ const SalesReports = () => {
       <div className="glass-panel" style={{ padding: "1rem" }}>
         <Table
           loading={loading}
+          pagination={true}
           headers={["Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"]}
           data={data}
           renderRow={(item, index) => (

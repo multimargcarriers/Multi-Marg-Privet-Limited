@@ -121,6 +121,7 @@ const PurchaseReports = () => {
 
         <Table
           loading={loading}
+          pagination={true}
           headers={["Vendor", "Total Bill", "Outstanding"]}
           data={data}
           renderRow={(item, index) => (

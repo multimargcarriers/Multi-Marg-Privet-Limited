@@ -21,6 +21,7 @@
     "cloudinary": "^2.6.0",
     "compression": "^1.8.0",
     "cors": "^2.8.6",
+    "csv-parser": "^3.2.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
