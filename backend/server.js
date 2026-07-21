@@ -267,6 +267,21 @@ async function startServer() {
     logger.info(`========================================`);
   });
 
+  // Keep-alive self-ping to bypass Render 15-minute inactivity sleep
+  const RENDER_URL = "https://multi-marg-privet-limited.onrender.com/api/health";
+  setInterval(() => {
+    const https = require("https");
+    https.get(RENDER_URL, (res) => {
+      if (res.statusCode === 200) {
+        logger.info(`[Keep-Alive] Self-ping successful: ${res.statusCode}`);
+      } else {
+        logger.warn(`[Keep-Alive] Self-ping status code: ${res.statusCode}`);
+      }
+    }).on('error', (err) => {
+      logger.error(`[Keep-Alive] Self-ping error: ${err.message}`);
+    });
+  }, 14 * 60 * 1000); // Every 14 minutes
+
   // Graceful Shutdown
   process.on("SIGTERM", () => gracefulShutdown(server));
   process.on("SIGINT", () => gracefulShutdown(server));
