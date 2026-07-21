@@ -219,7 +219,7 @@ const GenerateBill = () => {
                 <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Mode</th>
                 <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Origin</th>
                 <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Destination</th>
-                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Freight</th>
+                <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Total Amount</th>
                 <th style={{ padding: "1rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.85rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Date</th>
               </tr>
             </thead>
@@ -232,7 +232,14 @@ const GenerateBill = () => {
                   <td style={{ padding: "1rem" }}>{item.mode || "-"}</td>
                   <td style={{ padding: "1rem" }}>{item.origin}</td>
                   <td style={{ padding: "1rem" }}>{item.destination}</td>
-                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.freight_charge || item.freight || item.frieght || 0).toFixed(2)}</span></td>
+                  <td style={{ padding: "1rem", fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{(
+                    parseFloat(item.freight_charge || item.freight || item.frieght || 0) +
+                    parseFloat(item.awb_charge || 0) +
+                    parseFloat(item.pickup_charge || 0) +
+                    parseFloat(item.delivery_charge || 0) +
+                    parseFloat(item.packaging_charge || 0) +
+                    parseFloat(item.handling_charge || 0)
+                  ).toFixed(2)}</span></td>
                   <td style={{ padding: "1rem" }}>{item.dispatch_date || item.date || item.createdAt ? new Date(item.dispatch_date || item.date || item.createdAt).toLocaleDateString() : "-"}</td>
                 </tr>
               ))}

@@ -40,6 +40,7 @@ const CreateBooking = () => {
   });
   const [clients, setClients] = useState([]);
   const [cities, setCities] = useState([]);
+  const [rates, setRates] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,12 +80,14 @@ const CreateBooking = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [clientsRes, citiesRes] = await Promise.all([
+        const [clientsRes, citiesRes, ratesRes] = await Promise.all([
           axios.get(`${API}/clients`),
           axios.get(`${API}/cities`),
+          axios.get(`${API}/rates`),
         ]);
         if (clientsRes.data.success) setClients(clientsRes.data.data);
         if (citiesRes.data.success) setCities(citiesRes.data.data);
+        if (ratesRes.data.success) setRates(ratesRes.data.data);
       } catch (err) {
         console.error("Error fetching data", err);
       } finally {
@@ -93,6 +96,60 @@ const CreateBooking = () => {
     };
     fetchData();
   }, []);
+
+  // Auto-calculate rates
+  useEffect(() => {
+    if (formData.client && formData.origin && formData.destination && formData.mode && formData.charge_wt) {
+      const rate = rates.find(r => 
+        (r.client === formData.client || r.client?.name === formData.client || r.client?.client === formData.client) &&
+        (r.origin === formData.origin || r.origin?.name === formData.origin || r.origin?.city === formData.origin) &&
+        (r.destination === formData.destination || r.destination?.name === formData.destination || r.destination?.city === formData.destination)
+      );
+
+      if (rate) {
+        let rateValue = 0;
+        let pickup = 0;
+        let delivery = 0;
+        let awb = parseFloat(rate.awbCharge || 0);
+
+        switch (formData.mode) {
+          case "Air":
+            rateValue = parseFloat(rate.airRate || 0);
+            pickup = parseFloat(rate.airPickup || 0);
+            delivery = parseFloat(rate.airDelivery || 0);
+            break;
+          case "Rail":
+            rateValue = parseFloat(rate.trainRate || 0);
+            pickup = parseFloat(rate.trainPickup || 0);
+            delivery = parseFloat(rate.trainDelivery || 0);
+            break;
+          case "Road":
+            rateValue = parseFloat(rate.roadRate || 0);
+            pickup = parseFloat(rate.roadPickup || 0);
+            delivery = parseFloat(rate.roadDelivery || 0);
+            break;
+          case "Road Express":
+            rateValue = parseFloat(rate.roadExpressRate || 0);
+            pickup = parseFloat(rate.roadExpressPickup || 0);
+            delivery = parseFloat(rate.roadExpressDelivery || 0);
+            break;
+          default:
+            break;
+        }
+
+        const chargeWt = parseFloat(formData.charge_wt || 0);
+        const freight = rateValue * chargeWt;
+
+        setFormData(prev => ({
+          ...prev,
+          freight_charge: freight > 0 ? freight.toFixed(2) : prev.freight_charge,
+          awb_charge: awb > 0 ? awb.toFixed(2) : prev.awb_charge,
+          pickup_charge: pickup > 0 ? pickup.toFixed(2) : prev.pickup_charge,
+          delivery_charge: delivery > 0 ? delivery.toFixed(2) : prev.delivery_charge,
+        }));
+      }
+    }
+  }, [formData.client, formData.origin, formData.destination, formData.mode, formData.charge_wt, rates]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

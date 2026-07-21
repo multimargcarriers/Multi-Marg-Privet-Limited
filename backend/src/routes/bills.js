@@ -176,9 +176,15 @@ router.post(
         if (doc.exists) booking = { id: doc.id, ...doc.data() };
       }
       if (booking) {
-        const freight = parseFloat(booking.freight || booking.frieght || 0);
+        const freight = parseFloat(booking.freight_charge || booking.freight || booking.frieght || 0);
+        const awb = parseFloat(booking.awb_charge || 0);
+        const pickup = parseFloat(booking.pickup_charge || 0);
+        const delivery = parseFloat(booking.delivery_charge || 0);
+        const packaging = parseFloat(booking.packaging_charge || 0);
+        const handling = parseFloat(booking.handling_charge || 0);
+
         const gstRate = applyGst ? 5 : 0;
-        const taxable = freight;
+        const taxable = freight + awb + pickup + delivery + packaging + handling;
         const gstAmt = (taxable * gstRate) / 100;
         const cgst = gstAmt / 2;
         const sgst = gstAmt / 2;
