@@ -11,6 +11,7 @@ import AllBills from "./pages/AllBills";
 import BillView1 from "./pages/BillView1";
 import BillView2 from "./pages/BillView2";
 import BookingsList from "./pages/BookingsList";
+import PrintLR from "./pages/PrintLR";
 import Branches from "./pages/Branches";
 import CashSheet from "./pages/CashSheet";
 import Cities from "./pages/Cities";
@@ -82,6 +83,8 @@ function App() {
             <Route element={<ProtectedRoute requiredPermission="operations" />}>
               <Route path="/bookings" element={<BookingsList />} />
               <Route path="/bookings/create" element={<CreateBooking />} />
+              <Route path="/bookings/edit/:id" element={<CreateBooking />} />
+              <Route path="/print-lr/:id" element={<PrintLR />} />
               <Route path="/pod" element={<POD />} />
               <Route path="/trips" element={<Trips />} />
               <Route path="/tracking" element={<Tracking />} />

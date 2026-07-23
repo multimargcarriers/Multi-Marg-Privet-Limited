@@ -76,6 +76,17 @@ router.get(
     return success(res, "Bookings fetched successfully", data);
   }),
 );
+// Get single booking
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const doc = await db.collection("bookings").doc(id).get();
+    if (!doc.exists) return error(res, "Booking not found", 404);
+    return success(res, "Booking fetched successfully", { id: doc.id, ...doc.data() });
+  }),
+);
+
 // Update booking
 router.put(
   "/:id",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
-import { Search, Eye, Printer, Trash2 } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -87,10 +87,11 @@ const BookingsList = () => {
             <td><span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>{item.status || "Active"}</span></td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
-                <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Printer size={18} /></button>
+                <button onClick={() => navigate(`/bookings/edit/${item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }} title="Edit"><Edit size={18} /></button>
+                <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }} title="View Bills"><Eye size={18} /></button>
+                <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }} title="Print"><Printer size={18} /></button>
                 {isSuperAdmin && (
-                  <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>
+                  <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }} title="Delete"><Trash2 size={18} /></button>
                 )}
               </div>
             </td>

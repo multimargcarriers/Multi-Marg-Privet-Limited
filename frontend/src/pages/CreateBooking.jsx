@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CheckCircle, FileText, Loader2, MapPin } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
@@ -11,6 +12,10 @@ import { useToast } from "../context/ToastContext";
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CreateBooking = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = !!id;
+
   const [formData, setFormData] = useState({
     client: "",
     consignment: "",
@@ -88,6 +93,20 @@ const CreateBooking = () => {
         if (clientsRes.data.success) setClients(clientsRes.data.data);
         if (citiesRes.data.success) setCities(citiesRes.data.data);
         if (ratesRes.data.success) setRates(ratesRes.data.data);
+        
+        if (id) {
+          const bookingRes = await axios.get(`${API}/bookings/${id}`);
+          if (bookingRes.data.success) {
+            const b = bookingRes.data.data;
+            if (!b.invoiceDetails || b.invoiceDetails.length === 0) {
+              b.invoiceDetails = [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }];
+            }
+            if (b.dispatch_date) {
+              b.dispatch_date = b.dispatch_date.split('T')[0];
+            }
+            setFormData(b);
+          }
+        }
       } catch (err) {
         console.error("Error fetching data", err);
       } finally {
@@ -95,7 +114,7 @@ const CreateBooking = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [id]);
 
   // Auto-calculate rates
   useEffect(() => {
@@ -182,36 +201,48 @@ const CreateBooking = () => {
     try {
       // Removed old silent auto-create logic because we now use QuickAddModal for professional creation
 
-      const response = await axios.post(`${API}/bookings`, formData);
+      let response;
+      if (isEditMode) {
+        response = await axios.put(`${API}/bookings/${id}`, formData);
+      } else {
+        response = await axios.post(`${API}/bookings`, formData);
+      }
+      
       if (response.data.success) {
         setSuccess(response.data.data || []);
-        setFormData({
-          client: "",
-          consignment: "",
-          dispatch_date: "",
-          mode: "",
-          origin: "",
-          originState: "",
-          originCode: "",
-          destination: "",
-          destState: "",
-          destCode: "",
-          consignor: "",
-          consignee: "",
-          invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }],
-          box: "",
-          actual_wt: "",
-          charge_wt: "",
-          freight_charge: "",
-          awb_charge: "",
-          pickup_charge: "",
-          delivery_charge: "",
-          packaging_charge: "",
-          handling_charge: "",
-          description: "",
-          insuredBy: "",
-          remarks: "",
-        });
+        
+        if (!isEditMode) {
+          setFormData({
+            client: "",
+            consignment: "",
+            dispatch_date: "",
+            mode: "",
+            origin: "",
+            originState: "",
+            originCode: "",
+            destination: "",
+            destState: "",
+            destCode: "",
+            consignor: "",
+            consignee: "",
+            invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }],
+            box: "",
+            actual_wt: "",
+            charge_wt: "",
+            freight_charge: "",
+            awb_charge: "",
+            pickup_charge: "",
+            delivery_charge: "",
+            packaging_charge: "",
+            handling_charge: "",
+            description: "",
+            insuredBy: "",
+            remarks: "",
+          });
+        } else {
+          addToast("Booking updated successfully", "success");
+          setTimeout(() => navigate("/bookings"), 1500);
+        }
       }
     } catch (error) {
       console.error("Error creating booking", error);
@@ -228,7 +259,7 @@ const CreateBooking = () => {
     <div style={{ maxWidth: "960px", margin: "0 auto" }}>
       <div style={{ marginBottom: "2rem" }}>
         <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-          Add Booking
+          {isEditMode ? "Edit Booking" : "Add Booking"}
         </h3>
       </div>
 
@@ -250,11 +281,11 @@ const CreateBooking = () => {
             <h5
               style={{ color: "#16a34a", marginBottom: "0.25rem", margin: 0 }}
             >
-              LR Generated Successfully!
+              {isEditMode ? "LR Updated Successfully!" : "LR Generated Successfully!"}
             </h5>
             <p style={{ margin: 0, fontSize: "0.9rem", color: "#15803d" }}>
               LR Number: <strong>{success.lrNumber || success.id}</strong> has
-              been created.
+              been {isEditMode ? "updated" : "created"}.
             </p>
           </div>
         </div>
@@ -491,10 +522,10 @@ const CreateBooking = () => {
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={18} className="spinner" /> Generating...
+                <Loader2 size={18} className="spinner" /> {isEditMode ? "Updating..." : "Generating..."}
               </>
             ) : (
-              <>ADD BOOKING</>
+              <>{isEditMode ? "UPDATE BOOKING" : "ADD BOOKING"}</>
             )}
           </button>
         </div>
