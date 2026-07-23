@@ -12,6 +12,9 @@ const {
   getOrSet
 } = require("../config/redis");
 
+const CACHE_KEY = "mis";
+
+
 exports.getRoot_1 = async (req, res) => {
   const {
     client,

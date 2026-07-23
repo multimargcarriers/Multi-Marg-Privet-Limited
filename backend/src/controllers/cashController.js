@@ -21,6 +21,9 @@ const {
   validationResult
 } = require("express-validator");
 
+const CACHE_KEY = "cashEntries";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("cashEntries").orderBy("date", "desc").get();

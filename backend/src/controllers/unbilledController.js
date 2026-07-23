@@ -12,6 +12,9 @@ const {
   getOrSet
 } = require("../config/redis");
 
+const CACHE_KEY = "unbilled";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("bookings").where("status", "in", ["Booked", "0", ""]).get();

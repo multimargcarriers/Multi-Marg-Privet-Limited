@@ -26,6 +26,9 @@ const {
   uploadFile
 } = require("../config/cloudinary");
 
+const CACHE_KEY = "podEntries";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("pod").orderBy("uploadedAt", "desc").get();

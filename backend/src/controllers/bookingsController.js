@@ -24,6 +24,9 @@ const {
   generateLRNumber
 } = require("../utils/helpers");
 
+const CACHE_KEY = "bookings";
+
+
 exports.postRoot_1 = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());

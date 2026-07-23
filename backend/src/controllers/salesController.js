@@ -12,6 +12,9 @@ const {
   getOrSet
 } = require("../config/redis");
 
+const CACHE_KEY = "sales";
+
+
 exports.getRoot_1 = async (req, res) => {
   const {
     from,

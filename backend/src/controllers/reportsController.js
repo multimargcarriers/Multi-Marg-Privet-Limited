@@ -12,6 +12,9 @@ const {
   getOrSet
 } = require("../config/redis");
 
+const CACHE_KEY = "reports_gst";
+
+
 exports.get_gst_1 = async (req, res) => {
   const {
     fr,

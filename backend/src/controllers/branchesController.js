@@ -23,6 +23,9 @@ const {
   validationResult
 } = require("express-validator");
 
+const CACHE_KEY = "branches";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("branches").limit(100).get();

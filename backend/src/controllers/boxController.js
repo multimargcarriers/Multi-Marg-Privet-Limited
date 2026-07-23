@@ -24,6 +24,9 @@ const {
   uploadFile
 } = require("../config/cloudinary");
 
+const CACHE_KEY = "boxEntries";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("box").orderBy("uploadedAt", "desc").get();

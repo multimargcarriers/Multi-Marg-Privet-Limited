@@ -22,6 +22,9 @@ const {
   validationResult
 } = require("express-validator");
 
+const CACHE_KEY = "cities";
+
+
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("cities").get();
