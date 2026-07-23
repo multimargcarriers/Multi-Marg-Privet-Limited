@@ -1,57 +1,57 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/firebase");
+const { db } = require("../config/database");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
-const { getOrSet } = require("../config/redis");
+const { getOrSet } = require("../config/redis");const { getRoot_1, get_search_2 } = require('../controllers/unbilledController');
 
 const CACHE_KEY = "unbilled";
 
 // Get unbilled bookings
 router.get(
   "/",
-  asyncHandler(async (req, res) => {
-    const data = await getOrSet(
-      CACHE_KEY,
-      async () => {
-        const snapshot = await db
-          .collection("bookings")
-          .where("status", "in", ["Booked", "0", ""])
-          .get();
-        const bookings = [];
-        snapshot.forEach((doc) => bookings.push({ id: doc.id, ...doc.data() }));
-        return bookings;
-      },
-      300,
-    );
-    return success(res, "Unbilled bookings fetched successfully", data);
-  }),
+  asyncHandler(getRoot_1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Search unbilled with filters
 router.get(
   "/search",
-  asyncHandler(async (req, res) => {
-    const { client, from, to } = req.query;
+  asyncHandler(get_search_2
 
-    let bookings = [];
-      const snapshot = await db
-        .collection("bookings")
-        .where("status", "in", ["Booked", "0", ""])
-        .get();
-      snapshot.forEach((doc) => bookings.push({ id: doc.id, ...doc.data() }));
-    
 
-    if (client)
-      bookings = bookings.filter(
-        (b) => b.client?.toLowerCase() === client.toLowerCase(),
-      );
-    if (from)
-      bookings = bookings.filter((b) => new Date(b.date) >= new Date(from));
-    if (to) bookings = bookings.filter((b) => new Date(b.date) <= new Date(to));
 
-    return success(res, "Unbilled bookings fetched successfully", bookings);
-  }),
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 module.exports = router;

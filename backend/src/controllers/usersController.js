@@ -1,0 +1,135 @@
+const {
+  db
+} = require("../config/database");
+const {
+  success,
+  error,
+  created
+} = require("../utils/response");
+const {
+  asyncHandler
+} = require("../middleware/errorHandler");
+const {
+  authenticateToken
+} = require("../middleware/auth");
+const {
+  v4: uuidv4
+} = require("uuid");
+
+// Initialize mock users if needed
+
+// Middleware to ensure user is SuperAdmin
+
+exports.getRoot_1 = async (req, res) => {
+  const snapshot = await db.collection("users").get();
+  const users = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    delete data.password;
+    users.push({
+      id: doc.id,
+      ...data
+    });
+  });
+  return success(res, {
+    message: "Users fetched successfully",
+    data: users
+  });
+};
+
+exports.postRoot_2 = async (req, res) => {
+  const {
+    name,
+    email,
+    password,
+    role,
+    permissions
+  } = req.body;
+  if (!name || !email || !password || !role) {
+    return error(res, {
+      message: "Name, email, password, and role are required",
+      statusCode: 400
+    });
+  }
+  const newUser = {
+    id: uuidv4(),
+    name,
+    email,
+    password,
+    role,
+    permissions: permissions || [],
+    createdAt: new Date().toISOString()
+  };
+  const snapshot = await db.collection("users").where("email", "==", email).get();
+  if (!snapshot.empty) return error(res, {
+    message: "Email already exists",
+    statusCode: 400
+  });
+  await db.collection("users").doc(newUser.id).set(newUser);
+  const {
+    password: _,
+    ...safeUser
+  } = newUser;
+  return created(res, {
+    message: "User created successfully",
+    data: safeUser
+  });
+};
+
+exports.put_id_3 = async (req, res) => {
+  const {
+    id
+  } = req.params;
+  const {
+    name,
+    email,
+    role,
+    permissions,
+    password
+  } = req.body;
+  const updates = {
+    name,
+    email,
+    role,
+    permissions
+  };
+  if (password) updates.password = password; // Only update if provided
+
+  const docRef = db.collection("users").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return error(res, {
+    message: "User not found",
+    statusCode: 404
+  });
+  await docRef.update(updates);
+  return success(res, {
+    message: "User updated successfully",
+    data: {
+      id,
+      ...updates
+    }
+  });
+};
+
+exports.delete_id_4 = async (req, res) => {
+  const {
+    id
+  } = req.params;
+  if (req.user.id === id) {
+    return error(res, {
+      message: "Cannot delete yourself",
+      statusCode: 400
+    });
+  }
+  const docRef = db.collection("users").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return error(res, {
+    message: "User not found",
+    statusCode: 404
+  });
+  await docRef.delete();
+  return success(res, {
+    message: "User deleted successfully"
+  });
+};
+

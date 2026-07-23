@@ -196,7 +196,7 @@ const Purchase = () => {
               Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
             </label>
             <input 
-              type="date" 
+              type="date" min="1947-01-01" max="2200-12-31" 
               className="form-control" 
               name="date" 
               value={formData.date} 

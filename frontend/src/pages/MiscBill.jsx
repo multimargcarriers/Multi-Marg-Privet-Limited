@@ -41,7 +41,7 @@ const MiscBill = () => {
             </div>
             <div className="form-group">
               <label className="form-label">Date</label>
-              <input type="date" className="form-control" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </div>
             <div className="form-group" style={{ gridColumn: "span 2" }}>
               <label className="form-label">Description</label>

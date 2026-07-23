@@ -87,21 +87,44 @@ const PrintLR = () => {
     : [{ invoiceNo: "NA", invoiceValue: "0", invoiceDate: null, partNumber: "NA", ewayBill: "NA", quantity: "0" }];
 
   const handleDownloadPDF = () => {
-    const element = document.getElementById("bilty-content");
-    const originalTransform = element.style.transform;
-    element.style.transform = "scale(1)";
-
-    const opt = {
-      margin:       0,
-      filename:     `Bilty_${booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
-      image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
-      jsPDF:        { unit: 'px', format: [800, 1131], orientation: 'portrait' }
-    };
+    window.scrollTo(0, 0);
     
-    html2pdf().set(opt).from(element).save().then(() => {
-      element.style.transform = originalTransform;
-    });
+    const element = document.getElementById("bilty-content");
+    
+    // Save original styles
+    const originalTransform = element.style.transform;
+    const originalPosition = element.style.position;
+    
+    // Reset styles for html2canvas
+    element.style.transform = "none";
+    element.style.position = "relative";
+
+    // Allow DOM to repaint
+    setTimeout(() => {
+      const opt = {
+        margin:       0,
+        filename:     `Bilty_${booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true, 
+          windowWidth: 800,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF:        { unit: 'px', format: [800, 1131], orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+        // Restore original styles
+        element.style.transform = originalTransform;
+        element.style.position = originalPosition;
+      }).catch(err => {
+        console.error("PDF generation failed:", err);
+        element.style.transform = originalTransform;
+        element.style.position = originalPosition;
+      });
+    }, 200);
   };
 
   return (

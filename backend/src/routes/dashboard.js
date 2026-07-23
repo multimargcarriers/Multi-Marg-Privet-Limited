@@ -1,23 +1,23 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/firebase");
+const { db } = require("../config/database");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
-const { runAnalyticsAggregation } = require("../jobs/analyticsJob");
+const { runAnalyticsAggregation } = require("../jobs/analyticsJob");const { get_stats_1 } = require('../controllers/dashboardController');
 
 router.get(
   "/stats",
-  asyncHandler(async (req, res) => {
-    const doc = await db.collection("analytics").doc("summary").get();
-    let data = doc.exists ? doc.data() : null;
-    
-    // If it doesn't exist yet, run it once
-    if (!data) {
-       data = await runAnalyticsAggregation();
-    }
-    
-    return success(res, "Dashboard stats fetched successfully", data);
-  })
+  asyncHandler(get_stats_1
+
+
+
+
+
+
+
+
+
+  )
 );
 
 module.exports = router;

@@ -62,6 +62,56 @@ app.use(
 // Compression
 app.use(compression());
 
+// ============================================================
+// Request Parsing
+// ============================================================
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Global Data Sanitization Middleware
+// Ensures empty numeric fields default to 0 and empty/invalid date fields default to today
+app.use((req, res, next) => {
+  if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
+    const sanitizeObj = (obj) => {
+      for (const key in obj) {
+        if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
+          sanitizeObj(obj[key]);
+        } else if (Array.isArray(obj[key])) {
+          obj[key].forEach(item => {
+            if (typeof item === "object" && item !== null) sanitizeObj(item);
+          });
+        } else {
+          // Normalize amounts
+          const numericKeys = ["amount", "charge", "rate", "weight", "box", "quantity", "value"];
+          if (numericKeys.some(k => key.toLowerCase().includes(k))) {
+            if (obj[key] === "" || obj[key] === null || obj[key] === undefined) {
+              obj[key] = 0;
+            } else if (typeof obj[key] === "string" && !isNaN(obj[key])) {
+              obj[key] = Number(obj[key]);
+            }
+          }
+          // Normalize dates
+          if (key.toLowerCase().includes("date")) {
+            const today = new Date().toISOString().split("T")[0];
+            if (!obj[key] || obj[key] === "") {
+              obj[key] = today;
+            } else {
+              // Ensure date is between 1947 and 2200
+              const year = new Date(obj[key]).getFullYear();
+              if (isNaN(year) || year < 1947 || year > 2200) {
+                 obj[key] = today;
+              }
+            }
+          }
+        }
+      }
+    };
+    sanitizeObj(req.body);
+  }
+  next();
+});
+
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
@@ -183,7 +233,7 @@ app.use("/api/logs", logsRoutes);
 // Health Check & Status
 // ============================================================
 
-app.get("/", (req, res) => {
+app.get(["/", "/api"], (req, res) => {
   res.json({
     success: true,
     message: "Multimarg Carriers Transport API",
@@ -207,6 +257,8 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 // ============================================================
 // Error Handling
 // ============================================================
@@ -221,7 +273,10 @@ app.use(errorHandler);
 // Initialize Services & Start Server
 // ============================================================
 
+const { initMongo } = require("./src/config/database");
+
 async function initializeServices() {
+  await initMongo();
   if (process.env.USE_REDIS === "true") {
     try {
       const redisModule = require("./src/config/redis");
@@ -262,7 +317,7 @@ async function startServer() {
       `  Cloudinary: ${process.env.USE_CLOUDINARY === "true" ? "Enabled" : "Disabled"}`,
     );
     logger.info(
-      `  Firebase: ${process.env.USE_FIREBASE === "true" ? "Enabled" : "Mock DB"}`,
+      `  Database: MongoDB`,
     );
     logger.info(`========================================`);
   });

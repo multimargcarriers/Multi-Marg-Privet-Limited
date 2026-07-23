@@ -43,11 +43,11 @@ const UnbilledReports = () => {
         <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", flexWrap: "wrap" }}>
           <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 200 }}>
             <label className="form-label">From Date</label>
-            <input type="date" className="form-control" value={filters.fr} onChange={(e) => setFilters({ ...filters, fr: e.target.value })} />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={filters.fr} onChange={(e) => setFilters({ ...filters, fr: e.target.value })} />
           </div>
           <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: 200 }}>
             <label className="form-label">To Date</label>
-            <input type="date" className="form-control" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
           </div>
           <button className="btn btn-primary" onClick={fetchUnbilled}><Search size={18} /> Search</button>
         </div>

@@ -146,7 +146,7 @@ const GenerateBill = () => {
           </div>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Invoice Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" className="form-control" name="invoiceDate" value={filters.invoiceDate} onChange={handleChange} required />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="invoiceDate" value={filters.invoiceDate} onChange={handleChange} required />
           </div>
         </div>
 
@@ -174,11 +174,11 @@ const GenerateBill = () => {
           </div>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>From Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" className="form-control" name="fromDate" value={filters.fromDate} onChange={handleChange} />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="fromDate" value={filters.fromDate} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>To Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" className="form-control" name="toDate" value={filters.toDate} onChange={handleChange} />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="toDate" value={filters.toDate} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>GST<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>

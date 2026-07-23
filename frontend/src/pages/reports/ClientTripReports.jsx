@@ -131,7 +131,7 @@ const ClientTripReports = () => {
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase" }}>From Date</label>
             <input 
-              type="date" 
+              type="date" min="1947-01-01" max="2200-12-31" 
               value={filters.fr} 
               onChange={(e) => setFilters({ ...filters, fr: e.target.value })} 
               style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
@@ -140,7 +140,7 @@ const ClientTripReports = () => {
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase" }}>To Date</label>
             <input 
-              type="date" 
+              type="date" min="1947-01-01" max="2200-12-31" 
               value={filters.to} 
               onChange={(e) => setFilters({ ...filters, to: e.target.value })} 
               style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}

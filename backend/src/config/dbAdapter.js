@@ -1,22 +1,16 @@
 const { v4: uuidv4 } = require("uuid");
 
 class CollectionReference {
-  constructor(mongoDb, firebaseDb, colName, fbQuery = null) {
+  constructor(mongoDb, colName) {
     this.mongoDb = mongoDb;
-    this.firebaseDb = firebaseDb; // fallback & dual-write
     this.colName = colName;
     this.query = {};
     this.sort = null;
     this.limitVal = 0;
-    this.fbQuery = fbQuery;
-  }
-
-  get _fbRef() {
-    return this.fbQuery || (this.firebaseDb ? this.firebaseDb.collection(this.colName) : null);
   }
 
   doc(id) {
-    return new DocumentReference(this.mongoDb, this.firebaseDb, this.colName, id);
+    return new DocumentReference(this.mongoDb, this.colName, id);
   }
 
   where(field, op, val) {
@@ -31,12 +25,7 @@ class CollectionReference {
       "!=": "$ne",
     };
 
-    let nextFbQuery = null;
-    if (this._fbRef) {
-      nextFbQuery = this._fbRef.where(field, op, val);
-    }
-    
-    const newRef = new CollectionReference(this.mongoDb, this.firebaseDb, this.colName, nextFbQuery);
+    const newRef = new CollectionReference(this.mongoDb, this.colName);
     // clone existing query state
     newRef.query = { ...this.query };
     newRef.sort = this.sort;
@@ -57,12 +46,7 @@ class CollectionReference {
   }
 
   orderBy(field, dir = "asc") {
-    let nextFbQuery = null;
-    if (this._fbRef) {
-      nextFbQuery = this._fbRef.orderBy(field, dir);
-    }
-    
-    const newRef = new CollectionReference(this.mongoDb, this.firebaseDb, this.colName, nextFbQuery);
+    const newRef = new CollectionReference(this.mongoDb, this.colName);
     newRef.query = { ...this.query };
     newRef.sort = { [field]: dir === "desc" ? -1 : 1 };
     newRef.limitVal = this.limitVal;
@@ -70,12 +54,7 @@ class CollectionReference {
   }
 
   limit(num) {
-    let nextFbQuery = null;
-    if (this._fbRef) {
-      nextFbQuery = this._fbRef.limit(num);
-    }
-    
-    const newRef = new CollectionReference(this.mongoDb, this.firebaseDb, this.colName, nextFbQuery);
+    const newRef = new CollectionReference(this.mongoDb, this.colName);
     newRef.query = { ...this.query };
     newRef.sort = this.sort;
     newRef.limitVal = num;
@@ -90,10 +69,7 @@ class CollectionReference {
           const count = await this.mongoDb.collection(this.colName).countDocuments(this.query);
           return { data: () => ({ count }) };
         } catch (error) {
-          console.error(`[MongoDB] Fallback on count for ${this.colName}:`, error.message);
-          if (this._fbRef) {
-            return await this._fbRef.count().get();
-          }
+          console.error(`[MongoDB] Error on count for ${this.colName}:`, error.message);
           throw error;
         }
       }
@@ -128,10 +104,7 @@ class CollectionReference {
         forEach: (callback) => firestoreDocs.forEach(callback)
       };
     } catch (error) {
-      console.error(`[MongoDB] Fallback on query get for ${this.colName}:`, error.message);
-      if (this._fbRef) {
-        return await this._fbRef.get();
-      }
+      console.error(`[MongoDB] Error on query get for ${this.colName}:`, error.message);
       throw error; 
     }
   }
@@ -140,37 +113,21 @@ class CollectionReference {
     const id = uuidv4();
     const docData = { ...data, _id: id, id: id };
     
-    let isMongoSuccess = false;
-    let mongoError = null;
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
       await this.mongoDb.collection(this.colName).insertOne(docData);
-      isMongoSuccess = true;
     } catch (error) {
-      mongoError = error;
       console.error(`[MongoDB] Error on add to ${this.colName}:`, error.message);
+      throw error;
     }
 
-    // Dual-write to Firebase
-    try {
-      if (this.firebaseDb) {
-        await this.firebaseDb.collection(this.colName).doc(id).set(data);
-      } else if (!isMongoSuccess) {
-        throw mongoError; // Firebase disabled and Mongo failed
-      }
-    } catch (fbError) {
-      console.error(`[Firebase] Error on fallback add to ${this.colName}:`, fbError.message);
-      if (!isMongoSuccess) throw fbError;
-    }
-
-    return new DocumentReference(this.mongoDb, this.firebaseDb, this.colName, id);
+    return new DocumentReference(this.mongoDb, this.colName, id);
   }
 }
 
 class DocumentReference {
-  constructor(mongoDb, firebaseDb, colName, id) {
+  constructor(mongoDb, colName, id) {
     this.mongoDb = mongoDb;
-    this.firebaseDb = firebaseDb;
     this.colName = colName;
     this.id = id;
   }
@@ -196,10 +153,7 @@ class DocumentReference {
         };
       }
     } catch (error) {
-      console.error(`[MongoDB] Fallback on doc get for ${this.colName}/${this.id}:`, error.message);
-      if (this.firebaseDb) {
-        return await this.firebaseDb.collection(this.colName).doc(this.id).get();
-      }
+      console.error(`[MongoDB] Error on doc get for ${this.colName}/${this.id}:`, error.message);
       throw error;
     }
   }
@@ -207,99 +161,58 @@ class DocumentReference {
   async set(data, options = {}) {
     const docData = { ...data, id: this.id, _id: this.id };
     
-    let isMongoSuccess = false;
     try {
-      if (this.mongoDb) {
-        if (options.merge) {
-          await this.mongoDb.collection(this.colName).updateOne(
-            { $or: [{ _id: this.id }, { id: this.id }] },
-            { $set: data }, // We don't overwrite _id on update
-            { upsert: true }
-          );
-        } else {
-          await this.mongoDb.collection(this.colName).replaceOne(
-            { $or: [{ _id: this.id }, { id: this.id }] },
-            docData,
-            { upsert: true }
-          );
-        }
-        isMongoSuccess = true;
+      if (!this.mongoDb) throw new Error("MongoDB not connected");
+      if (options.merge) {
+        await this.mongoDb.collection(this.colName).updateOne(
+          { $or: [{ _id: this.id }, { id: this.id }] },
+          { $set: data }, // We don't overwrite _id on update
+          { upsert: true }
+        );
+      } else {
+        await this.mongoDb.collection(this.colName).replaceOne(
+          { $or: [{ _id: this.id }, { id: this.id }] },
+          docData,
+          { upsert: true }
+        );
       }
     } catch (error) {
       console.error(`[MongoDB] Error on doc set for ${this.colName}/${this.id}:`, error.message);
-    }
-
-    // Dual write
-    try {
-      if (this.firebaseDb) {
-        await this.firebaseDb.collection(this.colName).doc(this.id).set(data, options);
-      }
-    } catch (fbError) {
-      console.error(`[Firebase] Error on doc set for ${this.colName}/${this.id}:`, fbError.message);
-      if (!isMongoSuccess) throw fbError;
+      throw error;
     }
   }
 
   async update(data) {
-    let isMongoSuccess = false;
-    let mongoError = null;
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
       await this.mongoDb.collection(this.colName).updateOne(
         { $or: [{ _id: this.id }, { id: this.id }] },
         { $set: data }
       );
-      isMongoSuccess = true;
     } catch (error) {
-      mongoError = error;
       console.error(`[MongoDB] Error on doc update for ${this.colName}/${this.id}:`, error.message);
-    }
-
-    try {
-      if (this.firebaseDb) {
-        await this.firebaseDb.collection(this.colName).doc(this.id).update(data);
-      } else if (!isMongoSuccess) {
-        throw mongoError;
-      }
-    } catch (fbError) {
-      console.error(`[Firebase] Error on doc update for ${this.colName}/${this.id}:`, fbError.message);
-      if (!isMongoSuccess) throw fbError;
+      throw error;
     }
   }
 
   async delete() {
-    let isMongoSuccess = false;
-    let mongoError = null;
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
       await this.mongoDb.collection(this.colName).deleteOne({ $or: [{ _id: this.id }, { id: this.id }] });
-      isMongoSuccess = true;
     } catch (error) {
-      mongoError = error;
       console.error(`[MongoDB] Error on doc delete for ${this.colName}/${this.id}:`, error.message);
-    }
-
-    try {
-      if (this.firebaseDb) {
-        await this.firebaseDb.collection(this.colName).doc(this.id).delete();
-      } else if (!isMongoSuccess) {
-        throw mongoError;
-      }
-    } catch (fbError) {
-      console.error(`[Firebase] Error on doc delete for ${this.colName}/${this.id}:`, fbError.message);
-      if (!isMongoSuccess) throw fbError;
+      throw error;
     }
   }
 }
 
 class FirestoreToMongoAdapter {
-  constructor(mongoDb, firebaseDb) {
+  constructor(mongoDb) {
     this.mongoDb = mongoDb;
-    this.firebaseDb = firebaseDb;
   }
 
   collection(colName) {
-    return new CollectionReference(this.mongoDb, this.firebaseDb, colName);
+    return new CollectionReference(this.mongoDb, colName);
   }
 }
 

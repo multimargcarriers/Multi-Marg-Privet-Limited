@@ -315,7 +315,7 @@ const CreateBooking = () => {
 
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" className="form-control" name="dispatch_date" value={formData.dispatch_date} onChange={handleChange} required />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="dispatch_date" value={formData.dispatch_date} onChange={handleChange} required />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
@@ -393,7 +393,7 @@ const CreateBooking = () => {
           <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="date" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
+            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
             <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
             <div style={{ display: "flex", alignItems: "center" }}>

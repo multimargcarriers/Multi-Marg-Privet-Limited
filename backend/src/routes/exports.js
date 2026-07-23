@@ -1,19 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/firebase");
+const { db } = require("../config/database");
 const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 
 // Helper to convert array to CSV
-function toCSV(headers, rows) {
+const { get_csv_outstanding_client_1, get_full_data_client_2, get_bookings_3, get_bills_4, get_tripsheet_5, get_cashsheet_6, get_gst_7, get_unbilled_8 } = require('../controllers/exportsController');function toCSV(headers, rows) {
   const headerLine = headers.join(",");
   const dataLines = rows.map((row) =>
-    headers
-      .map((h) => {
-        const val = row[h] !== undefined ? String(row[h]) : "";
-        return val.includes(",") ? `"${val}"` : val;
-      })
-      .join(","),
+  headers.
+  map((h) => {
+    const val = row[h] !== undefined ? String(row[h]) : "";
+    return val.includes(",") ? `"${val}"` : val;
+  }).
+  join(",")
   );
   return [headerLine, ...dataLines].join("\n");
 }
@@ -21,217 +21,217 @@ function toCSV(headers, rows) {
 // Export outstanding by client
 router.get(
   "/csv/outstanding/:client",
-  asyncHandler(async (req, res) => {
-    const { client } = req.params;
-    let entries = [];
-      const snapshot = await db
-        .collection("outstanding")
-        .where("client", "==", client)
-        .get();
-      snapshot.forEach((doc) => entries.push({ id: doc.id, ...doc.data() }));
-    
-    const csv = toCSV(
-      ["Date", "Amount", "Client", "Particulars", "Bank Name"],
-      entries,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=outstanding_${client}.csv`,
-    );
-    return res.send(csv);
-  }),
+  asyncHandler(get_csv_outstanding_client_1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export full data
 router.get(
   "/full-data/:client",
-  asyncHandler(async (req, res) => {
-    const { client } = req.params;
-    let bookings = [];
-      const snapshot = await db
-        .collection("bookings")
-        .where("client", "==", client)
-        .get();
-      snapshot.forEach((doc) => bookings.push({ id: doc.id, ...doc.data() }));
-    
-    const csv = toCSV(
-      [
-        "LR No",
-        "Date",
-        "Consignor",
-        "Consignee",
-        "Origin",
-        "Destination",
-        "Mode",
-        "Box",
-        "Weight",
-        "Freight",
-        "Status",
-      ],
-      bookings,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=fulldata_${client}.csv`,
-    );
-    return res.send(csv);
-  }),
+  asyncHandler(get_full_data_client_2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export bookings
 router.get(
   "/bookings",
-  asyncHandler(async (req, res) => {
-    let data = [];
-    const snapshot = await db.collection("bookings").get();
-    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const csv = toCSV(
-      [
-        "LR No",
-        "Date",
-        "Client",
-        "Origin",
-        "Destination",
-        "Consignor",
-        "Consignee",
-        "Mode",
-        "Box",
-        "Weight",
-        "Freight",
-        "Status",
-      ],
-      data,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=bookings.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_bookings_3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export bills
 router.get(
   "/bills",
-  asyncHandler(async (req, res) => {
-    let data = [];
-      const snapshot = await db.collection("bills").get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    const csv = toCSV(
-      [
-        "Bill No",
-        "Client",
-        "Amount",
-        "Taxable",
-        "GST",
-        "CGST",
-        "SGST",
-        "Total",
-        "Status",
-        "Date",
-      ],
-      data,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=bills.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_bills_4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export tripsheet
 router.get(
   "/tripsheet",
-  asyncHandler(async (req, res) => {
-    let data = [];
-    const snapshot = await db.collection("trips").get();
-    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const csv = toCSV(
-      [
-        "Trip No",
-        "Date",
-        "Vehicle",
-        "Driver",
-        "Origin",
-        "Destination",
-        "Vendor",
-        "Status",
-      ],
-      data,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=tripsheet.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_tripsheet_5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export cashsheet
 router.get(
   "/cashsheet",
-  asyncHandler(async (req, res) => {
-    let data = [];
-    const snapshot = await db.collection("cashEntries").get();
-    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const csv = toCSV(["Date", "Type", "Amount", "Remarks"], data);
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=cashsheet.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_cashsheet_6
+
+
+
+
+
+
+
+  )
 );
 
 // Export GST report
 router.get(
   "/gst",
-  asyncHandler(async (req, res) => {
-    let data = [];
-    const snapshot = await db.collection("bills").get();
-    data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const csv = toCSV(
-      [
-        "Invoice No",
-        "Client",
-        "GSTIN",
-        "Taxable",
-        "CGST",
-        "SGST",
-        "IGST",
-        "Total",
-      ],
-      data,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=gst_report.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_gst_7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 // Export unbilled
 router.get(
   "/unbilled",
-  asyncHandler(async (req, res) => {
-    let data = [];
-      const snapshot = await db
-        .collection("bookings")
-        .where("status", "==", "Booked")
-        .get();
-      snapshot.forEach((doc) => data.push({ id: doc.id, ...doc.data() }));
-    
-    const csv = toCSV(
-      [
-        "LR No",
-        "Date",
-        "Client",
-        "Origin",
-        "Destination",
-        "Box",
-        "Weight",
-        "Freight",
-      ],
-      data,
-    );
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=unbilled.csv");
-    return res.send(csv);
-  }),
+  asyncHandler(get_unbilled_8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  )
 );
 
 module.exports = router;

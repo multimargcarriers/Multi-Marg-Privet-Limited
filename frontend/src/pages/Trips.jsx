@@ -180,7 +180,7 @@ const Trips = () => {
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="date" className="form-control" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required />
+              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required />
             </div>
           </div>
 
