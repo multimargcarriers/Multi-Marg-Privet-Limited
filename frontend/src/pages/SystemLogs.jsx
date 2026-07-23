@@ -41,7 +41,7 @@ const SystemLogs = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={24} color="#6366f1" /> System Logs
@@ -92,7 +92,8 @@ const SystemLogs = () => {
 
       {/* Table */}
       <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderTop: "none", borderRadius: "0 0 8px 8px", overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontFamily: "monospace" }}>
+        <div className="table-responsive">
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontFamily: "monospace" }}>
           <thead>
             <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
               <th style={{ padding: "12px 1.5rem", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", width: "180px" }}>Timestamp</th>
@@ -150,6 +151,7 @@ const SystemLogs = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

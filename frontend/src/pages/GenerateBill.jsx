@@ -113,7 +113,7 @@ const GenerateBill = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>Generate Invoices</h3>
           <p className="text-muted">Select bookings and generate invoices/bills.</p>
@@ -208,6 +208,7 @@ const GenerateBill = () => {
         {loading ? (
           <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}><Loader2 className="spinner" size={32} /></div>
         ) : (
+          <div className="table-responsive">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(0, 0, 0, 0.02)" }}>
@@ -248,6 +249,7 @@ const GenerateBill = () => {
               )}
             </tbody>
           </table>
+        </div>
         )}
       </div>
 

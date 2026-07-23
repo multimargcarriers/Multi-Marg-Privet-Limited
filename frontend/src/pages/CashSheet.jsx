@@ -200,7 +200,7 @@ const CashSheet = () => {
           </div>
         </div>
 
-        <div className="form-group" style={{ marginBottom: "2.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+        <div className="form-group flex-responsive" style={{ marginBottom: "2.5rem" }}>
           <label className="form-label" style={{ fontWeight: "500", color: "#374151", margin: 0 }}>
             Upload Voucher<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
           </label>
@@ -231,7 +231,7 @@ const CashSheet = () => {
       </form>
 
       {/* Summary Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "2rem" }}>
+      <div className="grid-3-col" style={{ marginBottom: "2rem" }}>
         <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center" }}>
           <p className="text-muted" style={{ marginBottom: "0.5rem", fontWeight: "500" }}>Total Cash In</p>
           <h3 style={{ color: "#10b981", margin: 0, fontSize: "2rem", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

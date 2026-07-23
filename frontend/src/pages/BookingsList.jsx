@@ -53,7 +53,7 @@ const BookingsList = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>All Bookings (LR)</h3>
           <p className="text-muted">View and manage all lorry receipt bookings.</p>
@@ -64,7 +64,7 @@ const BookingsList = () => {
       </div>
 
       <div className="glass-panel" style={{ padding: "1rem", marginBottom: "2rem" }}>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        <div className="flex-responsive">
           <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
             <input className="form-control" placeholder="Search by client, LR no, origin, destination..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>

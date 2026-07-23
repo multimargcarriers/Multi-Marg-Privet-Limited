@@ -77,7 +77,7 @@ const Analytics = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>Deep Analytics</h3>
           <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Automated aggregation based on your financial reports.</p>

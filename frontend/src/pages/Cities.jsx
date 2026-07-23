@@ -262,6 +262,7 @@ const Cities = () => {
 
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
+          <div className="table-responsive">
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
@@ -329,6 +330,7 @@ const Cities = () => {
               )}
             </tbody>
           </table>
+        </div>
         </div>
         
         {/* Pagination */}

@@ -69,7 +69,7 @@ const Dashboard = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: '1.8rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>Overview Dashboard</h3>
           <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Here's what's happening with your operations today.</p>
@@ -167,6 +167,7 @@ const Dashboard = () => {
       <div>
         <h4 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: '#0f172a' }}>Top Leaders & Management</h4>
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+          <div className="table-responsive">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -202,6 +203,7 @@ const Dashboard = () => {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>

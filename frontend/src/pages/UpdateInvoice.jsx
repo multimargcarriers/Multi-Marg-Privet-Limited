@@ -46,7 +46,7 @@ const UpdateInvoice = () => {
       </div>
 
       <div className="glass-panel" style={{ padding: "1rem", marginBottom: "2rem" }}>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        <div className="flex-responsive">
           <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
             <input className="form-control" placeholder="Search by bill no or client..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
@@ -56,6 +56,7 @@ const UpdateInvoice = () => {
 
       <div style={{ display: "grid", gridTemplateColumns: selectedBill ? "1fr 1fr" : "1fr", gap: "2rem" }}>
         <div className="glass-panel" style={{ padding: 0, overflow: "hidden" }}>
+          <div className="table-responsive">
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(0, 0, 0, 0.02)" }}>
@@ -77,6 +78,7 @@ const UpdateInvoice = () => {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
 
         {selectedBill && (

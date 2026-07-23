@@ -5,6 +5,7 @@ import { Download, ArrowLeft } from "lucide-react";
 import RupeeIcon from "../components/RupeeIcon";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
+import { QRCodeCanvas } from "qrcode.react";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -15,6 +16,20 @@ const PrintLR = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
   const [signName, setSignName] = useState(user?.name || "Admin");
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 850) {
+        setScale((window.innerWidth - 32) / 800); // 32px for padding
+      } else {
+        setScale(1);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (user?.name) {
@@ -73,14 +88,20 @@ const PrintLR = () => {
 
   const handleDownloadPDF = () => {
     const element = document.getElementById("bilty-content");
+    const originalTransform = element.style.transform;
+    element.style.transform = "scale(1)";
+
     const opt = {
       margin:       0,
       filename:     `Bilty_${booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
       image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { scale: 2, useCORS: true },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
       jsPDF:        { unit: 'px', format: [800, 1131], orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(element).save();
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.transform = originalTransform;
+    });
   };
 
   return (
@@ -174,17 +195,17 @@ const PrintLR = () => {
         `}
       </style>
 
-      <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
         <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <input 
             type="text" 
             value={signName} 
             onChange={(e) => setSignName(e.target.value)} 
             placeholder="Sign Name (Blank for none)" 
-            style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.85rem", width: "200px", outline: "none" }}
+            style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.85rem", width: "160px", outline: "none" }}
           />
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
             <Download size={18} className="mr-2" /> Download PDF Bilty
@@ -192,7 +213,21 @@ const PrintLR = () => {
         </div>
       </div>
 
-      <div id="bilty-content" className="print-container" style={{ maxWidth: "800px", minHeight: "1131px", margin: "0 auto", background: "white", color: "#0f172a", position: "relative", boxSizing: "border-box", padding: "10px" }}>
+      <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
+        <div style={{ width: `${800 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
+          <div id="bilty-content" className="print-container" style={{ 
+            width: "800px", 
+            minHeight: "1131px", 
+            background: "white", 
+            color: "#0f172a", 
+            boxSizing: "border-box", 
+            padding: "10px",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            position: "absolute",
+            top: 0,
+            left: 0
+          }}>
         
         <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
           {/* Professional Logo Watermark */}
@@ -228,7 +263,7 @@ const PrintLR = () => {
             {/* QR Code & Tracking */}
             <div style={{ width: "100px", textAlign: "center" }}>
               <div style={{ padding: "4px", background: "white", border: "1px solid #cbd5e1", borderRadius: "4px", display: "inline-block" }}>
-                <img crossOrigin="anonymous" src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(window.location.origin + '/tracking?lr=' + booking.id)}`} alt="QR Code" style={{ width: "80px", height: "80px", display: "block" }} />
+                <QRCodeCanvas value={window.location.origin + '/tracking?lr=' + booking.id} size={80} style={{ display: "block" }} />
               </div>
               <div style={{ fontSize: "0.75rem", fontWeight: "700", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
             </div>
@@ -435,6 +470,8 @@ const PrintLR = () => {
           </div>
           
         </div>
+        </div>
+      </div>
       </div>
     </div>
     </div>

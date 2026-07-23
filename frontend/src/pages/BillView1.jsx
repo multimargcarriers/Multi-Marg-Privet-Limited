@@ -40,7 +40,7 @@ const BillView1 = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>Bill View - Format 1</h3>
           <p className="text-muted">Standard invoice format. Bill ID: {id}</p>
@@ -80,7 +80,8 @@ const BillView1 = () => {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
+        <div className="table-responsive">
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "2rem" }}>
           <thead>
             <tr style={{ background: "rgba(13, 110, 253, 0.05)" }}>
               <th style={{ padding: "0.75rem 1rem", textAlign: "left", borderBottom: "2px solid var(--primary-color)" }}>#</th>
@@ -118,6 +119,7 @@ const BillView1 = () => {
             </tr>
           </tfoot>
         </table>
+        </div>
 
         <div style={{ borderTop: "2px dashed rgba(0, 0, 0, 0.1)", paddingTop: "1rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
           <p style={{ margin: "0.25rem 0" }}><strong>Terms & Conditions:</strong></p>

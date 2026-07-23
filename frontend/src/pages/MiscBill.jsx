@@ -17,7 +17,7 @@ const MiscBill = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>Miscellaneous Bill</h3>
           <p className="text-muted">Create ad-hoc bills for non-booking charges.</p>
