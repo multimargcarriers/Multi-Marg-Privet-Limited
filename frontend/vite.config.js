@@ -9,6 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons.svg', 'PWA IMAGE.png', 'mc.png'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5000000,
+      },
       manifest: {
         name: 'Multimarg Carriers',
         short_name: 'Multimarg',
