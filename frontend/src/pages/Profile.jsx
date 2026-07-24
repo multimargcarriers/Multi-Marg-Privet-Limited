@@ -8,6 +8,8 @@ const Profile = () => {
   const { user, updateUser, token, logout } = useContext(AuthContext);
   const { addToast } = useToast();
   
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
@@ -436,13 +438,13 @@ const Profile = () => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address {!isSuperAdmin && <span style={{ fontSize: '0.8rem', color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 500 }}>(Contact SuperAdmin to change)</span>}</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!isSuperAdmin} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: !isSuperAdmin ? '#f1f5f9' : 'var(--bg-color)', color: !isSuperAdmin ? '#94a3b8' : 'var(--text-dark)', cursor: !isSuperAdmin ? 'not-allowed' : 'text' }} onFocus={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#0078D4'} onBlur={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#8A8886'} />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID</label>
-                    <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder="MMPL-1234" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID {!isSuperAdmin && <span style={{ fontSize: '0.8rem', color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 500 }}>(Contact SuperAdmin to change)</span>}</label>
+                    <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} disabled={!isSuperAdmin} placeholder="MMPL-1234" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: !isSuperAdmin ? '#f1f5f9' : 'var(--bg-color)', color: !isSuperAdmin ? '#94a3b8' : 'var(--text-dark)', cursor: !isSuperAdmin ? 'not-allowed' : 'text' }} onFocus={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#0078D4'} onBlur={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#8A8886'} />
                   </div>
 
                   <div style={{ marginTop: '1rem' }}>

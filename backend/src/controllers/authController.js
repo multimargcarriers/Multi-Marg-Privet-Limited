@@ -184,17 +184,19 @@ exports.put_profile_2 = async (req, res) => {
       }
     }
   }
+  const isSuperAdmin = req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimargcarriers.co.in';
+
   const updates = {};
   if (name) updates.name = name;
-  if (email) updates.email = email;
+  if (email && isSuperAdmin) updates.email = email;
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
   }
-  if (employeeId) updates.employeeId = employeeId;
+  if (employeeId && isSuperAdmin) updates.employeeId = employeeId;
   
-  if (employeeId) {
-    const empIdCheck = await db.collection("users").where("employeeId", "==", employeeId).get();
+  if (updates.employeeId) {
+    const empIdCheck = await db.collection("users").where("employeeId", "==", updates.employeeId).get();
     let taken = false;
     empIdCheck.forEach(d => {
       if (d.id !== userId) taken = true;
