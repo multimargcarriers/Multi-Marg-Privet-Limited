@@ -249,14 +249,14 @@ const Login = () => {
           </div>
         </div>
 
-        {/* --- RIGHT SIDE: 40% LOGIN FORM --- */}
+        {/* --- RIGHT SIDE: 45% LOGIN FORM --- */}
         <div style={{
           flex: '1',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '3rem',
-          background: '#ffffff',
+          background: '#f8fafc',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -280,6 +280,10 @@ const Login = () => {
             position: 'relative', 
             zIndex: 10,
             background: '#ffffff',
+            padding: '3.5rem 3rem',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 40px rgba(124, 58, 237, 0.03)',
+            border: '1px solid rgba(0,0,0,0.03)'
           }}>
             
             {/* Mobile Logo */}
@@ -686,9 +690,7 @@ const Login = () => {
             </form>
           )}
 
-            <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem', color: '#6b7280' }}>
-              New to Multi Marg? <a href="#" style={{ color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}>Create an account</a>
-            </div>
+
 
           </div>
         </div>
