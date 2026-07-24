@@ -1,7 +1,7 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare } from 'lucide-react';
+import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare, ShieldCheck, Monitor, History } from 'lucide-react';
 import axios from 'axios';
 
 const Profile = () => {
@@ -15,7 +15,7 @@ const Profile = () => {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(user?.photo || null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState('overview');
   
   const fileInputRef = useRef(null);
 
@@ -24,12 +24,10 @@ const Profile = () => {
       if (photoPreview.startsWith('http') || photoPreview.startsWith('blob')) return photoPreview;
       return `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${photoPreview}`;
     }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=FF9900&color=fff&size=150`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0078D4&color=fff&size=150`;
   };
 
-  const handlePhotoClick = () => {
-    fileInputRef.current.click();
-  };
+  const handlePhotoClick = () => fileInputRef.current.click();
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -44,7 +42,7 @@ const Profile = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setIsLoading(true);
     
     try {
@@ -55,7 +53,6 @@ const Profile = () => {
       if (password) formData.append('password', password);
       if (photo) formData.append('photo', photo);
 
-      // Only send request if there's actually something to update
       let hasUpdates = false;
       for (let pair of formData.entries()) {
         hasUpdates = true;
@@ -81,291 +78,253 @@ const Profile = () => {
         setPassword('');
       } else {
         addToast(response.data?.message || "Failed to update profile", "error");
-        if (response.status === 404 || response.status === 401) {
-          logout();
-        }
+        if (response.status === 404 || response.status === 401) logout();
       }
     } catch (error) {
-      console.error(error);
       addToast(error.response?.data?.message || "An error occurred while updating profile", "error");
-      if (error.response?.status === 404 || error.response?.status === 401) {
-        logout();
-      }
+      if (error.response?.status === 404 || error.response?.status === 401) logout();
     } finally {
       setIsLoading(false);
     }
   };
 
+  const tabs = [
+    { id: 'overview', icon: LayoutGrid, label: 'Overview', color: '#0078D4' },
+    { id: 'personal', icon: User, label: 'Your info', color: '#107C41' },
+    { id: 'security', icon: ShieldCheck, label: 'Security', color: '#D83B01' },
+    { id: 'devices', icon: Monitor, label: 'Devices', color: '#5C2D91' },
+    { id: 'history', icon: History, label: 'Activity history', color: '#008272' },
+  ];
+
   return (
-    <div className="profile-page fade-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+    <div className="fade-in" style={{ backgroundColor: 'var(--bg-color)', minHeight: 'calc(100vh - 60px)' }}>
       
-      <div style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>
-          Account Settings
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>
-          Manage your account settings and preferences.
-        </p>
+      {/* Microsoft-style Hero Banner */}
+      <div style={{ height: '220px', background: 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', height: '100%', position: 'relative' }}>
+          {/* Decorative Elements */}
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ maxWidth: '1200px', margin: '-80px auto 0', padding: '0 2rem 3rem 2rem', position: 'relative', zIndex: 10, display: 'flex', gap: '2.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         
-        {/* Navigation Sidebar */}
-        <div style={{ width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          {[
-            { id: 'personal', icon: User, label: 'General' },
-            { id: 'security', icon: Lock, label: 'Security & Sign-in' },
-            { id: 'notifications', icon: Bell, label: 'Notifications' },
-            { id: 'integrations', icon: LayoutGrid, label: 'Connected Apps' },
-            { id: 'activity', icon: Activity, label: 'Audit Log' }
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <div 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{ 
-                  padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  cursor: 'pointer', borderRadius: '8px',
-                  backgroundColor: isActive ? 'rgba(26, 115, 232, 0.1)' : 'transparent', 
-                  color: isActive ? 'var(--primary-color)' : 'var(--text-dark)', 
-                  fontWeight: isActive ? 600 : 500, 
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'var(--bg-color)'; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'; }}
+        {/* Left Sidebar Profile & Nav */}
+        <div style={{ width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          {/* Identity Card */}
+          <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
+            <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
+              <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <button 
+                onClick={handlePhotoClick}
+                style={{ position: 'absolute', bottom: 0, right: 0, width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Icon size={18} opacity={isActive ? 1 : 0.6} /> {tab.label}
+                <Camera size={18} />
+              </button>
+              <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
+            </div>
+            
+            <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-dark)' }}>{user?.name || 'Administrator'}</h2>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{user?.email || 'admin@multimarg.com'}</p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: 'rgba(0, 120, 212, 0.1)', color: '#0078D4', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+              <Shield size={14} /> {user?.role || 'SuperAdmin'} Account
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '1rem 0', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <div 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{ 
+                    padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
+                    cursor: 'pointer', position: 'relative',
+                    background: isActive ? 'var(--bg-color)' : 'transparent',
+                    color: isActive ? 'var(--text-dark)' : 'var(--text-muted)',
+                    fontWeight: isActive ? 600 : 400,
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-color)'; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {isActive && <div style={{ position: 'absolute', left: 0, top: '10%', bottom: '10%', width: '4px', background: tab.color, borderRadius: '0 4px 4px 0' }}></div>}
+                  <Icon size={20} color={isActive ? tab.color : 'currentColor'} />
+                  {tab.label}
                 </div>
-                {isActive && <ChevronRight size={16} />}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Content Area */}
-        <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* Right Content Area */}
+        <div style={{ flex: 1, minWidth: '400px', marginTop: '100px' }}>
           
+          {activeTab === 'overview' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <h1 style={{ fontSize: '2.2rem', fontWeight: 300, color: 'var(--text-dark)', margin: 0 }}>Welcome back, {user?.name?.split(' ')[0] || 'User'}</h1>
+              
+              {/* Grid of Microsoft-style Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                
+                <div onClick={() => setActiveTab('personal')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(16, 124, 65, 0.1)', borderRadius: '8px', color: '#107C41' }}><User size={28} /></div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)' }}>Your info</h3>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', flex: 1 }}>Keep your personal info up to date to personalize your Multimarg experience.</p>
+                  <div style={{ color: '#0078D4', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Manage info <ChevronRight size={16} /></div>
+                </div>
+
+                <div onClick={() => setActiveTab('security')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(216, 59, 1, 0.1)', borderRadius: '8px', color: '#D83B01' }}><ShieldCheck size={28} /></div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)' }}>Security</h3>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', flex: 1 }}>Keep your account secure by updating your password and enabling 2FA.</p>
+                  <div style={{ color: '#0078D4', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Update security <ChevronRight size={16} /></div>
+                </div>
+
+                <div onClick={() => setActiveTab('devices')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(92, 45, 145, 0.1)', borderRadius: '8px', color: '#5C2D91' }}><Monitor size={28} /></div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)' }}>Devices</h3>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', flex: 1 }}>Manage the devices linked to your account and review active sessions.</p>
+                  <div style={{ color: '#0078D4', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>View devices <ChevronRight size={16} /></div>
+                </div>
+
+                <div onClick={() => setActiveTab('history')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.75rem', background: 'rgba(0, 130, 114, 0.1)', borderRadius: '8px', color: '#008272' }}><History size={28} /></div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)' }}>Activity history</h3>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', flex: 1 }}>Review recent logins, profile updates, and system access logs.</p>
+                  <div style={{ color: '#0078D4', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Review activity <ChevronRight size={16} /></div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {activeTab === 'personal' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              
-              {/* Profile Card */}
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Your info</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Manage your personal information and how it's displayed.</p>
+              </div>
+
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  
                   <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Avatar</h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>This is your avatar. Click on the avatar to upload a custom one.</p>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Full Name</label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   </div>
-                  <div style={{ position: 'relative' }}>
-                    <div 
-                      onClick={handlePhotoClick}
-                      style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1px solid var(--border-color)', cursor: 'pointer', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-color)' }}
-                      onMouseEnter={(e) => { e.currentTarget.children[1].style.opacity = 1; }}
-                      onMouseLeave={(e) => { e.currentTarget.children[1].style.opacity = 0; }}
-                    >
-                      <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', color: 'white' }}>
-                        <Camera size={24} />
-                      </div>
-                    </div>
-                    <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
-                  </div>
-                </div>
-                <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>An avatar is optional but strongly recommended.</span>
-                </div>
-              </div>
 
-              {/* Display Name Card */}
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Display Name</h3>
-                  <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please enter your full name, or a display name you are comfortable with.</p>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%', maxWidth: '400px', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
-                </div>
-                <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Please use 32 characters at maximum.</span>
-                  <button onClick={handleSubmit} style={{ padding: '0.5rem 1rem', background: 'var(--text-dark)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Save</button>
-                </div>
-              </div>
-
-              {/* Email Card */}
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Email Address</h3>
-                  <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>We will use this email address to communicate with you.</p>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', maxWidth: '400px', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
-                </div>
-                <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>We will email you to verify the change.</span>
-                  <button onClick={handleSubmit} style={{ padding: '0.5rem 1rem', background: 'var(--text-dark)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Save</button>
-                </div>
-              </div>
-
-              {/* System Role (Read Only) */}
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>System Role</h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your current role and access level within the system.</p>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   </div>
-                  <span style={{ padding: '0.4rem 1rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', borderRadius: '20px', fontWeight: 600, fontSize: '0.85rem' }}>{user?.role || 'Admin'}</span>
+
+                  <div style={{ marginTop: '1rem' }}>
+                    <button onClick={handleSubmit} disabled={isLoading} style={{ padding: '0.6rem 1.5rem', background: '#0078D4', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', transition: 'background 0.2s', opacity: isLoading ? 0.7 : 1 }}>
+                      {isLoading ? 'Saving...' : 'Save changes'}
+                    </button>
+                  </div>
+
                 </div>
               </div>
-
             </div>
           )}
 
           {activeTab === 'security' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Change Password</h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Update your password to keep your account secure.</p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
-                    <input type="password" placeholder="Current Password" style={{ padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
-                    <input type="password" placeholder="Confirm New Password" style={{ padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
-                  </div>
-                </div>
-                <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Ensure your password is at least 8 characters.</span>
-                  <button onClick={handleSubmit} style={{ padding: '0.5rem 1rem', background: 'var(--text-dark)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Update Password</button>
-                </div>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Security</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Keep your account safe with a strong password and two-factor authentication.</p>
               </div>
 
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Two-Factor Authentication (2FA)</h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Add an extra layer of security to your account.</p>
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
+                <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Key size={20} color="#0078D4" /> Password security</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px' }}>
+                  <input type="password" placeholder="Current Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   
-                  <div style={{ padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <Smartphone size={24} color="var(--text-muted)" />
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>Authenticator App</h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Use an app like Google Authenticator to generate codes.</p>
-                      </div>
-                    </div>
-                    <button style={{ padding: '0.4rem 1rem', background: 'transparent', color: 'var(--text-dark)', border: '1px solid var(--border-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Enable</button>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <button onClick={handleSubmit} disabled={isLoading || !password} style={{ padding: '0.6rem 1.5rem', background: password ? '#0078D4' : '#E1DFDD', color: password ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.95rem', cursor: password ? 'pointer' : 'not-allowed', transition: 'background 0.2s' }}>
+                      Change password
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Active Sessions</h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Manage the devices that are logged into your account.</p>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <Globe size={24} color="var(--primary-color)" />
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Windows PC - Chrome <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: '#ecfdf5', color: '#10b981', borderRadius: '4px' }}>Active Now</span></h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Mumbai, India • IP: 192.168.1.100</p>
-                      </div>
-                    </div>
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Shield size={20} color="#107C41" /> Two-step verification</h3>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '600px' }}>Protect your account with an extra layer of security. We will ask for a verification code when you sign in from a new device.</p>
                   </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {activeTab === 'notifications' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Notification Preferences</h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Choose how you want to be notified about activity in your account.</p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {[
-                      { title: "Email Notifications", desc: "Receive daily summary reports and billing updates via email." },
-                      { title: "Push Notifications", desc: "Get real-time browser alerts when a booking is created or assigned." },
-                      { title: "SMS Alerts", desc: "Receive text messages for critical dispatches or emergency alerts." },
-                      { title: "Weekly Digest", desc: "Receive a weekly overview of your logistics performance." }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 0', borderBottom: idx !== 3 ? '1px solid var(--border-color)' : 'none' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>{item.title}</h4>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{item.desc}</p>
-                        </div>
-                        <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
-                          <input type="checkbox" defaultChecked={idx < 2} style={{ opacity: 0, width: 0, height: 0 }} />
-                          <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: idx < 2 ? 'var(--primary-color)' : '#ccc', transition: '.4s', borderRadius: '24px' }}></span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {activeTab === 'integrations' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Connected Apps</h3>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Connect your account to third-party services.</p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MessageSquare size={20} color="#4A154B" /></div>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>Slack Integration</h4>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Send dispatch notifications to your team's Slack channel.</p>
-                        </div>
-                      </div>
-                      <button style={{ padding: '0.4rem 1rem', background: 'transparent', color: 'var(--text-dark)', border: '1px solid var(--border-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Connect</button>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Code size={20} color="#24292e" /></div>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>Developer API</h4>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate API keys to interact securely with our endpoints.</p>
-                        </div>
-                      </div>
-                      <button style={{ padding: '0.4rem 1rem', background: 'transparent', color: 'var(--text-dark)', border: '1px solid var(--border-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Connect</button>
-                    </div>
-                  </div>
+                  <button style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#0078D4', border: '1px solid #0078D4', borderRadius: '4px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>Set up 2FA</button>
                 </div>
               </div>
             </div>
           )}
 
-          {activeTab === 'activity' && (
+          {activeTab === 'devices' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: 'var(--text-dark)' }}>Audit Log</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>A comprehensive log of actions taken by your account.</p>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Devices</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Review the devices where you're currently signed in.</p>
+              </div>
+
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                <div style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                    <div style={{ color: '#5C2D91' }}><Monitor size={48} strokeWidth={1.5} /></div>
+                    <div>
+                      <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.2rem', color: 'var(--text-dark)' }}>DESKTOP-9B4X2L</h3>
+                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Windows 11 • Chrome Browser</p>
+                      <div style={{ marginTop: '0.5rem', display: 'inline-block', padding: '0.1rem 0.5rem', background: 'rgba(16, 124, 65, 0.1)', color: '#107C41', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>Active session</div>
+                    </div>
+                  </div>
+                  <button style={{ padding: '0.5rem 1rem', background: 'transparent', color: 'var(--text-dark)', border: '1px solid #8A8886', borderRadius: '4px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>Sign out</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Activity history</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Review when and where you've used your account.</p>
+              </div>
+
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {[
-                    { action: "Updated Profile Avatar", date: "Today, 10:45 AM", ip: "192.168.1.45" },
-                    { action: "Logged In successfully", date: "Today, 09:00 AM", ip: "192.168.1.45" },
-                    { action: "Created LR Document #84920", date: "Yesterday, 04:30 PM", ip: "192.168.1.12" },
-                    { action: "Logged In successfully", date: "Yesterday, 08:50 AM", ip: "192.168.1.12" },
-                    { action: "Enabled Dark Mode Preference", date: "Oct 12, 11:20 AM", ip: "192.168.1.12" }
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ padding: '1rem 1.5rem', borderBottom: idx !== 4 ? '1px solid var(--border-color)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ background: 'var(--bg-color)', padding: '0.5rem', borderRadius: '50%' }}><Clock size={16} color="var(--text-muted)" /></div>
-                        <div>
-                          <div style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-dark)' }}>{item.action}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
+                    { type: 'login', title: 'Successful sign-in', date: 'Today, 10:45 AM', location: 'Mumbai, India', ip: '192.168.1.100' },
+                    { type: 'security', title: 'Security info updated', date: 'Yesterday, 04:30 PM', location: 'Mumbai, India', ip: '192.168.1.100' },
+                    { type: 'login', title: 'Successful sign-in', date: 'Oct 12, 09:15 AM', location: 'Mumbai, India', ip: '192.168.1.12' },
+                  ].map((log, idx) => (
+                    <div key={idx} style={{ padding: '1.5rem', borderBottom: idx !== 2 ? '1px solid var(--border-color)' : 'none', display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+                      <div style={{ color: log.type === 'security' ? '#D83B01' : '#107C41' }}>
+                        {log.type === 'security' ? <ShieldCheck size={24} /> : <CheckCircle size={24} />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--text-dark)' }}>{log.title}</h4>
+                        <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {log.date}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Globe size={14} /> {log.location}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Monitor size={14} /> {log.ip}</span>
                         </div>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', background: 'var(--bg-color)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{item.ip}</div>
                     </div>
                   ))}
                 </div>
@@ -375,6 +334,14 @@ const Profile = () => {
 
         </div>
       </div>
+      
+      {/* Add specific custom CSS for this page locally */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .hover-lift:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+        }
+      `}} />
     </div>
   );
 };
