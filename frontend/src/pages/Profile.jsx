@@ -73,6 +73,7 @@ const Profile = () => {
       }
       setPhoto(file);
       setPhotoPreview(URL.createObjectURL(file));
+      setShowGallery(false);
     }
   };
 
@@ -85,6 +86,7 @@ const Profile = () => {
       }
       setBanner(file);
       setBannerPreview(URL.createObjectURL(file));
+      setShowGallery(false);
     }
   };
 
@@ -176,15 +178,7 @@ const Profile = () => {
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
             >
-              <ImageIcon size={16} /> Gallery
-            </button>
-            <button 
-              onClick={handleBannerClick}
-              style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
-            >
-              <Camera size={16} /> Upload
+              <Camera size={16} /> Edit banner
             </button>
           </div>
           <input type="file" ref={bannerInputRef} onChange={handleBannerChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
@@ -200,22 +194,13 @@ const Profile = () => {
           <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
               <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <div style={{ position: 'absolute', bottom: -10, right: -10, display: 'flex', gap: '0.25rem' }}>
-                <button 
-                  onClick={() => openGallery('photo')}
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#107C41', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-                  title="Choose from Gallery"
-                >
-                  <ImageIcon size={16} />
-                </button>
-                <button 
-                  onClick={handlePhotoClick}
-                  style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-                  title="Upload Custom Photo"
-                >
-                  <Camera size={18} />
-                </button>
-              </div>
+              <button 
+                onClick={() => openGallery('photo')}
+                style={{ position: 'absolute', bottom: 0, right: 0, width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                title="Change Photo"
+              >
+                <Camera size={18} />
+              </button>
               <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
             </div>
             
@@ -446,6 +431,30 @@ const Profile = () => {
               <button onClick={() => setShowGallery(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
             </div>
             <div style={{ padding: '2rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: galleryType === 'photo' ? 'repeat(auto-fill, minmax(140px, 1fr))' : '1fr 1fr', gap: '1.5rem' }}>
+              
+              {/* Custom Upload Option */}
+              <div 
+                onClick={galleryType === 'photo' ? handlePhotoClick : handleBannerClick}
+                style={{ 
+                  cursor: 'pointer', 
+                  borderRadius: galleryType === 'photo' ? '50%' : '8px',
+                  border: '2px dashed var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  aspectRatio: galleryType === 'photo' ? '1/1' : '21/9',
+                  background: 'rgba(0,0,0,0.02)',
+                  color: 'var(--text-muted)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0078D4'; e.currentTarget.style.color = '#0078D4'; e.currentTarget.style.background = 'rgba(0,120,212,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; }}
+              >
+                <Camera size={galleryType === 'photo' ? 32 : 48} style={{ marginBottom: '0.5rem' }} />
+                <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>Upload Custom</span>
+              </div>
+
               {galleryType === 'photo' ? defaultAssets.avatars.map((url, idx) => (
                 <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', aspectRatio: '1/1', border: '4px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
                   <img src={url} alt={`Avatar ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
