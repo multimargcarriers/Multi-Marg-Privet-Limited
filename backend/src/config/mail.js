@@ -1,41 +1,32 @@
+const nodemailer = require("nodemailer");
+
 const brevoApiKey = process.env.BREVO_API_KEY;
+const brevoLogin = process.env.BREVO_SMTP_LOGIN || 'b31e39001@smtp-brevo.com';
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: brevoLogin,
+    pass: brevoApiKey
+  }
+});
 
 const sendEmail = async ({ to, subject, htmlContent }) => {
   try {
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "accept": "application/json",
-        "api-key": brevoApiKey,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        sender: {
-          name: "Multimarg Carriers",
-          email: "noreply@multimargcarriers.co.in"
-        },
-        to: [
-          {
-            email: to
-          }
-        ],
-        subject: subject,
-        htmlContent: htmlContent
-      })
+    const info = await transporter.sendMail({
+      from: '"Multimarg Carriers" <noreply@multimargcarriers.co.in>',
+      to: to,
+      subject: subject,
+      html: htmlContent
     });
     
-    if (!response.ok) {
-      const errData = await response.text();
-      console.error("[Mail] Brevo API Error:", errData);
-      throw new Error(`Failed to send email: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log(`[Mail] Email sent successfully to ${to}, Message ID: ${data.messageId}`);
-    return data;
+    console.log(`[Mail] Email successfully sent to ${to} (Message ID: ${info.messageId})`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("[Mail] Error sending email:", error.message);
-    throw error;
+    console.error(`[Mail] Error sending email: ${error.message}`);
+    throw new Error(`Failed to send email: ${error.message}`);
   }
 };
 
