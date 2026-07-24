@@ -82,7 +82,13 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    navigate('/');
+    
+    // Use hard reload if we are already at root, or standard navigate
+    if (window.location.pathname !== '/') {
+      navigate('/');
+    } else {
+      window.location.reload();
+    }
   };
 
   const updateUser = (userData, userToken) => {

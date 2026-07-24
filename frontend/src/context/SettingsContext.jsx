@@ -72,6 +72,12 @@ export const SettingsProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Failed to fetch global settings:', err);
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        // Force wipe invalid session state if the interceptor missed it
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
     } finally {
       setLoadingSettings(false);
     }
