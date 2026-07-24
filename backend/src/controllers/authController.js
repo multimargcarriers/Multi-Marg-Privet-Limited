@@ -65,6 +65,15 @@ exports.post_login_1 = async (req, res) => {
     });
   }
 
+  // Enforce IAM Role based access (Only Admins and Super Admins allowed)
+  const role = (userData.role || "SuperAdmin").toLowerCase().replace(/\s+/g, '');
+  if (role !== 'admin' && role !== 'superadmin') {
+    return error(res, {
+      message: "Access Denied: Your account does not have sufficient IAM permissions to access this portal.",
+      statusCode: 403
+    });
+  }
+
   const storedPassword = userData.password;
   let passwordMatch = false;
 
@@ -250,12 +259,18 @@ exports.forgot_password = async (req, res) => {
     
     if (snapshot.empty) {
       // For security, we don't reveal if the email exists or not
-      return res.status(200).json({ success: true, message: 'If that email exists, an OTP has been sent.' });
+      return res.status(200).json({ success: true, message: 'If that email is registered with IAM permissions, an OTP has been sent.' });
     }
     
     let userDoc = null;
     let userData = null;
     snapshot.forEach(doc => { userDoc = doc; userData = doc.data(); });
+    
+    // Verify IAM Role - Only send OTP to Admins and Super Admins
+    const role = (userData.role || "SuperAdmin").toLowerCase().replace(/\s+/g, '');
+    if (role !== 'admin' && role !== 'superadmin') {
+      return res.status(200).json({ success: true, message: 'If that email is registered with IAM permissions, an OTP has been sent.' });
+    }
     
     // Generate 6 digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
