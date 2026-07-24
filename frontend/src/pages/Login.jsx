@@ -155,91 +155,152 @@ const Login = () => {
   };
 
   return (
+  return (
     <div style={{
       minHeight: '100vh',
       width: '100vw',
       display: 'flex',
-      backgroundColor: '#ffffff',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem',
+      background: 'linear-gradient(135deg, #ede9ff 0%, #fefdff 100%)',
       overflow: 'hidden',
       fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     }}>
       
-      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (Pristine 3D Factory Scene) --- */}
-      <div className="showcase-sidebar" style={{
-        flex: '0 0 60%',
-        background: 'url("/3d-factory-bg.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center center',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        padding: '3rem 4rem',
-        zIndex: 5,
-        borderRight: '1px solid rgba(0,0,0,0.05)'
-      }}>
-        {/* Minimalist Logo Overlay */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '45px', background: '#fff', padding: '0.3rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '1px', color: '#202124' }}>MULTI MARG</h2>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>Logistics Platform</p>
-          </div>
-        </div>
-      </div>
-
-      {/* --- RIGHT SIDE: 40% LOGIN FORM (Pristine White Corporate) --- */}
+      {/* Main Floating App Card */}
       <div style={{
-        flex: '1',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
+        width: '100%',
+        maxWidth: '1440px',
+        height: '90vh',
+        minHeight: '700px',
         background: '#ffffff',
-        position: 'relative',
+        borderRadius: '24px',
+        boxShadow: '0 40px 80px rgba(100, 80, 220, 0.15)',
         overflow: 'hidden'
       }}>
         
-        {/* Subtle Professional Transport Pattern Background */}
-        <div style={{
-          position: 'absolute',
-          top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '4rem',
-          opacity: 0.03, // Extremely subtle so it looks premium, not distracting
-          pointerEvents: 'none',
-          transform: 'rotate(-10deg) scale(1.2)',
-          zIndex: 0,
-          color: '#0f151c' // Dark color that will show up lightly due to 3% opacity
+        {/* --- LEFT SIDE: 60% BRAND SHOWCASE (3D Factory Background + Marketing Text) --- */}
+        <div className="showcase-sidebar" style={{
+          flex: '0 0 60%',
+          background: 'linear-gradient(180deg, rgba(237, 233, 255, 0.7) 0%, rgba(255,255,255,0) 30%), url("/3d-factory-bg.png")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          padding: '3rem 4rem',
+          zIndex: 5,
         }}>
-          {/* Create a structured repeating grid of transport icons */}
-          {Array.from({ length: 40 }).map((_, i) => {
-            const icons = [<Plane size={48} />, <Truck size={48} />, <Ship size={48} />, <Package size={48} />, <Train size={48} />, <MapPin size={48} />];
-            return (
-              <div key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {icons[i % icons.length]}
+          {/* Top Header */}
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+            {/* Minimalist Logo Overlay */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '45px', background: '#fff', padding: '0.3rem', borderRadius: '50%', boxShadow: '0 4px 12px rgba(100, 80, 220, 0.2)' }} />
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '1px', color: '#111827' }}>MULTI MARG</h2>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700 }}>Logistics Platform</p>
               </div>
-            );
-          })}
+            </div>
+
+            {/* Floating Stat Widget */}
+            <div style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(12px)', padding: '1rem 1.5rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ background: '#c4b5fd', padding: '0.75rem', borderRadius: '50%', color: '#6d28d9' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+              </div>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#4b5563', fontWeight: 600 }}>Delivering Impact</p>
+                <p style={{ margin: 0, fontSize: '1.4rem', color: '#111827', fontWeight: 800 }}>99.8%</p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280' }}>On-time Delivery</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Marketing Copy */}
+          <div style={{ marginTop: '4rem', maxWidth: '500px' }}>
+            <h1 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, color: '#111827', marginBottom: '1.5rem' }}>
+              Smarter <span style={{ color: '#7c3aed' }}>Logistics.</span><br/>
+              Stronger <span style={{ color: '#7c3aed' }}>Supply Chains.</span>
+            </h1>
+            <p style={{ fontSize: '1.1rem', color: '#4b5563', lineHeight: 1.6, marginBottom: '3rem' }}>
+              Streamline operations, track in real-time, and deliver excellence every time.
+            </p>
+
+            {/* Feature List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ background: '#f5f3ff', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}><MapPin size={24} /></div>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>Real-time Tracking</h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>Monitor every shipment in real-time</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ background: '#f5f3ff', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}><Truck size={24} /></div>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>Smart Automation</h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>Automate workflows and reduce errors</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div style={{ background: '#f5f3ff', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}><ShieldAlert size={24} /></div>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>Secure & Reliable</h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>Enterprise-grade security for your data</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom Floating Stats */}
+          <div style={{ marginTop: 'auto', background: '#312e81', color: 'white', padding: '1.5rem', borderRadius: '16px', display: 'inline-flex', alignItems: 'center', gap: '1rem', width: 'fit-content', boxShadow: '0 15px 30px rgba(49, 46, 129, 0.4)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '0.75rem', borderRadius: '12px' }}><Package size={24} /></div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>Powering thousands</p>
+              <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>of deliveries every day</p>
+            </div>
+          </div>
         </div>
 
-        <div className="login-form-container" style={{ 
-          width: '100%', 
-          maxWidth: '440px', 
-          position: 'relative', 
-          zIndex: 10,
-          background: '#ffffff',
+        {/* --- RIGHT SIDE: 40% LOGIN FORM --- */}
+        <div style={{
+          flex: '1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           padding: '3rem',
-          borderRadius: '16px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.06), 0 0 40px rgba(26, 115, 232, 0.04)',
-          border: '1px solid rgba(0,0,0,0.04)'
+          background: '#ffffff',
+          position: 'relative',
+          overflow: 'hidden'
         }}>
           
-          {/* Mobile Logo */}
-          <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
-            <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '55px', margin: '0 auto', display: 'block' }} />
-          </div>
+          {/* Abstract Purple Wave Background (Top Right) */}
+          <div style={{
+            position: 'absolute',
+            top: '-10%',
+            right: '-10%',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(255,255,255,0) 70%)',
+            borderRadius: '50%',
+            zIndex: 0,
+            pointerEvents: 'none'
+          }}></div>
+
+          <div className="login-form-container" style={{ 
+            width: '100%', 
+            maxWidth: '440px', 
+            position: 'relative', 
+            zIndex: 10,
+            background: '#ffffff',
+          }}>
+            
+            {/* Mobile Logo */}
+            <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '55px', margin: '0 auto', display: 'block' }} />
+            </div>
 
           <style>{`
             @media (max-width: 1100px) {
@@ -308,12 +369,12 @@ const Login = () => {
             }
             .btn-primary {
               width: 100%;
-              background: #FF9900;
+              background: linear-gradient(90deg, #f97316 0%, #a855f7 100%);
               color: white;
               border: none;
-              padding: 0.85rem;
-              border-radius: 4px;
-              font-size: 0.95rem;
+              padding: 0.95rem;
+              border-radius: 8px;
+              font-size: 1.05rem;
               font-weight: 600;
               cursor: pointer;
               transition: all 0.2s ease;
@@ -322,13 +383,15 @@ const Login = () => {
               align-items: center;
               gap: 0.5rem;
               margin-top: 1.5rem;
+              box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
             }
             .btn-primary:hover:not(:disabled) {
-              background: #e88b00;
-              box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+              background: linear-gradient(90deg, #ea580c 0%, #9333ea 100%);
+              box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3);
+              transform: translateY(-1px);
             }
             .btn-primary:active:not(:disabled) {
-              background: #cc7a00;
+              transform: translateY(1px);
             }
             .btn-primary:disabled {
               opacity: 0.6;
@@ -401,38 +464,38 @@ const Login = () => {
             </button>
           )}
 
-          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             
             {/* Branding Logo at Top of Form */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '48px', objectFit: 'contain' }} />
+            <div style={{ marginBottom: '1.5rem', background: '#ffffff', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.15)' }}>
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
             </div>
 
             {view === 'login' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Sign in</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Use your Multi Marg Account</p>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Welcome <span style={{ color: '#7c3aed' }}>back!</span></h2>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Sign in to your Multi Marg account</p>
               </>
             )}
             
             {view === 'forgot' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Account recovery</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Recover your Multi Marg Account</p>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Account <span style={{ color: '#7c3aed' }}>recovery</span></h2>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Recover your Multi Marg Account</p>
               </>
             )}
             
             {view === 'otp' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Verify it's you</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>We sent a code to <strong>{email}</strong></p>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Verify it's <span style={{ color: '#7c3aed' }}>you</span></h2>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>We sent a code to <strong>{email}</strong></p>
               </>
             )}
             
             {view === 'reset' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Change password</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Create a strong password</p>
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Change <span style={{ color: '#7c3aed' }}>password</span></h2>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Create a strong password</p>
               </>
             )}
           </div>
@@ -486,19 +549,23 @@ const Login = () => {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
                 <button 
                   type="button" 
                   className="link-btn"
                   onClick={() => { setView('forgot'); setError(''); setSuccessMsg(''); }}
+                  style={{ color: '#7c3aed' }}
                 >
                   Forgot password?
                 </button>
               </div>
 
-              <div style={{ marginTop: '2rem' }}>
+              <div style={{ marginTop: '1.5rem' }}>
                 <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Signing in...' : 'Sign in'}
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', position: 'relative' }}>
+                    <span>{loading ? 'Signing in...' : 'Sign in'}</span>
+                    {!loading && <ArrowRight size={18} style={{ position: 'absolute', right: '1rem' }} />}
+                  </div>
                 </button>
               </div>
 
@@ -634,9 +701,14 @@ const Login = () => {
             </form>
           )}
 
-        </div>
-      </div>
+            <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem', color: '#6b7280' }}>
+              New to Multi Marg? <a href="#" style={{ color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}>Create an account</a>
+            </div>
 
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };
