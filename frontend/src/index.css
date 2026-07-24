@@ -40,8 +40,6 @@
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-}
-
 /* True Dark Mode Palette */
 :root.dark {
   --bg-color: #0F172A; /* Slate 900 */

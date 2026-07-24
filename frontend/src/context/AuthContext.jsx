@@ -1,5 +1,6 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 export const AuthContext = createContext();
 
@@ -26,6 +27,47 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
   }, []);
+
+  const logoutTimerId = useRef(null);
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+  useEffect(() => {
+    // Axios 401 Interceptor
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    const resetIdleTimer = () => {
+      if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
+      if (user && token) {
+        logoutTimerId.current = setTimeout(() => {
+          alert("Session expired due to inactivity.");
+          logout();
+        }, IDLE_TIMEOUT_MS);
+      }
+    };
+
+    // Event listeners for idle timeout
+    const events = ['mousemove', 'keydown', 'scroll', 'click'];
+    const handleActivity = () => resetIdleTimer();
+    
+    if (user && token) {
+      events.forEach(event => window.addEventListener(event, handleActivity));
+      resetIdleTimer();
+    }
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+      events.forEach(event => window.removeEventListener(event, handleActivity));
+      if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
+    };
+  }, [user, token]);
 
   const login = (userData, userToken) => {
     setUser(userData);

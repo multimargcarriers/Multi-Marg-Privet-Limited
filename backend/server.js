@@ -38,7 +38,23 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: NODE_ENV === "production" ? undefined : false,
+    contentSecurityPolicy: NODE_ENV === "production" ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://ui-avatars.com"],
+        connectSrc: ["'self'", "http://localhost:*", "https://*"]
+      }
+    } : false,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    },
+    xssFilter: true,
+    frameguard: { action: 'deny' }
   }),
 );
 
@@ -125,6 +141,19 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use("/api/", limiter);
+
+// Strict Rate Limiting for Auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts
+  message: {
+    success: false,
+    message: "Too many login attempts, please try again after 15 minutes.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/login", authLimiter);
 
 // Prevent browser caching for all API routes
 app.use("/api", (req, res, next) => {

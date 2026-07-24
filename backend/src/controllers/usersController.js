@@ -15,6 +15,7 @@ const {
 const {
   v4: uuidv4
 } = require("uuid");
+const bcrypt = require("bcryptjs");
 
 // Initialize mock users if needed
 
@@ -51,11 +52,14 @@ exports.postRoot_2 = async (req, res) => {
       statusCode: 400
     });
   }
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
   const newUser = {
     id: uuidv4(),
     name,
     email,
-    password,
+    password: hashedPassword,
     role,
     permissions: permissions || [],
     createdAt: new Date().toISOString()
@@ -93,7 +97,10 @@ exports.put_id_3 = async (req, res) => {
     role,
     permissions
   };
-  if (password) updates.password = password; // Only update if provided
+  if (password) {
+    const salt = await bcrypt.genSalt(10);
+    updates.password = await bcrypt.hash(password, salt);
+  }
 
   const docRef = db.collection("users").doc(id);
   const doc = await docRef.get();

@@ -23,6 +23,7 @@ const {
 const {
   uploadFile
 } = require("../config/cloudinary");
+const bcrypt = require("bcryptjs");
 
 exports.post_login_1 = async (req, res) => {
   const errors = validationResult(req);
@@ -36,22 +37,44 @@ exports.post_login_1 = async (req, res) => {
     password
   } = req.body;
 
-  // Real Firebase Authentication
+  // Real Firebase Authentication with Seamless Bcrypt Migration
   const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("email", "==", email).where("password", "==", password).get();
+  const snapshot = await usersRef.where("email", "==", email).get();
   if (snapshot.empty) {
     return error(res, {
       message: "Invalid Email or Password",
       statusCode: 401
     });
   }
-  let userData;
+  let userDoc = null;
+  let userData = null;
   snapshot.forEach(doc => {
+    userDoc = doc;
     userData = {
       id: doc.id,
       ...doc.data()
     };
   });
+
+  const storedPassword = userData.password;
+  let passwordMatch = false;
+
+  if (storedPassword && storedPassword.startsWith("$2a$")) {
+    passwordMatch = await bcrypt.compare(password, storedPassword);
+  } else if (storedPassword === password) {
+    passwordMatch = true;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    await usersRef.doc(userDoc.id).update({ password: hashedPassword });
+  }
+
+  if (!passwordMatch) {
+    return error(res, {
+      message: "Invalid Email or Password",
+      statusCode: 401
+    });
+  }
+
   delete userData.password;
 
   // Fallback if no role/permissions are set in DB for existing users
@@ -95,7 +118,10 @@ exports.put_profile_2 = async (req, res) => {
   const updates = {};
   if (name) updates.name = name;
   if (email) updates.email = email;
-  if (password) updates.password = password;
+  if (password) {
+    const salt = await bcrypt.genSalt(10);
+    updates.password = await bcrypt.hash(password, salt);
+  }
   if (photoUrl) updates.photo = photoUrl;
   if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
     return error(res, {
