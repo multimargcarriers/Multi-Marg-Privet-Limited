@@ -22,6 +22,24 @@ const Login = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   
+  // Check for active OTP session on mount
+  React.useEffect(() => {
+    const savedSession = localStorage.getItem('otpSession');
+    if (savedSession) {
+      const { email: savedEmail, expiresAt, resendAt } = JSON.parse(savedSession);
+      const now = Date.now();
+      
+      if (now < expiresAt) {
+        setEmail(savedEmail);
+        setView('otp');
+        const remainingResend = Math.max(0, Math.floor((resendAt - now) / 1000));
+        setResendTimer(remainingResend);
+      } else {
+        localStorage.removeItem('otpSession');
+      }
+    }
+  }, []);
+
   React.useEffect(() => {
     let interval;
     if (resendTimer > 0 && view === 'otp') {
@@ -69,7 +87,13 @@ const Login = () => {
       if (response.data.success) {
         setSuccessMsg('An OTP has been sent to your email.');
         setView('otp');
-        setResendTimer(180);
+        setResendTimer(120);
+        
+        localStorage.setItem('otpSession', JSON.stringify({
+          email,
+          expiresAt: Date.now() + 5 * 60 * 1000,
+          resendAt: Date.now() + 2 * 60 * 1000
+        }));
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to request password reset.');
@@ -89,6 +113,7 @@ const Login = () => {
         setResetToken(response.data.data.resetToken);
         setSuccessMsg('OTP verified! Please set a new password.');
         setView('reset');
+        localStorage.removeItem('otpSession');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired OTP.');
