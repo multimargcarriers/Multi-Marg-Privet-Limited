@@ -10,6 +10,7 @@ const Profile = () => {
   
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
   const [newId, setNewId] = useState(user?.id || '');
   const [password, setPassword] = useState('');
   const [photo, setPhoto] = useState(null);
@@ -181,6 +182,7 @@ const Profile = () => {
       const formData = new FormData();
       if (name !== user.name) formData.append('name', name);
       if (email !== user.email) formData.append('email', email);
+      if (employeeId !== user.employeeId) formData.append('employeeId', employeeId.toUpperCase());
       if (newId !== user.id) formData.append('newId', newId);
       if (password) formData.append('password', password);
       if (photo) {
@@ -436,6 +438,11 @@ const Profile = () => {
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID</label>
+                    <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder="MMPL-1234" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   </div>
 
                   <div style={{ marginTop: '1rem' }}>

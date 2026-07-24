@@ -132,7 +132,8 @@ exports.put_profile_2 = async (req, res) => {
     name,
     email,
     password,
-    newId
+    newId,
+    employeeId
   } = req.body;
   console.log("=== PUT PROFILE ===");
   console.log("req.body:", req.body);
@@ -180,6 +181,16 @@ exports.put_profile_2 = async (req, res) => {
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
+  }
+  if (employeeId) updates.employeeId = employeeId;
+  
+  if (employeeId) {
+    const empIdCheck = await db.collection("users").where("employeeId", "==", employeeId).get();
+    let taken = false;
+    empIdCheck.forEach(d => {
+      if (d.id !== userId) taken = true;
+    });
+    if (taken) return error(res, { message: "Employee ID already exists", statusCode: 400 });
   }
   if (photoUrl) updates.photo = photoUrl;
   if (bannerUrl) updates.banner = bannerUrl;

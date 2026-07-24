@@ -235,4 +235,20 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
   }
 });
 
+// POST clear cache
+router.post("/clear-cache", requireSuperAdmin, async (req, res) => {
+  try {
+    const redisClient = getClient();
+    if (redisClient) {
+      await redisClient.flushDb();
+      return success(res, "Cache cleared successfully");
+    } else {
+      return error(res, { message: "Redis client not connected", statusCode: 503 });
+    }
+  } catch (err) {
+    console.error("Error clearing cache", err);
+    return error(res, err);
+  }
+});
+
 module.exports = router;

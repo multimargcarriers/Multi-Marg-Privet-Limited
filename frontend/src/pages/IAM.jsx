@@ -17,7 +17,7 @@ const MODULES = [
 ];
 
 const IAM = () => {
-  const { token, user: currentUser } = useContext(AuthContext);
+  const { token, user: currentUser, updateUser } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = currentUser?.role === 'SuperAdmin' || currentUser?.email === 'admin@multimargcarriers.co.in';
   
@@ -63,9 +63,12 @@ const IAM = () => {
     try {
       if (formData.id) {
         setUsers(prev => prev.map(u => u.id === formData.id ? { ...u, ...formData } : u));
-        await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${formData.id}`, formData, {
+        const res = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${formData.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (currentUser.id === formData.id && res.data.success) {
+          updateUser(res.data.data);
+        }
       } else {
         setUsers(prev => [{ ...formData, id: tempId }, ...prev]);
         const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users`, formData, {
@@ -105,7 +108,7 @@ const IAM = () => {
 
   const openModal = (user = null) => {
     if (user) {
-      setFormData({ ...user, password: '' });
+      setFormData({ employeeId: '', ...user, password: '' });
     } else {
       setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MMPL-${Math.floor(1000 + Math.random() * 9000)}` });
     }
@@ -162,7 +165,7 @@ const IAM = () => {
                     <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Employee ID<span style={{ color: "#ef4444" }}>*</span></label>
                     <input 
                       type="text" 
-                      value={formData.employeeId} 
+                      value={formData.employeeId || ''} 
                       onChange={e => setFormData({...formData, employeeId: e.target.value.toUpperCase()})} 
                       required 
                       style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", fontWeight: "600" }}

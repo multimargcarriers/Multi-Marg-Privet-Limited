@@ -105,6 +105,29 @@ const Settings = () => {
     }
   };
 
+  const handleClearCache = async () => {
+    if (!window.confirm("Are you sure you want to flush the Redis cache and clear local browser storage? This might temporarily slow down the app.")) return;
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/clear-cache`, {}, {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      // Clear local storage (except auth tokens)
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      localStorage.clear();
+      sessionStorage.clear();
+      if (token) localStorage.setItem('token', token);
+      if (user) localStorage.setItem('user', user);
+      
+      alert("Cache cleared successfully!");
+      fetchStats();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to clear cache: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   useEffect(() => {
     fetchStats();
   }, []);
@@ -415,9 +438,14 @@ const Settings = () => {
             {/* Redis Cache Statistics */}
             {data?.redis && !data.redis.error && !data.redis.disabled && (
               <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <div style={{ backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px', color: '#ef4444' }}><MemoryStick size={24} /></div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Redis Cache</h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px', color: '#ef4444' }}><MemoryStick size={24} /></div>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Redis Cache</h4>
+                  </div>
+                  <button onClick={handleClearCache} style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <RefreshCw size={14} /> Clear Cache
+                  </button>
                 </div>
                 
                 <div style={{ marginBottom: '1rem' }}>
