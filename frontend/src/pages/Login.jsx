@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Plane, Truck, Ship, Package, Train, MapPin } from 'lucide-react';
+import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Plane, Truck, Ship, Package, Train, MapPin, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   // View states: 'login', 'forgot', 'otp', 'reset'
@@ -21,6 +21,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check for active OTP session on mount
   React.useEffect(() => {
@@ -303,7 +304,7 @@ const Login = () => {
               width: 100%;
               background: #ffffff;
               border: 1px solid #dadce0;
-              padding: 0.85rem 1rem 0.85rem 2.8rem;
+              padding: 0.85rem 2.8rem 0.85rem 2.8rem;
               border-radius: 4px;
               color: #202124;
               font-size: 1rem;
@@ -331,6 +332,29 @@ const Login = () => {
             }
             .input-group:focus-within .icon-wrapper {
               color: #1a73e8;
+            }
+            .password-toggle-btn {
+              position: absolute;
+              right: 0.85rem;
+              top: 50%;
+              transform: translateY(-50%);
+              background: transparent;
+              border: none;
+              color: #5f6368;
+              cursor: pointer;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: color 0.2s ease;
+            }
+            .password-toggle-btn:hover {
+              color: #202124;
+            }
+            .password-toggle-btn:focus {
+              outline: 2px solid rgba(26, 115, 232, 0.4);
+              outline-offset: 2px;
+              border-radius: 50%;
             }
             .btn-primary {
               width: 100%;
@@ -494,7 +518,7 @@ const Login = () => {
                 <input 
                   id="login-password"
                   name="password"
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   className="input-field"
                   placeholder="Enter your password" 
                   value={password}
@@ -502,6 +526,9 @@ const Login = () => {
                   required 
                   autoComplete="current-password"
                 />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem', marginTop: '1rem' }}>
@@ -611,7 +638,7 @@ const Login = () => {
                 <input 
                   id="new-password"
                   name="newPassword"
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   className="input-field"
                   placeholder="Create password" 
                   value={newPassword}
@@ -620,6 +647,9 @@ const Login = () => {
                   minLength={6}
                   autoComplete="new-password"
                 />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               
               <div className="input-group" style={{ marginBottom: '2rem' }}>
@@ -627,7 +657,7 @@ const Login = () => {
                 <input 
                   id="confirm-password"
                   name="confirmPassword"
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   className="input-field"
                   placeholder="Confirm password" 
                   value={confirmPassword}
@@ -636,6 +666,9 @@ const Login = () => {
                   minLength={6}
                   autoComplete="new-password"
                 />
+                <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
