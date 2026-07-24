@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async ({ to, subject, htmlContent }) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Multimarg Carriers" <${senderEmail}>`,
+      from: `"Multi Marg" <${senderEmail}>`,
       to: to,
       subject: subject,
       html: htmlContent
