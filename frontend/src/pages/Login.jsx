@@ -129,245 +129,353 @@ const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f2f1', fontFamily: "'Segoe UI', 'Helvetica Neue', 'Inter', sans-serif" }}>
+    <div style={{
+      minHeight: '100vh',
+      width: '100vw',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f8fafc',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: "'Inter', sans-serif"
+    }}>
       
-      <div style={{ width: '100%', maxWidth: '440px', padding: '2.5rem', backgroundColor: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', animation: 'fade-in 0.3s ease-out' }}>
-        
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="/mc.png" alt="Logo" style={{ height: '36px' }} />
-        </div>
+      {/* --- STUNNING BACKGROUND MESH & BLOBS --- */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, pointerEvents: 'none' }}>
+        <div style={{
+          position: 'absolute', top: '-10%', left: '-10%', width: '60vw', height: '60vw',
+          background: 'radial-gradient(circle, rgba(147,197,253,0.4) 0%, rgba(255,255,255,0) 70%)',
+          borderRadius: '50%', filter: 'blur(60px)', animation: 'float 15s ease-in-out infinite alternate'
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-20%', right: '-10%', width: '70vw', height: '70vw',
+          background: 'radial-gradient(circle, rgba(196,181,253,0.4) 0%, rgba(255,255,255,0) 70%)',
+          borderRadius: '50%', filter: 'blur(80px)', animation: 'float 20s ease-in-out infinite alternate-reverse'
+        }} />
+        <div style={{
+          position: 'absolute', top: '20%', right: '20%', width: '30vw', height: '30vw',
+          background: 'radial-gradient(circle, rgba(253,164,175,0.2) 0%, rgba(255,255,255,0) 70%)',
+          borderRadius: '50%', filter: 'blur(40px)', animation: 'float 10s ease-in-out infinite alternate'
+        }} />
+      </div>
 
+      <style>{`
+        @keyframes float {
+          0% { transform: translate(0, 0) scale(1); }
+          100% { transform: translate(5%, 10%) scale(1.1); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-card {
+          position: relative;
+          z-index: 10;
+          width: 100%;
+          max-width: 440px;
+          background: rgba(255, 255, 255, 0.6);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          border-radius: 24px;
+          padding: 3.5rem 3rem;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255,255,255,0.5) inset;
+          animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .input-group {
+          position: relative;
+          margin-bottom: 1.25rem;
+        }
+        .input-field {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(203, 213, 225, 0.6);
+          padding: 1rem 1rem 1rem 3rem;
+          border-radius: 12px;
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          outline: none;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02) inset;
+        }
+        .input-field:focus {
+          background: #ffffff;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+        .input-field::placeholder {
+          color: #94a3b8;
+          font-weight: 400;
+        }
+        .icon-wrapper {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+          transition: color 0.3s ease;
+          pointer-events: none;
+        }
+        .input-group:focus-within .icon-wrapper {
+          color: #3b82f6;
+        }
+        .btn-primary {
+          width: 100%;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          border: none;
+          padding: 1rem;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 20px -10px rgba(37, 99, 235, 0.6);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 1.5rem;
+        }
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 15px 25px -10px rgba(37, 99, 235, 0.8);
+        }
+        .btn-primary:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .btn-primary:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          background: #94a3b8;
+          box-shadow: none;
+        }
+        .link-btn {
+          background: transparent;
+          border: none;
+          color: #64748b;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: color 0.2s;
+          padding: 0;
+        }
+        .link-btn:hover {
+          color: #3b82f6;
+        }
+        .alert-box {
+          padding: 1rem;
+          border-radius: 12px;
+          margin-bottom: 1.5rem;
+          font-size: 0.9rem;
+          font-weight: 500;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          animation: fadeIn 0.3s ease forwards;
+        }
+        .alert-error {
+          background: rgba(254, 226, 226, 0.8);
+          color: #b91c1c;
+          border: 1px solid rgba(252, 165, 165, 0.5);
+        }
+        .alert-success {
+          background: rgba(220, 252, 231, 0.8);
+          color: #15803d;
+          border: 1px solid rgba(134, 239, 172, 0.5);
+        }
+      `}</style>
+
+      <div className="glass-card">
+        
         {view !== 'login' && (
           <button 
             onClick={() => { setView('login'); setError(''); setSuccessMsg(''); }}
-            style={{ background: 'transparent', border: 'none', color: '#0067b8', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem', marginBottom: '1.5rem', padding: 0 }}
+            className="link-btn"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem' }}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> Back to Sign In
           </button>
         )}
 
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem' }}>
+          <img src="/mc.png" alt="Logo" style={{ height: '55px', margin: '0 auto 1.5rem', display: 'block', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.05))' }} />
+          
           {view === 'login' && (
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1b1b1b', margin: 0 }}>Sign in</h2>
+            <>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Welcome back</h2>
+              <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Enter your details to access your account</p>
+            </>
           )}
           
           {view === 'forgot' && (
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1b1b1b', margin: 0 }}>Reset your password</h2>
+            <>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Recover password</h2>
+              <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>We'll email you a secure verification code</p>
+            </>
           )}
           
           {view === 'otp' && (
             <>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1b1b1b', margin: 0, marginBottom: '0.5rem' }}>Enter code</h2>
-              <p style={{ color: '#1b1b1b', fontSize: '0.95rem', margin: 0 }}>We emailed a code to <strong>{email}</strong>.</p>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Verify your email</h2>
+              <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>We sent a code to <strong style={{color: '#0f172a'}}>{email}</strong></p>
             </>
           )}
           
           {view === 'reset' && (
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1b1b1b', margin: 0 }}>Create a new password</h2>
+            <>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>New password</h2>
+              <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Create a strong password to secure your account</p>
+            </>
           )}
         </div>
 
         {error && (
-          <div style={{ color: '#d13438', padding: '0', marginBottom: '1rem', fontSize: '0.95rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-            <div style={{marginTop: '2px'}}><Lock size={16} /></div>
+          <div className="alert-box alert-error">
+            <div style={{marginTop: '2px'}}><ShieldAlert size={18} /></div>
             <div>{error}</div>
           </div>
         )}
         
         {successMsg && (
-          <div style={{ color: '#107c10', padding: '0', marginBottom: '1rem', fontSize: '0.95rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-            <div style={{marginTop: '2px'}}><CheckCircle size={16} /></div>
+          <div className="alert-box alert-success">
+            <div style={{marginTop: '2px'}}><CheckCircle size={18} /></div>
             <div>{successMsg}</div>
           </div>
         )}
 
         {view === 'login' && (
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: '1rem' }}>
+          <form onSubmit={handleLogin}>
+            <div className="input-group">
+              <div className="icon-wrapper"><Mail size={20} strokeWidth={1.5} /></div>
               <input 
                 type="email" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b' }}
-                placeholder="Email, phone, or Skype" 
+                className="input-field"
+                placeholder="Email address" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
               />
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+              <div className="icon-wrapper"><Lock size={20} strokeWidth={1.5} /></div>
               <input 
                 type="password" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b' }}
+                className="input-field"
                 placeholder="Password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
               />
             </div>
 
-            <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
               <button 
                 type="button" 
+                className="link-btn"
                 onClick={() => { setView('forgot'); setError(''); setSuccessMsg(''); }}
-                style={{ background: 'transparent', border: 'none', color: '#0067b8', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}
               >
-                Can't access your account?
+                Forgot password?
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                type="submit" 
-                style={{ 
-                  background: '#0067b8', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 2.5rem', 
-                  fontSize: '0.95rem', 
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
-                }} 
-                disabled={loading}
-              >
-                {loading ? 'Please wait...' : 'Sign in'}
-              </button>
-            </div>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Authenticating...' : 'Sign In'}
+              {!loading && <ArrowRight size={18} />}
+            </button>
           </form>
         )}
 
         {view === 'forgot' && (
-          <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: '2rem' }}>
+          <form onSubmit={handleForgotPassword}>
+            <div className="input-group">
+              <div className="icon-wrapper"><Mail size={20} strokeWidth={1.5} /></div>
               <input 
                 type="email" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b' }}
-                placeholder="Email address" 
+                className="input-field"
+                placeholder="Enter your registered email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
               />
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                type="submit" 
-                style={{ 
-                  background: '#0067b8', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 2.5rem', 
-                  fontSize: '0.95rem', 
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
-                }} 
-                disabled={loading}
-              >
-                {loading ? 'Sending...' : 'Next'}
-              </button>
-            </div>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Sending Code...' : 'Continue'}
+              {!loading && <ArrowRight size={18} />}
+            </button>
           </form>
         )}
         
         {view === 'otp' && (
-          <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
+          <form onSubmit={handleVerifyOtp}>
+            <div className="input-group">
+              <div className="icon-wrapper"><Key size={20} strokeWidth={1.5} /></div>
               <input 
                 type="text" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '1.25rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b', letterSpacing: '2px' }}
-                placeholder="Code" 
+                className="input-field"
+                style={{ fontSize: '1.25rem', letterSpacing: '4px', textAlign: 'center', paddingLeft: '1rem' }}
+                placeholder="000000" 
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
               />
             </div>
 
-            <div style={{ marginBottom: '2rem' }}>
+            <button type="submit" className="btn-primary" disabled={loading || otp.length !== 6}>
+              {loading ? 'Verifying...' : 'Verify Code'}
+            </button>
+            
+            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+              <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Didn't receive a code? </span>
               <button 
                 type="button" 
+                className="link-btn"
                 onClick={handleForgotPassword}
-                style={{ background: 'transparent', border: 'none', color: resendTimer > 0 ? '#605e5c' : '#0067b8', fontSize: '0.85rem', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', padding: 0 }}
+                style={{ color: resendTimer > 0 ? '#94a3b8' : '#3b82f6', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
                 disabled={loading || resendTimer > 0}
               >
-                {resendTimer > 0 ? `Resend code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend code'}
-              </button>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                type="submit" 
-                style={{ 
-                  background: '#0067b8', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 2.5rem', 
-                  fontSize: '0.95rem', 
-                  cursor: loading || otp.length !== 6 ? 'not-allowed' : 'pointer',
-                  opacity: loading || otp.length !== 6 ? 0.7 : 1
-                }} 
-                disabled={loading || otp.length !== 6}
-              >
-                {loading ? 'Verifying...' : 'Verify'}
+                {resendTimer > 0 ? `Resend in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend now'}
               </button>
             </div>
           </form>
         )}
         
         {view === 'reset' && (
-          <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: '1rem' }}>
+          <form onSubmit={handleResetPassword}>
+            <div className="input-group">
+              <div className="icon-wrapper"><Lock size={20} strokeWidth={1.5} /></div>
               <input 
                 type="password" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b' }}
+                className="input-field"
                 placeholder="New password" 
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
                 minLength={6}
               />
             </div>
             
-            <div style={{ marginBottom: '2rem' }}>
+            <div className="input-group">
+              <div className="icon-wrapper"><CheckCircle size={20} strokeWidth={1.5} /></div>
               <input 
                 type="password" 
-                style={{ width: '100%', padding: '0.5rem 0', border: 'none', borderBottom: '1px solid #605e5c', fontSize: '0.95rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'transparent', color: '#1b1b1b' }}
-                placeholder="Confirm password" 
+                className="input-field"
+                placeholder="Confirm new password" 
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid #0067b8'}
-                onBlur={(e) => e.target.style.borderBottom = '1px solid #605e5c'}
                 required 
                 minLength={6}
               />
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
-                type="submit" 
-                style={{ 
-                  background: '#0067b8', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 2.5rem', 
-                  fontSize: '0.95rem', 
-                  cursor: loading || !newPassword || !confirmPassword ? 'not-allowed' : 'pointer',
-                  opacity: loading || !newPassword || !confirmPassword ? 0.7 : 1
-                }} 
-                disabled={loading || !newPassword || !confirmPassword}
-              >
-                {loading ? 'Please wait...' : 'Finish'}
-              </button>
-            </div>
+            <button type="submit" className="btn-primary" disabled={loading || !newPassword || !confirmPassword}>
+              {loading ? 'Updating...' : 'Secure My Account'}
+            </button>
           </form>
         )}
 
