@@ -248,6 +248,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
             </div>
           )}
         </div>
+      </div>
 
       <QuickAddModal 
         isOpen={modalOpen} 
