@@ -48,12 +48,6 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       permission: null // Available to all logged-in users
     },
     {
-      name: "ID Card",
-      path: "/id-card",
-      icon: <IdCard size={20} />,
-      permission: null // Available to all logged-in users
-    },
-    {
       name: "IAM",
       path: "/iam",
       icon: <Shield size={20} />,
