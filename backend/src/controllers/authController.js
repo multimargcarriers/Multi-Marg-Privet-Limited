@@ -25,6 +25,15 @@ const {
 } = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
 const defaultAssets = require("../config/defaultAssets");
+exports.get_me = async (req, res) => {
+  const userId = req.user.id;
+  const docRef = db.collection("users").doc(userId);
+  const doc = await docRef.get();
+  if (!doc.exists) return error(res, { message: "User not found", statusCode: 404 });
+  const userData = { id: doc.id, ...doc.data() };
+  delete userData.password;
+  return success(res, { data: userData });
+};
 
 exports.get_default_assets = async (req, res) => {
   return success(res, {

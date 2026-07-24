@@ -12,20 +12,45 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const fetchMe = async (currentToken) => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.data.success) {
+        setUser(res.data.data);
+        localStorage.setItem('user', JSON.stringify(res.data.data));
+      }
+    } catch (e) {
+      console.error("Failed to fetch fresh user data from DB:", e);
+      if (e.response?.status === 401) {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+  };
+
   useEffect(() => {
     // Check if user is logged in
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse user info");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse user info");
+        }
       }
+      // Silently sync fresh data from DB in background
+      fetchMe(storedToken).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const logoutTimerId = useRef(null);
@@ -110,8 +135,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, hasPermission }}>
-      {children}
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, fetchMe, hasPermission }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

@@ -6,7 +6,7 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { generateToken, authenticateToken } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
 const { createUploadMiddleware, handleMulterError } = require("../middleware/upload");
-const { uploadFile } = require("../config/cloudinary");const { post_login_1, put_profile_2, get_default_assets, forgot_password, verify_otp, reset_password } = require('../controllers/authController');
+const { uploadFile } = require("../config/cloudinary");const { post_login_1, put_profile_2, get_default_assets, forgot_password, verify_otp, reset_password, get_me } = require('../controllers/authController');
 
 router.post(
   "/login",
@@ -53,6 +53,12 @@ router.get(
   "/default-assets",
   authenticateToken,
   asyncHandler(get_default_assets)
+);
+
+router.get(
+  "/me",
+  authenticateToken,
+  asyncHandler(get_me)
 );
 
 // Profile Update Route
