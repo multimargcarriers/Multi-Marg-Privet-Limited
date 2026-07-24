@@ -1,21 +1,23 @@
 const nodemailer = require("nodemailer");
 
-const brevoApiKey = process.env.BREVO_API_KEY;
-const brevoLogin = process.env.BREVO_SMTP_LOGIN || 'b31e39001@smtp-brevo.com';
+const smtpHost = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const smtpPort = process.env.SMTP_PORT || 587;
+const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || 'b31e39001@smtp-brevo.com';
+const smtpPass = process.env.SMTP_PASS || process.env.BREVO_API_KEY;
+const senderEmail = process.env.SMTP_FROM || process.env.BREVO_SENDER_EMAIL || 'praveen.pr105@gmail.com';
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort == 465, // true for 465, false for 587
   auth: {
-    user: brevoLogin,
-    pass: brevoApiKey
+    user: smtpUser,
+    pass: smtpPass
   }
 });
 
 const sendEmail = async ({ to, subject, htmlContent }) => {
   try {
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'praveen.pr105@gmail.com';
     const info = await transporter.sendMail({
       from: `"Multimarg Carriers" <${senderEmail}>`,
       to: to,
