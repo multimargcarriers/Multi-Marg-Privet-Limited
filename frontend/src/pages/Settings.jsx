@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { SettingsContext } from '../context/SettingsContext';
+import { useDialog } from '../context/DialogContext';
+import { useToast } from '../context/ToastContext';
 
 // Helper to format bytes
 const formatBytes = (bytes, decimals = 2) => {
@@ -42,6 +44,8 @@ const ProgressBar = ({ value, max, color = '#6366f1' }) => {
 
 const Settings = () => {
   const { globalSettings, updateGlobalSettings } = useContext(SettingsContext);
+  const { confirm } = useDialog();
+  const { addToast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -106,7 +110,15 @@ const Settings = () => {
   };
 
   const handleClearCache = async () => {
-    if (!window.confirm("Are you sure you want to flush the Redis cache and clear local browser storage? This might temporarily slow down the app.")) return;
+    const isConfirmed = await confirm({
+      title: "Clear System Cache",
+      message: "Are you sure you want to flush the Redis cache and clear local browser storage? This might temporarily slow down the app.",
+      confirmText: "Clear Cache",
+      cancelText: "Cancel"
+    });
+    
+    if (!isConfirmed) return;
+    
     try {
       await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/clear-cache`, {}, {
         withCredentials: true,
@@ -120,11 +132,11 @@ const Settings = () => {
       if (token) localStorage.setItem('token', token);
       if (user) localStorage.setItem('user', user);
       
-      alert("Cache cleared successfully!");
+      addToast("Cache cleared successfully!", "success");
       fetchStats();
     } catch (err) {
       console.error(err);
-      alert("Failed to clear cache: " + (err.response?.data?.message || err.message));
+      addToast("Failed to clear cache: " + (err.response?.data?.message || err.message), "error");
     }
   };
 
