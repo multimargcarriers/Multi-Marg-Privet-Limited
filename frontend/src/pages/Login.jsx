@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Plane, Truck, Ship, Package, Train, MapPin } from 'lucide-react';
 
 const Login = () => {
   // View states: 'login', 'forgot', 'otp', 'reset'
@@ -254,10 +254,36 @@ const Login = () => {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        background: '#ffffff'
+        background: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         
-        <div className="login-form-container" style={{ width: '100%', maxWidth: '400px' }}>
+        {/* Subtle Professional Transport Pattern Background */}
+        <div style={{
+          position: 'absolute',
+          top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '4rem',
+          opacity: 0.03, // Extremely subtle so it looks premium, not distracting
+          pointerEvents: 'none',
+          transform: 'rotate(-10deg) scale(1.2)',
+          zIndex: 0,
+          color: '#0f151c' // Dark color that will show up lightly due to 3% opacity
+        }}>
+          {/* Create a structured repeating grid of transport icons */}
+          {Array.from({ length: 40 }).map((_, i) => {
+            const icons = [<Plane size={48} />, <Truck size={48} />, <Ship size={48} />, <Package size={48} />, <Train size={48} />, <MapPin size={48} />];
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {icons[i % icons.length]}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="login-form-container" style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
           
           {/* Mobile Logo */}
           <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
