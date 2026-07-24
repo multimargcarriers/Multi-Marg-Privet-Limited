@@ -163,10 +163,12 @@ const Login = () => {
       fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     }}>
       
-      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (AWS/Corporate Dark Navy) --- */}
+      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (AWS/Corporate Dark Navy + 3D Render) --- */}
       <div className="showcase-sidebar" style={{
         flex: '0 0 60%',
-        background: 'linear-gradient(135deg, #232F3E 0%, #0f151c 100%)', // AWS Dark Navy
+        background: 'linear-gradient(135deg, rgba(15, 21, 28, 0.75) 0%, rgba(2, 6, 12, 0.95) 100%), url("/3d-bg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -194,12 +196,12 @@ const Login = () => {
             Revolutionizing logistics across India with unmatched speed, uncompromised safety, and total reliability.
           </p>
 
-          {/* Marketing Grid with Corporate Solid Colors */}
+          {/* Marketing Grid with Premium Glassmorphism */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3.5rem' }}>
             
             {/* Card 1: Google Blue */}
-            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'inline-flex', background: '#e8f0fe', padding: '0.75rem', borderRadius: '50%', color: '#1a73e8', marginBottom: '1rem' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
+              <div style={{ display: 'inline-flex', background: '#e8f0fe', padding: '0.75rem', borderRadius: '50%', color: '#1a73e8', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(26,115,232,0.2)' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               </div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Nationwide</h3>
@@ -207,8 +209,8 @@ const Login = () => {
             </div>
             
             {/* Card 2: AWS Orange */}
-            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'inline-flex', background: '#fff3e0', padding: '0.75rem', borderRadius: '50%', color: '#FF9900', marginBottom: '1rem' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
+              <div style={{ display: 'inline-flex', background: '#fff3e0', padding: '0.75rem', borderRadius: '50%', color: '#FF9900', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(255,153,0,0.2)' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               </div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>24/7 Support</h3>
@@ -216,8 +218,8 @@ const Login = () => {
             </div>
             
             {/* Card 3: Google Green */}
-            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'inline-flex', background: '#e6f4ea', padding: '0.75rem', borderRadius: '50%', color: '#188038', marginBottom: '1rem' }}>
+            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
+              <div style={{ display: 'inline-flex', background: '#e6f4ea', padding: '0.75rem', borderRadius: '50%', color: '#188038', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(24,128,56,0.2)' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               </div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Secure Fleet</h3>
@@ -225,8 +227,8 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Map API Section - Clean White Container */}
-          <div style={{ background: '#ffffff', padding: '0.5rem', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          {/* Map API Section - Premium Glass Container */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '0.5rem', borderRadius: '12px', boxShadow: '0 12px 40px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)' }}>
             <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '4px', overflow: 'hidden' }}>
               <iframe 
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d116834.00977792036!2d86.35338048600062!3d23.78082980749008!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f6a74204d8095b%3A0xc48e9d6d1c8c1995!2sDhanbad%2C%20Jharkhand!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
