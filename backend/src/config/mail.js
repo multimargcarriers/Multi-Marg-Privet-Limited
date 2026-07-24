@@ -1,32 +1,33 @@
-// Mail configuration using Brevo (Sendinblue) REST API to bypass Render SMTP port blocks
+const nodemailer = require("nodemailer");
+
+// Use port 2525 specifically because Render free tier blocks 25, 465, and 587, but allows 2525.
+const smtpHost = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+const smtpPort = process.env.SMTP_PORT || 2525;
+const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || 'b31e39001@smtp-brevo.com';
 const smtpPass = process.env.SMTP_PASS || process.env.BREVO_API_KEY;
 const senderEmail = process.env.SMTP_FROM || process.env.BREVO_SENDER_EMAIL || 'praveen.pr105@gmail.com';
 
+const transporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort == 465, // true for 465, false for other ports
+  auth: {
+    user: smtpUser,
+    pass: smtpPass
+  }
+});
+
 const sendEmail = async ({ to, subject, htmlContent }) => {
   try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'api-key': smtpPass
-      },
-      body: JSON.stringify({
-        sender: { name: "Multi Marg", email: senderEmail },
-        to: [{ email: to }],
-        subject: subject,
-        htmlContent: htmlContent
-      })
+    const info = await transporter.sendMail({
+      from: `"Multi Marg" <${senderEmail}>`,
+      to: to,
+      subject: subject,
+      html: htmlContent
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(`Brevo API Error: ${data.message || JSON.stringify(data)}`);
-    }
-
-    console.log(`[Mail] Email successfully sent to ${to} via REST API (Message ID: ${data.messageId})`);
-    return { success: true, messageId: data.messageId };
+    
+    console.log(`[Mail] Email successfully sent to ${to} (Message ID: ${info.messageId}) via port ${smtpPort}`);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[Mail] Error sending email: ${error.message}`);
     throw new Error(`Failed to send email: ${error.message}`);
