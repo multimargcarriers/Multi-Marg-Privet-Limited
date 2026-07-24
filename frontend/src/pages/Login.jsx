@@ -224,11 +224,21 @@ const Login = () => {
           })}
         </div>
 
-        <div className="login-form-container" style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+        <div className="login-form-container" style={{ 
+          width: '100%', 
+          maxWidth: '440px', 
+          position: 'relative', 
+          zIndex: 10,
+          background: '#ffffff',
+          padding: '3rem',
+          borderRadius: '16px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.06), 0 0 40px rgba(26, 115, 232, 0.04)',
+          border: '1px solid rgba(0,0,0,0.04)'
+        }}>
           
           {/* Mobile Logo */}
           <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
-            <img src="/mc.png" alt="Logo" style={{ height: '60px' }} />
+            <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '55px', margin: '0 auto', display: 'block' }} />
           </div>
 
           <style>{`
@@ -391,38 +401,38 @@ const Login = () => {
             </button>
           )}
 
-          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             
             {/* Branding Logo at Top of Form */}
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
               <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '48px', objectFit: 'contain' }} />
             </div>
 
             {view === 'login' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Sign in</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Use your Multi Marg Account</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Sign in</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Use your Multi Marg Account</p>
               </>
             )}
             
             {view === 'forgot' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Account recovery</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Recover your Multi Marg Account</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Account recovery</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Recover your Multi Marg Account</p>
               </>
             )}
             
             {view === 'otp' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Verify it's you</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>We sent a code to <strong>{email}</strong></p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Verify it's you</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>We sent a code to <strong>{email}</strong></p>
               </>
             )}
             
             {view === 'reset' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Change password</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Create a strong password</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'left' }}>Change password</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'left' }}>Create a strong password</p>
               </>
             )}
           </div>
@@ -486,8 +496,8 @@ const Login = () => {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading}>
+              <div style={{ marginTop: '2rem' }}>
+                <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign in'}
                 </button>
               </div>
@@ -531,8 +541,8 @@ const Login = () => {
                 />
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading}>
+              <div style={{ marginTop: '1.5rem' }}>
+                <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Sending...' : 'Next'}
                 </button>
               </div>
@@ -558,19 +568,19 @@ const Login = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+                <button type="submit" className="btn-primary" disabled={loading || otp.length !== 6}>
+                  {loading ? 'Verifying...' : 'Verify'}
+                </button>
+
                 <button 
                   type="button" 
                   className="link-btn"
                   onClick={handleForgotPassword}
-                  style={{ color: resendTimer > 0 ? '#80868b' : '#1a73e8', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
+                  style={{ color: resendTimer > 0 ? '#80868b' : '#1a73e8', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', textAlign: 'center', width: '100%', marginTop: '0.5rem' }}
                   disabled={loading || resendTimer > 0}
                 >
                   {resendTimer > 0 ? `Resend code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend code'}
-                </button>
-                
-                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading || otp.length !== 6}>
-                  {loading ? 'Verifying...' : 'Verify'}
                 </button>
               </div>
             </form>
@@ -616,8 +626,8 @@ const Login = () => {
                 </button>
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading || !newPassword || !confirmPassword}>
+              <div style={{ marginTop: '1.5rem' }}>
+                <button type="submit" className="btn-primary" disabled={loading || !newPassword || !confirmPassword}>
                   {loading ? 'Saving...' : 'Save password'}
                 </button>
               </div>
