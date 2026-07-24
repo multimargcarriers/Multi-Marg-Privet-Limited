@@ -2,7 +2,6 @@ import React, { useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { SettingsContext } from "../context/SettingsContext";
-import GlobalSearch from "./GlobalSearch";
 import {
   LayoutDashboard,
   Users,
@@ -201,9 +200,16 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         }}
         className="sidebar-nav"
       >
-        <div className="sidebar-search-mobile" style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        <div 
+          className="sidebar-search-mobile" 
+          onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+          style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+        >
           {isExpanded ? (
-            <GlobalSearch isMobile={true} onResultClick={handleLinkClick} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+              <Search size={16} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Search... (Ctrl+K)</span>
+            </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Search size={16} color="var(--text-muted)" />

@@ -152,7 +152,7 @@ const defaultSettings = {
     phone: ""
   },
   ui: {
-    theme: "light",
+    darkMode: false,
     compactTables: false,
     defaultSidebarOpen: true
   },

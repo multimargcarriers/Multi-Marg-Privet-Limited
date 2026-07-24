@@ -40,6 +40,63 @@
   --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+}
+
+/* True Dark Mode Palette */
+:root.dark {
+  --bg-color: #0F172A; /* Slate 900 */
+  --panel-bg: rgba(30, 41, 59, 0.85); /* Slate 800 with glass */
+  --panel-solid-bg: #1E293B; /* Slate 800 */
+  
+  --border-color: rgba(51, 65, 85, 0.8); /* Slate 700 soft */
+  --border-focus: #3B82F6; /* Lighter Blue */
+  
+  --text-dark: #F8FAFC; /* Slate 50 */
+  --text-muted: #94A3B8; /* Slate 400 */
+  --text-light: #64748B; /* Slate 500 */
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  
+  --secondary-color: #E2E8F0; /* Light Slate for headers */
+}
+
+/* Base resets when dark mode */
+:root.dark .app-container {
+  background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.05), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.05), transparent 40%);
+}
+
+:root.dark .form-control {
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text-dark);
+}
+
+:root.dark .form-control:focus {
+  background: #0F172A;
+}
+
+:root.dark .btn {
+  background: #334155;
+  color: var(--text-dark);
+  border-color: #475569;
+}
+
+:root.dark .btn:hover {
+  background: #475569;
+  border-color: #64748B;
+}
+
+:root.dark .table th {
+  background: #0F172A;
+  color: var(--text-muted);
+}
+
+:root.dark .table tr:hover td {
+  background: rgba(51, 65, 85, 0.5);
+}
+
 * {
   margin: 0;
   padding: 0;

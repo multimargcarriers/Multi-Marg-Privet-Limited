@@ -16,7 +16,7 @@ export const SettingsProvider = ({ children }) => {
       phone: ""
     },
     ui: {
-      theme: "light",
+      darkMode: false,
       compactTables: false,
       defaultSidebarOpen: true
     },
@@ -80,6 +80,15 @@ export const SettingsProvider = ({ children }) => {
   useEffect(() => {
     fetchSettings();
   }, [user]);
+
+  // Apply dark mode to document root
+  useEffect(() => {
+    if (globalSettings?.ui?.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [globalSettings?.ui?.darkMode]);
 
   const updateGlobalSettings = async (newSettings) => {
     try {

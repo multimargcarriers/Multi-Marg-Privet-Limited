@@ -3,9 +3,11 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import Topbar from '../components/Topbar';
+import CommandPalette from '../components/CommandPalette';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -28,6 +30,7 @@ const DashboardLayout = () => {
         </div>
       </div>
       <RightSidebar />
+      <CommandPalette isOpen={isCommandPaletteOpen} setIsOpen={setIsCommandPaletteOpen} />
     </div>
   );
 };

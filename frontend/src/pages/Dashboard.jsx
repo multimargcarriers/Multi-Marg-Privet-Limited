@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, RefreshCw } from 'lucide-react';
+import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, RefreshCw, Clock, Truck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import RupeeIcon from '../components/RupeeIcon';
@@ -163,6 +163,9 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Bottom Grid: Leaders & Recent Activity */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+        
       {/* Top Leaders Table */}
       <div>
         <h4 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: '#0f172a' }}>Top Leaders & Management</h4>
@@ -205,6 +208,45 @@ const Dashboard = () => {
           </table>
         </div>
         </div>
+      </div>
+      
+      {/* Recent Activity Feed */}
+      <div>
+        <h4 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', color: '#0f172a' }}>Recent Dispatches & Activity</h4>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem' }}>
+          {stats?.recentActivity?.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {stats.recentActivity.map((activity, index) => (
+                <div key={activity.id} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', paddingBottom: index !== stats.recentActivity.length - 1 ? '1rem' : 0, borderBottom: index !== stats.recentActivity.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: activity.type === 'booking' ? '#eff6ff' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {activity.type === 'booking' ? <FileText size={20} color="#3b82f6" /> : <Truck size={20} color="#f97316" />}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+                      <h5 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', fontWeight: '600' }}>{activity.title}</h5>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Clock size={12} /> {new Date(activity.timestamp?.seconds ? activity.timestamp.seconds * 1000 : activity.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activity.subtitle}</p>
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: activity.status === 'Active' ? '#ecfdf5' : '#f1f5f9', color: activity.status === 'Active' ? '#10b981' : '#64748b' }}>
+                        {activity.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+              <Activity size={48} opacity={0.2} style={{ margin: '0 auto 1rem auto' }} />
+              <p>No recent activity found.</p>
+            </div>
+          )}
+        </div>
+      </div>
+      
       </div>
     </div>
   );
