@@ -22,20 +22,6 @@ const Login = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Parallax Ref for Interactive 3D Models
-  const parallaxRef = React.useRef(null);
-  
-  const handleMouseMove = (e) => {
-    if (!parallaxRef.current) return;
-    const { clientX, clientY } = e;
-    // Calculate movement relative to center of screen
-    const x = (clientX / window.innerWidth - 0.5) * 40; // max 20px movement
-    const y = (clientY / window.innerHeight - 0.5) * 40;
-    
-    parallaxRef.current.style.setProperty('--px', `${x}px`);
-    parallaxRef.current.style.setProperty('--py', `${y}px`);
-  };
-  
   // Check for active OTP session on mount
   React.useEffect(() => {
     const savedSession = localStorage.getItem('otpSession');
@@ -262,56 +248,39 @@ const Login = () => {
       </div>
 
       {/* --- RIGHT SIDE: 40% LOGIN FORM (Pristine White Corporate) --- */}
-      <div 
-        style={{
-          flex: '1',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2rem',
-          background: '#ffffff',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-        onMouseMove={handleMouseMove}
-        ref={parallaxRef}
-      >
+      <div style={{
+        flex: '1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        background: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
         
-        {/* 3D Decorator Models with Mouse Parallax */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-          
-          {/* Drone - Top Right (Moves inverse to mouse) */}
-          <div style={{ position: 'absolute', top: '-5%', right: '-10%', transform: 'translate(calc(var(--px, 0px) * -1.5), calc(var(--py, 0px) * -1.5))', transition: 'transform 0.1s ease-out' }}>
-            <img src="/3d-drone.png" alt="Delivery Drone" style={{
-              width: '400px',
-              opacity: 0.85,
-              mixBlendMode: 'darken',
-              filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))',
-              animation: 'droneFloat 6s ease-in-out infinite'
-            }} />
-          </div>
-          
-          {/* Truck - Bottom Left (Moves with mouse) */}
-          <div style={{ position: 'absolute', bottom: '-5%', left: '-15%', transform: 'translate(var(--px, 0px), var(--py, 0px))', transition: 'transform 0.1s ease-out' }}>
-            <img src="/3d-truck.png" alt="Logistics Truck" style={{
-              width: '450px',
-              opacity: 0.9,
-              mixBlendMode: 'darken',
-              filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))',
-              animation: 'truckDrive 8s ease-in-out infinite'
-            }} />
-          </div>
-
-          {/* Package - Bottom Right (Moves slower) */}
-          <div style={{ position: 'absolute', bottom: '10%', right: '5%', transform: 'translate(calc(var(--px, 0px) * 0.5), calc(var(--py, 0px) * 0.5))', transition: 'transform 0.1s ease-out' }}>
-            <img src="/3d-package.png" alt="Premium Package" style={{
-              width: '200px',
-              opacity: 0.8,
-              mixBlendMode: 'darken',
-              filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))',
-              animation: 'packageFloat 7s ease-in-out infinite'
-            }} />
-          </div>
+        {/* Subtle Professional Transport Pattern Background */}
+        <div style={{
+          position: 'absolute',
+          top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '4rem',
+          opacity: 0.03, // Extremely subtle so it looks premium, not distracting
+          pointerEvents: 'none',
+          transform: 'rotate(-10deg) scale(1.2)',
+          zIndex: 0,
+          color: '#0f151c' // Dark color that will show up lightly due to 3% opacity
+        }}>
+          {/* Create a structured repeating grid of transport icons */}
+          {Array.from({ length: 40 }).map((_, i) => {
+            const icons = [<Plane size={48} />, <Truck size={48} />, <Ship size={48} />, <Package size={48} />, <Train size={48} />, <MapPin size={48} />];
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {icons[i % icons.length]}
+              </div>
+            );
+          })}
         </div>
 
         <div className="login-form-container" style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
@@ -322,23 +291,6 @@ const Login = () => {
           </div>
 
           <style>{`
-            @keyframes droneFloat {
-              0% { transform: rotate(-10deg) translateY(0px) scale(1); }
-              50% { transform: rotate(-8deg) translateY(-25px) scale(1.02); }
-              100% { transform: rotate(-10deg) translateY(0px) scale(1); }
-            }
-            @keyframes truckDrive {
-              0% { transform: rotate(15deg) translateY(0px) translateX(0px); }
-              25% { transform: rotate(14.5deg) translateY(-5px) translateX(10px); }
-              50% { transform: rotate(15deg) translateY(0px) translateX(20px); }
-              75% { transform: rotate(15.5deg) translateY(-5px) translateX(10px); }
-              100% { transform: rotate(15deg) translateY(0px) translateX(0px); }
-            }
-            @keyframes packageFloat {
-              0% { transform: rotate(-5deg) translateY(0px); }
-              50% { transform: rotate(0deg) translateY(-15px); }
-              100% { transform: rotate(-5deg) translateY(0px); }
-            }
             @media (max-width: 1100px) {
               .showcase-sidebar { display: none !important; }
               .mobile-only-logo { display: block !important; }
