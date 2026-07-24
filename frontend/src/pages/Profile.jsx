@@ -64,29 +64,71 @@ const Profile = () => {
   const handlePhotoClick = () => fileInputRef.current.click();
   const handleBannerClick = () => bannerInputRef.current.click();
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         addToast("Image must be less than 5MB", "error");
         return;
       }
-      setPhoto(file);
       setPhotoPreview(URL.createObjectURL(file));
+      setPhoto(file);
       setShowGallery(false);
+      
+      try {
+        setIsLoading(true);
+        const formData = new FormData();
+        formData.append('photo', file);
+        
+        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.data?.success) {
+          addToast("Avatar uploaded and updated successfully!", "success");
+          updateUser(response.data.data.user, response.data.data.token);
+        } else {
+          addToast(response.data?.message || "Failed to update avatar", "error");
+        }
+      } catch (error) {
+        addToast(error.response?.data?.message || "An error occurred while updating avatar", "error");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleBannerChange = (e) => {
+  const handleBannerChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         addToast("Banner image must be less than 10MB", "error");
         return;
       }
-      setBanner(file);
       setBannerPreview(URL.createObjectURL(file));
+      setBanner(file);
       setShowGallery(false);
+      
+      try {
+        setIsLoading(true);
+        const formData = new FormData();
+        formData.append('banner', file);
+        
+        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.data?.success) {
+          addToast("Banner uploaded and updated successfully!", "success");
+          updateUser(response.data.data.user, response.data.data.token);
+        } else {
+          addToast(response.data?.message || "Failed to update banner", "error");
+        }
+      } catch (error) {
+        addToast(error.response?.data?.message || "An error occurred while updating banner", "error");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -95,15 +137,41 @@ const Profile = () => {
     setShowGallery(true);
   };
 
-  const handleSelectGallery = (url) => {
+  const handleSelectGallery = async (url) => {
     if (galleryType === 'photo') {
-      setPhoto(url);
       setPhotoPreview(url);
+      setPhoto(url);
     } else {
-      setBanner(url);
       setBannerPreview(url);
+      setBanner(url);
     }
     setShowGallery(false);
+    
+    // Auto-save the selected asset for a professional workflow
+    try {
+      setIsLoading(true);
+      const formData = new FormData();
+      if (galleryType === 'photo') formData.append('photoUrl', url);
+      else formData.append('bannerUrl', url);
+      
+      const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data?.success) {
+        addToast(`${galleryType === 'photo' ? 'Avatar' : 'Banner'} updated successfully!`, "success");
+        updateUser(response.data.data.user, response.data.data.token);
+      } else {
+        addToast(response.data?.message || "Failed to update asset", "error");
+      }
+    } catch (error) {
+      addToast(error.response?.data?.message || "An error occurred while updating asset", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
