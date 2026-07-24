@@ -259,28 +259,43 @@ const Login = () => {
         overflow: 'hidden'
       }}>
         
-        {/* Subtle Professional Transport Pattern Background */}
-        <div style={{
-          position: 'absolute',
-          top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '4rem',
-          opacity: 0.03, // Extremely subtle so it looks premium, not distracting
-          pointerEvents: 'none',
-          transform: 'rotate(-10deg) scale(1.2)',
-          zIndex: 0,
-          color: '#0f151c' // Dark color that will show up lightly due to 3% opacity
-        }}>
-          {/* Create a structured repeating grid of transport icons */}
-          {Array.from({ length: 40 }).map((_, i) => {
-            const icons = [<Plane size={48} />, <Truck size={48} />, <Ship size={48} />, <Package size={48} />, <Train size={48} />, <MapPin size={48} />];
-            return (
-              <div key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {icons[i % icons.length]}
-              </div>
-            );
-          })}
+        {/* 3D Decorator Models */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+          {/* Drone - Top Right */}
+          <img src="/3d-drone.png" alt="Delivery Drone" style={{
+            position: 'absolute',
+            top: '-5%',
+            right: '-10%',
+            width: '400px',
+            opacity: 0.85,
+            mixBlendMode: 'darken', // Blends the white background of the image into the white container
+            transform: 'rotate(-10deg)',
+            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))'
+          }} />
+          
+          {/* Truck - Bottom Left */}
+          <img src="/3d-truck.png" alt="Logistics Truck" style={{
+            position: 'absolute',
+            bottom: '-5%',
+            left: '-15%',
+            width: '450px',
+            opacity: 0.9,
+            mixBlendMode: 'darken',
+            transform: 'rotate(15deg)',
+            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))'
+          }} />
+
+          {/* Package - Bottom Right (Smaller) */}
+          <img src="/3d-package.png" alt="Premium Package" style={{
+            position: 'absolute',
+            bottom: '10%',
+            right: '5%',
+            width: '200px',
+            opacity: 0.8,
+            mixBlendMode: 'darken',
+            transform: 'rotate(-5deg)',
+            filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))'
+          }} />
         </div>
 
         <div className="login-form-container" style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
