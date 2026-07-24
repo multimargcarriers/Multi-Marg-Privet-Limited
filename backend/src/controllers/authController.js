@@ -24,6 +24,14 @@ const {
   uploadFile
 } = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
+const defaultAssets = require("../config/defaultAssets");
+
+exports.get_default_assets = async (req, res) => {
+  return success(res, {
+    message: "Default assets fetched successfully",
+    data: defaultAssets
+  });
+};
 
 exports.post_login_1 = async (req, res) => {
   const errors = validationResult(req);
@@ -98,8 +106,8 @@ exports.put_profile_2 = async (req, res) => {
     password,
     newId
   } = req.body;
-  let photoUrl = undefined;
-  let bannerUrl = undefined;
+  let photoUrl = req.body.photo || undefined;
+  let bannerUrl = req.body.banner || undefined;
   
   if (req.files) {
     if (req.files.photo && req.files.photo.length > 0) {

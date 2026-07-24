@@ -1,7 +1,7 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare, ShieldCheck, Monitor, History } from 'lucide-react';
+import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare, ShieldCheck, Monitor, History, Image as ImageIcon, X } from 'lucide-react';
 import axios from 'axios';
 
 const Profile = () => {
@@ -18,6 +18,29 @@ const Profile = () => {
   const [bannerPreview, setBannerPreview] = useState(user?.banner || null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  
+  const [defaultAssets, setDefaultAssets] = useState({ avatars: [], banners: [] });
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryType, setGalleryType] = useState('photo'); // 'photo' or 'banner'
+  
+  useEffect(() => {
+    const fetchDefaults = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/default-assets`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.success) {
+          setDefaultAssets({
+            avatars: res.data.data.DEFAULT_AVATARS || [],
+            banners: res.data.data.DEFAULT_BANNERS || []
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch default assets", err);
+      }
+    };
+    fetchDefaults();
+  }, [token]);
   
   const fileInputRef = useRef(null);
   const bannerInputRef = useRef(null);
@@ -63,6 +86,22 @@ const Profile = () => {
       setBanner(file);
       setBannerPreview(URL.createObjectURL(file));
     }
+  };
+
+  const openGallery = (type) => {
+    setGalleryType(type);
+    setShowGallery(true);
+  };
+
+  const handleSelectGallery = (url) => {
+    if (galleryType === 'photo') {
+      setPhoto(url);
+      setPhotoPreview(url);
+    } else {
+      setBanner(url);
+      setBannerPreview(url);
+    }
+    setShowGallery(false);
   };
 
   const handleSubmit = async (e) => {
@@ -130,14 +169,24 @@ const Profile = () => {
           {/* Decorative Elements (only if no banner image) */}
           {!getBannerUrl() && <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>}
           
-          <button 
-            onClick={handleBannerClick}
-            style={{ position: 'absolute', right: '2rem', top: '2rem', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
-          >
-            <Camera size={16} /> Edit banner
-          </button>
+          <div style={{ position: 'absolute', right: '2rem', top: '2rem', display: 'flex', gap: '0.5rem' }}>
+            <button 
+              onClick={() => openGallery('banner')}
+              style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+            >
+              <ImageIcon size={16} /> Gallery
+            </button>
+            <button 
+              onClick={handleBannerClick}
+              style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+            >
+              <Camera size={16} /> Upload
+            </button>
+          </div>
           <input type="file" ref={bannerInputRef} onChange={handleBannerChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
         </div>
       </div>
@@ -151,12 +200,22 @@ const Profile = () => {
           <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
               <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-              <button 
-                onClick={handlePhotoClick}
-                style={{ position: 'absolute', bottom: 0, right: 0, width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
-              >
-                <Camera size={18} />
-              </button>
+              <div style={{ position: 'absolute', bottom: -10, right: -10, display: 'flex', gap: '0.25rem' }}>
+                <button 
+                  onClick={() => openGallery('photo')}
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#107C41', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                  title="Choose from Gallery"
+                >
+                  <ImageIcon size={16} />
+                </button>
+                <button 
+                  onClick={handlePhotoClick}
+                  style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                  title="Upload Custom Photo"
+                >
+                  <Camera size={18} />
+                </button>
+              </div>
               <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
             </div>
             
@@ -377,6 +436,29 @@ const Profile = () => {
           box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
         }
       `}} />
+
+      {/* Asset Gallery Modal */}
+      {showGallery && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="fade-in" style={{ background: 'var(--surface-color)', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-dark)', fontWeight: 600 }}>Choose a Professional {galleryType === 'photo' ? 'Avatar' : 'Banner'}</h2>
+              <button onClick={() => setShowGallery(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+            </div>
+            <div style={{ padding: '2rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: galleryType === 'photo' ? 'repeat(auto-fill, minmax(140px, 1fr))' : '1fr 1fr', gap: '1.5rem' }}>
+              {galleryType === 'photo' ? defaultAssets.avatars.map((url, idx) => (
+                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', aspectRatio: '1/1', border: '4px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                  <img src={url} alt={`Avatar ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )) : defaultAssets.banners.map((url, idx) => (
+                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', aspectRatio: '21/9', border: '4px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                  <img src={url} alt={`Banner ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
