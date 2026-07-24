@@ -1,8 +1,7 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Plane, Truck, Ship, Package, Train, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   // View states: 'login', 'forgot', 'otp', 'reset'
@@ -24,7 +23,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Check for active OTP session on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const savedSession = localStorage.getItem('otpSession');
     if (savedSession) {
       const { email: savedEmail, expiresAt, resendAt } = JSON.parse(savedSession);
@@ -41,7 +40,7 @@ const Login = () => {
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval;
     if (resendTimer > 0 && view === 'otp') {
       interval = setInterval(() => {
@@ -51,7 +50,6 @@ const Login = () => {
     return () => clearInterval(interval);
   }, [resendTimer, view]);
   
-  const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
