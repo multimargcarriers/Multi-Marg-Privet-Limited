@@ -106,8 +106,12 @@ exports.put_profile_2 = async (req, res) => {
     password,
     newId
   } = req.body;
-  let photoUrl = req.body.photo || undefined;
-  let bannerUrl = req.body.banner || undefined;
+  console.log("=== PUT PROFILE ===");
+  console.log("req.body:", req.body);
+  console.log("req.files:", req.files ? Object.keys(req.files) : "none");
+
+  let photoUrl = req.body.photoUrl || undefined;
+  let bannerUrl = req.body.bannerUrl || undefined;
   
   if (req.files) {
     if (req.files.photo && req.files.photo.length > 0) {

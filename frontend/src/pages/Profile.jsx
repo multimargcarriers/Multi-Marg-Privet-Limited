@@ -116,8 +116,14 @@ const Profile = () => {
       if (email !== user.email) formData.append('email', email);
       if (newId !== user.id) formData.append('newId', newId);
       if (password) formData.append('password', password);
-      if (photo) formData.append('photo', photo);
-      if (banner) formData.append('banner', banner);
+      if (photo) {
+        if (typeof photo === 'string') formData.append('photoUrl', photo);
+        else formData.append('photo', photo);
+      }
+      if (banner) {
+        if (typeof banner === 'string') formData.append('bannerUrl', banner);
+        else formData.append('banner', banner);
+      }
 
       let hasUpdates = false;
       for (let pair of formData.entries()) {
