@@ -280,8 +280,7 @@ exports.forgot_password = async (req, res) => {
     const snapshot = await usersRef.where('email', '==', email).get();
     
     if (snapshot.empty) {
-      // For security, we don't reveal if the email exists or not
-      return res.status(200).json({ success: true, message: 'If that email is registered with IAM permissions, an OTP has been sent.' });
+      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized. Please contact the company at info@multimargcarriers.co.in' });
     }
     
     let userDoc = null;
@@ -289,9 +288,9 @@ exports.forgot_password = async (req, res) => {
     snapshot.forEach(doc => { userDoc = doc; userData = doc.data(); });
     
     // Verify IAM Role - Only send OTP to Admins and Super Admins
-    const role = (userData.role || "SuperAdmin").toLowerCase().replace(/\s+/g, '');
+    const role = (userData.role || "").toLowerCase().replace(/\s+/g, '');
     if (role !== 'admin' && role !== 'superadmin') {
-      return res.status(200).json({ success: true, message: 'If that email is registered with IAM permissions, an OTP has been sent.' });
+      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized for IAM access. Please contact the company at info@multimargcarriers.co.in' });
     }
     
     // Generate 6 digit OTP
