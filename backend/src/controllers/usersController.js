@@ -45,22 +45,31 @@ exports.postRoot_2 = async (req, res) => {
     email,
     password,
     role,
-    permissions
+    permissions,
+    employeeId
   } = req.body;
-  if (!name || !email || !password || !role) {
+  if (!name || !email || !password || !role || !employeeId) {
     return error(res, {
-      message: "Name, email, password, and role are required",
+      message: "Name, email, password, role, and Employee ID are required",
       statusCode: 400
     });
   }
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
+  // Check Employee ID uniqueness
+  const empIdSnapshot = await db.collection("users").where("employeeId", "==", employeeId).get();
+  if (!empIdSnapshot.empty) return error(res, {
+    message: "Employee ID already exists",
+    statusCode: 400
+  });
+
   const randomAvatar = defaultAssets.DEFAULT_AVATARS[Math.floor(Math.random() * defaultAssets.DEFAULT_AVATARS.length)] || null;
   const randomBanner = defaultAssets.DEFAULT_BANNERS[Math.floor(Math.random() * defaultAssets.DEFAULT_BANNERS.length)] || null;
 
   const newUser = {
     id: uuidv4(),
+    employeeId,
     name,
     email,
     password: hashedPassword,
@@ -95,7 +104,8 @@ exports.put_id_3 = async (req, res) => {
     email,
     role,
     permissions,
-    password
+    password,
+    employeeId
   } = req.body;
   const updates = {
     name,
@@ -103,9 +113,21 @@ exports.put_id_3 = async (req, res) => {
     role,
     permissions
   };
+  if (employeeId) updates.employeeId = employeeId;
+  
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
+  }
+
+  // Check Employee ID uniqueness for updates
+  if (employeeId) {
+    const empIdCheck = await db.collection("users").where("employeeId", "==", employeeId).get();
+    let taken = false;
+    empIdCheck.forEach(d => {
+      if (d.id !== id) taken = true;
+    });
+    if (taken) return error(res, { message: "Employee ID already exists", statusCode: 400 });
   }
 
   const docRef = db.collection("users").doc(id);

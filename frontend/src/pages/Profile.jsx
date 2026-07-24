@@ -235,8 +235,56 @@ const Profile = () => {
 
   return (
     <div className="fade-in" style={{ backgroundColor: 'var(--bg-color)', minHeight: 'calc(100vh - 60px)' }}>
+      <style>{`
+        .profile-container {
+          max-width: 1200px;
+          margin: -80px auto 0;
+          padding: 0 2rem 3rem 2rem;
+          position: relative;
+          z-index: 10;
+          display: flex;
+          gap: 2.5rem;
+          align-items: flex-start;
+        }
+        .profile-sidebar {
+          width: 320px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        .profile-content {
+          flex: 1;
+          min-width: 0; /* Prevents overflow */
+          margin-top: 100px;
+        }
+        .grid-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 1.5rem;
+        }
+        @media (max-width: 900px) {
+          .profile-container {
+            flex-direction: column;
+            align-items: center;
+            padding: 0 1rem 2rem 1rem;
+            margin-top: -60px;
+          }
+          .profile-sidebar {
+            width: 100%;
+            max-width: 400px;
+          }
+          .profile-content {
+            width: 100%;
+            margin-top: 0;
+          }
+          .grid-cards {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
       
-      {/* Microsoft-style Hero Banner */}
+      {/* Microsoft/LinkedIn-style Hero Banner */}
       <div style={{ height: '220px', background: getBannerUrl() ? `url(${getBannerUrl()}) center/cover no-repeat` : 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', height: '100%', position: 'relative' }}>
           {/* Decorative Elements (only if no banner image) */}
@@ -256,10 +304,10 @@ const Profile = () => {
         </div>
       </div>
 
-      <div style={{ maxWidth: '1200px', margin: '-80px auto 0', padding: '0 2rem 3rem 2rem', position: 'relative', zIndex: 10, display: 'flex', gap: '2.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div className="profile-container">
         
         {/* Left Sidebar Profile & Nav */}
-        <div style={{ width: '320px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="profile-sidebar">
           
           {/* Identity Card */}
           <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
@@ -277,8 +325,17 @@ const Profile = () => {
             
             <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-dark)' }}>{user?.name || 'Administrator'}</h2>
             <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{user?.email || 'admin@multimarg.com'}</p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: 'rgba(0, 120, 212, 0.1)', color: '#0078D4', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
-              <Shield size={14} /> {user?.role || 'SuperAdmin'} Account
+            
+            {user?.employeeId && (
+              <div style={{ margin: '0 auto 1.5rem auto', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.95rem', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
+                <span style={{ color: '#94a3b8', fontWeight: 500 }}>ID:</span> {user.employeeId}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: 'rgba(0, 120, 212, 0.1)', color: '#0078D4', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+                <Shield size={14} /> {user?.role || 'SuperAdmin'} Account
+              </div>
             </div>
           </div>
 
@@ -312,14 +369,14 @@ const Profile = () => {
         </div>
 
         {/* Right Content Area */}
-        <div style={{ flex: 1, minWidth: '400px', marginTop: '100px' }}>
+        <div className="profile-content">
           
           {activeTab === 'overview' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <h1 style={{ fontSize: '2.2rem', fontWeight: 300, color: 'var(--text-dark)', margin: 0 }}>Welcome back, {user?.name?.split(' ')[0] || 'User'}</h1>
               
               {/* Grid of Microsoft-style Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              <div className="grid-cards">
                 
                 <div onClick={() => setActiveTab('personal')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>

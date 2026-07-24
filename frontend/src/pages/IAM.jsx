@@ -26,7 +26,7 @@ const IAM = () => {
   
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
-    id: '', name: '', email: '', password: '', role: 'Admin', permissions: []
+    id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: ''
   });
 
   useEffect(() => {
@@ -107,7 +107,7 @@ const IAM = () => {
     if (user) {
       setFormData({ ...user, password: '' });
     } else {
-      setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [] });
+      setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MMPL-${Math.floor(1000 + Math.random() * 9000)}` });
     }
     setIsAdding(true);
   };
@@ -156,6 +156,19 @@ const IAM = () => {
                       style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Employee ID<span style={{ color: "#ef4444" }}>*</span></label>
+                    <input 
+                      type="text" 
+                      value={formData.employeeId} 
+                      onChange={e => setFormData({...formData, employeeId: e.target.value.toUpperCase()})} 
+                      required 
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", fontWeight: "600" }}
+                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                      placeholder="MMPL-1234"
                     />
                   </div>
                   <div>
@@ -246,11 +259,12 @@ const IAM = () => {
 
       <Table
         loading={loading}
-        headers={['Name', 'Email', 'Role', 'Permissions', 'Actions']}
+        headers={['Name', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
         data={users}
         renderRow={(u, index) => (
           <tr key={u.id || index}>
             <td><strong>{u.name}</strong></td>
+            <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
             <td>{u.email}</td>
             <td>
               <span 
