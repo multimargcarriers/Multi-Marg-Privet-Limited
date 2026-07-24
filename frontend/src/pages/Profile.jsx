@@ -81,7 +81,7 @@ const Profile = () => {
         formData.append('photo', file);
         
         const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.data?.success) {
@@ -115,7 +115,7 @@ const Profile = () => {
         formData.append('banner', file);
         
         const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.data?.success) {
@@ -156,7 +156,7 @@ const Profile = () => {
       
       const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          ,
           'Authorization': `Bearer ${token}`
         }
       });
@@ -207,7 +207,7 @@ const Profile = () => {
 
       const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          ,
           'Authorization': `Bearer ${token}`
         }
       });
