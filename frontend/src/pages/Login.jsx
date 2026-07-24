@@ -517,6 +517,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
+                  aria-label="Email or phone"
                 />
               </div>
 
@@ -532,6 +533,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required 
                   autoComplete="current-password"
+                  aria-label="Password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -594,6 +596,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
+                  aria-label="Email or phone for password reset"
                 />
               </div>
               
@@ -621,6 +624,7 @@ const Login = () => {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   required 
                   autoComplete="one-time-code"
+                  aria-label="One-time password code"
                 />
               </div>
 
@@ -657,6 +661,7 @@ const Login = () => {
                   required 
                   minLength={6}
                   autoComplete="new-password"
+                  aria-label="New password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -676,6 +681,7 @@ const Login = () => {
                   required 
                   minLength={6}
                   autoComplete="new-password"
+                  aria-label="Confirm new password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
