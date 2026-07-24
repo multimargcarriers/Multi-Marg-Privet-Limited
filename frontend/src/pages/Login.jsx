@@ -155,43 +155,35 @@ const Login = () => {
   };
 
   return (
-  return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       width: '100vw',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem',
-      background: 'linear-gradient(135deg, #ede9ff 0%, #fefdff 100%)',
+      background: '#ffffff',
       overflow: 'hidden',
       fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     }}>
       
-      {/* Main Floating App Card */}
+      {/* Main Full-Bleed Split Layout */}
       <div style={{
         display: 'flex',
         width: '100%',
-        maxWidth: '1440px',
-        height: '90vh',
-        minHeight: '700px',
+        height: '100%',
         background: '#ffffff',
-        borderRadius: '24px',
-        boxShadow: '0 40px 80px rgba(100, 80, 220, 0.15)',
-        overflow: 'hidden'
       }}>
         
         {/* --- LEFT SIDE: 60% BRAND SHOWCASE (3D Factory Background + Marketing Text) --- */}
+        {/* --- LEFT SIDE: 55% BRAND SHOWCASE (3D Factory Background + Marketing Text) --- */}
         <div className="showcase-sidebar" style={{
-          flex: '0 0 60%',
-          background: 'linear-gradient(180deg, rgba(237, 233, 255, 0.7) 0%, rgba(255,255,255,0) 30%), url("/3d-factory-bg.png")',
+          flex: '0 0 55%',
+          background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 45%, rgba(255, 255, 255, 0) 100%), url("/3d-factory-bg.png")',
           backgroundSize: 'cover',
-          backgroundPosition: 'center center',
+          backgroundPosition: 'right center',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-start',
-          padding: '3rem 4rem',
+          padding: '4rem 5rem',
           zIndex: 5,
         }}>
           {/* Top Header */}
@@ -228,20 +220,13 @@ const Login = () => {
               Streamline operations, track in real-time, and deliver excellence every time.
             </p>
 
-            {/* Feature List */}
+            {/* Feature List (Trimmed to avoid crowding) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                 <div style={{ background: '#f5f3ff', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}><MapPin size={24} /></div>
                 <div>
                   <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>Real-time Tracking</h3>
                   <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>Monitor every shipment in real-time</p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{ background: '#f5f3ff', padding: '0.6rem', borderRadius: '10px', color: '#7c3aed' }}><Truck size={24} /></div>
-                <div>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>Smart Automation</h3>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>Automate workflows and reduce errors</p>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
@@ -369,7 +354,7 @@ const Login = () => {
             }
             .btn-primary {
               width: 100%;
-              background: linear-gradient(90deg, #f97316 0%, #a855f7 100%);
+              background: linear-gradient(90deg, #FF9900 0%, #a855f7 100%);
               color: white;
               border: none;
               padding: 0.95rem;
@@ -386,7 +371,7 @@ const Login = () => {
               box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
             }
             .btn-primary:hover:not(:disabled) {
-              background: linear-gradient(90deg, #ea580c 0%, #9333ea 100%);
+              background: linear-gradient(90deg, #ea8a00 0%, #9333ea 100%);
               box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3);
               transform: translateY(-1px);
             }
