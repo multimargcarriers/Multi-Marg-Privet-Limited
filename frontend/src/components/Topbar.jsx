@@ -68,7 +68,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
   };
 
   return (
-    <div style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 100 }}>
+    <div style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 200 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <button onClick={toggleSidebar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
           <Menu size={24} />
