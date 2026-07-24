@@ -20,6 +20,17 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  
+  React.useEffect(() => {
+    let interval;
+    if (resendTimer > 0 && view === 'otp') {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer, view]);
   
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
@@ -58,6 +69,7 @@ const Login = () => {
       if (response.data.success) {
         setSuccessMsg('An OTP has been sent to your email.');
         setView('otp');
+        setResendTimer(180);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to request password reset.');
@@ -283,10 +295,10 @@ const Login = () => {
               <button 
                 type="button" 
                 onClick={handleForgotPassword}
-                style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                disabled={loading}
+                style={{ background: 'transparent', border: 'none', color: resendTimer > 0 ? 'var(--text-muted)' : 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 600, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', padding: 0 }}
+                disabled={loading || resendTimer > 0}
               >
-                Resend Code
+                {resendTimer > 0 ? `Resend Code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
               </button>
             </div>
           </form>
