@@ -286,13 +286,14 @@ const Login = () => {
             
             {/* Mobile Logo */}
             <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '55px', margin: '0 auto', display: 'block' }} />
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '90px', margin: '0 auto', display: 'block' }} />
             </div>
 
           <style>{`
             @media (max-width: 1100px) {
               .showcase-sidebar { display: none !important; }
               .mobile-only-logo { display: block !important; }
+              .desktop-only-logo { display: none !important; }
             }
             .input-group {
               position: relative;
@@ -454,7 +455,7 @@ const Login = () => {
           <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             
             {/* Branding Logo at Top of Form */}
-            <div style={{ marginBottom: '1.5rem', background: '#ffffff', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.15)' }}>
+            <div className="desktop-only-logo" style={{ marginBottom: '1.5rem', background: '#ffffff', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.15)' }}>
               <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
             </div>
 
