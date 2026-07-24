@@ -164,86 +164,26 @@ const Login = () => {
       fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     }}>
       
-      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (AWS/Corporate Dark Navy + 3D Render) --- */}
+      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (Pristine 3D Factory Scene) --- */}
       <div className="showcase-sidebar" style={{
         flex: '0 0 60%',
-        background: 'linear-gradient(135deg, rgba(15, 21, 28, 0.75) 0%, rgba(2, 6, 12, 0.95) 100%), url("/3d-bg.png")',
+        background: 'url("/3d-factory-bg.png")',
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center center',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '4rem 5rem',
-        color: 'white',
-        boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
-        zIndex: 5
+        justifyContent: 'flex-start',
+        padding: '3rem 4rem',
+        zIndex: 5,
+        borderRight: '1px solid rgba(0,0,0,0.05)'
       }}>
-        
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-            <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '65px', background: '#fff', padding: '0.5rem', borderRadius: '8px' }} />
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, letterSpacing: '1px', color: '#ffffff' }}>MULTI MARG</h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px' }}>Private Limited</p>
-            </div>
-          </div>
-          
-          <h1 style={{ fontSize: '3.2rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem', color: '#ffffff' }}>
-            Driving the Future of Transport.
-          </h1>
-          
-          <p style={{ fontSize: '1.15rem', color: '#cbd5e1', lineHeight: 1.6, maxWidth: '90%', marginBottom: '3.5rem' }}>
-            Revolutionizing logistics across India with unmatched speed, uncompromised safety, and total reliability.
-          </p>
-
-          {/* Marketing Grid with Premium Glassmorphism */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3.5rem' }}>
-            
-            {/* Card 1: Google Blue */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
-              <div style={{ display: 'inline-flex', background: '#e8f0fe', padding: '0.75rem', borderRadius: '50%', color: '#1a73e8', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(26,115,232,0.2)' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Nationwide</h3>
-              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>End-to-end logistics coverage across India.</p>
-            </div>
-            
-            {/* Card 2: AWS Orange */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
-              <div style={{ display: 'inline-flex', background: '#fff3e0', padding: '0.75rem', borderRadius: '50%', color: '#FF9900', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(255,153,0,0.2)' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>24/7 Support</h3>
-              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>Premium enterprise assistance anytime.</p>
-            </div>
-            
-            {/* Card 3: Google Green */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '1.5rem', borderRadius: '12px', color: '#202124', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.4)' }}>
-              <div style={{ display: 'inline-flex', background: '#e6f4ea', padding: '0.75rem', borderRadius: '50%', color: '#188038', marginBottom: '1rem', boxShadow: '0 2px 8px rgba(24,128,56,0.2)' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              </div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Secure Fleet</h3>
-              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>State-of-the-art GPS fleet tracking.</p>
-            </div>
-          </div>
-
-          {/* Map API Section - Premium Glass Container */}
-          <div style={{ background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '0.5rem', borderRadius: '12px', boxShadow: '0 12px 40px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)' }}>
-            <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '4px', overflow: 'hidden' }}>
-              <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d116834.00977792036!2d86.35338048600062!3d23.78082980749008!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f6a74204d8095b%3A0xc48e9d6d1c8c1995!2sDhanbad%2C%20Jharkhand!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
-                width="100%" 
-                height="100%" 
-                style={{ border: 0 }} 
-                allowFullScreen="" 
-                loading="lazy" 
-                referrerPolicy="no-referrer-when-downgrade">
-              </iframe>
-              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: '#ffffff', padding: '0.4rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#202124', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ color: '#EA4335' }}>📍</span> HQ: Dhanbad, Jharkhand
-              </div>
-            </div>
+        {/* Minimalist Logo Overlay */}
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '45px', background: '#fff', padding: '0.3rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '1px', color: '#202124' }}>MULTI MARG</h2>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: '#5f6368', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>Logistics Platform</p>
           </div>
         </div>
       </div>
@@ -358,7 +298,7 @@ const Login = () => {
             }
             .btn-primary {
               width: 100%;
-              background: #1a73e8;
+              background: #FF9900;
               color: white;
               border: none;
               padding: 0.85rem;
@@ -366,7 +306,7 @@ const Login = () => {
               font-size: 0.95rem;
               font-weight: 600;
               cursor: pointer;
-              transition: background 0.2s ease;
+              transition: all 0.2s ease;
               display: flex;
               justify-content: center;
               align-items: center;
@@ -374,11 +314,11 @@ const Login = () => {
               margin-top: 1.5rem;
             }
             .btn-primary:hover:not(:disabled) {
-              background: #1557b0;
-              box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+              background: #e88b00;
+              box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
             }
             .btn-primary:active:not(:disabled) {
-              background: #174ea6;
+              background: #cc7a00;
             }
             .btn-primary:disabled {
               opacity: 0.6;
