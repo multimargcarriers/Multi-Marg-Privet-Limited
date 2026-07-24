@@ -16,6 +16,7 @@ const {
   v4: uuidv4
 } = require("uuid");
 const bcrypt = require("bcryptjs");
+const defaultAssets = require("../config/defaultAssets");
 
 // Initialize mock users if needed
 
@@ -55,6 +56,9 @@ exports.postRoot_2 = async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
+  const randomAvatar = defaultAssets.DEFAULT_AVATARS[Math.floor(Math.random() * defaultAssets.DEFAULT_AVATARS.length)] || null;
+  const randomBanner = defaultAssets.DEFAULT_BANNERS[Math.floor(Math.random() * defaultAssets.DEFAULT_BANNERS.length)] || null;
+
   const newUser = {
     id: uuidv4(),
     name,
@@ -62,6 +66,8 @@ exports.postRoot_2 = async (req, res) => {
     password: hashedPassword,
     role,
     permissions: permissions || [],
+    photo: randomAvatar,
+    banner: randomBanner,
     createdAt: new Date().toISOString()
   };
   const snapshot = await db.collection("users").where("email", "==", email).get();

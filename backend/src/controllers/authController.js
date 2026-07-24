@@ -99,20 +99,39 @@ exports.put_profile_2 = async (req, res) => {
     newId
   } = req.body;
   let photoUrl = undefined;
-  if (req.file) {
-    try {
-      const uploadResult = await uploadFile(req.file.path, {
-        folder: "avatars"
-      });
-      if (uploadResult.success) {
-        photoUrl = uploadResult.url;
-      } else {
-        // Fallback to local storage if Cloudinary is disabled or fails
-        photoUrl = `/uploads/avatars/${req.file.filename}`;
+  let bannerUrl = undefined;
+  
+  if (req.files) {
+    if (req.files.photo && req.files.photo.length > 0) {
+      try {
+        const uploadResult = await uploadFile(req.files.photo[0].path, {
+          folder: "avatars"
+        });
+        if (uploadResult.success) {
+          photoUrl = uploadResult.url;
+        } else {
+          photoUrl = `/uploads/avatars/${req.files.photo[0].filename}`;
+        }
+      } catch (error) {
+        console.error("Cloudinary avatar upload failed:", error);
+        photoUrl = `/uploads/avatars/${req.files.photo[0].filename}`;
       }
-    } catch (error) {
-      console.error("Cloudinary upload failed:", error);
-      photoUrl = `/uploads/avatars/${req.file.filename}`;
+    }
+    
+    if (req.files.banner && req.files.banner.length > 0) {
+      try {
+        const uploadResult = await uploadFile(req.files.banner[0].path, {
+          folder: "banners"
+        });
+        if (uploadResult.success) {
+          bannerUrl = uploadResult.url;
+        } else {
+          bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
+        }
+      } catch (error) {
+        console.error("Cloudinary banner upload failed:", error);
+        bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
+      }
     }
   }
   const updates = {};
@@ -123,6 +142,7 @@ exports.put_profile_2 = async (req, res) => {
     updates.password = await bcrypt.hash(password, salt);
   }
   if (photoUrl) updates.photo = photoUrl;
+  if (bannerUrl) updates.banner = bannerUrl;
   if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
     return error(res, {
       message: "No fields to update",

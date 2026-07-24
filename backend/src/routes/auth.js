@@ -53,7 +53,7 @@ router.post(
 router.put(
   "/profile",
   authenticateToken,
-  createUploadMiddleware("avatars").single("photo"),
+  createUploadMiddleware("avatars").fields([{ name: "photo", maxCount: 1 }, { name: "banner", maxCount: 1 }]),
   handleMulterError,
   asyncHandler(put_profile_2
 

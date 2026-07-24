@@ -14,10 +14,13 @@ const Profile = () => {
   const [password, setPassword] = useState('');
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(user?.photo || null);
+  const [banner, setBanner] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(user?.banner || null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
   const fileInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
 
   const getAvatarUrl = () => {
     if (photoPreview) {
@@ -27,7 +30,16 @@ const Profile = () => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0078D4&color=fff&size=150`;
   };
 
+  const getBannerUrl = () => {
+    if (bannerPreview) {
+      if (bannerPreview.startsWith('http') || bannerPreview.startsWith('blob')) return bannerPreview;
+      return `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${bannerPreview}`;
+    }
+    return null;
+  };
+
   const handlePhotoClick = () => fileInputRef.current.click();
+  const handleBannerClick = () => bannerInputRef.current.click();
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -38,6 +50,18 @@ const Profile = () => {
       }
       setPhoto(file);
       setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        addToast("Banner image must be less than 10MB", "error");
+        return;
+      }
+      setBanner(file);
+      setBannerPreview(URL.createObjectURL(file));
     }
   };
 
@@ -52,6 +76,7 @@ const Profile = () => {
       if (newId !== user.id) formData.append('newId', newId);
       if (password) formData.append('password', password);
       if (photo) formData.append('photo', photo);
+      if (banner) formData.append('banner', banner);
 
       let hasUpdates = false;
       for (let pair of formData.entries()) {
@@ -100,10 +125,20 @@ const Profile = () => {
     <div className="fade-in" style={{ backgroundColor: 'var(--bg-color)', minHeight: 'calc(100vh - 60px)' }}>
       
       {/* Microsoft-style Hero Banner */}
-      <div style={{ height: '220px', background: 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
+      <div style={{ height: '220px', background: getBannerUrl() ? `url(${getBannerUrl()}) center/cover no-repeat` : 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', height: '100%', position: 'relative' }}>
-          {/* Decorative Elements */}
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>
+          {/* Decorative Elements (only if no banner image) */}
+          {!getBannerUrl() && <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>}
+          
+          <button 
+            onClick={handleBannerClick}
+            style={{ position: 'absolute', right: '2rem', top: '2rem', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+          >
+            <Camera size={16} /> Edit banner
+          </button>
+          <input type="file" ref={bannerInputRef} onChange={handleBannerChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
         </div>
       </div>
 
