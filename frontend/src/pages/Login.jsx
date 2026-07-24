@@ -21,6 +21,20 @@ const Login = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
+
+  // Parallax Ref for Interactive 3D Models
+  const parallaxRef = React.useRef(null);
+  
+  const handleMouseMove = (e) => {
+    if (!parallaxRef.current) return;
+    const { clientX, clientY } = e;
+    // Calculate movement relative to center of screen
+    const x = (clientX / window.innerWidth - 0.5) * 40; // max 20px movement
+    const y = (clientY / window.innerHeight - 0.5) * 40;
+    
+    parallaxRef.current.style.setProperty('--px', `${x}px`);
+    parallaxRef.current.style.setProperty('--py', `${y}px`);
+  };
   
   // Check for active OTP session on mount
   React.useEffect(() => {
@@ -248,54 +262,56 @@ const Login = () => {
       </div>
 
       {/* --- RIGHT SIDE: 40% LOGIN FORM (Pristine White Corporate) --- */}
-      <div style={{
-        flex: '1',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        background: '#ffffff',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <div 
+        style={{
+          flex: '1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          background: '#ffffff',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onMouseMove={handleMouseMove}
+        ref={parallaxRef}
+      >
         
-        {/* 3D Decorator Models */}
+        {/* 3D Decorator Models with Mouse Parallax */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-          {/* Drone - Top Right */}
-          <img src="/3d-drone.png" alt="Delivery Drone" style={{
-            position: 'absolute',
-            top: '-5%',
-            right: '-10%',
-            width: '400px',
-            opacity: 0.85,
-            mixBlendMode: 'darken',
-            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))',
-            animation: 'droneFloat 6s ease-in-out infinite'
-          }} />
           
-          {/* Truck - Bottom Left */}
-          <img src="/3d-truck.png" alt="Logistics Truck" style={{
-            position: 'absolute',
-            bottom: '-5%',
-            left: '-15%',
-            width: '450px',
-            opacity: 0.9,
-            mixBlendMode: 'darken',
-            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))',
-            animation: 'truckDrive 8s ease-in-out infinite'
-          }} />
+          {/* Drone - Top Right (Moves inverse to mouse) */}
+          <div style={{ position: 'absolute', top: '-5%', right: '-10%', transform: 'translate(calc(var(--px, 0px) * -1.5), calc(var(--py, 0px) * -1.5))', transition: 'transform 0.1s ease-out' }}>
+            <img src="/3d-drone.png" alt="Delivery Drone" style={{
+              width: '400px',
+              opacity: 0.85,
+              mixBlendMode: 'darken',
+              filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))',
+              animation: 'droneFloat 6s ease-in-out infinite'
+            }} />
+          </div>
+          
+          {/* Truck - Bottom Left (Moves with mouse) */}
+          <div style={{ position: 'absolute', bottom: '-5%', left: '-15%', transform: 'translate(var(--px, 0px), var(--py, 0px))', transition: 'transform 0.1s ease-out' }}>
+            <img src="/3d-truck.png" alt="Logistics Truck" style={{
+              width: '450px',
+              opacity: 0.9,
+              mixBlendMode: 'darken',
+              filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))',
+              animation: 'truckDrive 8s ease-in-out infinite'
+            }} />
+          </div>
 
-          {/* Package - Bottom Right (Smaller) */}
-          <img src="/3d-package.png" alt="Premium Package" style={{
-            position: 'absolute',
-            bottom: '10%',
-            right: '5%',
-            width: '200px',
-            opacity: 0.8,
-            mixBlendMode: 'darken',
-            filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))',
-            animation: 'packageFloat 7s ease-in-out infinite'
-          }} />
+          {/* Package - Bottom Right (Moves slower) */}
+          <div style={{ position: 'absolute', bottom: '10%', right: '5%', transform: 'translate(calc(var(--px, 0px) * 0.5), calc(var(--py, 0px) * 0.5))', transition: 'transform 0.1s ease-out' }}>
+            <img src="/3d-package.png" alt="Premium Package" style={{
+              width: '200px',
+              opacity: 0.8,
+              mixBlendMode: 'darken',
+              filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))',
+              animation: 'packageFloat 7s ease-in-out infinite'
+            }} />
+          </div>
         </div>
 
         <div className="login-form-container" style={{ width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
