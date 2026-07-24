@@ -15,8 +15,9 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async ({ to, subject, htmlContent }) => {
   try {
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'praveen.pr105@gmail.com';
     const info = await transporter.sendMail({
-      from: '"Multimarg Carriers" <noreply@multimargcarriers.co.in>',
+      from: `"Multimarg Carriers" <${senderEmail}>`,
       to: to,
       subject: subject,
       html: htmlContent
