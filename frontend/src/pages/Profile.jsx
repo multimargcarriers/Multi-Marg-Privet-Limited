@@ -1,7 +1,7 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Mail, Shield, Save, Key, Hash } from 'lucide-react';
+import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut } from 'lucide-react';
 import axios from 'axios';
 
 const Profile = () => {
@@ -15,6 +15,7 @@ const Profile = () => {
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(user?.photo || null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('personal');
   
   const fileInputRef = useRef(null);
 
@@ -104,8 +105,48 @@ const Profile = () => {
         </h1>
       </div>
 
-      <div className="glass-panel" style={{ padding: '2.5rem', borderRadius: '16px', boxShadow: 'var(--shadow-lg)' }}>
-        <form onSubmit={handleSubmit}>
+      <div className="glass-panel" style={{ display: 'flex', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', minHeight: '600px' }}>
+        
+        {/* Profile Sidebar */}
+        <div style={{ width: '250px', backgroundColor: 'rgba(0,0,0,0.02)', borderRight: '1px solid var(--border-color)', padding: '1.5rem 0' }}>
+          <div style={{ padding: '0 1.5rem', marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Settings</div>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div 
+              onClick={() => setActiveTab('personal')}
+              style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderLeft: activeTab === 'personal' ? '3px solid var(--primary-color)' : '3px solid transparent', backgroundColor: activeTab === 'personal' ? 'var(--bg-color)' : 'transparent', color: activeTab === 'personal' ? 'var(--primary-color)' : 'var(--text-dark)', fontWeight: activeTab === 'personal' ? 600 : 500, transition: 'var(--transition-fast)' }}
+            >
+              <User size={18} /> Personal Info
+            </div>
+            <div 
+              onClick={() => setActiveTab('security')}
+              style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderLeft: activeTab === 'security' ? '3px solid var(--primary-color)' : '3px solid transparent', backgroundColor: activeTab === 'security' ? 'var(--bg-color)' : 'transparent', color: activeTab === 'security' ? 'var(--primary-color)' : 'var(--text-dark)', fontWeight: activeTab === 'security' ? 600 : 500, transition: 'var(--transition-fast)' }}
+            >
+              <Lock size={18} /> Security
+            </div>
+            <div 
+              onClick={() => setActiveTab('notifications')}
+              style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderLeft: activeTab === 'notifications' ? '3px solid var(--primary-color)' : '3px solid transparent', backgroundColor: activeTab === 'notifications' ? 'var(--bg-color)' : 'transparent', color: activeTab === 'notifications' ? 'var(--primary-color)' : 'var(--text-dark)', fontWeight: activeTab === 'notifications' ? 600 : 500, transition: 'var(--transition-fast)' }}
+            >
+              <Bell size={18} /> Notifications
+            </div>
+            <div 
+              onClick={() => setActiveTab('activity')}
+              style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderLeft: activeTab === 'activity' ? '3px solid var(--primary-color)' : '3px solid transparent', backgroundColor: activeTab === 'activity' ? 'var(--bg-color)' : 'transparent', color: activeTab === 'activity' ? 'var(--primary-color)' : 'var(--text-dark)', fontWeight: activeTab === 'activity' ? 600 : 500, transition: 'var(--transition-fast)' }}
+            >
+              <Activity size={18} /> Activity Log
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div style={{ flex: 1, padding: '2.5rem' }}>
+          
+          {activeTab === 'personal' && (
+            <form onSubmit={handleSubmit} className="fade-in">
+              <h2 style={{ fontSize: '1.25rem', color: 'var(--text-dark)', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Personal Information</h2>
           
           {/* Avatar Section */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
@@ -233,51 +274,110 @@ const Profile = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Key size={14} /> New Password
-              </label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                placeholder="Leave blank to keep current password"
-                style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.95rem', width: '100%', outline: 'none', transition: 'var(--transition)' }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-              />
             </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', marginTop: '2rem' }}>
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', 
+                  backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', 
+                  borderRadius: '8px', fontWeight: 600, fontSize: '0.95rem', cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.7 : 1, boxShadow: 'var(--shadow-md)', transition: 'var(--transition)'
+                }}
+              >
+                {isLoading ? 'Saving...' : <><Save size={18} /> Save Changes</>}
+              </button>
+            </div>
+          </form>
+          )}
 
-          </div>
+          {activeTab === 'security' && (
+            <div className="fade-in">
+              <h2 style={{ fontSize: '1.25rem', color: 'var(--text-dark)', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Security Settings</h2>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-dark)' }}>Change Password</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)' }}>Current Password</label>
+                    <input type="password" placeholder="Enter current password" style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)' }}>New Password</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter new password" style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)' }}>Confirm New Password</label>
+                    <input type="password" placeholder="Confirm new password" style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.95rem', outline: 'none' }} />
+                  </div>
+                  <button onClick={handleSubmit} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginTop: '1rem' }}>Update Password</button>
+                </div>
+              </div>
+              
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+                <h4 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-dark)' }}>Active Sessions</h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', backgroundColor: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Windows PC - Chrome</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Mumbai, India • Current Session</div>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', backgroundColor: '#ecfdf5', color: '#10b981', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>Active Now</span>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                padding: '0.75rem 1.5rem', 
-                backgroundColor: 'var(--primary-color)', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: 600, 
-                fontSize: '0.95rem', 
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                opacity: isLoading ? 0.7 : 1,
-                boxShadow: 'var(--shadow-md)',
-                transition: 'var(--transition)'
-              }}
-              onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = 'var(--primary-hover)' }}
-              onMouseLeave={(e) => { if (!isLoading) e.currentTarget.style.backgroundColor = 'var(--primary-color)' }}
-            >
-              {isLoading ? 'Saving...' : <><Save size={18} /> Save Changes</>}
-            </button>
-          </div>
+          {activeTab === 'notifications' && (
+            <div className="fade-in">
+              <h2 style={{ fontSize: '1.25rem', color: 'var(--text-dark)', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Notification Preferences</h2>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {[
+                  { title: "Email Notifications", desc: "Receive daily summary reports and billing updates via email." },
+                  { title: "Push Notifications", desc: "Get real-time browser alerts when a booking is created or assigned." },
+                  { title: "SMS Alerts", desc: "Receive text messages for critical dispatches or emergency alerts." }
+                ].map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{item.desc}</div>
+                    </div>
+                    <label className="toggle-switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                      <input type="checkbox" defaultChecked={idx < 2} style={{ opacity: 0, width: 0, height: 0 }} />
+                      <span className="slider round" style={{ position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: idx < 2 ? 'var(--primary-color)' : '#ccc', transition: '.4s', borderRadius: '24px' }}></span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'activity' && (
+            <div className="fade-in">
+              <h2 style={{ fontSize: '1.25rem', color: 'var(--text-dark)', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Activity Log</h2>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {[
+                  { action: "Updated Profile", date: "Today at 10:45 AM", ip: "192.168.1.45" },
+                  { action: "Logged In", date: "Today at 09:00 AM", ip: "192.168.1.45" },
+                  { action: "Created LR #84920", date: "Yesterday at 04:30 PM", ip: "192.168.1.12" },
+                  { action: "Logged In", date: "Yesterday at 08:50 AM", ip: "192.168.1.12" }
+                ].map((item, idx) => (
+                  <div key={idx} style={{ padding: '1rem', backgroundColor: 'var(--bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.action}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.date}</div>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontFamily: 'monospace' }}>IP: {item.ip}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-        </form>
+        </div>
       </div>
     </div>
   );

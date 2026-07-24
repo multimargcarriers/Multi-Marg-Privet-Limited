@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { Bell, Menu, Plus, AlertCircle, Search } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Bell, Menu, Plus, AlertCircle, Search, User, Settings, LogOut } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import QuickAddModal from './QuickAddModal';
@@ -15,7 +15,10 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
   const userRole = user?.role || 'Admin';
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   // QuickAddModal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -27,6 +30,9 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -163,19 +169,85 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
         </div>
 
         {/* User Profile */}
-        <NavLink to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', cursor: 'pointer' }}>
-          <div style={{ textAlign: 'right', display: window.innerWidth > 768 ? 'block' : 'none' }}>
-            <h6 style={{ fontSize: '0.85rem', marginBottom: '0', fontWeight: 600, color: '#ffffff' }}>{userName}</h6>
-            <p style={{ margin: '0', fontSize: '0.75rem', color: '#9ba7b6' }}>{userRole}</p>
+        <div style={{ position: 'relative' }} ref={profileDropdownRef}>
+          <div 
+            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.25rem', borderRadius: '8px', transition: 'background 0.2s' }}
+            onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <div style={{ textAlign: 'right', display: window.innerWidth > 768 ? 'block' : 'none' }}>
+              <h6 style={{ fontSize: '0.85rem', marginBottom: '0', fontWeight: 600, color: '#ffffff' }}>{userName}</h6>
+              <p style={{ margin: '0', fontSize: '0.75rem', color: '#9ba7b6' }}>{userRole}</p>
+            </div>
+            <img 
+              src={user?.photo && (user.photo.startsWith('http') || user.photo.startsWith('blob')) ? user.photo : (user?.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`)} 
+              alt="User" 
+              className="avatar" 
+              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} 
+            />
           </div>
-          <img 
-            src={user?.photo && (user.photo.startsWith('http') || user.photo.startsWith('blob')) ? user.photo : (user?.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`)} 
-            alt="User" 
-            className="avatar" 
-            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} 
-          />
-        </NavLink>
-      </div>
+          
+          {profileDropdownOpen && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: '10px',
+              width: '220px', background: 'var(--panel-solid-bg)', borderRadius: '12px',
+              boxShadow: 'var(--shadow-lg)',
+              border: '1px solid var(--border-color)', color: 'var(--text-dark)', zIndex: 1000,
+              overflow: 'hidden'
+            }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <img 
+                  src={user?.photo && (user.photo.startsWith('http') || user.photo.startsWith('blob')) ? user.photo : (user?.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`)} 
+                  alt="User" 
+                  style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
+                />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{userName}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.email || 'admin@multimarg.com'}</div>
+                </div>
+              </div>
+              
+              <div style={{ padding: '0.5rem' }}>
+                <div 
+                  onClick={() => { setProfileDropdownOpen(false); navigate('/profile'); }}
+                  style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-dark)', transition: 'all 0.2s' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'}
+                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <User size={16} color="var(--text-muted)" /> My Profile
+                </div>
+                
+                {(!user || hasPermission('superadmin')) && (
+                  <div 
+                    onClick={() => { setProfileDropdownOpen(false); navigate('/settings'); }}
+                    style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.9rem', color: 'var(--text-dark)', transition: 'all 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Settings size={16} color="var(--text-muted)" /> System Settings
+                  </div>
+                )}
+                
+                <div style={{ margin: '0.5rem 0', height: '1px', background: 'var(--border-color)' }}></div>
+                
+                <div 
+                  onClick={() => {
+                    setProfileDropdownOpen(false);
+                    // assuming logout is in AuthContext or just reload
+                    localStorage.removeItem('token');
+                    window.location.href = '/';
+                  }}
+                  style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', borderRadius: '6px', fontSize: '0.9rem', color: '#ef4444', transition: 'all 0.2s' }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#dc2626'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ef4444'; }}
+                >
+                  <LogOut size={16} /> Logout
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
       <QuickAddModal 
         isOpen={modalOpen} 
