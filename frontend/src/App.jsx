@@ -47,6 +47,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
 import Profile from "./pages/Profile";
+import IDCard from "./pages/IDCard";
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/id-card" element={<IDCard />} />
             </Route>
 
             {/* IAM - SuperAdmin Only */}

@@ -24,7 +24,8 @@ import {
   Shield,
   Activity,
   TrendingUp,
-  Search
+  Search,
+  IdCard
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
@@ -44,6 +45,12 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       name: "Dashboard",
       path: "/dashboard",
       icon: <LayoutDashboard size={20} />,
+      permission: null // Available to all logged-in users
+    },
+    {
+      name: "ID Card",
+      path: "/id-card",
+      icon: <IdCard size={20} />,
       permission: null // Available to all logged-in users
     },
     {

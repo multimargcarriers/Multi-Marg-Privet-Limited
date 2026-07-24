@@ -232,7 +232,6 @@ const Profile = () => {
 
   const tabs = [
     { id: 'overview', icon: LayoutGrid, label: 'Overview', color: '#0078D4' },
-    { id: 'idcard', icon: IdCard, label: 'ID Card', color: '#E67E22' },
     { id: 'personal', icon: User, label: 'Your info', color: '#107C41' },
     { id: 'security', icon: ShieldCheck, label: 'Security', color: '#D83B01' },
     { id: 'devices', icon: Monitor, label: 'Devices', color: '#5C2D91' },
@@ -549,103 +548,6 @@ const Profile = () => {
               </div>
             </div>
           )}
-
-          {activeTab === 'idcard' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start' }}>
-              <div>
-                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Employee ID Card</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Generate and download your official company ID card.</p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start' }}>
-                {/* ID CARD CONTAINER */}
-                <div 
-                  id="employee-id-card"
-                  style={{
-                    width: '320px',
-                    height: '480px',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                    border: '1px solid #e2e8f0',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-                  }}
-                >
-                  {/* Top Header */}
-                  <div style={{ width: '100%', background: 'linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%)', height: '90px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '1.1rem', letterSpacing: '1px', paddingTop: '15px' }}>
-                    MULTI MARG CARRIERS
-                  </div>
-                  
-                  {/* Photo Container */}
-                  <div style={{ marginTop: '-45px', background: 'white', padding: '6px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 5 }}>
-                    <img src={getAvatarUrl()} alt="Profile" style={{ width: '110px', height: '110px', borderRadius: '50%', objectFit: 'cover' }} crossOrigin="anonymous" />
-                  </div>
-
-                  {/* Details */}
-                  <div style={{ textAlign: 'center', marginTop: '1.25rem', width: '100%', padding: '0 1.5rem' }}>
-                    <h2 style={{ margin: '0 0 0.25rem 0', color: '#0f172a', fontSize: '1.3rem', fontWeight: 700, textTransform: 'uppercase' }}>{user.name}</h2>
-                    <p style={{ margin: '0 0 1.5rem 0', color: '#3b82f6', fontSize: '0.95rem', fontWeight: 600 }}>{user.role || 'Employee'}</p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', width: '100%' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
-                        <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>EMP ID</span>
-                        <span style={{ color: '#0f172a', fontSize: '0.9rem', fontWeight: 700 }}>{user.employeeId || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
-                        <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>BLOOD G.</span>
-                        <span style={{ color: '#0f172a', fontSize: '0.9rem', fontWeight: 700 }}>O+</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '0.25rem' }}>
-                        <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>EMAIL</span>
-                        <span style={{ color: '#0f172a', fontSize: '0.8rem', fontWeight: 600 }}>{user.email}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div style={{ marginTop: 'auto', width: '100%', background: '#0f172a', color: '#94a3b8', padding: '0.75rem', textAlign: 'center', fontSize: '0.7rem', borderTop: '4px solid #3b82f6' }}>
-                    www.multimargcarriers.co.in <br/>
-                    If found, please return to HQ
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center' }}>
-                  <div style={{ background: 'var(--surface-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', maxWidth: '350px' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-dark)', fontSize: '1.1rem' }}>Print Instructions</h3>
-                    <p style={{ margin: '0 0 1rem 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>Download your high-resolution ID card. It is optimized for standard ID card printers (CR80 size). Use it as your official company identifier.</p>
-                    <button 
-                      onClick={async (e) => {
-                        const originalText = e.currentTarget.innerHTML;
-                        e.currentTarget.innerHTML = 'Generating...';
-                        try {
-                          const el = document.getElementById('employee-id-card');
-                          const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
-                          const link = document.createElement('a');
-                          link.download = `ID_Card_${user.name.replace(/\s+/g, '_')}.png`;
-                          link.href = canvas.toDataURL('image/png');
-                          link.click();
-                        } catch (err) {
-                          addToast("Failed to generate ID card", "error");
-                        }
-                        e.currentTarget.innerHTML = originalText;
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.8rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)', transition: 'background 0.2s' }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                    >
-                      <Download size={20} /> Download High-Res PNG
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
       
