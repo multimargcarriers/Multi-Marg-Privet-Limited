@@ -1,7 +1,7 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Github, Slack } from 'lucide-react';
+import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 
 const Profile = () => {
@@ -317,7 +317,7 @@ const Profile = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Slack size={20} color="#4A154B" /></div>
+                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MessageSquare size={20} color="#4A154B" /></div>
                         <div>
                           <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>Slack Integration</h4>
                           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Send dispatch notifications to your team's Slack channel.</p>
@@ -328,10 +328,10 @@ const Profile = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Github size={20} color="#24292e" /></div>
+                        <div style={{ width: '40px', height: '40px', background: '#F1F5F9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Code size={20} color="#24292e" /></div>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>GitHub Single Sign-On</h4>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sign in to your dashboard securely using your GitHub account.</p>
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-dark)' }}>Developer API</h4>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate API keys to interact securely with our endpoints.</p>
                         </div>
                       </div>
                       <button style={{ padding: '0.4rem 1rem', background: 'transparent', color: 'var(--text-dark)', border: '1px solid var(--border-color)', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Connect</button>
