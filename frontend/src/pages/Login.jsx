@@ -403,24 +403,30 @@ const Login = () => {
               <div className="input-group">
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
+                  id="login-email"
+                  name="email"
                   type="email" 
                   className="input-field"
                   placeholder="Email or phone" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
+                  autoComplete="username"
                 />
               </div>
 
               <div className="input-group" style={{ marginBottom: '0.75rem' }}>
                 <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
+                  id="login-password"
+                  name="password"
                   type="password" 
                   className="input-field"
                   placeholder="Enter your password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
+                  autoComplete="current-password"
                 />
               </div>
 
@@ -447,12 +453,15 @@ const Login = () => {
               <div className="input-group" style={{ marginBottom: '2rem' }}>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
+                  id="forgot-email"
+                  name="email"
                   type="email" 
                   className="input-field"
                   placeholder="Email or phone" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
+                  autoComplete="username"
                 />
               </div>
               
@@ -469,6 +478,8 @@ const Login = () => {
               <div className="input-group">
                 <div className="icon-wrapper"><Key size={18} strokeWidth={2} /></div>
                 <input 
+                  id="otp-code"
+                  name="otp"
                   type="text" 
                   className="input-field"
                   style={{ fontSize: '1.25rem', letterSpacing: '4px', textAlign: 'center', paddingLeft: '1rem', fontWeight: 500 }}
@@ -477,6 +488,7 @@ const Login = () => {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   required 
+                  autoComplete="one-time-code"
                 />
               </div>
 
@@ -503,6 +515,8 @@ const Login = () => {
               <div className="input-group">
                 <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
+                  id="new-password"
+                  name="newPassword"
                   type="password" 
                   className="input-field"
                   placeholder="Create password" 
@@ -510,12 +524,15 @@ const Login = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   required 
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
               
               <div className="input-group" style={{ marginBottom: '2rem' }}>
                 <div className="icon-wrapper"><CheckCircle size={18} strokeWidth={2} /></div>
                 <input 
+                  id="confirm-password"
+                  name="confirmPassword"
                   type="password" 
                   className="input-field"
                   placeholder="Confirm password" 
@@ -523,6 +540,7 @@ const Login = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required 
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
               
