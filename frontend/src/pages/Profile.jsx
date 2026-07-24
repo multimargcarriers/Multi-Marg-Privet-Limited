@@ -548,6 +548,7 @@ const Profile = () => {
                 </div>
               </div>
             </div>
+          )}
           {activeTab === 'idcard' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start' }}>
               <div>
@@ -660,7 +661,7 @@ const Profile = () => {
 
                   {/* QR Code */}
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem', background: '#f8fafc', margin: '0 1.5rem', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                    <img src={\`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=EMP:\${user.employeeId || user.id}&color=0f172a\`} alt="QR Code" style={{ width: '100px', height: '100px' }} crossOrigin="anonymous" />
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=EMP:${user.employeeId || user.id}&color=0f172a`} alt="QR Code" style={{ width: '100px', height: '100px' }} crossOrigin="anonymous" />
                   </div>
                   
                   {/* Terms */}
@@ -695,7 +696,7 @@ const Profile = () => {
                       const el = document.getElementById('id-card-front');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = \`MMC_ID_Front_\${user.name.replace(/\\s+/g, '_')}.png\`;
+                      link.download = `MMC_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (err) {
@@ -717,7 +718,7 @@ const Profile = () => {
                       const el = document.getElementById('id-card-back');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = \`MMC_ID_Back_\${user.name.replace(/\\s+/g, '_')}.png\`;
+                      link.download = `MMC_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (err) {
