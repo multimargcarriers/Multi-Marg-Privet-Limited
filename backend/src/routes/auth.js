@@ -6,7 +6,7 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { generateToken, authenticateToken } = require("../middleware/auth");
 const { body, validationResult } = require("express-validator");
 const { createUploadMiddleware, handleMulterError } = require("../middleware/upload");
-const { uploadFile } = require("../config/cloudinary");const { post_login_1, put_profile_2, get_default_assets } = require('../controllers/authController');
+const { uploadFile } = require("../config/cloudinary");const { post_login_1, put_profile_2, get_default_assets, forgot_password, verify_otp, reset_password } = require('../controllers/authController');
 
 router.post(
   "/login",
@@ -134,5 +134,10 @@ router.put(
 
   )
 );
+
+
+router.post('/forgot-password', [body('email').isEmail().withMessage('Valid email is required')], asyncHandler(forgot_password));
+router.post('/verify-otp', asyncHandler(verify_otp));
+router.post('/reset-password', asyncHandler(reset_password));
 
 module.exports = router;

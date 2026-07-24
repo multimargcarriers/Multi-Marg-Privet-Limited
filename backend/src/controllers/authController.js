@@ -67,7 +67,7 @@ exports.post_login_1 = async (req, res) => {
   const storedPassword = userData.password;
   let passwordMatch = false;
 
-  if (storedPassword && storedPassword.startsWith("$2a$")) {
+  if (storedPassword && (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$"))) {
     passwordMatch = await bcrypt.compare(password, storedPassword);
   } else if (storedPassword === password) {
     passwordMatch = true;
@@ -215,3 +215,134 @@ exports.put_profile_2 = async (req, res) => {
   });
 };
 
+
+
+const { sendOtpEmail } = require('../config/mail');
+const { v4: uuidv4 } = require('uuid');
+
+exports.forgot_password = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+  try {
+    const { db } = require('../config/database');
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef.where('email', '==', email).get();
+    
+    if (snapshot.empty) {
+      // For security, we don't reveal if the email exists or not
+      return res.status(200).json({ success: true, message: 'If that email exists, an OTP has been sent.' });
+    }
+    
+    let userDoc = null;
+    let userData = null;
+    snapshot.forEach(doc => { userDoc = doc; userData = doc.data(); });
+    
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    await db.collection('otps').doc(email).set({
+      otp,
+      expiresAt,
+      verified: false
+    });
+    
+    // Send email
+    try {
+      await sendOtpEmail(email, otp, userData.name || 'User');
+    } catch (mailErr) {
+      console.error('[Mail Warning] Could not send email. (OTP: ' + otp + ')', mailErr.message);
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ success: false, message: 'Failed to send OTP email' });
+      }
+    }
+    
+    return res.status(200).json({ success: true, message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error('[Forgot Password Error]', err);
+    return res.status(500).json({ success: false, message: 'Failed to process request' });
+  }
+};
+
+exports.verify_otp = async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP required' });
+  
+  try {
+    const { db } = require('../config/database');
+    const otpDoc = await db.collection('otps').doc(email).get();
+    
+    if (!otpDoc.exists) return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    
+    const otpData = otpDoc.data();
+    
+    if (otpData.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Incorrect OTP' });
+    }
+    
+    if (new Date(otpData.expiresAt) < new Date()) {
+      await db.collection('otps').doc(email).delete();
+      return res.status(400).json({ success: false, message: 'OTP has expired' });
+    }
+    
+    const resetToken = uuidv4();
+    
+    await db.collection('otps').doc(email).update({
+      verified: true,
+      resetToken
+    });
+    
+    return res.status(200).json({ success: true, message: 'OTP verified', data: { resetToken } });
+  } catch (err) {
+    console.error('[Verify OTP Error]', err);
+    return res.status(500).json({ success: false, message: 'Failed to verify OTP' });
+  }
+};
+
+exports.reset_password = async (req, res) => {
+  const { email, resetToken, newPassword } = req.body;
+  
+  if (!email || !resetToken || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
+  
+  try {
+    const { db } = require('../config/database');
+    const otpDoc = await db.collection('otps').doc(email).get();
+    
+    if (!otpDoc.exists) return res.status(400).json({ success: false, message: 'Invalid request' });
+    
+    const otpData = otpDoc.data();
+    
+    if (!otpData.verified || otpData.resetToken !== resetToken) {
+      return res.status(401).json({ success: false, message: 'Unauthorized reset request' });
+    }
+    
+    if (new Date(otpData.expiresAt) < new Date()) {
+      await db.collection('otps').doc(email).delete();
+      return res.status(400).json({ success: false, message: 'Session expired, please try again' });
+    }
+    
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef.where('email', '==', email).get();
+    
+    if (snapshot.empty) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    let userDoc = null;
+    snapshot.forEach(doc => { userDoc = doc; });
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    await usersRef.doc(userDoc.id).update({ password: hashedPassword });
+    
+    // Clean up OTP document
+    await db.collection('otps').doc(email).delete();
+    
+    return res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('[Reset Password Error]', err);
+    return res.status(500).json({ success: false, message: 'Failed to reset password' });
+  }
+};
