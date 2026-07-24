@@ -550,138 +550,126 @@ const Profile = () => {
             </div>
           )}
           {activeTab === 'idcard' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start' }}>
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start', fontFamily: "'Inter', sans-serif" }}>
               <div>
-                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Corporate ID Card</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>View and download your official premium ID card.</p>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#000', margin: '0 0 0.5rem 0', letterSpacing: '-1px' }}>ID CARD</h1>
+                <p style={{ color: '#666', fontSize: '1rem', margin: 0, fontWeight: 500 }}>Modern corporate identification.</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '4rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start', justifyContent: 'center', background: 'url("https://www.transparenttextures.com/patterns/cubes.png"), linear-gradient(to right, #f8fafc, #f1f5f9)', padding: '3rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start', justifyContent: 'center', background: '#f5f5f5', padding: '3rem', borderRadius: '12px', border: '1px solid #e5e5e5' }}>
                 
                 {/* --- FRONT OF ID CARD --- */}
                 <div 
                   id="id-card-front"
                   style={{
-                    width: '340px',
-                    height: '540px', // Standard CR80 is ~2.125" x 3.375" (ratio 1:1.58). 340x540 is very close.
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                    borderRadius: '16px',
-                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+                    width: '320px',
+                    height: '500px',
+                    background: '#ffffff',
+                    border: '2px solid #000000',
+                    boxShadow: '8px 8px 0px #000000',
                     position: 'relative',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
-                    fontFamily: "'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                    fontFamily: "'Inter', sans-serif",
+                    boxSizing: 'border-box'
                   }}
                 >
-                  {/* Premium Gold Accents */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '6px', background: 'linear-gradient(90deg, #F5D76E 0%, #D4AF37 50%, #F5D76E 100%)', zIndex: 10 }}></div>
-                  
-                  {/* Abstract Background Elements */}
-                  <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '250px', height: '250px', border: '2px solid rgba(212, 175, 55, 0.1)', borderRadius: '50%', zIndex: 0 }}></div>
-                  <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '170px', height: '170px', border: '2px solid rgba(212, 175, 55, 0.15)', borderRadius: '50%', zIndex: 0 }}></div>
-                  
-                  <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '40%', background: 'linear-gradient(0deg, rgba(15,23,42,1) 0%, rgba(15,23,42,0) 100%)', zIndex: 1 }}></div>
-
-                  {/* Header */}
-                  <div style={{ padding: '2rem 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 2 }}>
+                  {/* Top Bar (Banana Yellow) */}
+                  <div style={{ width: '100%', padding: '1rem 1.5rem', background: '#fbbf24', borderBottom: '2px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2 }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '42px', objectFit: 'contain', marginBottom: '0.5rem', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }} crossOrigin="anonymous" />
-                      <h2 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#ffffff', letterSpacing: '2px', textTransform: 'uppercase' }}>MULTI MARG</h2>
-                      <p style={{ margin: 0, fontSize: '0.6rem', color: '#D4AF37', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Carriers Pvt Ltd</p>
-                    </div>
-                    {/* NFC / Smart Chip Icon */}
-                    <div style={{ width: '40px', height: '30px', background: 'linear-gradient(135deg, #F5D76E 0%, #D4AF37 100%)', borderRadius: '4px', opacity: 0.9, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.2)' }}>
-                      <div style={{ width: '32px', height: '22px', border: '1px solid rgba(0,0,0,0.2)', borderRadius: '2px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2px' }}>
-                         <div style={{ borderBottom: '1px solid rgba(0,0,0,0.1)', borderRight: '1px solid rgba(0,0,0,0.1)' }}></div>
-                         <div style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}></div>
-                         <div style={{ borderBottom: '1px solid rgba(0,0,0,0.1)', borderLeft: '1px solid rgba(0,0,0,0.1)' }}></div>
-                      </div>
+                      <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#000', letterSpacing: '-0.5px', textTransform: 'uppercase' }}>MULTI MARG</h2>
+                      <p style={{ margin: 0, fontSize: '0.65rem', color: '#000', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Logistics Core</p>
                     </div>
                   </div>
                   
                   {/* Photo Container */}
-                  <div style={{ padding: '0 1.5rem', display: 'flex', justifyContent: 'flex-start', marginTop: '0.5rem', zIndex: 2 }}>
-                    <div style={{ position: 'relative', width: '130px', height: '140px' }}>
-                      {/* Photo Frame */}
-                      <div style={{ position: 'absolute', inset: '-4px', background: 'linear-gradient(135deg, #D4AF37 0%, rgba(212,175,55,0.1) 100%)', borderRadius: '12px', zIndex: 0 }}></div>
-                      <img src={getAvatarUrl()} alt="Profile" style={{ position: 'relative', width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', zIndex: 1, boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }} crossOrigin="anonymous" />
+                  <div style={{ padding: '2rem 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ width: '120px', height: '120px', border: '3px solid #000', background: '#f5f5f5', overflow: 'hidden' }}>
+                      <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1) grayscale(0.2)' }} crossOrigin="anonymous" />
                     </div>
                   </div>
 
                   {/* Employee Details */}
-                  <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 2, marginTop: 'auto' }}>
+                  <div style={{ padding: '0 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 2 }}>
                     <div>
-                      <h2 style={{ margin: '0 0 0.2rem 0', color: '#ffffff', fontSize: '1.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{user.name}</h2>
-                      <p style={{ margin: 0, color: '#D4AF37', fontSize: '0.9rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{user.role || 'Employee'}</p>
+                      <h2 style={{ margin: '0 0 0.2rem 0', color: '#000', fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-1px', lineHeight: 1.1 }}>{user.name}</h2>
+                      <p style={{ margin: '0.2rem 0 1rem 0', color: '#666', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{user.role || 'CORE TEAM'}</p>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem', background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div>
-                        <p style={{ margin: '0 0 0.2rem 0', color: '#94a3b8', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Emp ID</p>
-                        <p style={{ margin: 0, color: '#ffffff', fontSize: '0.95rem', fontWeight: 700 }}>{user.employeeId || 'N/A'}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div style={{ display: 'flex', borderBottom: '2px solid #000', paddingBottom: '0.4rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>ID_NUM</span>
+                        <span style={{ color: '#000', fontSize: '1.1rem', fontWeight: 900, fontFamily: 'monospace' }}>{user.employeeId || 'N/A'}</span>
                       </div>
-                      <div>
-                        <p style={{ margin: '0 0 0.2rem 0', color: '#94a3b8', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Blood Grp</p>
-                        <p style={{ margin: 0, color: '#ef4444', fontSize: '0.95rem', fontWeight: 800 }}>O+</p>
+                      <div style={{ display: 'flex', borderBottom: '2px solid #000', paddingBottom: '0.4rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>BLOOD</span>
+                        <span style={{ color: '#000', fontSize: '1.1rem', fontWeight: 900, fontFamily: 'monospace' }}>O+</span>
                       </div>
                     </div>
                   </div>
 
+                  <div style={{ marginTop: 'auto', background: '#000', padding: '1rem', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '2px' }}>ACCESS: AUTHORIZED</span>
+                     <div style={{ width: '12px', height: '12px', background: '#fbbf24', borderRadius: '50%' }}></div>
+                  </div>
                 </div>
 
                 {/* --- BACK OF ID CARD --- */}
                 <div 
                   id="id-card-back"
                   style={{
-                    width: '340px',
-                    height: '540px',
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05)',
+                    width: '320px',
+                    height: '500px',
+                    background: '#000000',
+                    border: '2px solid #000000',
+                    boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
                     position: 'relative',
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
-                    fontFamily: "'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                    fontFamily: "'Inter', sans-serif",
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '6px', background: 'linear-gradient(90deg, #1e293b 0%, #0f172a 100%)' }}></div>
+                  <div style={{ padding: '1.5rem', background: '#fbbf24', borderBottom: '2px solid #000' }}>
+                     <h3 style={{ margin: 0, color: '#000', fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.5px' }}>IF FOUND</h3>
+                  </div>
 
                   {/* Return Info */}
-                  <div style={{ padding: '2.5rem 1.5rem 1.5rem 1.5rem', textAlign: 'center' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>If found, return to:</h3>
-                    <p style={{ margin: 0, color: '#334155', fontSize: '0.85rem', lineHeight: 1.6, fontWeight: 500 }}>
-                      <strong>Multi Marg Carriers Pvt. Ltd.</strong><br/>
+                  <div style={{ padding: '2rem 1.5rem 1rem 1.5rem' }}>
+                    <p style={{ margin: 0, color: '#fff', fontSize: '0.85rem', lineHeight: 1.6, fontWeight: 500 }}>
+                      Please return to:<br/><br/>
+                      <strong style={{ fontSize: '1.1rem', fontWeight: 800 }}>MULTI MARG CARRIERS</strong><br/>
                       Global Logistics Hub<br/>
-                      Mumbai, Maharashtra, India<br/>
-                      Ph: +91 98765 43210
+                      Mumbai, MH, India<br/>
+                      TEL: +91 98765 43210
                     </p>
                   </div>
 
                   {/* QR Code */}
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem', background: '#f8fafc', margin: '0 1.5rem', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=EMP:${user.employeeId || user.id}&color=0f172a`} alt="QR Code" style={{ width: '100px', height: '100px' }} crossOrigin="anonymous" />
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '0 1.5rem', margin: '1rem 0' }}>
+                    <div style={{ padding: '0.5rem', background: '#fff' }}>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=EMP:${user.employeeId || user.id}&color=000000`} alt="QR Code" style={{ width: '90px', height: '90px', display: 'block' }} crossOrigin="anonymous" />
+                    </div>
                   </div>
                   
                   {/* Terms */}
                   <div style={{ padding: '1.5rem', marginTop: 'auto' }}>
-                    <p style={{ margin: '0 0 1rem 0', color: '#64748b', fontSize: '0.7rem', lineHeight: 1.5, textAlign: 'justify' }}>
-                      This card remains the property of Multi Marg Carriers. It is strictly non-transferable and must be surrendered upon termination of employment. The use of this card is governed by company policies.
+                    <p style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.65rem', lineHeight: 1.5, fontWeight: 500 }}>
+                      This badge is strictly non-transferable property of Multi Marg Carriers.
                     </p>
                     
                     {/* Signatures */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '2rem' }}>
-                      <div style={{ width: '45%', borderTop: '1px solid #0f172a', paddingTop: '0.5rem', textAlign: 'center' }}>
-                        <span style={{ color: '#0f172a', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Holder Sign</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.5rem' }}>
+                      <div style={{ width: '45%', borderTop: '2px solid #333', paddingTop: '0.5rem' }}>
+                        <span style={{ color: '#fff', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>HOLDER</span>
                       </div>
-                      <div style={{ width: '45%', borderTop: '1px solid #0f172a', paddingTop: '0.5rem', textAlign: 'center' }}>
-                        <span style={{ color: '#0f172a', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Auth Sign</span>
+                      <div style={{ width: '45%', borderTop: '2px solid #333', paddingTop: '0.5rem' }}>
+                        <span style={{ color: '#fff', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>AUTH</span>
                       </div>
                     </div>
                   </div>
-                  
-                  <div style={{ height: '12px', background: 'linear-gradient(90deg, #F5D76E 0%, #D4AF37 100%)', width: '100%', marginTop: 'auto' }}></div>
                 </div>
 
               </div>
@@ -691,12 +679,12 @@ const Profile = () => {
                 <button 
                   onClick={async (e) => {
                     const originalText = e.currentTarget.innerHTML;
-                    e.currentTarget.innerHTML = 'Downloading Front...';
+                    e.currentTarget.innerHTML = 'PROCESSING...';
                     try {
                       const el = document.getElementById('id-card-front');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = `MMC_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
+                      link.download = `MMC_TECH_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (err) {
@@ -704,21 +692,21 @@ const Profile = () => {
                     }
                     e.currentTarget.innerHTML = originalText;
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 2rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15,23,42,0.3)', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  style={{ padding: '1rem 2rem', background: '#fbbf24', color: '#000', border: '2px solid #000', boxShadow: '4px 4px 0px #000', fontWeight: 900, fontSize: '0.9rem', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.1s' }}
+                  onMouseDown={(e) => { e.currentTarget.style.boxShadow = '0px 0px 0px #000'; e.currentTarget.style.transform = 'translate(4px, 4px)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.boxShadow = '4px 4px 0px #000'; e.currentTarget.style.transform = 'translate(0px, 0px)'; }}
                 >
-                  <Download size={20} /> Download Front
+                  Download Front
                 </button>
                 <button 
                   onClick={async (e) => {
                     const originalText = e.currentTarget.innerHTML;
-                    e.currentTarget.innerHTML = 'Downloading Back...';
+                    e.currentTarget.innerHTML = 'PROCESSING...';
                     try {
                       const el = document.getElementById('id-card-back');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = `MMC_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
+                      link.download = `MMC_TECH_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (err) {
@@ -726,11 +714,11 @@ const Profile = () => {
                     }
                     e.currentTarget.innerHTML = originalText;
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 2rem', background: 'white', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                  style={{ padding: '1rem 2rem', background: '#fff', color: '#000', border: '2px solid #000', boxShadow: '4px 4px 0px #000', fontWeight: 900, fontSize: '0.9rem', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.1s' }}
+                  onMouseDown={(e) => { e.currentTarget.style.boxShadow = '0px 0px 0px #000'; e.currentTarget.style.transform = 'translate(4px, 4px)'; }}
+                  onMouseUp={(e) => { e.currentTarget.style.boxShadow = '4px 4px 0px #000'; e.currentTarget.style.transform = 'translate(0px, 0px)'; }}
                 >
-                  <Download size={20} /> Download Back
+                  Download Back
                 </button>
               </div>
 
