@@ -193,6 +193,7 @@ const usersRoutes = require("./src/routes/users");
 const logsRoutes = require("./src/routes/logs");
 const analyticsRoutes = require("./src/routes/analytics");
 const searchRoutes = require("./src/routes/search");
+const settingsRoutes = require("./src/routes/settings");
 
 // ============================================================
 // Mount Routes
@@ -229,6 +230,7 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/purchase-report", purchaseReportRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/logs", logsRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // ============================================================
 // Health Check & Status

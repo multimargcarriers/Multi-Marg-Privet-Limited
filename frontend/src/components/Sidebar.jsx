@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { SettingsContext } from "../context/SettingsContext";
 import GlobalSearch from "./GlobalSearch";
 import {
   LayoutDashboard,
@@ -29,6 +30,7 @@ import {
 
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
+  const { globalSettings } = useContext(SettingsContext);
   const [isHovered, setIsHovered] = useState(false);
   const isExpanded = isOpen || isHovered;
 
@@ -172,6 +174,12 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         },
       ],
     },
+    {
+      name: "Settings & Integrations",
+      path: "/settings",
+      icon: <Settings size={20} />,
+      permission: "superadmin"
+    }
   ];
 
   return (
@@ -204,7 +212,16 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         </div>
 
         {menuItems
-          .filter(item => !item.permission || hasPermission(item.permission))
+          .filter(item => {
+            // First check user role permissions
+            if (item.permission && !hasPermission(item.permission)) return false;
+            // Second check global feature toggles for modules
+            if (item.permission && globalSettings?.modules) {
+               // E.g., if module 'operations' is false in settings, hide it
+               if (globalSettings.modules[item.permission] === false) return false;
+            }
+            return true;
+          })
           .map((item, index) => {
           if (item.isHeader) {
             return (

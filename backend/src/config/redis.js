@@ -216,4 +216,5 @@ module.exports = {
   getOrSet,
   getStatus,
   closeRedis,
+  getClient: () => client,
 };

@@ -91,13 +91,34 @@ const PrintLR = () => {
     
     const element = document.getElementById("bilty-content");
     
-    // Save original styles
-    const originalTransform = element.style.transform;
-    const originalPosition = element.style.position;
+    // We will clone it and append to body to avoid ANY mobile viewport CSS constraints.
+    const clone = element.cloneNode(true);
+    clone.style.transform = "none";
+    clone.style.position = "fixed"; // Fixed to avoid scrolling
+    clone.style.top = "0";
+    clone.style.left = "0";
+    clone.style.zIndex = "-9999";
+    clone.style.width = "800px";
+    clone.style.height = "1131px";
     
-    // Reset styles for html2canvas
-    element.style.transform = "none";
-    element.style.position = "relative";
+    // Create a wrapper to strictly contain the clone
+    const wrapper = document.createElement("div");
+    wrapper.className = "print-wrapper"; // Ensure fonts apply
+    wrapper.style.position = "fixed";
+    wrapper.style.top = "0";
+    wrapper.style.left = "-9999px"; // Hide it off-screen
+    wrapper.style.width = "800px";
+    wrapper.style.height = "1131px";
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    // Copy canvas data for QR Code (cloneNode doesn't copy canvas content)
+    const originalCanvases = element.getElementsByTagName("canvas");
+    const clonedCanvases = clone.getElementsByTagName("canvas");
+    for (let i = 0; i < originalCanvases.length; i++) {
+      const ctx = clonedCanvases[i].getContext("2d");
+      ctx.drawImage(originalCanvases[i], 0, 0);
+    }
 
     // Allow DOM to repaint
     setTimeout(() => {
@@ -108,6 +129,8 @@ const PrintLR = () => {
         html2canvas:  { 
           scale: 2, 
           useCORS: true, 
+          width: 800,
+          height: 1131,
           windowWidth: 800,
           scrollY: 0,
           scrollX: 0
@@ -115,16 +138,13 @@ const PrintLR = () => {
         jsPDF:        { unit: 'px', format: [800, 1131], orientation: 'portrait' }
       };
       
-      html2pdf().set(opt).from(element).save().then(() => {
-        // Restore original styles
-        element.style.transform = originalTransform;
-        element.style.position = originalPosition;
+      html2pdf().set(opt).from(clone).save().then(() => {
+        document.body.removeChild(wrapper);
       }).catch(err => {
         console.error("PDF generation failed:", err);
-        element.style.transform = originalTransform;
-        element.style.position = originalPosition;
+        document.body.removeChild(wrapper);
       });
-    }, 200);
+    }, 300);
   };
 
   return (
@@ -240,11 +260,12 @@ const PrintLR = () => {
         <div style={{ width: `${800 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
           <div id="bilty-content" className="print-container" style={{ 
             width: "800px", 
-            minHeight: "1131px", 
+            height: "1131px", 
             background: "white", 
             color: "#0f172a", 
             boxSizing: "border-box", 
             padding: "10px",
+            overflow: "hidden",
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             position: "absolute",
@@ -262,13 +283,13 @@ const PrintLR = () => {
           {/* Header Section */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.5rem", borderBottom: "2px solid #1e293b" }}>
             {/* Logo */}
-            <div style={{ width: "110px" }}>
+            <div style={{ width: "120px", flexShrink: 0 }}>
               <img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} />
             </div>
             
             {/* Company Details */}
-            <div style={{ textAlign: "center", flex: 1, padding: "0 15px" }}>
-              <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.5rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+            <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
+              <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.5rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
               <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
               <p style={{ margin: "2px 0 2px", fontSize: "0.75rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
               <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "4px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
@@ -284,11 +305,11 @@ const PrintLR = () => {
             </div>
             
             {/* QR Code & Tracking */}
-            <div style={{ width: "100px", textAlign: "center" }}>
-              <div style={{ padding: "4px", background: "white", border: "1px solid #cbd5e1", borderRadius: "4px", display: "inline-block" }}>
-                <QRCodeCanvas value={window.location.origin + '/tracking?lr=' + booking.id} size={80} style={{ display: "block" }} />
+            <div style={{ width: "110px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ padding: "4px", background: "white", border: "2px solid #1e293b", borderRadius: "6px", display: "inline-flex", justifyContent: "center", alignItems: "center", width: "80px", height: "80px" }}>
+                <QRCodeCanvas value={window.location.origin + '/tracking?lr=' + booking.id} size={70} style={{ display: "block" }} />
               </div>
-              <div style={{ fontSize: "0.75rem", fontWeight: "700", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
+              <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
             </div>
           </div>
 

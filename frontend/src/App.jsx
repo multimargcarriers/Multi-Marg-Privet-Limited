@@ -37,7 +37,9 @@ import UploadVouchers from "./pages/UploadVouchers";
 import IAM from "./pages/IAM";
 import SystemLogs from "./pages/SystemLogs";
 import Tracking from "./pages/Tracking";
+import Settings from "./pages/Settings";
 import { AuthProvider } from "./context/AuthContext";
+import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
 import { DialogProvider } from "./context/DialogContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -51,9 +53,10 @@ function App() {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <DialogProvider>
-            <NotificationProvider>
-              <Routes>
+          <SettingsProvider>
+            <DialogProvider>
+              <NotificationProvider>
+                <Routes>
           <Route path="/" element={<Login />} />
 
           {/* Protected Routes */}
@@ -67,6 +70,7 @@ function App() {
             <Route element={<ProtectedRoute requiredPermission="superadmin" />}>
               <Route path="/iam" element={<IAM />} />
               <Route path="/logs" element={<SystemLogs />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
 
             {/* Masters */}
@@ -130,9 +134,10 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            </NotificationProvider>
-          </DialogProvider>
+                </Routes>
+              </NotificationProvider>
+            </DialogProvider>
+          </SettingsProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
