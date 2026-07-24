@@ -391,33 +391,38 @@ const Login = () => {
             </button>
           )}
 
-          <div style={{ marginBottom: '2rem', marginTop: view === 'login' ? '0' : '1rem' }}>
+          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             
+            {/* Branding Logo at Top of Form */}
+            <div style={{ marginBottom: '1rem' }}>
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '48px', objectFit: 'contain' }} />
+            </div>
+
             {view === 'login' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Sign in</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Use your Multi Marg Account</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Sign in</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Use your Multi Marg Account</p>
               </>
             )}
             
             {view === 'forgot' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Account recovery</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Recover your Multi Marg Account</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Account recovery</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Recover your Multi Marg Account</p>
               </>
             )}
             
             {view === 'otp' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Verify it's you</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>We sent a code to <strong>{email}</strong></p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Verify it's you</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>We sent a code to <strong>{email}</strong></p>
               </>
             )}
             
             {view === 'reset' && (
               <>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Change password</h2>
-                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Create a strong password</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Change password</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem', textAlign: 'center' }}>Create a strong password</p>
               </>
             )}
           </div>
