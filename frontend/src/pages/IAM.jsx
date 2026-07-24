@@ -5,6 +5,7 @@ import { Shield, Plus, Edit2, Trash2 } from 'lucide-react';
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import Table from '../components/Table';
 import { useDialog } from '../context/DialogContext';
+import { useToast } from '../context/ToastContext';
 import { motion, AnimatePresence } from "framer-motion";
 
 const MODULES = [
@@ -19,6 +20,7 @@ const MODULES = [
 const IAM = () => {
   const { token, user: currentUser, updateUser } = useContext(AuthContext);
   const { confirm } = useDialog();
+  const { addToast } = useToast();
   const isSuperAdmin = currentUser?.role === 'SuperAdmin' || currentUser?.email === 'admin@multimargcarriers.co.in';
   
   const [users, setUsers] = useState([]);
@@ -41,7 +43,7 @@ const IAM = () => {
       if (res.data.success) setUsers(res.data.data || []);
     } catch (err) {
       console.error(err);
-      alert('Failed to fetch users');
+      addToast('Failed to fetch users', 'error');
     } finally {
       setLoading(false);
     }
@@ -69,6 +71,7 @@ const IAM = () => {
         if (currentUser.id === formData.id && res.data.success) {
           updateUser(res.data.data);
         }
+        addToast("User updated successfully!", "success");
       } else {
         setUsers(prev => [{ ...formData, id: tempId }, ...prev]);
         const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users`, formData, {
@@ -76,12 +79,14 @@ const IAM = () => {
         });
         if (res.data.success && res.data.data) {
           setUsers(prev => prev.map(u => u.id === tempId ? res.data.data : u));
+          addToast("User created successfully!", "success");
         } else {
           fetchUsers();
+          addToast("Failed to create user", "error");
         }
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving user');
+      addToast(err.response?.data?.message || 'Error saving user', 'error');
       fetchUsers();
     }
   };
@@ -100,8 +105,9 @@ const IAM = () => {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      addToast("User deleted successfully!", "success");
     } catch (err) {
-      alert(err.response?.data?.message || 'Error deleting user');
+      addToast('Error deleting user', 'error');
       fetchUsers();
     }
   };
