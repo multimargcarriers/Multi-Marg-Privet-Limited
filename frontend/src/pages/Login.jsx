@@ -129,226 +129,363 @@ const Login = () => {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
-      {/* Animated Background Elements */}
-      <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(13, 110, 253, 0.15), transparent 70%)', top: '-10%', left: '-10%', borderRadius: '50%', animation: 'float 8s ease-in-out infinite alternate' }} />
-      <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(92, 167, 155, 0.15), transparent 70%)', bottom: '-10%', right: '-5%', borderRadius: '50%', animation: 'float 10s ease-in-out infinite alternate-reverse' }} />
-
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '3rem 2.5rem', zIndex: 10, animation: 'slide-in-up 0.6s ease-out', position: 'relative' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: '#f8fafc', fontFamily: "'Inter', sans-serif" }}>
+      
+      {/* LEFT SIDE - BRANDING (Hidden on small screens) */}
+      <div style={{ 
+        flex: 1, 
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)', 
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '4rem',
+        color: 'white',
+        '@media (maxWidth: 768px)': { display: 'none' } // Note: Inline styles don't support media queries perfectly without a styled component, so we'll use a standard class approach if needed, or just flex-basis.
+      }} className="login-sidebar">
+        {/* Animated Background Elements */}
+        <div style={{ position: 'absolute', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(56, 189, 248, 0.1), transparent 70%)', top: '-10%', left: '-20%', borderRadius: '50%', animation: 'float 12s ease-in-out infinite alternate' }} />
+        <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%)', bottom: '10%', right: '-10%', borderRadius: '50%', animation: 'float 8s ease-in-out infinite alternate-reverse' }} />
         
-        {view !== 'login' && (
-          <button 
-            onClick={() => { setView('login'); setError(''); setSuccessMsg(''); }}
-            style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}
-          >
-            <ArrowLeft size={16} /> Back
-          </button>
-        )}
-
-        <div style={{ textAlign: 'center', marginBottom: '2rem', marginTop: view !== 'login' ? '1rem' : '0' }}>
-          <div style={{ margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: "60px" }} />
-          </div>
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: '500px' }}>
+          <img src="/mc.png" alt="Logo" style={{ height: '80px', marginBottom: '2rem', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }} />
+          <h1 style={{ fontSize: '3rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '1.5rem', background: 'linear-gradient(to right, #ffffff, #bae6fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Elevating Your Logistics.
+          </h1>
+          <p style={{ fontSize: '1.1rem', color: '#94a3b8', lineHeight: 1.6, marginBottom: '3rem' }}>
+            Experience the next generation of transport management. Streamline operations, track fleet performance, and scale your business effortlessly.
+          </p>
           
-          {view === 'login' && (
-            <>
-              <h3 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Welcome Back</h3>
-              <p className="text-muted">Login to <strong className="gradient-text">MULTIMARG CARRIERS</strong></p>
-            </>
+          <div style={{ display: 'flex', gap: '1.5rem' }}>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#38bdf8' }}>99.9%</div>
+              <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Uptime Reliability</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#38bdf8' }}>24/7</div>
+              <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Premium Support</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE - FORM */}
+      <div style={{ 
+        flex: 1, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '2rem',
+        background: '#ffffff',
+        position: 'relative'
+      }}>
+        <div style={{ width: '100%', maxWidth: '420px', animation: 'fade-in 0.5s ease-out' }}>
+          
+          {/* Mobile Logo Header */}
+          <div className="mobile-logo-header" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
+            <img src="/mc.png" alt="Logo" style={{ height: '60px' }} />
+          </div>
+
+          {view !== 'login' && (
+            <button 
+              onClick={() => { setView('login'); setError(''); setSuccessMsg(''); }}
+              style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', marginBottom: '2rem', fontWeight: 500, padding: 0 }}
+            >
+              <ArrowLeft size={16} /> Back to Login
+            </button>
+          )}
+
+          <div style={{ marginBottom: '2.5rem' }}>
+            {view === 'login' && (
+              <>
+                <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Welcome Back</h2>
+                <p style={{ color: '#64748b', fontSize: '1rem' }}>Enter your credentials to access your account.</p>
+              </>
+            )}
+            
+            {view === 'forgot' && (
+              <>
+                <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Reset Password</h2>
+                <p style={{ color: '#64748b', fontSize: '1rem' }}>We'll send a verification code to your email.</p>
+              </>
+            )}
+            
+            {view === 'otp' && (
+              <>
+                <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Check your email</h2>
+                <p style={{ color: '#64748b', fontSize: '1rem' }}>We've sent a 6-digit code to <strong style={{color: '#0f172a'}}>{email}</strong>.</p>
+              </>
+            )}
+            
+            {view === 'reset' && (
+              <>
+                <h2 style={{ fontSize: '2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>Set New Password</h2>
+                <p style={{ color: '#64748b', fontSize: '1rem' }}>Please create a strong password for your account.</p>
+              </>
+            )}
+          </div>
+
+          {error && (
+            <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: '500', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', borderLeft: '4px solid #ef4444' }}>
+              <div style={{marginTop: '2px'}}><Lock size={16} /></div>
+              <div>{error}</div>
+            </div>
           )}
           
+          {successMsg && (
+            <div style={{ background: '#f0fdf4', color: '#15803d', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: '500', display: 'flex', alignItems: 'flex-start', gap: '0.75rem', borderLeft: '4px solid #22c55e' }}>
+              <div style={{marginTop: '2px'}}><CheckCircle size={16} /></div>
+              <div>{successMsg}</div>
+            </div>
+          )}
+
+          {view === 'login' && (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    type="email" 
+                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc' }}
+                    placeholder="Enter your email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>Password</label>
+                  <button 
+                    type="button" 
+                    onClick={() => { setView('forgot'); setError(''); setSuccessMsg(''); }}
+                    style={{ background: 'transparent', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc' }}
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.875rem', 
+                  borderRadius: '8px', 
+                  fontSize: '1rem', 
+                  fontWeight: 600, 
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                  opacity: loading ? 0.7 : 1
+                }} 
+                disabled={loading}
+              >
+                {loading ? 'Authenticating...' : 'Sign In'}
+                {!loading && <ArrowRight size={18} />}
+              </button>
+            </form>
+          )}
+
           {view === 'forgot' && (
-            <>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Reset Password</h3>
-              <p className="text-muted" style={{ fontSize: '0.9rem' }}>Enter your email to receive a verification code.</p>
-            </>
+            <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    type="email" 
+                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc' }}
+                    placeholder="Enter your registered email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.875rem', 
+                  borderRadius: '8px', 
+                  fontSize: '1rem', 
+                  fontWeight: 600, 
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  marginTop: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                  opacity: loading ? 0.7 : 1
+                }} 
+                disabled={loading}
+              >
+                {loading ? 'Sending Code...' : 'Send Reset Code'}
+              </button>
+            </form>
           )}
           
           {view === 'otp' && (
-            <>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Verify Email</h3>
-              <p className="text-muted" style={{ fontSize: '0.9rem' }}>Enter the 6-digit code sent to <strong style={{color: 'var(--text-dark)'}}>{email}</strong>.</p>
-            </>
+            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Verification Code (OTP)</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Key size={18} />
+                  </div>
+                  <input 
+                    type="text" 
+                    style={{ width: '100%', padding: '0.875rem 1rem 0.875rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1.25rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc', letterSpacing: '4px', fontWeight: 700 }}
+                    placeholder="000000" 
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.875rem', 
+                  borderRadius: '8px', 
+                  fontSize: '1rem', 
+                  fontWeight: 600, 
+                  cursor: loading || otp.length !== 6 ? 'not-allowed' : 'pointer',
+                  marginTop: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                  opacity: loading || otp.length !== 6 ? 0.7 : 1
+                }} 
+                disabled={loading || otp.length !== 6}
+              >
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+              
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Didn't receive it? </span>
+                <button 
+                  type="button" 
+                  onClick={handleForgotPassword}
+                  style={{ background: 'transparent', border: 'none', color: resendTimer > 0 ? '#94a3b8' : '#2563eb', fontSize: '0.85rem', fontWeight: 600, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', padding: 0 }}
+                  disabled={loading || resendTimer > 0}
+                >
+                  {resendTimer > 0 ? `Resend in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
+                </button>
+              </div>
+            </form>
           )}
           
           {view === 'reset' && (
-            <>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>New Password</h3>
-              <p className="text-muted" style={{ fontSize: '0.9rem' }}>Create a strong password for your account.</p>
-            </>
-          )}
-        </div>
-
-        {error && (
-          <div style={{ background: '#fee2e2', color: '#dc2626', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            {error}
-          </div>
-        )}
-        
-        {successMsg && (
-          <div style={{ background: '#dcfce7', color: '#166534', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center', fontWeight: '500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <CheckCircle size={16} /> {successMsg}
-          </div>
-        )}
-
-        {view === 'login' && (
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Mail size={18} />
+            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>New Password</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc' }}
+                    placeholder="Enter new password" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                    minLength={6}
+                  />
                 </div>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  placeholder="your-email@gmail.com" 
-                  style={{ paddingLeft: '2.5rem' }}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                />
               </div>
-            </div>
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-                <button 
-                  type="button" 
-                  onClick={() => { setView('forgot'); setError(''); setSuccessMsg(''); }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer', padding: 0 }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Lock size={18} />
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>Confirm Password</label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', backgroundColor: '#f8fafc' }}
+                    placeholder="Confirm new password" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                    required 
+                    minLength={6}
+                  />
                 </div>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  placeholder="••••••••" 
-                  style={{ paddingLeft: '2.5rem' }}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                />
               </div>
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.75rem', fontWeight: 600 }} disabled={loading}>
-              {loading ? 'Authenticating...' : 'Log In →'}
-            </button>
-          </form>
-        )}
-
-        {view === 'forgot' && (
-          <form onSubmit={handleForgotPassword}>
-            <div className="form-group" style={{ marginBottom: '2rem' }}>
-              <label className="form-label">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Mail size={18} />
-                </div>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  placeholder="Enter your registered email" 
-                  style={{ paddingLeft: '2.5rem' }}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                />
-              </div>
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} disabled={loading}>
-              {loading ? 'Sending Code...' : <>Send Reset Code <ArrowRight size={18} /></>}
-            </button>
-          </form>
-        )}
-        
-        {view === 'otp' && (
-          <form onSubmit={handleVerifyOtp}>
-            <div className="form-group" style={{ marginBottom: '2rem' }}>
-              <label className="form-label">Verification Code (OTP)</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Key size={18} />
-                </div>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="6-digit code" 
-                  style={{ paddingLeft: '2.5rem', fontSize: '1.2rem', letterSpacing: '2px', fontWeight: 600 }}
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  required 
-                />
-              </div>
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} disabled={loading || otp.length !== 6}>
-              {loading ? 'Verifying...' : <>Verify Code <ArrowRight size={18} /></>}
-            </button>
-            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Didn't receive it? </span>
+              
               <button 
-                type="button" 
-                onClick={handleForgotPassword}
-                style={{ background: 'transparent', border: 'none', color: resendTimer > 0 ? 'var(--text-muted)' : 'var(--primary-color)', fontSize: '0.85rem', fontWeight: 600, cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', padding: 0 }}
-                disabled={loading || resendTimer > 0}
+                type="submit" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.875rem', 
+                  borderRadius: '8px', 
+                  fontSize: '1rem', 
+                  fontWeight: 600, 
+                  cursor: loading || !newPassword || !confirmPassword ? 'not-allowed' : 'pointer',
+                  marginTop: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)',
+                  opacity: loading || !newPassword || !confirmPassword ? 0.7 : 1
+                }} 
+                disabled={loading || !newPassword || !confirmPassword}
               >
-                {resendTimer > 0 ? `Resend Code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Code'}
+                {loading ? 'Resetting...' : 'Save New Password'}
               </button>
-            </div>
-          </form>
-        )}
-        
-        {view === 'reset' && (
-          <form onSubmit={handleResetPassword}>
-            <div className="form-group">
-              <label className="form-label">New Password</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Lock size={18} />
-                </div>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  placeholder="New password" 
-                  style={{ paddingLeft: '2.5rem' }}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required 
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <div className="form-group" style={{ marginBottom: '2rem' }}>
-              <label className="form-label">Confirm Password</label>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                  <Lock size={18} />
-                </div>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  placeholder="Confirm new password" 
-                  style={{ paddingLeft: '2.5rem' }}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required 
-                  minLength={6}
-                />
-              </div>
-            </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} disabled={loading || !newPassword || !confirmPassword}>
-              {loading ? 'Resetting...' : <>Reset Password <CheckCircle size={18} /></>}
-            </button>
-          </form>
-        )}
+            </form>
+          )}
 
+        </div>
       </div>
+      
+      {/* Required CSS for mobile responsive hiding */}
+      <style>{`
+        @media (max-width: 900px) {
+          .login-sidebar { display: none !important; }
+          .mobile-logo-header { display: block !important; }
+        }
+      `}</style>
     </div>
   );
 };

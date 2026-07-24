@@ -40,29 +40,30 @@ exports.post_login_1 = async (req, res) => {
     statusCode: 400,
     details: errors.array()
   });
-  const {
-    email,
-    password
-  } = req.body;
+  const { email, password } = req.body;
 
   // Real Firebase Authentication with Seamless Bcrypt Migration
   const usersRef = db.collection("users");
   const snapshot = await usersRef.where("email", "==", email).get();
+  
   if (snapshot.empty) {
-    return error(res, {
-      message: "Invalid Email or Password",
-      statusCode: 401
-    });
+    return error(res, { message: "Invalid Email or Password", statusCode: 401 });
   }
+  
   let userDoc = null;
   let userData = null;
   snapshot.forEach(doc => {
     userDoc = doc;
-    userData = {
-      id: doc.id,
-      ...doc.data()
-    };
+    userData = { id: doc.id, ...doc.data() };
   });
+
+  // Check if account is blocked
+  if (userData.isBlocked) {
+    return error(res, {
+      message: "Account temporarily blocked due to multiple failed login attempts. Please reset your password via email.",
+      statusCode: 403
+    });
+  }
 
   const storedPassword = userData.password;
   let passwordMatch = false;
@@ -77,9 +78,29 @@ exports.post_login_1 = async (req, res) => {
   }
 
   if (!passwordMatch) {
+    // Increment failed login attempts
+    const currentAttempts = (userData.failedLoginAttempts || 0) + 1;
+    const updates = { failedLoginAttempts: currentAttempts };
+    
+    if (currentAttempts >= 3) {
+      updates.isBlocked = true;
+    }
+    
+    await usersRef.doc(userDoc.id).update(updates);
+
     return error(res, {
-      message: "Invalid Email or Password",
+      message: currentAttempts >= 3 
+        ? "Account temporarily blocked due to multiple failed login attempts. Please reset your password via email." 
+        : `Invalid Email or Password. (${3 - currentAttempts} attempts remaining)`,
       statusCode: 401
+    });
+  }
+
+  // Reset failed login attempts on successful login
+  if (userData.failedLoginAttempts > 0 || userData.isBlocked) {
+    await usersRef.doc(userDoc.id).update({ 
+      failedLoginAttempts: 0,
+      isBlocked: false 
     });
   }
 
@@ -88,13 +109,11 @@ exports.post_login_1 = async (req, res) => {
   // Fallback if no role/permissions are set in DB for existing users
   if (!userData.role) userData.role = "SuperAdmin";
   if (!userData.permissions) userData.permissions = ["all"];
+  
   const token = generateToken(userData);
   return success(res, {
     message: "Login successful",
-    data: {
-      user: userData,
-      token
-    }
+    data: { user: userData, token }
   });
 };
 
@@ -335,7 +354,11 @@ exports.reset_password = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
-    await usersRef.doc(userDoc.id).update({ password: hashedPassword });
+    await usersRef.doc(userDoc.id).update({ 
+      password: hashedPassword,
+      failedLoginAttempts: 0,
+      isBlocked: false
+    });
     
     // Clean up OTP document
     await db.collection('otps').doc(email).delete();
