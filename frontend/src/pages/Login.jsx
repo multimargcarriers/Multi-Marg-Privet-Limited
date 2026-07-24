@@ -133,113 +133,111 @@ const Login = () => {
       minHeight: '100vh',
       width: '100vw',
       display: 'flex',
-      backgroundColor: '#f8fafc',
+      backgroundColor: '#ffffff',
       overflow: 'hidden',
-      fontFamily: "'Inter', sans-serif"
+      fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     }}>
       
-      {/* --- LEFT SIDE: 60% SHOWCASE (Hidden on Mobile) --- */}
+      {/* --- LEFT SIDE: 60% BRAND SHOWCASE (AWS/Corporate Dark Navy) --- */}
       <div className="showcase-sidebar" style={{
         flex: '0 0 60%',
-        background: 'linear-gradient(135deg, #020617 0%, #1e3a8a 100%)',
+        background: 'linear-gradient(135deg, #232F3E 0%, #0f151c 100%)', // AWS Dark Navy
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '3rem 4rem',
+        justifyContent: 'center',
+        padding: '4rem 5rem',
         color: 'white',
-        overflow: 'hidden'
+        boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
+        zIndex: 5
       }}>
-        {/* Abstract Dark Background Elements */}
-        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(60px)', animation: 'float 15s ease-in-out infinite alternate', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-20%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0) 70%)', borderRadius: '50%', filter: 'blur(80px)', animation: 'float 20s ease-in-out infinite alternate-reverse', pointerEvents: 'none' }} />
-
-        <div style={{ position: 'relative', zIndex: 10 }}>
-          <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '70px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))', marginBottom: '1.5rem' }} />
+        
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+            <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '65px', background: '#fff', padding: '0.5rem', borderRadius: '8px' }} />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, letterSpacing: '1px', color: '#ffffff' }}>MULTI MARG</h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px' }}>Private Limited</p>
+            </div>
+          </div>
           
-          <h1 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '1.5rem', letterSpacing: '-0.025em', background: 'linear-gradient(to right, #ffffff, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontSize: '3.2rem', fontWeight: 800, lineHeight: 1.15, marginBottom: '1.5rem', color: '#ffffff' }}>
             Driving the Future of Transport.
           </h1>
           
-          <p style={{ fontSize: '1.2rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '80%', marginBottom: '3rem' }}>
-            Multi Marg Private Limited is revolutionizing logistics across India with unmatched speed, uncompromised safety, and total reliability.
+          <p style={{ fontSize: '1.15rem', color: '#cbd5e1', lineHeight: 1.6, maxWidth: '90%', marginBottom: '3.5rem' }}>
+            Revolutionizing logistics across India with unmatched speed, uncompromised safety, and total reliability.
           </p>
 
-          {/* Marketing Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1.25rem', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-              <div style={{ display: 'inline-flex', background: 'rgba(56, 189, 248, 0.1)', padding: '0.75rem', borderRadius: '12px', color: '#38bdf8', marginBottom: '1rem' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          {/* Marketing Grid with Corporate Solid Colors */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '3.5rem' }}>
+            
+            {/* Card 1: Google Blue */}
+            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'inline-flex', background: '#e8f0fe', padding: '0.75rem', borderRadius: '50%', color: '#1a73e8', marginBottom: '1rem' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Nationwide</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>End-to-end coverage across India.</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Nationwide</h3>
+              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>End-to-end logistics coverage across India.</p>
             </div>
             
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1.25rem', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-              <div style={{ display: 'inline-flex', background: 'rgba(167, 139, 250, 0.1)', padding: '0.75rem', borderRadius: '12px', color: '#a78bfa', marginBottom: '1rem' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            {/* Card 2: AWS Orange */}
+            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'inline-flex', background: '#fff3e0', padding: '0.75rem', borderRadius: '50%', color: '#FF9900', marginBottom: '1rem' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>24/7 Support</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>Premium assistance anytime.</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>24/7 Support</h3>
+              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>Premium enterprise assistance anytime.</p>
             </div>
             
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', padding: '1.25rem', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
-              <div style={{ display: 'inline-flex', background: 'rgba(52, 211, 153, 0.1)', padding: '0.75rem', borderRadius: '12px', color: '#34d399', marginBottom: '1rem' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            {/* Card 3: Google Green */}
+            <div style={{ background: '#ffffff', padding: '1.5rem', borderRadius: '8px', color: '#202124', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'inline-flex', background: '#e6f4ea', padding: '0.75rem', borderRadius: '50%', color: '#188038', marginBottom: '1rem' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Maximum Security</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>State-of-the-art fleet tracking.</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Secure Fleet</h3>
+              <p style={{ color: '#5f6368', fontSize: '0.9rem', margin: 0, lineHeight: 1.4 }}>State-of-the-art GPS fleet tracking.</p>
             </div>
           </div>
-        </div>
 
-        {/* Map API Section */}
-        <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '220px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-          <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d116834.00977792036!2d86.35338048600062!3d23.78082980749008!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f6a74204d8095b%3A0xc48e9d6d1c8c1995!2sDhanbad%2C%20Jharkhand!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
-            width="100%" 
-            height="100%" 
-            style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) contrast(85%)' }} // Dark mode filter for generic iframe
-            allowFullScreen="" 
-            loading="lazy" 
-            referrerPolicy="no-referrer-when-downgrade">
-          </iframe>
-          <div style={{ position: 'absolute', bottom: '1rem', right: '1rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '0.5rem 1rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.2)' }}>
-            📍 HQ: Dhanbad, Jharkhand
+          {/* Map API Section - Clean White Container */}
+          <div style={{ background: '#ffffff', padding: '0.5rem', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '4px', overflow: 'hidden' }}>
+              <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d116834.00977792036!2d86.35338048600062!3d23.78082980749008!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f6a74204d8095b%3A0xc48e9d6d1c8c1995!2sDhanbad%2C%20Jharkhand!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
+                width="100%" 
+                height="100%" 
+                style={{ border: 0 }} 
+                allowFullScreen="" 
+                loading="lazy" 
+                referrerPolicy="no-referrer-when-downgrade">
+              </iframe>
+              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', background: '#ffffff', padding: '0.4rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#202124', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ color: '#EA4335' }}>📍</span> HQ: Dhanbad, Jharkhand
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- RIGHT SIDE: 40% LOGIN FORM --- */}
+      {/* --- RIGHT SIDE: 40% LOGIN FORM (Pristine White Corporate) --- */}
       <div style={{
         flex: '1',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        position: 'relative',
         background: '#ffffff'
       }}>
         
-        {/* Subtle background element behind form */}
-        <div style={{ position: 'absolute', top: '10%', right: '10%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, rgba(255,255,255,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
-        <div className="login-form-container" style={{ width: '100%', maxWidth: '440px', animation: 'fadeIn 0.5s ease-out' }}>
+        <div className="login-form-container" style={{ width: '100%', maxWidth: '400px' }}>
           
-          {/* Mobile Logo (Visible only when left sidebar hides) */}
+          {/* Mobile Logo */}
           <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
             <img src="/mc.png" alt="Logo" style={{ height: '60px' }} />
           </div>
 
           <style>{`
-            @keyframes float {
-              0% { transform: translate(0, 0) scale(1); }
-              100% { transform: translate(5%, 10%) scale(1.1); }
-            }
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
             @media (max-width: 1100px) {
               .showcase-sidebar { display: none !important; }
               .mobile-only-logo { display: block !important; }
@@ -250,49 +248,48 @@ const Login = () => {
             }
             .input-field {
               width: 100%;
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              padding: 1rem 1rem 1rem 3rem;
-              border-radius: 12px;
-              color: #0f172a;
+              background: #ffffff;
+              border: 1px solid #dadce0;
+              padding: 0.85rem 1rem 0.85rem 2.8rem;
+              border-radius: 4px;
+              color: #202124;
               font-size: 1rem;
-              font-weight: 500;
-              transition: all 0.3s ease;
+              transition: all 0.2s ease;
               outline: none;
             }
+            .input-field:hover {
+              border-color: #9aa0a6;
+            }
             .input-field:focus {
-              background: #ffffff;
-              border-color: #3b82f6;
-              box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+              border-color: #1a73e8;
+              box-shadow: inset 0 0 0 1px #1a73e8;
             }
             .input-field::placeholder {
-              color: #94a3b8;
-              font-weight: 400;
+              color: #80868b;
             }
             .icon-wrapper {
               position: absolute;
-              left: 1rem;
+              left: 0.85rem;
               top: 50%;
               transform: translateY(-50%);
-              color: #94a3b8;
-              transition: color 0.3s ease;
+              color: #5f6368;
+              transition: color 0.2s ease;
               pointer-events: none;
             }
             .input-group:focus-within .icon-wrapper {
-              color: #3b82f6;
+              color: #1a73e8;
             }
             .btn-primary {
               width: 100%;
-              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+              background: #1a73e8;
               color: white;
               border: none;
-              padding: 1rem;
-              border-radius: 12px;
-              font-size: 1rem;
+              padding: 0.85rem;
+              border-radius: 4px;
+              font-size: 0.95rem;
               font-weight: 600;
               cursor: pointer;
-              transition: all 0.3s ease;
-              box-shadow: 0 10px 20px -10px rgba(37, 99, 235, 0.6);
+              transition: background 0.2s ease;
               display: flex;
               justify-content: center;
               align-items: center;
@@ -300,22 +297,20 @@ const Login = () => {
               margin-top: 1.5rem;
             }
             .btn-primary:hover:not(:disabled) {
-              transform: translateY(-2px);
-              box-shadow: 0 15px 25px -10px rgba(37, 99, 235, 0.8);
+              background: #1557b0;
+              box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
             }
             .btn-primary:active:not(:disabled) {
-              transform: translateY(0);
+              background: #174ea6;
             }
             .btn-primary:disabled {
-              opacity: 0.7;
+              opacity: 0.6;
               cursor: not-allowed;
-              background: #94a3b8;
-              box-shadow: none;
             }
             .link-btn {
               background: transparent;
               border: none;
-              color: #64748b;
+              color: #1a73e8;
               font-size: 0.875rem;
               font-weight: 600;
               cursor: pointer;
@@ -323,28 +318,28 @@ const Login = () => {
               padding: 0;
             }
             .link-btn:hover {
-              color: #3b82f6;
+              color: #1557b0;
+              text-decoration: underline;
             }
             .alert-box {
-              padding: 1rem;
-              border-radius: 12px;
+              padding: 0.75rem 1rem;
+              border-radius: 4px;
               margin-bottom: 1.5rem;
               font-size: 0.9rem;
               font-weight: 500;
               display: flex;
               align-items: flex-start;
               gap: 0.75rem;
-              animation: fadeIn 0.3s ease forwards;
             }
             .alert-error {
-              background: #fef2f2;
-              color: #b91c1c;
-              border: 1px solid #fca5a5;
+              background: #fce8e6;
+              color: #c5221f;
+              border: 1px solid #fad2cf;
             }
             .alert-success {
-              background: #f0fdf4;
-              color: #15803d;
-              border: 1px solid #86efac;
+              background: #e6f4ea;
+              color: #137333;
+              border: 1px solid #ceead6;
             }
           `}</style>
           
@@ -352,53 +347,53 @@ const Login = () => {
             <button 
               onClick={() => { setView('login'); setError(''); setSuccessMsg(''); }}
               className="link-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem', textDecoration: 'none' }}
             >
-              <ArrowLeft size={16} /> Back to Sign In
+              <ArrowLeft size={16} /> Back to sign in
             </button>
           )}
 
-          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem' }}>
+          <div style={{ marginBottom: '2rem', marginTop: view === 'login' ? '0' : '1rem' }}>
             
             {view === 'login' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Welcome back</h2>
-                <p style={{ color: '#64748b', margin: 0, fontSize: '1rem' }}>Sign in to access the administrator portal</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Sign in</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Use your Multi Marg Account</p>
               </>
             )}
             
             {view === 'forgot' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Recover password</h2>
-                <p style={{ color: '#64748b', margin: 0, fontSize: '1rem' }}>We'll email you a secure verification code</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Account recovery</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Recover your Multi Marg Account</p>
               </>
             )}
             
             {view === 'otp' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>Verify your email</h2>
-                <p style={{ color: '#64748b', margin: 0, fontSize: '1rem' }}>We sent a code to <strong style={{color: '#0f172a'}}>{email}</strong></p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Verify it's you</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>We sent a code to <strong>{email}</strong></p>
               </>
             )}
             
             {view === 'reset' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem 0', letterSpacing: '-0.025em' }}>New password</h2>
-                <p style={{ color: '#64748b', margin: 0, fontSize: '1rem' }}>Create a strong password to secure your account</p>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 400, color: '#202124', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>Change password</h2>
+                <p style={{ color: '#5f6368', margin: 0, fontSize: '1rem' }}>Create a strong password</p>
               </>
             )}
           </div>
 
           {error && (
             <div className="alert-box alert-error">
-              <div style={{marginTop: '2px'}}><ShieldAlert size={18} /></div>
+              <div style={{marginTop: '2px'}}><ShieldAlert size={16} /></div>
               <div>{error}</div>
             </div>
           )}
           
           {successMsg && (
             <div className="alert-box alert-success">
-              <div style={{marginTop: '2px'}}><CheckCircle size={18} /></div>
+              <div style={{marginTop: '2px'}}><CheckCircle size={16} /></div>
               <div>{successMsg}</div>
             </div>
           )}
@@ -406,11 +401,11 @@ const Login = () => {
           {view === 'login' && (
             <form onSubmit={handleLogin}>
               <div className="input-group">
-                <div className="icon-wrapper"><Mail size={20} strokeWidth={1.5} /></div>
+                <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   type="email" 
                   className="input-field"
-                  placeholder="Email address" 
+                  placeholder="Email or phone" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
@@ -418,18 +413,18 @@ const Login = () => {
               </div>
 
               <div className="input-group" style={{ marginBottom: '0.75rem' }}>
-                <div className="icon-wrapper"><Lock size={20} strokeWidth={1.5} /></div>
+                <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
                   type="password" 
                   className="input-field"
-                  placeholder="Password" 
+                  placeholder="Enter your password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem', marginTop: '1rem' }}>
                 <button 
                   type="button" 
                   className="link-btn"
@@ -439,43 +434,45 @@ const Login = () => {
                 </button>
               </div>
 
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Authenticating...' : 'Sign In'}
-                {!loading && <ArrowRight size={18} />}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading}>
+                  {loading ? 'Signing in...' : 'Sign in'}
+                </button>
+              </div>
             </form>
           )}
 
           {view === 'forgot' && (
             <form onSubmit={handleForgotPassword}>
-              <div className="input-group">
-                <div className="icon-wrapper"><Mail size={20} strokeWidth={1.5} /></div>
+              <div className="input-group" style={{ marginBottom: '2rem' }}>
+                <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   type="email" 
                   className="input-field"
-                  placeholder="Enter your registered email" 
+                  placeholder="Email or phone" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                 />
               </div>
               
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Sending Code...' : 'Continue'}
-                {!loading && <ArrowRight size={18} />}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading}>
+                  {loading ? 'Sending...' : 'Next'}
+                </button>
+              </div>
             </form>
           )}
           
           {view === 'otp' && (
             <form onSubmit={handleVerifyOtp}>
               <div className="input-group">
-                <div className="icon-wrapper"><Key size={20} strokeWidth={1.5} /></div>
+                <div className="icon-wrapper"><Key size={18} strokeWidth={2} /></div>
                 <input 
                   type="text" 
                   className="input-field"
-                  style={{ fontSize: '1.5rem', letterSpacing: '6px', textAlign: 'center', paddingLeft: '1rem', fontWeight: 700 }}
-                  placeholder="000000" 
+                  style={{ fontSize: '1.25rem', letterSpacing: '4px', textAlign: 'center', paddingLeft: '1rem', fontWeight: 500 }}
+                  placeholder="G-000000" 
                   maxLength={6}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
@@ -483,20 +480,19 @@ const Login = () => {
                 />
               </div>
 
-              <button type="submit" className="btn-primary" disabled={loading || otp.length !== 6}>
-                {loading ? 'Verifying...' : 'Verify Code'}
-              </button>
-              
-              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Didn't receive a code? </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
                 <button 
                   type="button" 
                   className="link-btn"
                   onClick={handleForgotPassword}
-                  style={{ color: resendTimer > 0 ? '#94a3b8' : '#3b82f6', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
+                  style={{ color: resendTimer > 0 ? '#80868b' : '#1a73e8', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer' }}
                   disabled={loading || resendTimer > 0}
                 >
-                  {resendTimer > 0 ? `Resend in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend now'}
+                  {resendTimer > 0 ? `Resend code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend code'}
+                </button>
+                
+                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading || otp.length !== 6}>
+                  {loading ? 'Verifying...' : 'Verify'}
                 </button>
               </div>
             </form>
@@ -505,11 +501,11 @@ const Login = () => {
           {view === 'reset' && (
             <form onSubmit={handleResetPassword}>
               <div className="input-group">
-                <div className="icon-wrapper"><Lock size={20} strokeWidth={1.5} /></div>
+                <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
                   type="password" 
                   className="input-field"
-                  placeholder="New password" 
+                  placeholder="Create password" 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required 
@@ -517,12 +513,12 @@ const Login = () => {
                 />
               </div>
               
-              <div className="input-group">
-                <div className="icon-wrapper"><CheckCircle size={20} strokeWidth={1.5} /></div>
+              <div className="input-group" style={{ marginBottom: '2rem' }}>
+                <div className="icon-wrapper"><CheckCircle size={18} strokeWidth={2} /></div>
                 <input 
                   type="password" 
                   className="input-field"
-                  placeholder="Confirm new password" 
+                  placeholder="Confirm password" 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required 
@@ -530,9 +526,11 @@ const Login = () => {
                 />
               </div>
               
-              <button type="submit" className="btn-primary" disabled={loading || !newPassword || !confirmPassword}>
-                {loading ? 'Updating...' : 'Secure My Account'}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '0.6rem 1.5rem', marginTop: 0 }} disabled={loading || !newPassword || !confirmPassword}>
+                  {loading ? 'Saving...' : 'Save password'}
+                </button>
+              </div>
             </form>
           )}
 
