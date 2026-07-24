@@ -268,9 +268,9 @@ const Login = () => {
             right: '-10%',
             width: '400px',
             opacity: 0.85,
-            mixBlendMode: 'darken', // Blends the white background of the image into the white container
-            transform: 'rotate(-10deg)',
-            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))'
+            mixBlendMode: 'darken',
+            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.1))',
+            animation: 'droneFloat 6s ease-in-out infinite'
           }} />
           
           {/* Truck - Bottom Left */}
@@ -281,8 +281,8 @@ const Login = () => {
             width: '450px',
             opacity: 0.9,
             mixBlendMode: 'darken',
-            transform: 'rotate(15deg)',
-            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))'
+            filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))',
+            animation: 'truckDrive 8s ease-in-out infinite'
           }} />
 
           {/* Package - Bottom Right (Smaller) */}
@@ -293,8 +293,8 @@ const Login = () => {
             width: '200px',
             opacity: 0.8,
             mixBlendMode: 'darken',
-            transform: 'rotate(-5deg)',
-            filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))'
+            filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.1))',
+            animation: 'packageFloat 7s ease-in-out infinite'
           }} />
         </div>
 
@@ -306,6 +306,23 @@ const Login = () => {
           </div>
 
           <style>{`
+            @keyframes droneFloat {
+              0% { transform: rotate(-10deg) translateY(0px) scale(1); }
+              50% { transform: rotate(-8deg) translateY(-25px) scale(1.02); }
+              100% { transform: rotate(-10deg) translateY(0px) scale(1); }
+            }
+            @keyframes truckDrive {
+              0% { transform: rotate(15deg) translateY(0px) translateX(0px); }
+              25% { transform: rotate(14.5deg) translateY(-5px) translateX(10px); }
+              50% { transform: rotate(15deg) translateY(0px) translateX(20px); }
+              75% { transform: rotate(15.5deg) translateY(-5px) translateX(10px); }
+              100% { transform: rotate(15deg) translateY(0px) translateX(0px); }
+            }
+            @keyframes packageFloat {
+              0% { transform: rotate(-5deg) translateY(0px); }
+              50% { transform: rotate(0deg) translateY(-15px); }
+              100% { transform: rotate(-5deg) translateY(0px); }
+            }
             @media (max-width: 1100px) {
               .showcase-sidebar { display: none !important; }
               .mobile-only-logo { display: block !important; }
