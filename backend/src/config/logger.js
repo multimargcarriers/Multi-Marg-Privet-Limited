@@ -22,7 +22,7 @@ class DatabaseTransport extends Transport {
     try {
       // Lazy load to avoid circular dependencies
       const { db } = require('./database');
-      if (db && db.mongoDb) {
+      if (db && db.mongoDb && info.type === 'audit') {
         db.collection("systemLogs").add({
           timestamp: info.timestamp || new Date().toISOString(),
           level: info.level,

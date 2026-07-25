@@ -53,10 +53,14 @@ exports.post_login_1 = async (req, res) => {
 
   // Real Firebase Authentication with Seamless Bcrypt Migration
   const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("email", "==", email).get();
+  let snapshot = await usersRef.where("email", "==", email).get();
   
   if (snapshot.empty) {
-    return error(res, { message: "Invalid Email or Password", statusCode: 401 });
+    snapshot = await usersRef.where("employeeId", "==", email).get();
+  }
+  
+  if (snapshot.empty) {
+    return error(res, { message: "Invalid Email/Employee ID or Password", statusCode: 401 });
   }
   
   let userDoc = null;
@@ -128,6 +132,40 @@ exports.post_login_1 = async (req, res) => {
   if (!userData.role) userData.role = "SuperAdmin";
   if (!userData.permissions) userData.permissions = ["all"];
   
+  // --- ADD GEO-IP TRACKING & LOGGING ---
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  let location = "Localhost";
+  const cleanIp = ip.split(',')[0].trim();
+  
+  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+    try {
+      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+      const geoData = await geoRes.json();
+      if (geoData.status === 'success') {
+        location = `${geoData.city}, ${geoData.country}`;
+      } else {
+        location = "Unknown Location";
+      }
+    } catch (err) {
+      console.error("GeoIP Fetch Error:", err);
+      location = "Unknown Location";
+    }
+  }
+
+  try {
+    await db.collection("userActivities").add({
+      userId: userData.id,
+      type: 'login',
+      title: 'Successful sign-in',
+      date: new Date().toISOString(),
+      location,
+      ip: cleanIp
+    });
+  } catch (err) {
+    console.error("Error logging user activity:", err);
+  }
+  // -------------------------------------
+
   const token = generateToken(userData);
   return success(res, {
     message: "Login successful",
@@ -272,12 +310,16 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.forgot_password = async (req, res) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+  if (!email) return res.status(400).json({ success: false, message: 'Email or Employee ID is required' });
 
   try {
     const { db } = require('../config/database');
     const usersRef = db.collection('users');
-    const snapshot = await usersRef.where('email', '==', email).get();
+    let snapshot = await usersRef.where('email', '==', email).get();
+    
+    if (snapshot.empty) {
+      snapshot = await usersRef.where('employeeId', '==', email).get();
+    }
     
     if (snapshot.empty) {
       return res.status(403).json({ success: false, message: 'Access denied. You are not authorized. Please contact the company at info@multimargcarriers.co.in' });
@@ -286,6 +328,11 @@ exports.forgot_password = async (req, res) => {
     let userDoc = null;
     let userData = null;
     snapshot.forEach(doc => { userDoc = doc; userData = doc.data(); });
+    
+    const targetEmail = userData.email;
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, message: 'No email associated with this account. Please contact admin.' });
+    }
     
     // Verify IAM Role - Only send OTP to Admins and Super Admins
     const role = (userData.role || "").toLowerCase().replace(/\s+/g, '');
@@ -297,7 +344,7 @@ exports.forgot_password = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     
-    await db.collection('otps').doc(email).set({
+    await db.collection('otps').doc(targetEmail).set({
       otp,
       expiresAt,
       verified: false
@@ -305,7 +352,7 @@ exports.forgot_password = async (req, res) => {
     
     // Send email
     try {
-      await sendOtpEmail(email, otp, userData.name || 'User');
+      await sendOtpEmail(targetEmail, otp, userData.name || 'User');
     } catch (mailErr) {
       console.error('[Mail Warning] Could not send email. (OTP: ' + otp + ')', mailErr.message);
       if (process.env.NODE_ENV === 'production') {
@@ -322,11 +369,24 @@ exports.forgot_password = async (req, res) => {
 
 exports.verify_otp = async (req, res) => {
   const { email, otp } = req.body;
-  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP required' });
+  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email/Employee ID and OTP required' });
   
   try {
     const { db } = require('../config/database');
-    const otpDoc = await db.collection('otps').doc(email).get();
+    
+    // Resolve email if employeeId was provided
+    const usersRef = db.collection('users');
+    let snapshot = await usersRef.where('email', '==', email).get();
+    if (snapshot.empty) {
+      snapshot = await usersRef.where('employeeId', '==', email).get();
+    }
+    
+    let targetEmail = email;
+    if (!snapshot.empty) {
+      snapshot.forEach(doc => { targetEmail = doc.data().email || targetEmail; });
+    }
+
+    const otpDoc = await db.collection('otps').doc(targetEmail).get();
     
     if (!otpDoc.exists) return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     
@@ -337,13 +397,13 @@ exports.verify_otp = async (req, res) => {
     }
     
     if (new Date(otpData.expiresAt) < new Date()) {
-      await db.collection('otps').doc(email).delete();
+      await db.collection('otps').doc(targetEmail).delete();
       return res.status(400).json({ success: false, message: 'OTP has expired' });
     }
     
     const resetToken = uuidv4();
     
-    await db.collection('otps').doc(email).update({
+    await db.collection('otps').doc(targetEmail).update({
       verified: true,
       resetToken
     });
@@ -364,7 +424,23 @@ exports.reset_password = async (req, res) => {
   
   try {
     const { db } = require('../config/database');
-    const otpDoc = await db.collection('otps').doc(email).get();
+    const usersRef = db.collection('users');
+    let snapshot = await usersRef.where('email', '==', email).get();
+    
+    if (snapshot.empty) {
+      snapshot = await usersRef.where('employeeId', '==', email).get();
+    }
+    
+    if (snapshot.empty) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    let targetEmail = email;
+    let userDoc = null;
+    snapshot.forEach(doc => { 
+      userDoc = doc; 
+      targetEmail = doc.data().email || targetEmail; 
+    });
+    
+    const otpDoc = await db.collection('otps').doc(targetEmail).get();
     
     if (!otpDoc.exists) return res.status(400).json({ success: false, message: 'Invalid request' });
     
@@ -375,17 +451,9 @@ exports.reset_password = async (req, res) => {
     }
     
     if (new Date(otpData.expiresAt) < new Date()) {
-      await db.collection('otps').doc(email).delete();
+      await db.collection('otps').doc(targetEmail).delete();
       return res.status(400).json({ success: false, message: 'Session expired, please try again' });
     }
-    
-    const usersRef = db.collection('users');
-    const snapshot = await usersRef.where('email', '==', email).get();
-    
-    if (snapshot.empty) return res.status(404).json({ success: false, message: 'User not found' });
-    
-    let userDoc = null;
-    snapshot.forEach(doc => { userDoc = doc; });
     
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
@@ -397,11 +465,72 @@ exports.reset_password = async (req, res) => {
     });
     
     // Clean up OTP document
-    await db.collection('otps').doc(email).delete();
+    await db.collection('otps').doc(targetEmail).delete();
     
     return res.status(200).json({ success: true, message: 'Password updated successfully' });
   } catch (err) {
     console.error('[Reset Password Error]', err);
     return res.status(500).json({ success: false, message: 'Failed to reset password' });
+  }
+};
+
+exports.post_logout = async (req, res) => {
+  const userId = req.user.id;
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  let location = "Localhost";
+  const cleanIp = ip.split(',')[0].trim();
+  
+  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+    try {
+      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+      const geoData = await geoRes.json();
+      if (geoData.status === 'success') {
+        location = `${geoData.city}, ${geoData.country}`;
+      } else {
+        location = "Unknown Location";
+      }
+    } catch (err) {
+      console.error("GeoIP Fetch Error:", err);
+      location = "Unknown Location";
+    }
+  }
+
+  try {
+    await db.collection("userActivities").add({
+      userId,
+      type: 'logout',
+      title: 'Signed out',
+      date: new Date().toISOString(),
+      location,
+      ip: cleanIp
+    });
+  } catch (err) {
+    console.error("Error logging user logout activity:", err);
+  }
+  
+  return success(res, { message: "Logged out successfully" });
+};
+
+exports.get_activity = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const activitiesRef = db.collection("userActivities");
+    const snapshot = await activitiesRef.where("userId", "==", userId).get();
+    
+    let activities = [];
+    snapshot.forEach(doc => {
+      activities.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Sort by date descending
+    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Limit to recent 20
+    activities = activities.slice(0, 20);
+    
+    return success(res, { data: activities });
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };

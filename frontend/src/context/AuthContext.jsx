@@ -102,7 +102,17 @@ export const AuthProvider = ({ children }) => {
     navigate('/dashboard');
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      if (token) {
+        await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/logout`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (e) {
+      console.error("Logout API failed", e);
+    }
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('user');

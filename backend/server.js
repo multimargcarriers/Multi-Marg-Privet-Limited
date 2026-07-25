@@ -191,6 +191,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Import Routes
 // ============================================================
 
+const auditLogger = require("./src/middleware/auditLogger");
+app.use("/api", auditLogger); // Apply audit logger to all API routes
+
 const authRoutes = require("./src/routes/auth");
 const dashboardRoutes = require("./src/routes/dashboard");
 const clientsRoutes = require("./src/routes/clients");

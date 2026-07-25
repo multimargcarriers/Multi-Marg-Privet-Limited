@@ -170,10 +170,9 @@ const Login = () => {
         background: '#ffffff',
       }}>
         
-        {/* --- LEFT SIDE: 60% BRAND SHOWCASE (3D Factory Background + Marketing Text) --- */}
-        {/* --- LEFT SIDE: 55% BRAND SHOWCASE (3D Factory Background + Marketing Text) --- */}
+        {/* --- LEFT SIDE: BRAND SHOWCASE --- */}
         <div className="showcase-sidebar" style={{
-          flex: '0 0 55%',
+          flex: '1',
           background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 45%, rgba(255, 255, 255, 0) 100%), url("/3d-factory-bg.png")',
           backgroundSize: 'cover',
           backgroundPosition: 'right center',
@@ -187,11 +186,11 @@ const Login = () => {
           {/* Top Header */}
           <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
             {/* Minimalist Logo Overlay */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '45px', background: '#fff', padding: '0.3rem', borderRadius: '50%', boxShadow: '0 4px 12px rgba(100, 80, 220, 0.2)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '180px' }} />
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, letterSpacing: '1px', color: '#111827' }}>MULTI MARG</h2>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700 }}>Logistics Platform</p>
+                <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800, letterSpacing: '1px', color: '#111827', lineHeight: 1.1 }}>Multi Marg Carriers PVT LTD</h2>
+                <p style={{ margin: 0, fontSize: '2rem', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 700 }}>Logistics Platform</p>
               </div>
             </div>
 
@@ -247,9 +246,9 @@ const Login = () => {
           </div>
         </div>
 
-        {/* --- RIGHT SIDE: 45% LOGIN FORM --- */}
-        <div style={{
-          flex: '1',
+        {/* --- RIGHT SIDE: LOGIN FORM --- */}
+        <div className="login-sidebar" style={{
+          flex: '0 0 480px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -294,6 +293,7 @@ const Login = () => {
               .showcase-sidebar { display: none !important; }
               .mobile-only-logo { display: block !important; }
               .desktop-only-logo { display: none !important; }
+              .login-sidebar { flex: 1 !important; max-width: 100% !important; padding: 2rem !important; }
             }
             .input-group {
               position: relative;
@@ -455,7 +455,7 @@ const Login = () => {
           <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             
             {/* Branding Logo at Top of Form */}
-            <div className="desktop-only-logo" style={{ marginBottom: '1.5rem', background: '#ffffff', padding: '0.75rem', borderRadius: '50%', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.15)' }}>
+            <div className="desktop-only-logo" style={{ marginBottom: '1.5rem' }}>
               <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
             </div>
 
@@ -476,7 +476,7 @@ const Login = () => {
             {view === 'otp' && (
               <>
                 <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Verify it's <span style={{ color: '#7c3aed' }}>you</span></h2>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>We sent a code to <strong>{email}</strong></p>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>We sent a code to your registered email for <strong>{email}</strong></p>
               </>
             )}
             
@@ -509,14 +509,14 @@ const Login = () => {
                 <input 
                   id="login-email"
                   name="email"
-                  type="email" 
+                  type="text" 
                   className="input-field"
-                  placeholder="Email or phone" 
+                  placeholder="Email or Employee Code" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
-                  aria-label="Email or phone"
+                  aria-label="Email or Employee Code"
                 />
               </div>
 
@@ -588,14 +588,14 @@ const Login = () => {
                 <input 
                   id="forgot-email"
                   name="email"
-                  type="email" 
+                  type="text" 
                   className="input-field"
-                  placeholder="Email or phone" 
+                  placeholder="Email or Employee Code" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
-                  aria-label="Email or phone for password reset"
+                  aria-label="Email or Employee Code for password reset"
                 />
               </div>
               

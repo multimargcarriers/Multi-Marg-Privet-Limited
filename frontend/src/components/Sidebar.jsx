@@ -54,10 +54,10 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       permission: "superadmin"
     },
     {
-      name: "System Logs",
+      name: "Activity Logs",
       path: "/logs",
       icon: <Activity size={20} />,
-      permission: "superadmin"
+      permission: null
     },
     {
       name: "Masters",

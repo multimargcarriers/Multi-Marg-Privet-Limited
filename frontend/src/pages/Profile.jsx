@@ -46,6 +46,30 @@ const Profile = () => {
     fetchDefaults();
   }, [token]);
   
+  const [activities, setActivities] = useState([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  
+  useEffect(() => {
+    if (activeTab === 'history') {
+      const fetchActivities = async () => {
+        setIsLoadingActivities(true);
+        try {
+          const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/activity`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data?.success) {
+            setActivities(res.data.data || []);
+          }
+        } catch (err) {
+          console.error("Failed to fetch activities", err);
+        } finally {
+          setIsLoadingActivities(false);
+        }
+      };
+      fetchActivities();
+    }
+  }, [activeTab, token]);
+
   const fileInputRef = useRef(null);
   const bannerInputRef = useRef(null);
 
@@ -526,25 +550,27 @@ const Profile = () => {
 
               <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {[
-                    { type: 'login', title: 'Successful sign-in', date: 'Today, 10:45 AM', location: 'Mumbai, India', ip: '192.168.1.100' },
-                    { type: 'security', title: 'Security info updated', date: 'Yesterday, 04:30 PM', location: 'Mumbai, India', ip: '192.168.1.100' },
-                    { type: 'login', title: 'Successful sign-in', date: 'Oct 12, 09:15 AM', location: 'Mumbai, India', ip: '192.168.1.12' },
-                  ].map((log, idx) => (
-                    <div key={idx} style={{ padding: '1.5rem', borderBottom: idx !== 2 ? '1px solid var(--border-color)' : 'none', display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
-                      <div style={{ color: log.type === 'security' ? '#D83B01' : '#107C41' }}>
-                        {log.type === 'security' ? <ShieldCheck size={24} /> : <CheckCircle size={24} />}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--text-dark)' }}>{log.title}</h4>
-                        <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {log.date}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Globe size={14} /> {log.location}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Monitor size={14} /> {log.ip}</span>
+                  {isLoadingActivities ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading activities...</div>
+                  ) : activities.length === 0 ? (
+                    <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No recent activity found.</div>
+                  ) : (
+                    activities.map((log, idx) => (
+                      <div key={log.id || idx} style={{ padding: '1.5rem', borderBottom: idx !== activities.length - 1 ? '1px solid var(--border-color)' : 'none', display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+                        <div style={{ color: log.type === 'logout' ? '#D83B01' : log.type === 'security' ? '#0078D4' : '#107C41' }}>
+                          {log.type === 'logout' ? <LogOut size={24} /> : log.type === 'security' ? <ShieldCheck size={24} /> : <CheckCircle size={24} />}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--text-dark)' }}>{log.title}</h4>
+                          <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={14} /> {new Date(log.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Globe size={14} /> {log.location || 'Unknown'}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Monitor size={14} /> {log.ip || 'Unknown'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
