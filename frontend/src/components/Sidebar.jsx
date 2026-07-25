@@ -35,8 +35,9 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const isExpanded = isOpen || isHovered;
 
   const handleLinkClick = () => {
-    if (window.innerWidth <= 1024 && setIsSidebarOpen) {
-      setIsSidebarOpen(false);
+    if (window.innerWidth <= 1024) {
+      if (setIsSidebarOpen) setIsSidebarOpen(false);
+      setIsHovered(false);
     }
   };
 

@@ -20,8 +20,8 @@ exports.get_stats_1 = async (req, res) => {
   }
   
   // Fetch recent activity
-  const recentBookingsSnapshot = await db.collection("bookings").orderBy("createdAt", "desc").limit(3).get();
-  const recentTripsSnapshot = await db.collection("trips").orderBy("createdAt", "desc").limit(3).get();
+  const recentBookingsSnapshot = await db.collection("bookings").orderBy("createdAt", "desc").limit(10).get();
+  const recentTripsSnapshot = await db.collection("trips").orderBy("createdAt", "desc").limit(10).get();
   
   const recentActivity = [];
   
@@ -56,7 +56,7 @@ exports.get_stats_1 = async (req, res) => {
     return dateB - dateA;
   });
   
-  data.recentActivity = recentActivity.slice(0, 5);
+  data.recentActivity = recentActivity.slice(0, 7);
 
   return success(res, "Dashboard stats fetched successfully", data);
 };
