@@ -6,8 +6,11 @@ const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");const { getRoot_1, postRoot_2, put_id_3, delete_id_4 } = require('../controllers/tripsController');
+const { requirePermission } = require("../middleware/rbac");
 
 const CACHE_KEY = "trips";
+
+router.use(requirePermission(['operations', 'trips']));
 
 
 router.get(

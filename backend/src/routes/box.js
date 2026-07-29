@@ -8,6 +8,10 @@ const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");const { getRoot_1, postRoot_2 } = require('../controllers/boxController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["uploads","upload_box"]));
+
+
 const CACHE_KEY = "boxEntries";
 
 

@@ -12,6 +12,9 @@ const morgan = require("morgan");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const hpp = require("hpp");
 
 // Load environment variables
 dotenv.config();
@@ -86,6 +89,15 @@ app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Data Sanitization against NoSQL query injection
+// app.use(mongoSanitize()); // Disabled: Incompatible with Express 5 (req.query is read-only)
+
+// Data Sanitization against XSS
+// app.use(xss()); // Disabled: Incompatible with Express 5 (req.query is read-only)
+
+// Prevent Parameter Pollution
+app.use(hpp());
+
 // Global Data Sanitization Middleware
 // Ensures empty numeric fields default to 0 and empty/invalid date fields default to today
 app.use((req, res, next) => {
@@ -132,7 +144,7 @@ app.use((req, res, next) => {
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: NODE_ENV === "development" ? 10000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100),
+  max: NODE_ENV === "development" ? 10000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 500),
   message: {
     success: false,
     message: "Too many requests, please try again later.",
@@ -192,7 +204,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ============================================================
 
 const auditLogger = require("./src/middleware/auditLogger");
-app.use("/api", auditLogger); // Apply audit logger to all API routes
+const { authenticateToken } = require("./src/middleware/auth");
 
 const authRoutes = require("./src/routes/auth");
 const dashboardRoutes = require("./src/routes/dashboard");
@@ -228,10 +240,48 @@ const searchRoutes = require("./src/routes/search");
 const settingsRoutes = require("./src/routes/settings");
 
 // ============================================================
-// Mount Routes
+// Mount Public Routes
 // ============================================================
 
+// Health Check & Status
+app.get(["/", "/api"], (req, res) => {
+  res.json({
+    success: true,
+    message: "Multimarg Carriers Transport API",
+    version: "2.0.0",
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: NODE_ENV,
+    services: {
+      redis: redisClient ? "connected" : "disabled",
+      cloudinary: cloudinaryConfigured ? "configured" : "disabled",
+    },
+  });
+});
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// Auth
 app.use("/api/auth", authRoutes);
+
+// ============================================================
+// Global Authentication & Auditing Lockdown
+// ============================================================
+app.use("/api", authenticateToken);
+app.use("/api", auditLogger);
+
+// ============================================================
+// Mount Protected Routes
+// ============================================================
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/search", searchRoutes);
@@ -265,36 +315,6 @@ app.use("/api/logs", logsRoutes);
 app.use("/api/settings", settingsRoutes);
 
 // ============================================================
-// Health Check & Status
-// ============================================================
-
-app.get(["/", "/api"], (req, res) => {
-  res.json({
-    success: true,
-    message: "Multimarg Carriers Transport API",
-    version: "2.0.0",
-    environment: NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get("/api/health", (req, res) => {
-  res.json({
-    success: true,
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: NODE_ENV,
-    services: {
-      redis: redisClient ? "connected" : "disabled",
-      cloudinary: cloudinaryConfigured ? "configured" : "disabled",
-    },
-  });
-});
-
-app.get("/favicon.ico", (req, res) => res.status(204).end());
-
-// ============================================================
 // Error Handling
 // ============================================================
 
@@ -311,7 +331,12 @@ app.use(errorHandler);
 const { initMongo } = require("./src/config/database");
 
 async function initializeServices() {
-  await initMongo();
+  try {
+    await initMongo();
+  } catch (err) {
+    logger.warn("MongoDB initialization failed (continuing without DB):", err.message);
+  }
+  
   if (process.env.USE_REDIS === "true") {
     try {
       const redisModule = require("./src/config/redis");

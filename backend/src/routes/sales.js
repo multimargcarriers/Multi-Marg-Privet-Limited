@@ -5,6 +5,10 @@ const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");const { getRoot_1, get_summary_2 } = require('../controllers/salesController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["reports","sales_reports"]));
+
+
 const CACHE_KEY = "sales";
 
 // Get sales report

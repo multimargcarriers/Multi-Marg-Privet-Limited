@@ -6,6 +6,10 @@ const { asyncHandler } = require("../middleware/errorHandler");
 
 // Helper to convert array to CSV
 const { get_csv_outstanding_client_1, get_full_data_client_2, get_bookings_3, get_bills_4, get_tripsheet_5, get_cashsheet_6, get_gst_7, get_unbilled_8 } = require('../controllers/exportsController');function toCSV(headers, rows) {
+
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["reports"]));
+
   const headerLine = headers.join(",");
   const dataLines = rows.map((row) =>
   headers.

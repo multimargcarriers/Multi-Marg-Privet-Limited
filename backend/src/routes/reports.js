@@ -5,6 +5,10 @@ const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");const { get_gst_1 } = require('../controllers/reportsController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["reports"]));
+
+
 const CACHE_KEY = "reports_gst";
 
 // GST Report

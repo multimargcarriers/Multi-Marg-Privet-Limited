@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const os = require("os");
-const { authenticateToken } = require("../middleware/auth");
+
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
 const { getClient, getStatus: getRedisStatus } = require("../config/redis");
@@ -16,7 +16,7 @@ const requireSuperAdmin = (req, res, next) => {
   }
 };
 
-router.use(authenticateToken);
+
 
 router.get("/system-stats", requireSuperAdmin, async (req, res) => {
   try {

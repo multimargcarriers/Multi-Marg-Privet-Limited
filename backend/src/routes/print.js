@@ -6,13 +6,14 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { generatePDF } = require("../utils/pdfGenerator");
 
 // Generate LR PDF (returns HTML for now, can be converted to PDF client-side)
-const { get_lr_id_1, get_lr_id_pdf_2, get_bill_id_3, get_manifest_id_4, get_manifest_id_pdf_5, get_trip_bill_trip_client_6 } = require('../controllers/printController');router.get(
+const { get_lr_id_1, get_lr_id_pdf_2, get_bill_id_3, get_manifest_id_4, get_manifest_id_pdf_5, get_trip_bill_trip_client_6 } = require('../controllers/printController');
+const { requirePermission } = require("../middleware/rbac");
+
+router.use(requirePermission(["billing","reports"]));
+
+router.get(
   "/lr/:id",
   asyncHandler(get_lr_id_1
-
-
-
-
 
 
 

@@ -5,7 +5,12 @@
 
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined in environment variables. Refusing to start.");
+  process.exit(1);
+}
 
 /**
  * Middleware to verify JWT token from Authorization header

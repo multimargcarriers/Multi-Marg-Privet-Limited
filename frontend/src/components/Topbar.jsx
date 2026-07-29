@@ -74,19 +74,21 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
           <Menu size={24} />
         </button>
         <img src="/mc.png" alt="Logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
-        <div 
-          className="topbar-search"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', minWidth: '200px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Search size={16} color="rgba(255,255,255,0.7)" />
-            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Search bookings...</span>
+        {(!user || hasPermission('operations') || hasPermission('dashboard')) && (
+          <div 
+            className="topbar-search"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', minWidth: '200px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Search size={16} color="rgba(255,255,255,0.7)" />
+              <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Search bookings...</span>
+            </div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.2)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+              Ctrl K
+            </div>
           </div>
-          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.2)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-            Ctrl K
-          </div>
-        </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="topbar-right">

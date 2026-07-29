@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { getSystemLogs, deleteLog, deleteLogsByDate, bulkDeleteLogs } = require("../controllers/logs");
-const { authenticateToken } = require("../middleware/auth");
+
 const { error } = require("../utils/response");
 
 // Middleware to ensure user is SuperAdmin
@@ -14,7 +14,7 @@ const requireSuperAdmin = (req, res, next) => {
 };
 
 // All authenticated users can access logs
-router.use(authenticateToken);
+
 
 router.get("/", getSystemLogs);
 

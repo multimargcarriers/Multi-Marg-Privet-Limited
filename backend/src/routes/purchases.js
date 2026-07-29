@@ -7,6 +7,10 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");const { getRoot_1, postRoot_2, delete_id_3 } = require('../controllers/purchasesController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["accounts","purchases"]));
+
+
 const CACHE_KEY = "purchases";
 
 

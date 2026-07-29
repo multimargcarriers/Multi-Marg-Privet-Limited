@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       name: "Dashboard",
       path: "/dashboard",
       icon: <LayoutDashboard size={20} />,
-      permission: null // Available to all logged-in users
+      permission: "dashboard"
     },
     {
       name: "IAM",
@@ -58,28 +58,29 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       name: "Activity Logs",
       path: "/logs",
       icon: <Activity size={20} />,
-      permission: null
+      permission: "logs"
     },
     {
       name: "Masters",
       isHeader: true,
       permission: "masters",
       children: [
-        { name: "Clients", path: "/clients", icon: <Users size={18} /> },
-        { name: "Branches", path: "/branches", icon: <Building2 size={18} /> },
-        { name: "Cities", path: "/cities", icon: <MapPin size={18} /> },
-        { name: "Vendors", path: "/vendors", icon: <Users size={18} /> },
+        { name: "Clients", path: "/clients", icon: <Users size={18} />, permission: "clients" },
+        { name: "Branches", path: "/branches", icon: <Building2 size={18} />, permission: "branches" },
+        { name: "Cities", path: "/cities", icon: <MapPin size={18} />, permission: "cities" },
+        { name: "Vendors", path: "/vendors", icon: <Users size={18} />, permission: "vendors" },
       ],
     },
     {
       name: "Rates",
       isHeader: true,
-      permission: "masters",
+      permission: "rates",
       children: [
         {
           name: "Client Rates",
           path: "/rates",
           icon: <DollarSign size={18} />,
+          permission: "client_rates"
         },
       ],
     },
@@ -92,15 +93,17 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           name: "Bookings (LR)",
           path: "/bookings",
           icon: <ClipboardList size={18} />,
+          permission: "bookings"
         },
         {
           name: "Create Booking",
           path: "/bookings/create",
           icon: <Plus size={18} />,
+          permission: "create_booking"
         },
-        { name: "Trips", path: "/trips", icon: <Truck size={18} /> },
-        { name: "Tracking", path: "/tracking", icon: <MapPin size={18} /> },
-        { name: "POD Upload", path: "/pod", icon: <Upload size={18} /> },
+        { name: "Trips", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
+        { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
+        { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
       ],
     },
     {
@@ -108,21 +111,24 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       isHeader: true,
       permission: "billing",
       children: [
-        { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} /> },
+        { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} />, permission: "all_bills" },
         {
           name: "Generate Bills",
           path: "/bills/generate",
           icon: <Plus size={18} />,
+          permission: "generate_bills"
         },
         {
           name: "Misc Bill",
           path: "/bills/misc",
           icon: <FileText size={18} />,
+          permission: "misc_bill"
         },
         {
           name: "Update Bill",
           path: "/bills/update",
           icon: <Edit size={18} />,
+          permission: "update_bill"
         },
       ],
     },
@@ -135,11 +141,13 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           name: "Cash Sheet",
           path: "/cash-sheet",
           icon: <DollarSign size={18} />,
+          permission: "cash_sheet"
         },
         {
           name: "Purchases",
           path: "/purchases",
           icon: <ShoppingCart size={18} />,
+          permission: "purchases"
         },
       ],
     },
@@ -148,14 +156,14 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
       isHeader: true,
       permission: "reports",
       children: [
-        { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} /> },
-        { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} /> },
-        { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} /> },
-        { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} /> },
-        { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} /> },
-        { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} /> },
-        { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} /> },
-        { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} /> },
+        { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
+        { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} />, permission: "gst_reports" },
+        { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} />, permission: "mis_reports" },
+        { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
+        { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
+        { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
+        { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
+        { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
       ],
     },
     {
@@ -167,11 +175,13 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           name: "Upload Box",
           path: "/upload-box",
           icon: <Package size={18} />,
+          permission: "upload_box"
         },
         {
           name: "Upload Vouchers",
           path: "/upload-vouchers",
           icon: <Upload size={18} />,
+          permission: "upload_vouchers"
         },
       ],
     },
@@ -220,15 +230,27 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         </div>
 
         {menuItems
-          .filter(item => {
-            // First check user role permissions
-            if (item.permission && !hasPermission(item.permission)) return false;
-            // Second check global feature toggles for modules
-            if (item.permission && globalSettings?.modules) {
-               // E.g., if module 'operations' is false in settings, hide it
-               if (globalSettings.modules[item.permission] === false) return false;
+          .map(item => {
+            if (item.isHeader) {
+              const hasParentPermission = !item.permission || hasPermission(item.permission);
+              const visibleChildren = item.children.filter(child => {
+                // Feature toggle check
+                if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+                
+                if (hasParentPermission) return true;
+                return child.permission && hasPermission(child.permission);
+              });
+              return { ...item, children: visibleChildren };
             }
-            return true;
+            return item;
+          })
+          .filter(item => {
+            if (item.isHeader) {
+              return item.children.length > 0;
+            } else {
+              if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+              return !item.permission || hasPermission(item.permission);
+            }
           })
           .map((item, index) => {
           if (item.isHeader) {

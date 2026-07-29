@@ -5,6 +5,10 @@ const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");const { getRoot_1, get_summary_2 } = require('../controllers/purchase-reportController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["reports","purchase_reports"]));
+
+
 const CACHE_KEY = "purchaseReport";
 
 // Get purchase report

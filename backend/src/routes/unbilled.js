@@ -5,6 +5,10 @@ const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet } = require("../config/redis");const { getRoot_1, get_search_2 } = require('../controllers/unbilledController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["reports","unbilled_reports"]));
+
+
 const CACHE_KEY = "unbilled";
 
 // Get unbilled bookings

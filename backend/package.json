@@ -25,9 +25,11 @@
     "csv-parser": "^3.2.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
     "helmet": "^8.0.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^7.5.0",
     "morgan": "^1.10.0",
@@ -38,7 +40,8 @@
     "redis": "^4.7.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "xss-clean": "^0.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

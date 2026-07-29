@@ -8,13 +8,78 @@ import { useDialog } from '../context/DialogContext';
 import { useToast } from '../context/ToastContext';
 import { motion, AnimatePresence } from "framer-motion";
 
-const MODULES = [
-  { id: 'masters', name: 'Masters (Clients, Vendors, Rates)' },
-  { id: 'operations', name: 'Operations (Bookings, Trips, POD)' },
-  { id: 'billing', name: 'Billing (Invoices, Generate Bills)' },
-  { id: 'accounts', name: 'Accounts (Cash Sheet, Purchases)' },
-  { id: 'reports', name: 'Reports (MIS, Sales)' },
-  { id: 'uploads', name: 'Uploads (Box, Vouchers)' }
+const PERMISSIONS_TREE = [
+  { id: 'dashboard', name: 'Dashboard', isPage: true },
+  { id: 'logs', name: 'Activity Logs', isPage: true },
+  {
+    id: 'masters',
+    name: 'Masters Section',
+    pages: [
+      { id: 'clients', name: 'Clients' },
+      { id: 'branches', name: 'Branches' },
+      { id: 'cities', name: 'Cities' },
+      { id: 'vendors', name: 'Vendors' }
+    ]
+  },
+  {
+    id: 'rates',
+    name: 'Rates Section',
+    pages: [
+      { id: 'client_rates', name: 'Client Rates' }
+    ]
+  },
+  {
+    id: 'operations',
+    name: 'Operations Section',
+    pages: [
+      { id: 'bookings', name: 'Bookings (LR)' },
+      { id: 'create_booking', name: 'Create Booking' },
+      { id: 'trips', name: 'Trips' },
+      { id: 'tracking', name: 'Tracking' },
+      { id: 'pod', name: 'POD Upload' }
+    ]
+  },
+  {
+    id: 'billing',
+    name: 'Billing Section',
+    pages: [
+      { id: 'all_bills', name: 'All Bills' },
+      { id: 'generate_bills', name: 'Generate Bills' },
+      { id: 'misc_bill', name: 'Misc Bill' },
+      { id: 'update_bill', name: 'Update Bill' }
+    ]
+  },
+  {
+    id: 'accounts',
+    name: 'Accounts Section',
+    pages: [
+      { id: 'cash_sheet', name: 'Cash Sheet' },
+      { id: 'purchases', name: 'Purchases' }
+    ]
+  },
+  {
+    id: 'reports',
+    name: 'Reports Section',
+    pages: [
+      { id: 'analytics', name: 'Deep Analytics' },
+      { id: 'gst_reports', name: 'GSTR Reports' },
+      { id: 'mis_reports', name: 'MIS Reports' },
+      { id: 'unbilled_reports', name: 'Unbilled Reports' },
+      { id: 'sales_reports', name: 'Sales Reports' },
+      { id: 'purchase_reports', name: 'Purchase Reports' },
+      { id: 'cashsheet_reports', name: 'Cashsheet Reports' },
+      { id: 'client_trip_reports', name: 'Client Trip Reports' }
+    ]
+  },
+  {
+    id: 'uploads',
+    name: 'Uploads Section',
+    pages: [
+      { id: 'upload_box', name: 'Upload Box' },
+      { id: 'upload_vouchers', name: 'Upload Vouchers' }
+    ]
+  },
+  { id: 'profile_only', name: 'Profile Only (No other access)', isPage: true }
 ];
 
 const IAM = () => {
@@ -223,18 +288,45 @@ const IAM = () => {
 
                   {formData.role === 'Admin' && (
                     <div style={{ gridColumn: "1 / -1" }}>
-                      <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Module Permissions</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '10px' }}>
-                        {MODULES.map(mod => (
-                          <label key={mod.id} style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem', color: '#475569', cursor: 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={formData.permissions.includes(mod.id) || formData.permissions.includes('all')}
-                              onChange={() => handleTogglePermission(mod.id)}
-                              style={{ marginRight: '8px', width: '16px', height: '16px', accentColor: '#4F46E5' }}
-                            />
-                            {mod.name}
-                          </label>
+                      <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Module & Page Permissions</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '10px', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        {PERMISSIONS_TREE.map(node => (
+                          <div key={node.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.95rem', color: '#1e293b', fontWeight: '600', cursor: 'pointer' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
+                                onChange={() => handleTogglePermission(node.id)}
+                                style={{ marginRight: '8px', width: '16px', height: '16px', accentColor: '#4F46E5' }}
+                              />
+                              {node.name}
+                            </label>
+                            
+                            {!node.isPage && node.pages && (
+                              <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', borderLeft: '2px solid #e2e8f0', marginLeft: '8px' }}>
+                                {node.pages.map(page => {
+                                  // If parent is checked, visually show children as checked
+                                  const isChecked = formData.permissions.includes(page.id) || formData.permissions.includes(node.id) || formData.permissions.includes('all');
+                                  const isDisabled = formData.permissions.includes(node.id) || formData.permissions.includes('all');
+                                  
+                                  return (
+                                    <label key={page.id} style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: isDisabled ? '#94a3b8' : '#475569', cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isChecked}
+                                        disabled={isDisabled}
+                                        onChange={() => {
+                                          if (!isDisabled) handleTogglePermission(page.id);
+                                        }}
+                                        style={{ marginRight: '8px', width: '14px', height: '14px', accentColor: isDisabled ? '#94a3b8' : '#4F46E5' }}
+                                      />
+                                      {page.name}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>

@@ -7,6 +7,10 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");const { getRoot_1, get_vendor_vendor_2, postRoot_3, delete_id_4 } = require('../controllers/vendor-outstandingController');
 
+const { requirePermission } = require("../middleware/rbac");
+router.use(requirePermission(["accounts","vendor_outstanding"]));
+
+
 const CACHE_KEY = "vendorOutstanding";
 
 
