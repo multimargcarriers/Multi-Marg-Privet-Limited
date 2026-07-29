@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus, Truck, FileText, ClipboardList, CheckCircle, Loader2 } from "lucide-react";
+import { Plus, Truck, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
@@ -15,6 +16,7 @@ import { useToast } from "../context/ToastContext";
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Trips = () => {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -131,6 +133,14 @@ const Trips = () => {
       console.error("Delete trip error", err);
       fetchData();
     }
+  };
+
+  const handlePreviewManifest = (id) => {
+    window.open(`/print-manifest/${id}`, "_blank");
+  };
+
+  const handleDownloadManifest = (id) => {
+    window.open(`/print-manifest/${id}?download=true`, "_blank");
   };
 
   const updateMaterialRow = (index, field, value) => {
@@ -359,9 +369,10 @@ const Trips = () => {
               <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{item.totalAmount || "0.00"}</span></td>
               <td>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: "pointer" }}><FileText size={16} /></button>
+                  <button onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Preview Manifest"><Eye size={16} /></button>
+                  <button onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Download Manifest"><Download size={16} /></button>
                   {isSuperAdmin && (
-                    <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }}>Delete</button>
+                    <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
                   )}
                 </div>
               </td>

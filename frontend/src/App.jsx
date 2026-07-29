@@ -12,6 +12,7 @@ import BillView1 from "./pages/BillView1";
 import BillView2 from "./pages/BillView2";
 import BookingsList from "./pages/BookingsList";
 import PrintLR from "./pages/PrintLR";
+import PrintManifest from "./pages/PrintManifest";
 import Branches from "./pages/Branches";
 import CashSheet from "./pages/CashSheet";
 import Cities from "./pages/Cities";
@@ -89,6 +90,7 @@ function App() {
               <Route path="/bookings/create" element={<CreateBooking />} />
               <Route path="/bookings/edit/:id" element={<CreateBooking />} />
               <Route path="/print-lr/:id" element={<PrintLR />} />
+              <Route path="/print-manifest/:id" element={<PrintManifest />} />
               <Route path="/pod" element={<POD />} />
               <Route path="/trips" element={<Trips />} />
               <Route path="/tracking" element={<Tracking />} />

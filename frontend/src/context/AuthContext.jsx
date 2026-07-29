@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
+          console.error("401 Unauthorized triggered by:", error.config?.url);
           logout();
         }
         return Promise.reject(error);

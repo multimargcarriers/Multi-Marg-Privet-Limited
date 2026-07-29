@@ -133,32 +133,32 @@ const SystemLogs = () => {
       </div>
 
       {/* Toolbar */}
-      <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0", padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+      <div className="flex-responsive" style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px 8px 0 0", padding: "1rem 1.5rem", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <button 
             onClick={() => setFilter("ALL")}
-            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "ALL" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "ALL" ? "#475569" : "transparent", color: filter === "ALL" ? "white" : "#64748b" }}
+            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "ALL" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "ALL" ? "#475569" : "transparent", color: filter === "ALL" ? "white" : "#64748b", flex: "1 1 auto", textAlign: "center" }}
           >
             All Logs
           </button>
           <button 
             onClick={() => setFilter("ERROR")}
-            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "ERROR" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "ERROR" ? "#ef4444" : "transparent", color: filter === "ERROR" ? "white" : "#64748b", display: "flex", alignItems: "center", gap: "0.25rem" }}
+            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "ERROR" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "ERROR" ? "#ef4444" : "transparent", color: filter === "ERROR" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem", flex: "1 1 auto" }}
           >
             <AlertTriangle size={14} /> Errors
           </button>
           <button 
             onClick={() => setFilter("INFO")}
-            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "INFO" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "INFO" ? "#3b82f6" : "transparent", color: filter === "INFO" ? "white" : "#64748b", display: "flex", alignItems: "center", gap: "0.25rem" }}
+            style={{ padding: "0.4rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: filter === "INFO" ? "none" : "1px solid #e2e8f0", backgroundColor: filter === "INFO" ? "#3b82f6" : "transparent", color: filter === "INFO" ? "white" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.25rem", flex: "1 1 auto" }}
           >
             <Info size={14} /> Info
           </button>
         </div>
         
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
           <button 
             onClick={() => setShowAdvancedDelete(true)}
-            style={{ padding: "0.4rem 1rem", borderRadius: "8px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: "1px solid #e2e8f0", backgroundColor: "white", color: "#64748b", display: "flex", alignItems: "center", gap: "0.4rem" }}
+            style={{ padding: "0.4rem 1rem", borderRadius: "8px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", border: "1px solid #e2e8f0", backgroundColor: "white", color: "#64748b", display: "flex", alignItems: "center", gap: "0.4rem", whiteSpace: "nowrap" }}
           >
             <Settings2 size={14} /> Advanced Delete
           </button>
@@ -168,7 +168,7 @@ const SystemLogs = () => {
             placeholder="Search message..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: "0.5rem 1rem", borderRadius: "20px", border: "1px solid #cbd5e1", fontSize: "0.85rem", width: "250px", outline: "none" }}
+            style={{ padding: "0.5rem 1rem", borderRadius: "20px", border: "1px solid #cbd5e1", fontSize: "0.85rem", flex: "1 1 150px", outline: "none", minWidth: "150px", maxWidth: "100%" }}
           />
         </div>
       </div>
