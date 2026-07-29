@@ -17,6 +17,7 @@ const {
 } = require("uuid");
 const bcrypt = require("bcryptjs");
 const defaultAssets = require("../config/defaultAssets");
+const { sendWelcomeEmail } = require("../config/mail");
 
 // Initialize mock users if needed
 
@@ -85,6 +86,12 @@ exports.postRoot_2 = async (req, res) => {
     statusCode: 400
   });
   await db.collection("users").doc(newUser.id).set(newUser);
+  
+  // Send welcome email with credentials
+  sendWelcomeEmail(email, password, name, role, employeeId).catch(err => {
+    console.error("[Mail] Failed to send welcome email to", email, err);
+  });
+
   const {
     password: _,
     ...safeUser

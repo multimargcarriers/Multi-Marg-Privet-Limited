@@ -87,7 +87,78 @@ const sendOtpEmail = async (email, otp, userName = "User") => {
   return sendEmail({ to: email, subject, htmlContent });
 };
 
+const sendWelcomeEmail = async (email, password, userName, role, employeeId) => {
+  const subject = "Welcome to Multi Marg Private Limited - Your Account Credentials";
+  
+  const loginUrl = process.env.FRONTEND_ORIGIN || "https://soft.multimargcarriers.co.in";
+
+  const htmlContent = `
+    <div style="font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: 0 auto; padding: 0; background-color: #f8fafc; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+      
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #232F3E 0%, #0f151c 100%); padding: 35px 20px; text-align: center; border-bottom: 3px solid #FF9900;">
+        <img src="https://soft.multimargcarriers.co.in/mc.png" alt="Multi Marg Logo" style="width: 80px; height: auto; margin-bottom: 15px; background: white; padding: 8px; border-radius: 8px;" />
+        <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">MULTI MARG</h1>
+        <p style="color: #94a3b8; font-size: 14px; margin: 5px 0 0 0; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;">Private Limited</p>
+      </div>
+      
+      <!-- Body -->
+      <div style="background-color: #ffffff; padding: 40px;">
+        <h2 style="color: #1e293b; margin-top: 0; font-size: 22px; font-weight: 700;">Welcome to the Team, ${userName}!</h2>
+        <p style="color: #475569; line-height: 1.6; font-size: 16px; margin-bottom: 25px;">
+          We are thrilled to extend our offer and welcome you to <strong>Multi Marg Private Limited</strong>. Your IAM (Identity and Access Management) profile has been successfully provisioned.
+        </p>
+        
+        <p style="color: #475569; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
+          You have been assigned the role of <strong style="color: #1a73e8;">${role}</strong>. Below are your official administrative credentials to access the enterprise logistics platform.
+        </p>
+        
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; margin-bottom: 30px;">
+          <h3 style="margin-top: 0; color: #334155; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px;">Your Account Details</h3>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 120px;">Employee ID:</td>
+              <td style="padding: 8px 0; color: #0f172a; font-weight: 600; font-size: 15px;">${employeeId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Email:</td>
+              <td style="padding: 8px 0; color: #0f172a; font-weight: 600; font-size: 15px;">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #64748b; font-size: 14px;">Password:</td>
+              <td style="padding: 8px 0; color: #0f172a; font-weight: 600; font-size: 15px;"><span style="font-family: monospace; background: #e2e8f0; padding: 4px 8px; border-radius: 4px; display: inline-block;">${password}</span></td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 35px;">
+          <a href="${loginUrl}" style="background: linear-gradient(90deg, #FF9900 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3);">Access Portal Now</a>
+        </div>
+        
+        <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 16px 20px; border-radius: 4px;">
+          <p style="color: #9a3412; font-size: 14px; margin: 0; font-weight: 500; line-height: 1.5;">
+            <strong style="color: #7c2d12;">Important Security Notice:</strong> We strongly recommend changing this temporary password immediately upon your first login. Please keep your credentials strictly confidential.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div style="background-color: #f1f5f9; padding: 25px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 0;">
+          &copy; ${new Date().getFullYear()} <strong>Multi Marg Private Limited</strong>. All rights reserved.<br/>
+          Dhanbad District, Jharkhand, India.
+        </p>
+      </div>
+      
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, htmlContent });
+};
+
 module.exports = {
   sendEmail,
-  sendOtpEmail
+  sendOtpEmail,
+  sendWelcomeEmail
 };
