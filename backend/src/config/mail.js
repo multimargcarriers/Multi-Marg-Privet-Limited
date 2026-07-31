@@ -59,7 +59,7 @@ const sendOtpEmail = async (email, otp, userName = "User") => {
     <div style="padding: 30px 20px;">
       <h2 style="color: #1e293b; margin-top: 0; font-size: 20px; font-weight: 700; word-break: break-word;">Hello ${userName},</h2>
       <p style="color: #475569; line-height: 1.6; font-size: 15px; margin-bottom: 25px;">
-        You requested a secure password reset for your Multi Marg administrative account. 
+        You requested a secure password reset for your Multi Marg employee account. 
         Please use the authentication code below to proceed with your request.
       </p>
       
@@ -128,7 +128,7 @@ const sendWelcomeEmail = async (email, password, userName, role, employeeId) => 
       </p>
       
       <p style="color: #475569; line-height: 1.6; font-size: 15px; margin-bottom: 25px;">
-        You have been assigned the role of <strong style="color: #1a73e8;">${role}</strong>. Below are your official administrative credentials to access the enterprise logistics platform.
+        You have been assigned the role of <strong style="color: #1a73e8;">${role}</strong>. Below are your official employee credentials to access the enterprise logistics platform.
       </p>
       
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; max-width: 100%; box-sizing: border-box; overflow-x: auto;">

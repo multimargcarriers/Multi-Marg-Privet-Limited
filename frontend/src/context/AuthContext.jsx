@@ -100,7 +100,16 @@ export const AuthProvider = ({ children }) => {
     setToken(userToken);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userToken);
-    navigate('/dashboard');
+
+    // Determine initial route based on permissions
+    const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimargcarriers.co.in';
+    const hasDashboard = isSuperAdmin || (userData.permissions && (userData.permissions.includes('all') || userData.permissions.includes('dashboard')));
+    
+    if (hasDashboard) {
+      navigate('/dashboard');
+    } else {
+      navigate('/profile');
+    }
   };
 
   const logout = async () => {

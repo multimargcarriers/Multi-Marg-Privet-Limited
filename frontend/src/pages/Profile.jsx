@@ -364,7 +364,7 @@ const Profile = () => {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: 'rgba(0, 120, 212, 0.1)', color: '#0078D4', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
-                <Shield size={14} /> {user?.role || 'SuperAdmin'} Account
+                <Shield size={14} /> {(user?.role === 'Admin' || !user?.role) ? 'Employee' : user.role} Account
               </div>
             </div>
           </div>

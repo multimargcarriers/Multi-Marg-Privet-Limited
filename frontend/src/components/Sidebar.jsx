@@ -28,6 +28,188 @@ import {
   IdCard
 } from "lucide-react";
 
+export const menuItems = [
+  {
+    name: "Dashboard",
+    path: "/dashboard",
+    icon: <LayoutDashboard size={20} />,
+    permission: "dashboard"
+  },
+  {
+    name: "IAM",
+    path: "/iam",
+    icon: <Shield size={20} />,
+    permission: "superadmin"
+  },
+  {
+    name: "Activity Logs",
+    path: "/logs",
+    icon: <Activity size={20} />,
+    permission: "logs"
+  },
+  {
+    name: "Masters",
+    isHeader: true,
+    permission: "masters",
+    children: [
+      { name: "Clients", path: "/clients", icon: <Users size={18} />, permission: "clients" },
+      { name: "Branches", path: "/branches", icon: <Building2 size={18} />, permission: "branches" },
+      { name: "Cities", path: "/cities", icon: <MapPin size={18} />, permission: "cities" },
+      { name: "Vendors", path: "/vendors", icon: <Users size={18} />, permission: "vendors" },
+    ],
+  },
+  {
+    name: "Rates",
+    isHeader: true,
+    permission: "rates",
+    children: [
+      {
+        name: "Client Rates",
+        path: "/rates",
+        icon: <DollarSign size={18} />,
+        permission: "client_rates"
+      },
+    ],
+  },
+  {
+    name: "Operations",
+    isHeader: true,
+    permission: "operations",
+    children: [
+      {
+        name: "Bookings (LR)",
+        path: "/bookings",
+        icon: <ClipboardList size={18} />,
+        permission: "bookings"
+      },
+      {
+        name: "Create Booking",
+        path: "/bookings/create",
+        icon: <Plus size={18} />,
+        permission: "create_booking"
+      },
+      { name: "Trips", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
+      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
+      { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
+    ],
+  },
+  {
+    name: "Bills",
+    isHeader: true,
+    permission: "billing",
+    children: [
+      { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} />, permission: "all_bills" },
+      {
+        name: "Generate Bills",
+        path: "/bills/generate",
+        icon: <Plus size={18} />,
+        permission: "generate_bills"
+      },
+      {
+        name: "Misc Bill",
+        path: "/bills/misc",
+        icon: <FileText size={18} />,
+        permission: "misc_bill"
+      },
+      {
+        name: "Update Bill",
+        path: "/bills/update",
+        icon: <Edit size={18} />,
+        permission: "update_bill"
+      },
+    ],
+  },
+  {
+    name: "Accounts",
+    isHeader: true,
+    permission: "accounts",
+    children: [
+      {
+        name: "Cash Sheet",
+        path: "/cash-sheet",
+        icon: <DollarSign size={18} />,
+        permission: "cash_sheet"
+      },
+      {
+        name: "Purchases",
+        path: "/purchases",
+        icon: <ShoppingCart size={18} />,
+        permission: "purchases"
+      },
+    ],
+  },
+  {
+    name: "Reports",
+    isHeader: true,
+    permission: "reports",
+    children: [
+      { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
+      { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} />, permission: "gst_reports" },
+      { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} />, permission: "mis_reports" },
+      { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
+      { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
+      { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
+      { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
+      { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
+    ],
+  },
+  {
+    name: "Uploads",
+    isHeader: true,
+    permission: "uploads",
+    children: [
+      {
+        name: "Upload Box",
+        path: "/upload-box",
+        icon: <Package size={18} />,
+        permission: "upload_box"
+      },
+      {
+        name: "Upload Vouchers",
+        path: "/upload-vouchers",
+        icon: <Upload size={18} />,
+        permission: "upload_vouchers"
+      },
+    ],
+  },
+  {
+    name: "Settings & Integrations",
+    path: "/settings",
+    icon: <Settings size={20} />,
+    permission: "superadmin"
+  },
+  {
+    name: "Employee Data",
+    path: "/employee-activity",
+    icon: <Users size={20} />,
+    permission: "superadmin"
+  }
+];
+
+export const getVisibleMenuItems = (hasPermission, globalSettings) => {
+  return menuItems
+    .map(item => {
+      if (item.isHeader) {
+        const hasParentPermission = !item.permission || hasPermission(item.permission);
+        const visibleChildren = item.children.filter(child => {
+          if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+          if (hasParentPermission) return true;
+          return child.permission && hasPermission(child.permission);
+        });
+        return { ...item, children: visibleChildren };
+      }
+      return item;
+    })
+    .filter(item => {
+      if (item.isHeader) {
+        return item.children.length > 0;
+      } else {
+        if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+        return !item.permission || hasPermission(item.permission);
+      }
+    });
+};
+
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
@@ -41,157 +223,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
     }
   };
 
-  const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <LayoutDashboard size={20} />,
-      permission: "dashboard"
-    },
-    {
-      name: "IAM",
-      path: "/iam",
-      icon: <Shield size={20} />,
-      permission: "superadmin"
-    },
-    {
-      name: "Activity Logs",
-      path: "/logs",
-      icon: <Activity size={20} />,
-      permission: "logs"
-    },
-    {
-      name: "Masters",
-      isHeader: true,
-      permission: "masters",
-      children: [
-        { name: "Clients", path: "/clients", icon: <Users size={18} />, permission: "clients" },
-        { name: "Branches", path: "/branches", icon: <Building2 size={18} />, permission: "branches" },
-        { name: "Cities", path: "/cities", icon: <MapPin size={18} />, permission: "cities" },
-        { name: "Vendors", path: "/vendors", icon: <Users size={18} />, permission: "vendors" },
-      ],
-    },
-    {
-      name: "Rates",
-      isHeader: true,
-      permission: "rates",
-      children: [
-        {
-          name: "Client Rates",
-          path: "/rates",
-          icon: <DollarSign size={18} />,
-          permission: "client_rates"
-        },
-      ],
-    },
-    {
-      name: "Operations",
-      isHeader: true,
-      permission: "operations",
-      children: [
-        {
-          name: "Bookings (LR)",
-          path: "/bookings",
-          icon: <ClipboardList size={18} />,
-          permission: "bookings"
-        },
-        {
-          name: "Create Booking",
-          path: "/bookings/create",
-          icon: <Plus size={18} />,
-          permission: "create_booking"
-        },
-        { name: "Trips", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
-        { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
-        { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
-      ],
-    },
-    {
-      name: "Bills",
-      isHeader: true,
-      permission: "billing",
-      children: [
-        { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} />, permission: "all_bills" },
-        {
-          name: "Generate Bills",
-          path: "/bills/generate",
-          icon: <Plus size={18} />,
-          permission: "generate_bills"
-        },
-        {
-          name: "Misc Bill",
-          path: "/bills/misc",
-          icon: <FileText size={18} />,
-          permission: "misc_bill"
-        },
-        {
-          name: "Update Bill",
-          path: "/bills/update",
-          icon: <Edit size={18} />,
-          permission: "update_bill"
-        },
-      ],
-    },
-    {
-      name: "Accounts",
-      isHeader: true,
-      permission: "accounts",
-      children: [
-        {
-          name: "Cash Sheet",
-          path: "/cash-sheet",
-          icon: <DollarSign size={18} />,
-          permission: "cash_sheet"
-        },
-        {
-          name: "Purchases",
-          path: "/purchases",
-          icon: <ShoppingCart size={18} />,
-          permission: "purchases"
-        },
-      ],
-    },
-    {
-      name: "Reports",
-      isHeader: true,
-      permission: "reports",
-      children: [
-        { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
-        { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} />, permission: "gst_reports" },
-        { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} />, permission: "mis_reports" },
-        { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
-        { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
-        { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
-        { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
-        { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
-      ],
-    },
-    {
-      name: "Uploads",
-      isHeader: true,
-      permission: "uploads",
-      children: [
-        {
-          name: "Upload Box",
-          path: "/upload-box",
-          icon: <Package size={18} />,
-          permission: "upload_box"
-        },
-        {
-          name: "Upload Vouchers",
-          path: "/upload-vouchers",
-          icon: <Upload size={18} />,
-          permission: "upload_vouchers"
-        },
-      ],
-    },
-    {
-      name: "Settings & Integrations",
-      path: "/settings",
-      icon: <Settings size={20} />,
-      permission: "superadmin"
-    }
-  ];
+  const visibleItems = getVisibleMenuItems(hasPermission, globalSettings);
 
   return (
     <div 
@@ -229,29 +261,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           )}
         </div>
 
-        {menuItems
-          .map(item => {
-            if (item.isHeader) {
-              const hasParentPermission = !item.permission || hasPermission(item.permission);
-              const visibleChildren = item.children.filter(child => {
-                // Feature toggle check
-                if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
-                
-                if (hasParentPermission) return true;
-                return child.permission && hasPermission(child.permission);
-              });
-              return { ...item, children: visibleChildren };
-            }
-            return item;
-          })
-          .filter(item => {
-            if (item.isHeader) {
-              return item.children.length > 0;
-            } else {
-              if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
-              return !item.permission || hasPermission(item.permission);
-            }
-          })
+        {visibleItems
           .map((item, index) => {
           if (item.isHeader) {
             return (

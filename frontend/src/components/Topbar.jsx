@@ -7,12 +7,12 @@ import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
 import { useToast } from '../context/ToastContext';
 
-const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
+const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
   const { user, hasPermission } = useContext(AuthContext);
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
   const { addToast } = useToast();
   const userName = user?.name || 'User';
-  const userRole = user?.role || 'Admin';
+  const userRole = (user?.role === 'Admin' || !user?.role) ? 'Employee' : user.role;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -70,9 +70,11 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
   return (
     <div style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 200 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-        <button onClick={toggleSidebar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
-          <Menu size={24} />
-        </button>
+        {hasSidebar && (
+          <button onClick={toggleSidebar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
+            <Menu size={24} />
+          </button>
+        )}
         <img src="/mc.png" alt="Logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
         {(!user || hasPermission('operations') || hasPermission('dashboard')) && (
           <div 
@@ -94,17 +96,17 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="topbar-right">
         {/* Quick Action Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem' }} className="hide-on-mobile">
-          {(!user || hasPermission('operations')) && (
+          {hasPermission('operations') && (
             <NavLink to="/bookings/create" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary-color)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <Plus size={14} /> New LR
             </NavLink>
           )}
-          {(!user || hasPermission('operations')) && (
+          {hasPermission('operations') && (
             <NavLink to="/trips" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)' }}>
               <Plus size={14} /> Add Trip
             </NavLink>
           )}
-          {(!user || hasPermission('billing')) && (
+          {hasPermission('billing') && (
             <NavLink to="/bills/generate" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)' }}>
               <Plus size={14} /> New Bill
             </NavLink>
@@ -112,63 +114,65 @@ const Topbar = ({ toggleSidebar, isSidebarOpen }) => {
         </div>
 
         {/* Notifications */}
-        <div style={{ position: 'relative' }} ref={dropdownRef}>
-          <button 
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', position: 'relative', display: 'flex', alignItems: 'center' }}
-          >
-            <Bell size={20} />
-            {totalIncomplete > 0 && (
-              <span style={{
-                position: 'absolute', top: '-5px', right: '-8px',
-                background: '#ef4444', color: 'white', borderRadius: '50%',
-                padding: '0.1rem 0.4rem', fontSize: '0.7rem', fontWeight: 'bold'
+        {hasSidebar && (
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
+            <button 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', position: 'relative', display: 'flex', alignItems: 'center' }}
+            >
+              <Bell size={20} />
+              {totalIncomplete > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-5px', right: '-8px',
+                  background: '#ef4444', color: 'white', borderRadius: '50%',
+                  padding: '0.1rem 0.4rem', fontSize: '0.7rem', fontWeight: 'bold'
+                }}>
+                  {totalIncomplete}
+                </span>
+              )}
+            </button>
+            
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: '10px',
+                width: '300px', background: 'white', borderRadius: '8px',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0', color: '#1e293b', zIndex: 1000
               }}>
-                {totalIncomplete}
-              </span>
-            )}
-          </button>
-          
-          {dropdownOpen && (
-            <div style={{
-              position: 'absolute', top: '100%', right: 0, marginTop: '10px',
-              width: '300px', background: 'white', borderRadius: '8px',
-              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-              border: '1px solid #e2e8f0', color: '#1e293b', zIndex: 1000
-            }}>
-              <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600' }}>
-                Notifications ({totalIncomplete})
-              </div>
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                {incompleteItems.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-                    No pending notifications!
-                  </div>
-                ) : (
-                  incompleteItems.map(item => (
-                    <div 
-                      key={item.id} 
-                      onClick={() => handleNotificationClick(item)}
-                      style={{ 
-                        padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                        display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
-                        transition: 'background 0.2s'
-                      }}
-                      onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
-                      onMouseOut={e => e.currentTarget.style.background = 'white'}
-                    >
-                      <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>Incomplete {item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>"{item.name}" requires more details. Click to complete.</div>
-                      </div>
+                <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600' }}>
+                  Notifications ({totalIncomplete})
+                </div>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {incompleteItems.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                      No pending notifications!
                     </div>
-                  ))
-                )}
+                  ) : (
+                    incompleteItems.map(item => (
+                      <div 
+                        key={item.id} 
+                        onClick={() => handleNotificationClick(item)}
+                        style={{ 
+                          padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                          display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseOut={e => e.currentTarget.style.background = 'white'}
+                      >
+                        <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>Incomplete {item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>"{item.name}" requires more details. Click to complete.</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* User Profile */}
         <div style={{ position: 'relative' }} ref={profileDropdownRef}>

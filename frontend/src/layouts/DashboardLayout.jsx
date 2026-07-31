@@ -1,13 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import Sidebar, { getVisibleMenuItems } from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import Topbar from '../components/Topbar';
 import CommandPalette from '../components/CommandPalette';
+import { AuthContext } from '../context/AuthContext';
+import { SettingsContext } from '../context/SettingsContext';
 
 const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  
+  const { hasPermission } = useContext(AuthContext);
+  const { globalSettings } = useContext(SettingsContext);
+
+  const visibleMenuItems = getVisibleMenuItems(hasPermission, globalSettings);
+  const hasSidebar = visibleMenuItems.length > 0;
 
   useEffect(() => {
     const handleResize = () => {
@@ -22,14 +30,14 @@ const DashboardLayout = () => {
 
   return (
     <div className="app-container">
-      <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
+      {hasSidebar && <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />}
+      <div className={`main-content ${hasSidebar ? (isSidebarOpen ? 'sidebar-open' : 'sidebar-closed') : 'no-sidebar'}`}>
+        <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} hasSidebar={hasSidebar} />
         <div className="page-content">
           <Outlet />
         </div>
       </div>
-      <RightSidebar />
+      {hasSidebar && <RightSidebar />}
       <CommandPalette isOpen={isCommandPaletteOpen} setIsOpen={setIsCommandPaletteOpen} />
     </div>
   );

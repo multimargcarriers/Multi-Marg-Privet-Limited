@@ -175,3 +175,17 @@ exports.delete_id_4 = async (req, res) => {
   });
 };
 
+exports.getAllUserActivities = async (req, res) => {
+  const snapshot = await db.collection("userActivities").orderBy("date", "desc").limit(1000).get();
+  const activities = [];
+  snapshot.forEach(doc => {
+    activities.push({
+      id: doc.id,
+      ...doc.data()
+    });
+  });
+  return success(res, {
+    message: "All user activities fetched successfully",
+    data: activities
+  });
+};

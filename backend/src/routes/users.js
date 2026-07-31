@@ -9,7 +9,8 @@ const { v4: uuidv4 } = require("uuid");
 // Initialize mock users if needed
 
 // Middleware to ensure user is SuperAdmin
-const { getRoot_1, postRoot_2, put_id_3, delete_id_4 } = require('../controllers/usersController');const requireSuperAdmin = (req, res, next) => {
+const { getRoot_1, postRoot_2, put_id_3, delete_id_4, getAllUserActivities } = require('../controllers/usersController');
+const requireSuperAdmin = (req, res, next) => {
   if (req.user && (req.user.role === "SuperAdmin" || req.user.email === "admin@multimargcarriers.co.in")) {
     next();
   } else {
@@ -36,6 +37,9 @@ router.get(
 
   )
 );
+
+// GET all user activities
+router.get("/activity", asyncHandler(getAllUserActivities));
 
 // POST create new user (Admin)
 router.post(

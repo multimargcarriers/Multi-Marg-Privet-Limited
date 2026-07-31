@@ -16,7 +16,7 @@ const ProtectedRoute = ({ requiredPermission }) => {
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={hasPermission('dashboard') ? "/dashboard" : "/profile"} replace />;
   }
 
   // Enforce global feature toggle 
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ requiredPermission }) => {
   if (requiredPermission && globalSettings?.modules) {
     const isModuleDisabled = globalSettings.modules[requiredPermission] === false;
     if (isModuleDisabled) {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to={hasPermission('dashboard') ? "/dashboard" : "/profile"} replace />;
     }
   }
 

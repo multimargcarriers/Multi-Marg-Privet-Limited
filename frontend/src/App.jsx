@@ -27,6 +27,8 @@ import ClientTripReports from "./pages/reports/ClientTripReports";
 import Analytics from "./pages/Analytics";
 
 import MiscBill from "./pages/MiscBill";
+import Profile from './pages/Profile';
+import EmployeeActivity from './pages/EmployeeActivity';
 import POD from "./pages/POD";
 import Purchase from "./pages/Purchase";
 import Rates from "./pages/Rates";
@@ -47,8 +49,6 @@ import { NotificationProvider } from "./context/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
-import Profile from "./pages/Profile";
-
 function App() {
   return (
     <BrowserRouter>
@@ -63,13 +63,16 @@ function App() {
           {/* Protected Routes */}
           <Route element={<DashboardLayout />}>
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
+            </Route>
+            <Route element={<ProtectedRoute requiredPermission="dashboard" />}>
+              <Route path="/dashboard" element={<Dashboard />} />
             </Route>
 
             {/* IAM - SuperAdmin Only */}
             <Route element={<ProtectedRoute requiredPermission="superadmin" />}>
               <Route path="/iam" element={<IAM />} />
+              <Route path="/employee-activity" element={<EmployeeActivity />} />
               <Route path="/logs" element={<SystemLogs />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
