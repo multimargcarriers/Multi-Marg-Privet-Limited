@@ -4,6 +4,7 @@ import { Printer, Cloud, Download, CheckSquare, Square, Building2, ShieldCheck }
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
+import html2pdf from "html2pdf.js";
 
 // Indian Currency Number to Words converter
 const numberToWordsIndian = (num) => {
@@ -129,6 +130,53 @@ const BillView1 = () => {
       alert("Failed to upload PDF");
     }
     setUploading(false);
+  };
+
+  const handleDownloadLocalPDF = () => {
+    window.scrollTo(0, 0);
+    const element = document.getElementById("bill-content");
+    const clone = element.cloneNode(true);
+    clone.style.transform = "none";
+    clone.style.position = "static"; // static inside the wrapper
+    clone.style.margin = "0";
+    clone.style.boxShadow = "none";
+    clone.style.width = "940px"; // Original width of the invoice
+    
+    const wrapper = document.createElement("div");
+    wrapper.className = "print-wrapper";
+    wrapper.style.position = "fixed";
+    wrapper.style.top = "0";
+    wrapper.style.left = "-9999px";
+    wrapper.style.width = "980px"; // 940 + 20 + 20 padding
+    wrapper.style.padding = "20px"; // Natural margin for the PDF
+    wrapper.style.background = "#ffffff";
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    // Allow DOM to repaint
+    setTimeout(() => {
+      const opt = {
+        margin:       0,
+        filename:     `Invoice_${billData.billNo || id}.pdf`,
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true, 
+          width: 980,
+          windowWidth: 980,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF:        { unit: 'px', format: [980, 1131], orientation: 'portrait' }
+      };
+      
+      html2pdf().set(opt).from(wrapper).save().then(() => {
+        document.body.removeChild(wrapper);
+      }).catch(err => {
+        console.error("PDF generation failed:", err);
+        document.body.removeChild(wrapper);
+      });
+    }, 300);
   };
 
   // Mock / Fallback Bill Data formatted to match Tax Invoice exact layout
@@ -282,11 +330,9 @@ const BillView1 = () => {
           </div>
 
           <div style={{ display: "flex", gap: "0.75rem" }}>
-            {billData.pdfUrl && (
-              <button className="btn" style={{ padding: "0 1rem", height: "42px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }} onClick={() => window.open(billData.pdfUrl, '_blank')}>
-                <Download size={16} /> Download PDF
-              </button>
-            )}
+            <button className="btn" style={{ padding: "0 1rem", height: "42px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }} onClick={handleDownloadLocalPDF}>
+              <Download size={16} /> Download PDF
+            </button>
             <button className="btn" style={{ padding: "0 1rem", height: "42px" }} onClick={handleUploadCloudinary} disabled={uploading}>
               <Cloud size={16} /> {uploading ? "Saving..." : "Save to Cloud"}
             </button>
@@ -301,6 +347,10 @@ const BillView1 = () => {
       <style>
         {`
           @media print {
+            @page {
+              size: A4;
+              margin: 10mm;
+            }
             body {
               background: #ffffff !important;
               color: #000000 !important;
@@ -327,6 +377,7 @@ const BillView1 = () => {
 
       {/* Premium Executive Tax Invoice Printable Document Sheet */}
       <div 
+        id="bill-content"
         className="tax-invoice-sheet"
         style={{
           background: "#ffffff",
@@ -448,44 +499,44 @@ const BillView1 = () => {
           {/* LR / Items Table Grid (EXACT 16 COLUMNS PRESERVED 1:1) */}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.76rem" }}>
             <thead>
-              <tr style={{ background: "#0F172A", color: "#FFFFFF", borderBottom: "1.5px solid #000000" }}>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "30px", textAlign: "center", fontWeight: "800" }}>SI</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "65px", textAlign: "center", fontWeight: "800" }}>LR NO</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "80px", textAlign: "center", fontWeight: "800" }}>LR DT</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "75px", textAlign: "center", fontWeight: "800" }}>REF</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "60px", textAlign: "center", fontWeight: "800" }}>ORG</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "85px", textAlign: "center", fontWeight: "800" }}>DEST</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800" }}>PKG</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "45px", textAlign: "center", fontWeight: "800" }}>WT</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "45px", textAlign: "center", fontWeight: "800" }}>RATE</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800" }}>FRG</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "35px", textAlign: "center", fontWeight: "800" }}>LR</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800" }}>PICK</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800" }}>DEL</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "45px", textAlign: "center", fontWeight: "800" }}>SPL</th>
-                <th style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800" }}>OTH</th>
-                <th style={{ padding: "0.5rem 0.4rem", textAlign: "right", fontWeight: "800" }}>TOTAL</th>
+              <tr style={{ background: "#FFFFFF", color: "#000000", borderBottom: "1.5px solid #000000" }}>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "25px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>SI</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>LR NO</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "65px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>LR DT</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>REF</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>ORG</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "65px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>DEST</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "35px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>PKG</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>WT</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>RATE</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "50px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>FREIGHT</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "50px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>AWB CHG</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>PICK</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>DEL</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "45px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>SPL</th>
+                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>OTH</th>
+                <th style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
               {itemsList.map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700" }}>{item.si || idx + 1}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E" }}>{item.lrNo}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.lrDt}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.ref}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600" }}>{item.org}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600" }}>{item.dest}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.pkg}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.wt}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.rate}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.frg}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.lr}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.pick}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.del}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.spl}</td>
-                  <td style={{ padding: "0.5rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center" }}>{item.oth}</td>
-                  <td style={{ padding: "0.5rem 0.4rem", textAlign: "right", fontWeight: "800", color: "#0F172A" }}>{item.total}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || idx + 1}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.ref}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.org}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.dest}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pkg}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.wt}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.rate}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.frg}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lr}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pick}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.del}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.spl}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.oth}</td>
+                  <td style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.total}</td>
                 </tr>
               ))}
             </tbody>

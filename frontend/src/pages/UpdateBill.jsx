@@ -399,8 +399,8 @@ const UpdateBill = () => {
                         <th style={{ padding: "0.4rem", width: "55px" }}>PKG</th>
                         <th style={{ padding: "0.4rem", width: "60px" }}>WT</th>
                         <th style={{ padding: "0.4rem", width: "60px" }}>RATE</th>
-                        <th style={{ padding: "0.4rem", width: "65px" }}>FRG</th>
-                        <th style={{ padding: "0.4rem", width: "55px" }}>LR</th>
+                        <th style={{ padding: "0.4rem", width: "65px" }}>FREIGHT</th>
+                        <th style={{ padding: "0.4rem", width: "85px" }}>AWB CHARGE</th>
                         <th style={{ padding: "0.4rem", width: "55px" }}>PICK</th>
                         <th style={{ padding: "0.4rem", width: "55px" }}>DEL</th>
                         <th style={{ padding: "0.4rem", width: "60px" }}>SPL</th>
