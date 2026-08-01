@@ -14,7 +14,9 @@ const {
   get_me, 
   post_logout, 
   get_activity,
-  get_failed_google_logins 
+  get_failed_google_logins,
+  delete_failed_google_login,
+  post_force_logout
 } = require('../controllers/authController');
 
 router.post(
@@ -69,6 +71,18 @@ router.get(
   "/failed-google-logins",
   authenticateToken,
   asyncHandler(get_failed_google_logins)
+);
+
+router.delete(
+  "/failed-google-logins/:id",
+  authenticateToken,
+  asyncHandler(delete_failed_google_login)
+);
+
+router.post(
+  "/force-logout/:id",
+  authenticateToken,
+  asyncHandler(post_force_logout)
 );
 
 module.exports = router;

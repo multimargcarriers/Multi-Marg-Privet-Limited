@@ -4,6 +4,7 @@
  */
 
 const jwt = require("jsonwebtoken");
+const { getCache } = require("../config/redis");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -15,7 +16,7 @@ if (!JWT_SECRET) {
 /**
  * Middleware to verify JWT token from Authorization header
  */
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
@@ -28,6 +29,20 @@ function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Check for temporary ban (Force Logout)
+    try {
+      const isBanned = await getCache(`banned:${decoded.id}`);
+      if (isBanned) {
+        return res.status(403).json({
+          success: false,
+          message: "Your session has been terminated and account temporarily locked for 3 minutes by Supreme Admin."
+        });
+      }
+    } catch (cacheErr) {
+      console.error("[Auth] Redis ban check error:", cacheErr.message);
+    }
+
     req.user = decoded;
     next();
     } catch (error) {

@@ -27,6 +27,7 @@ const bcrypt = require("bcryptjs");
 const axios = require("axios");
 const defaultAssets = require("../config/defaultAssets");
 const { sendSecurityAlertEmail } = require("../config/mail");
+const { setCache } = require("../config/redis");
 
 // Helper: Log failed Google login attempts to Firestore + send email alert with MAXIMUM data
 async function logFailedGoogleLogin(req, { email, reason, name, picture, googlePayload }) {
@@ -254,6 +255,39 @@ exports.post_google_login = async (req, res) => {
   // 5️⃣ Generate Application Session Token
   const token = generateToken(user);
   delete user.password;
+
+  // --- ADD GEO-IP TRACKING & LOGGING FOR GOOGLE LOGIN ---
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  let location = "Localhost";
+  const cleanIp = ip.split(',')[0].trim();
+
+  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+    try {
+      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+      const geoData = await geoRes.json();
+      if (geoData.status === 'success') {
+        location = `${geoData.city}, ${geoData.country}`;
+      } else {
+        location = "Unknown Location";
+      }
+    } catch (err) {
+      console.error("GeoIP Fetch Error:", err);
+      location = "Unknown Location";
+    }
+  }
+
+  try {
+    await db.collection("userActivities").add({
+      userId: user.id,
+      type: 'login',
+      title: 'Successful Google sign-in',
+      date: new Date().toISOString(),
+      location,
+      ip: cleanIp
+    });
+  } catch (err) {
+    console.error("Error logging user activity (Google login):", err);
+  }
 
   return success(res, { message: "Google login successful", data: { token, user } });
 };
@@ -790,5 +824,65 @@ exports.get_failed_google_logins = async (req, res) => {
   } catch (err) {
     console.error("[FailedGoogleLogins] Fetch error:", err);
     return res.status(500).json({ success: false, message: "Failed to fetch failed login attempts" });
+  }
+};
+
+// Delete a failed Google login attempt (SuperAdmin only)
+exports.delete_failed_google_login = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: "Report ID required" });
+
+    // Assuming SuperAdmin check is handled by middleware
+    const docRef = db.collection('failedGoogleLogins').doc(id);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, message: "Report not found" });
+    }
+
+    await docRef.delete();
+    return success(res, { message: "Failed login report deleted permanently." });
+  } catch (err) {
+    console.error("[FailedGoogleLogins] Delete error:", err);
+    return res.status(500).json({ success: false, message: "Failed to delete report" });
+  }
+};
+
+// Force Logout (Ban 3m)
+exports.post_force_logout = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: "User ID required" });
+
+    const docRef = db.collection('users').doc(id);
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 1. Lock out strictly in DB (optional fallback)
+    await docRef.update({
+      lockoutUntil: new Date(Date.now() + 3 * 60 * 1000).toISOString()
+    });
+
+    // 2. Add to Redis Ban Cache (180s)
+    await setCache(`banned:${id}`, true, 180);
+
+    // 3. Log the forceful logout in userActivities to update Supreme Admin UI
+    await db.collection("userActivities").add({
+      userId: id,
+      type: 'logout',
+      title: 'Forcibly logged out (3m Ban)',
+      date: new Date().toISOString(),
+      location: 'System Action',
+      ip: 'Supreme Admin'
+    });
+
+    return success(res, { message: "User forcefully logged out and banned for 3 minutes." });
+  } catch (err) {
+    console.error("[ForceLogout] Error:", err);
+    return res.status(500).json({ success: false, message: "Failed to force logout user" });
   }
 };

@@ -88,6 +88,66 @@ const EmployeeActivity = () => {
     return users.find(u => u.id === userId) || { name: 'Unknown User', email: 'N/A' };
   };
 
+  const isSupremeAdmin = user?.email === 'praveen.pr105@gmail.com' || user?.role?.toLowerCase() === 'superadmin' || user?.role?.toLowerCase() === 'super_admin';
+
+  const liveSessions = users.map(u => {
+    const userActs = activities.filter(a => a.userId === u.id).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const lastAct = userActs[0];
+    const isOnline = lastAct?.type === 'login';
+    const lastLogin = userActs.find(a => a.type === 'login');
+    const lastLogout = userActs.find(a => a.type === 'logout');
+    return {
+      user: u,
+      isOnline,
+      lastLoginDate: lastLogin?.date,
+      lastLogoutDate: lastLogout?.date,
+      lastIp: lastAct?.ip || 'Unknown',
+      lastLocation: lastAct?.location || 'Unknown'
+    };
+  }).sort((a, b) => (b.isOnline === a.isOnline ? 0 : (b.isOnline ? 1 : -1)));
+
+  const handleDeleteReport = async (id) => {
+    if (!window.confirm("Are you sure you want to permanently delete this threat report?")) return;
+    try {
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/failed-google-logins/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast("Report deleted permanently.", "success");
+        setFailedLogins(prev => prev.filter(f => f.id !== id));
+        if (selectedAttempt?.id === id) setIsModalOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || "Failed to delete report.", "error");
+    }
+  };
+
+  const handleForceLogout = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to forcibly logout and ban ${userName} for 3 minutes?`)) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/force-logout/${userId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast(`${userName} has been forcefully logged out and banned for 3 minutes.`, "success");
+        // Update local state to reflect logout immediately without full reload
+        setActivities(prev => [{
+          id: Date.now().toString(),
+          userId,
+          type: 'logout',
+          title: 'Forcibly logged out (3m Ban)',
+          date: new Date().toISOString(),
+          location: 'System Action',
+          ip: 'Supreme Admin'
+        }, ...prev]);
+      }
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || "Failed to force logout.", "error");
+    }
+  };
+
   const tabStyle = (tabName) => ({
     background: 'none', border: 'none', padding: '1rem 1.5rem', cursor: 'pointer',
     fontSize: '1rem', fontWeight: 600, color: activeTab === tabName ? 'var(--primary-color)' : 'var(--text-muted)',
@@ -129,6 +189,11 @@ const EmployeeActivity = () => {
             </span>
           )}
         </button>
+        {isSupremeAdmin && (
+          <button onClick={() => setActiveTab('live_sessions')} style={tabStyle('live_sessions')}>
+            <Monitor size={18} /> Live Sessions Audit
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -496,6 +561,28 @@ const EmployeeActivity = () => {
                               >
                                 <Eye size={14} /> Full Report
                               </button>
+                              <button 
+                                onClick={() => handleDeleteReport(attempt.id)}
+                                style={{
+                                  background: 'transparent',
+                                  color: '#ef4444',
+                                  border: '1px solid #ef4444',
+                                  padding: '0.5rem 0.85rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  marginLeft: '0.5rem',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                              >
+                                <XCircle size={14} /> Delete
+                              </button>
                             </td>
                           </tr>
                         );
@@ -525,6 +612,88 @@ const EmployeeActivity = () => {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'live_sessions' && isSupremeAdmin && (
+            <div className="fade-in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Monitor size={20} color="var(--primary-color)" /> System-Wide Live Sessions (Supreme Audit)
+                </h2>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                   <div style={{ padding: '0.5rem 1rem', background: '#dcfce7', color: '#166534', borderRadius: '6px', fontWeight: 600, fontSize: '0.85rem', border: '1px solid #bbf7d0' }}>
+                     {liveSessions.filter(s => s.isOnline).length} Admins Online
+                   </div>
+                </div>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '50px', textAlign: 'center' }}>Status</th>
+                      <th>Admin / Employee</th>
+                      <th>Role</th>
+                      <th>Last Login Time</th>
+                      <th>Last Logout Time</th>
+                      <th>Network IP</th>
+                      <th style={{ textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {liveSessions.map((session, i) => (
+                      <tr key={i} style={{ background: session.isOnline ? '#f0fdf4' : 'transparent', borderLeft: session.isOnline ? '3px solid #22c55e' : '3px solid transparent' }}>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ 
+                            width: '12px', height: '12px', borderRadius: '50%', margin: '0 auto',
+                            background: session.isOnline ? '#22c55e' : '#cbd5e1',
+                            boxShadow: session.isOnline ? '0 0 8px rgba(34, 197, 94, 0.5)' : 'none'
+                          }}></div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{session.user.name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{session.user.email}</div>
+                        </td>
+                        <td>
+                          <span style={{ padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, background: '#f1f5f9', color: '#475569', textTransform: 'uppercase' }}>
+                            {session.user.role || 'employee'}
+                          </span>
+                        </td>
+                        <td style={{ color: session.isOnline ? '#166534' : 'var(--text-muted)', fontWeight: session.isOnline ? 600 : 400 }}>
+                          {session.lastLoginDate ? new Date(session.lastLoginDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          {session.lastLogoutDate ? new Date(session.lastLogoutDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}
+                        </td>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          {session.lastIp} <br/>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'sans-serif' }}>{session.lastLocation}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          {session.isOnline && (
+                            <button 
+                              onClick={() => handleForceLogout(session.user.id, session.user.name)}
+                              style={{
+                                background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.4rem 0.75rem',
+                                borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s',
+                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
+                              }}
+                              onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                              onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                            >
+                              <LogOut size={14} /> Force Logout
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {liveSessions.length === 0 && (
+                      <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No session data available.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
@@ -694,7 +863,10 @@ const EmployeeActivity = () => {
             </div>
             
             {/* Modal Footer */}
-            <div style={{ background: '#fff', padding: '1.25rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+            <div style={{ background: '#fff', padding: '1.25rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+              <button onClick={() => handleDeleteReport(selectedAttempt.id)} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.6rem 1.5rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#fee2e2'} onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}>
+                <XCircle size={16} /> Delete Report Permanently
+              </button>
               <button onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '0.6rem 1.5rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'} onMouseOut={e => e.currentTarget.style.background = '#f1f5f9'}>
                 Close Report
               </button>
