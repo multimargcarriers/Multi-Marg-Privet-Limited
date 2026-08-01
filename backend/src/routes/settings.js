@@ -149,12 +149,16 @@ const defaultSettings = {
     gstin: "",
     address: "",
     email: "",
-    phone: ""
+    phone: "",
+    companyStampUrl: ""
   },
   ui: {
     darkMode: false,
     compactTables: false,
-    defaultSidebarOpen: true
+    defaultSidebarOpen: true,
+    accordionSidebar: true,
+    expandAllDropdowns: false,
+    fontSize: 100
   },
   security: {
     sessionTimeout: 60,

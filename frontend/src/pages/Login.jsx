@@ -54,6 +54,75 @@ const Login = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+  // Google Sign-In SDK Initialization
+  useEffect(() => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    
+    const initGoogle = () => {
+      if (window.google && window.google.accounts && googleClientId) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+        });
+      }
+    };
+
+    if (window.google && window.google.accounts) {
+      initGoogle();
+    } else {
+      const script = document.createElement('script');
+      script.id = 'google-jssdk';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogle;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const handleGoogleCredentialResponse = async (response) => {
+    const idToken = response.credential;
+    if (!idToken) return;
+
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/google-login`, { idToken });
+      if (res.data.success) {
+        login(res.data.data.user, res.data.data.token);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google Sign-In failed. Access denied.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerGoogleSignIn = () => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      setError('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your .env file.');
+      return;
+    }
+
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleCredentialResponse,
+      });
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          window.google.accounts.id.prompt();
+        }
+      });
+    } else {
+      setError('Google Sign-In SDK is initializing. Please try again in a moment.');
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -568,7 +637,7 @@ const Login = () => {
               <button 
                 type="button" 
                 className="google-btn" 
-                onClick={() => setSuccessMsg('Google Single Sign-On (SSO) integration is coming soon!')}
+                onClick={triggerGoogleSignIn}
               >
                 <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>

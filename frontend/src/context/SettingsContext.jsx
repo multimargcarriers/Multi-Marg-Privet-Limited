@@ -18,7 +18,10 @@ export const SettingsProvider = ({ children }) => {
     ui: {
       darkMode: false,
       compactTables: false,
-      defaultSidebarOpen: true
+      defaultSidebarOpen: true,
+      accordionSidebar: true,
+      expandAllDropdowns: false,
+      fontSize: 100
     },
     security: {
       sessionTimeout: 60,
@@ -54,7 +57,6 @@ export const SettingsProvider = ({ children }) => {
 
   const fetchSettings = async () => {
     try {
-      // Accessible to all authenticated users
       if (!user) {
         setLoadingSettings(false);
         return;
@@ -73,7 +75,6 @@ export const SettingsProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to fetch global settings:', err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        // Force wipe invalid session state if the interceptor missed it
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/';
@@ -115,8 +116,55 @@ export const SettingsProvider = ({ children }) => {
     }
   };
 
+  // Font size scale management (persisted in localStorage and user config)
+  const [fontSize, setFontSizeState] = useState(() => {
+    const saved = localStorage.getItem('app_font_size');
+    if (saved) return parseInt(saved, 10);
+    return globalSettings?.ui?.fontSize || 100;
+  });
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+    localStorage.setItem('app_font_size', fontSize.toString());
+  }, [fontSize]);
+
+  // Sync font size when globalSettings load
+  useEffect(() => {
+    if (globalSettings?.ui?.fontSize && !localStorage.getItem('app_font_size')) {
+      setFontSizeState(globalSettings.ui.fontSize);
+    }
+  }, [globalSettings?.ui?.fontSize]);
+
+  const changeFontSize = (newSize) => {
+    const clamped = Math.max(50, Math.min(400, newSize));
+    setFontSizeState(clamped);
+    if (user && globalSettings?.ui) {
+      const updatedSettings = {
+        ...globalSettings,
+        ui: { ...globalSettings.ui, fontSize: clamped }
+      };
+      updateGlobalSettings(updatedSettings);
+    }
+  };
+
+  const increaseFontSize = () => changeFontSize(fontSize + 5);
+  const decreaseFontSize = () => changeFontSize(fontSize - 5);
+  const resetFontSize = () => changeFontSize(100);
+
   return (
-    <SettingsContext.Provider value={{ globalSettings, loadingSettings, updateGlobalSettings, refreshSettings: fetchSettings }}>
+    <SettingsContext.Provider 
+      value={{ 
+        globalSettings, 
+        loadingSettings, 
+        updateGlobalSettings, 
+        refreshSettings: fetchSettings,
+        fontSize,
+        changeFontSize,
+        increaseFontSize,
+        decreaseFontSize,
+        resetFontSize
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

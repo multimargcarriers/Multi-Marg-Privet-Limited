@@ -1,52 +1,33 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/database");
-const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
-const { generateToken, authenticateToken } = require("../middleware/auth");
-const { body, validationResult } = require("express-validator");
-const { createUploadMiddleware, handleMulterError } = require("../middleware/upload");
-const { uploadFile } = require("../config/cloudinary");const { post_login_1, put_profile_2, get_default_assets, forgot_password, verify_otp, reset_password, get_me, post_logout, get_activity } = require('../controllers/authController');
+const { authenticateToken } = require("../middleware/auth");
+const { body } = require("express-validator");
+const { 
+  post_login_1, 
+  post_google_login, 
+  put_profile_2, 
+  get_default_assets, 
+  forgot_password, 
+  verify_otp, 
+  reset_password, 
+  get_me, 
+  post_logout, 
+  get_activity 
+} = require('../controllers/authController');
 
 router.post(
   "/login",
   [
-  body("email").isEmail().withMessage("Valid email is required"),
-  body("password").notEmpty().withMessage("Password is required")],
+    body("email").isEmail().withMessage("Valid email is required"),
+    body("password").notEmpty().withMessage("Password is required")
+  ],
+  asyncHandler(post_login_1)
+);
 
-  asyncHandler(post_login_1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  )
+router.post(
+  "/google-login",
+  asyncHandler(post_google_login)
 );
 
 router.get(
@@ -73,86 +54,11 @@ router.get(
   asyncHandler(get_activity)
 );
 
-// Profile Update Route
 router.put(
   "/profile",
   authenticateToken,
-  createUploadMiddleware("avatars").fields([{ name: "photo", maxCount: 1 }, { name: "banner", maxCount: 1 }]),
-  handleMulterError,
-  asyncHandler(put_profile_2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  )
+  asyncHandler(put_profile_2)
 );
-
 
 router.post('/forgot-password', [body('email').isEmail().withMessage('Valid email is required')], asyncHandler(forgot_password));
 router.post('/verify-otp', asyncHandler(verify_otp));

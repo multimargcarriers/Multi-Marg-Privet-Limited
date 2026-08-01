@@ -1,7 +1,8 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { Bell, Menu, Plus, AlertCircle, Search, User, Settings, LogOut } from 'lucide-react';
+import { Bell, Menu, Plus, Minus, AlertCircle, Search, User, Settings, LogOut, Type } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { SettingsContext } from '../context/SettingsContext';
 import { useNotification } from '../context/NotificationContext';
 import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
@@ -10,7 +11,12 @@ import { useToast } from '../context/ToastContext';
 const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
   const { user, hasPermission } = useContext(AuthContext);
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
-  const { addToast } = useToast();
+  const { fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
+  const [fontInputValue, setFontInputValue] = useState(fontSize ? fontSize.toString() : '100');
+
+  useEffect(() => {
+    setFontInputValue(fontSize ? fontSize.toString() : '100');
+  }, [fontSize]);
   const userName = user?.name || 'User';
   const userRole = (user?.role === 'Admin' || !user?.role) ? 'Employee' : user.role;
 
@@ -111,6 +117,112 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
               <Plus size={14} /> New Bill
             </NavLink>
           )}
+        </div>
+
+        {/* Font Size Adjuster Controls */}
+        <div 
+          title="Adjust Application Text Size"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '6px',
+            padding: '0.2rem 0.4rem',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            gap: '0.2rem'
+          }}
+        >
+          <button
+            type="button"
+            onClick={decreaseFontSize}
+            title="Decrease Text Size (-)"
+            disabled={fontSize <= 50}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: fontSize <= 50 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+              cursor: fontSize <= 50 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.25rem',
+              borderRadius: '4px',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={e => { if (fontSize > 50) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Minus size={14} />
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0 2px' }}>
+            <Type 
+              size={12} 
+              style={{ opacity: 0.85, cursor: 'pointer', color: '#ffffff' }} 
+              onClick={resetFontSize}
+              title="Click to reset text size to 100%"
+            />
+            <input
+              type="text"
+              value={fontInputValue}
+              onChange={(e) => setFontInputValue(e.target.value)}
+              onBlur={() => {
+                const val = parseInt(fontInputValue, 10);
+                if (!isNaN(val)) {
+                  changeFontSize(val);
+                } else {
+                  setFontInputValue(fontSize.toString());
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = parseInt(fontInputValue, 10);
+                  if (!isNaN(val)) {
+                    changeFontSize(val);
+                  } else {
+                    setFontInputValue(fontSize.toString());
+                  }
+                  e.target.blur();
+                }
+              }}
+              title="Type custom text size percentage (50 - 400) & press Enter"
+              style={{
+                width: '38px',
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.78rem',
+                fontWeight: '600',
+                textAlign: 'center',
+                outline: 'none',
+                padding: '0'
+              }}
+            />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ffffff', opacity: 0.9 }}>%</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={increaseFontSize}
+            title="Increase Text Size (+)"
+            disabled={fontSize >= 400}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: fontSize >= 400 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+              cursor: fontSize >= 400 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.25rem',
+              borderRadius: '4px',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={e => { if (fontSize < 400) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <Plus size={14} />
+          </button>
         </div>
 
         {/* Notifications */}

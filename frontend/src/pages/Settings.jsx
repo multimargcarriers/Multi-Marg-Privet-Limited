@@ -2,8 +2,10 @@ import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { 
   Server, Database, Cloud, HardDrive, RefreshCw, AlertCircle, MemoryStick, 
-  ToggleLeft, ToggleRight, Building, Palette, Shield, FileText, Bell, Save
+  ToggleLeft, ToggleRight, Building, Palette, Shield, FileText, Bell, Save,
+  ChevronDown, ChevronRight, Upload, RotateCcw, Image as ImageIcon
 } from 'lucide-react';
+import CompanyStamp from '../components/CompanyStamp';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { SettingsContext } from '../context/SettingsContext';
 import { useDialog } from '../context/DialogContext';
@@ -55,12 +57,49 @@ const Settings = () => {
   // Local state for complex forms (Company Profile)
   const [localCompany, setLocalCompany] = useState({});
   const [isSavingForm, setIsSavingForm] = useState(false);
+  const [stampPreview, setStampPreview] = useState(() => {
+    return localStorage.getItem("company_custom_stamp") || globalSettings?.company?.companyStampUrl || "";
+  });
 
   useEffect(() => {
     if (globalSettings?.company) {
       setLocalCompany(globalSettings.company);
+      if (globalSettings.company.companyStampUrl) {
+        setStampPreview(globalSettings.company.companyStampUrl);
+      }
     }
   }, [globalSettings]);
+
+  const handleStampFileUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      addToast("File size too large. Please select an image under 2MB.", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Url = event.target.result;
+      setStampPreview(base64Url);
+      setLocalCompany(prev => ({ ...prev, companyStampUrl: base64Url }));
+      try {
+        localStorage.setItem("company_custom_stamp", base64Url);
+      } catch (err) {}
+      addToast("Stamp image selected! Click 'Save Profile' to apply globally.", "success");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetStamp = () => {
+    setStampPreview("");
+    setLocalCompany(prev => ({ ...prev, companyStampUrl: "" }));
+    try {
+      localStorage.removeItem("company_custom_stamp");
+    } catch (err) {}
+    addToast("Reset to default vector stamp seal.", "success");
+  };
 
   const handleToggle = async (category, key) => {
     if (!globalSettings || updatingToggles) return;
@@ -81,6 +120,11 @@ const Settings = () => {
     if (!globalSettings) return;
     setIsSavingForm(true);
     const newSettings = { ...globalSettings, company: localCompany };
+    if (stampPreview) {
+      localStorage.setItem("company_custom_stamp", stampPreview);
+    } else {
+      localStorage.removeItem("company_custom_stamp");
+    }
     await updateGlobalSettings(newSettings);
     setIsSavingForm(false);
   };
@@ -235,6 +279,87 @@ const Settings = () => {
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical' }}
                 />
               </div>
+
+              {/* Official Stamp Upload Option */}
+              <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.35rem', fontWeight: 600 }}>
+                  Official Company Stamp / Seal Image
+                </label>
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 1rem 0' }}>
+                  Upload a custom official stamp seal (PNG, JPG, SVG, WebP) to use on bills and tax invoices. If empty, the default vector seal will be used.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                  {/* Stamp Live Preview */}
+                  <div style={{ width: '120px', height: '120px', borderRadius: '8px', border: '2px dashed #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0.5rem', position: 'relative', overflow: 'hidden' }}>
+                    {stampPreview ? (
+                      <img src={stampPreview} alt="Company Stamp Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                        <CompanyStamp size={75} />
+                        <span style={{ fontSize: '0.7rem', display: 'block', marginTop: '4px', fontWeight: 600 }}>Default Seal</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stamp File Upload Buttons */}
+                  <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <input
+                      type="file"
+                      id="stamp-file-input"
+                      accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
+                      onChange={handleStampFileUpload}
+                      style={{ display: 'none' }}
+                    />
+
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <label
+                        htmlFor="stamp-file-input"
+                        style={{
+                          padding: '0.65rem 1.25rem',
+                          backgroundColor: '#0D5C96',
+                          color: 'white',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <Upload size={16} /> Choose & Upload Stamp Image
+                      </label>
+
+                      {stampPreview && (
+                        <button
+                          type="button"
+                          onClick={handleResetStamp}
+                          style={{
+                            padding: '0.65rem 1rem',
+                            backgroundColor: '#f1f5f9',
+                            color: '#dc2626',
+                            border: '1px solid #fca5a5',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <RotateCcw size={15} /> Reset to Default Stamp
+                        </button>
+                      )}
+                    </div>
+
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                      Recommended: Transparent PNG or high-res seal image. Maximum size: 2MB.
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
@@ -273,6 +398,58 @@ const Settings = () => {
                   }
                   return null;
                 })}
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Sidebar Dropdowns Quick Actions</span>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('sidebar-expand-all'));
+                        addToast('Expanded all sidebar dropdown sections', 'success');
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.45rem 0.75rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        backgroundColor: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <ChevronDown size={14} /> Expand All
+                    </button>
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('sidebar-collapse-all'));
+                        addToast('Collapsed all sidebar dropdown sections', 'success');
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.45rem 0.75rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        backgroundColor: '#f1f5f9',
+                        color: '#334155',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <ChevronRight size={14} /> Collapse All
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

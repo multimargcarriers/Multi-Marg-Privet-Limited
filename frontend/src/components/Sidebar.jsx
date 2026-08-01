@@ -1,5 +1,5 @@
-import React, { useContext, useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useContext, useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { SettingsContext } from "../context/SettingsContext";
 import {
@@ -25,7 +25,9 @@ import {
   Activity,
   TrendingUp,
   Search,
-  IdCard
+  ChevronDown,
+  ChevronRight,
+  Layers
 } from "lucide-react";
 
 export const menuItems = [
@@ -50,6 +52,7 @@ export const menuItems = [
   {
     name: "Masters",
     isHeader: true,
+    icon: <Building2 size={18} />,
     permission: "masters",
     children: [
       { name: "Clients", path: "/clients", icon: <Users size={18} />, permission: "clients" },
@@ -61,6 +64,7 @@ export const menuItems = [
   {
     name: "Rates",
     isHeader: true,
+    icon: <DollarSign size={18} />,
     permission: "rates",
     children: [
       {
@@ -74,6 +78,7 @@ export const menuItems = [
   {
     name: "Operations",
     isHeader: true,
+    icon: <ClipboardList size={18} />,
     permission: "operations",
     children: [
       {
@@ -96,6 +101,7 @@ export const menuItems = [
   {
     name: "Bills",
     isHeader: true,
+    icon: <Receipt size={18} />,
     permission: "billing",
     children: [
       { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} />, permission: "all_bills" },
@@ -122,6 +128,7 @@ export const menuItems = [
   {
     name: "Accounts",
     isHeader: true,
+    icon: <FileText size={18} />,
     permission: "accounts",
     children: [
       {
@@ -141,6 +148,7 @@ export const menuItems = [
   {
     name: "Reports",
     isHeader: true,
+    icon: <TrendingUp size={18} />,
     permission: "reports",
     children: [
       { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
@@ -156,6 +164,7 @@ export const menuItems = [
   {
     name: "Uploads",
     isHeader: true,
+    icon: <Upload size={18} />,
     permission: "uploads",
     children: [
       {
@@ -214,9 +223,89 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const [isHovered, setIsHovered] = useState(false);
+  const [hoveredPopover, setHoveredPopover] = useState(null);
+  const location = useLocation();
+
   const isExpanded = isOpen || isHovered;
 
+  // Track accordion open/closed state for sections
+  const [openSections, setOpenSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_open_sections");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to parse sidebar_open_sections from localStorage", e);
+    }
+    return {
+      Masters: true,
+      Rates: true,
+      Operations: true,
+      Bills: true,
+      Accounts: true,
+      Reports: true,
+      Uploads: true,
+    };
+  });
+
+  // Automatically open the dropdown section containing current active path
+  useEffect(() => {
+    menuItems.forEach((item) => {
+      if (item.isHeader && item.children) {
+        const isChildActive = item.children.some(
+          (child) => location.pathname === child.path || (child.path !== '/' && location.pathname.startsWith(child.path))
+        );
+        if (isChildActive) {
+          setOpenSections((prev) => {
+            if (!prev[item.name]) {
+              const updated = { ...prev, [item.name]: true };
+              localStorage.setItem("sidebar_open_sections", JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }
+    });
+  }, [location.pathname]);
+
+  // Listen for Expand All / Collapse All custom events from Settings page
+  useEffect(() => {
+    const handleExpandAll = () => {
+      const allOpen = {};
+      menuItems.forEach((item) => {
+        if (item.isHeader) allOpen[item.name] = true;
+      });
+      setOpenSections(allOpen);
+      localStorage.setItem("sidebar_open_sections", JSON.stringify(allOpen));
+    };
+
+    const handleCollapseAll = () => {
+      const allClosed = {};
+      menuItems.forEach((item) => {
+        if (item.isHeader) allClosed[item.name] = false;
+      });
+      setOpenSections(allClosed);
+      localStorage.setItem("sidebar_open_sections", JSON.stringify(allClosed));
+    };
+
+    window.addEventListener("sidebar-expand-all", handleExpandAll);
+    window.addEventListener("sidebar-collapse-all", handleCollapseAll);
+    return () => {
+      window.removeEventListener("sidebar-expand-all", handleExpandAll);
+      window.removeEventListener("sidebar-collapse-all", handleCollapseAll);
+    };
+  }, []);
+
+  const toggleSection = (sectionName) => {
+    setOpenSections((prev) => {
+      const updated = { ...prev, [sectionName]: !prev[sectionName] };
+      localStorage.setItem("sidebar_open_sections", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const handleLinkClick = () => {
+    setHoveredPopover(null);
     if (window.innerWidth <= 1024) {
       if (setIsSidebarOpen) setIsSidebarOpen(false);
       setIsHovered(false);
@@ -224,13 +313,17 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   };
 
   const visibleItems = getVisibleMenuItems(hasPermission, globalSettings);
+  const accordionEnabled = globalSettings?.ui?.accordionSidebar !== false;
 
   return (
     <div 
       className={`sidebar ${isExpanded ? 'open' : 'closed'}`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{ overflowX: 'hidden' }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setHoveredPopover(null);
+      }}
+      style={{ overflowX: 'visible' }}
     >
       <nav
         style={{
@@ -244,6 +337,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         }}
         className="sidebar-nav"
       >
+        {/* Search Bar */}
         <div 
           className="sidebar-search-mobile" 
           onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
@@ -261,60 +355,172 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           )}
         </div>
 
-        {visibleItems
-          .map((item, index) => {
+        {/* Menu Items */}
+        {visibleItems.map((item, index) => {
           if (item.isHeader) {
+            const isSectionOpen = accordionEnabled ? !!openSections[item.name] : true;
+            const hasActiveChild = item.children.some(
+              (child) => location.pathname === child.path || (child.path !== '/' && location.pathname.startsWith(child.path))
+            );
+
             return (
-              <div key={index} style={{ marginTop: "1rem" }}>
-                {isExpanded && (
-                  <div
+              <div 
+                key={index} 
+                style={{ marginTop: "0.5rem", marginBottom: "0.25rem", position: "relative" }}
+                onMouseEnter={() => !isExpanded && setHoveredPopover(item.name)}
+                onMouseLeave={() => !isExpanded && setHoveredPopover(null)}
+              >
+                {isExpanded ? (
+                  /* Expanded Header Button */
+                  <button
+                    type="button"
+                    onClick={() => accordionEnabled && toggleSection(item.name)}
                     style={{
-                      fontSize: "0.75rem",
-                      textTransform: "uppercase",
-                      color: "var(--text-muted)",
-                      fontWeight: "700",
-                      padding: "0.5rem 1rem",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {item.name}
-                  </div>
-                )}
-                {item.children.map((child, cIndex) => (
-                  <NavLink
-                    key={cIndex}
-                    to={child.path}
-                    title={!isExpanded ? child.name : ""}
-                    onClick={handleLinkClick}
-                    style={({ isActive }) => ({
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: isExpanded ? "flex-start" : "center",
-                      gap: isExpanded ? "1rem" : "0",
-                      padding: isExpanded ? "0.75rem 1rem" : "0.75rem 0",
-                      borderRadius: "4px",
-                      textDecoration: "none",
-                      color: isActive
-                        ? "var(--primary-color)"
-                        : "var(--text-muted)",
-                      background: isActive
-                        ? "rgba(255, 153, 0, 0.1)"
-                        : "transparent",
-                      borderLeft: isActive && isExpanded ? "3px solid var(--primary-color)" : (isActive && !isExpanded ? "3px solid var(--primary-color)" : "3px solid transparent"),
-                      fontWeight: isActive ? "600" : "500",
-                      transition: "var(--transition)",
-                      marginBottom: "0.25rem",
-                    })}
+                      justifyContent: "space-between",
+                      width: "100%",
+                      padding: "0.5rem 0.75rem",
+                      background: hasActiveChild && !isSectionOpen ? "rgba(255, 153, 0, 0.08)" : "transparent",
+                      border: "none",
+                      borderRadius: "6px",
+                      color: hasActiveChild ? "var(--primary-color)" : "var(--text-muted)",
+                      cursor: accordionEnabled ? "pointer" : "default",
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      transition: "all 0.2s ease",
+                      userSelect: "none"
+                    }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '24px', flexShrink: 0 }}>
-                      {child.icon}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      {item.icon && <span style={{ opacity: 0.85 }}>{item.icon}</span>}
+                      <span>{item.name}</span>
                     </div>
-                    {isExpanded && <span style={{ whiteSpace: "nowrap" }}>{child.name}</span>}
-                  </NavLink>
-                ))}
+                    {accordionEnabled && (
+                      <span style={{ display: "flex", alignItems: "center" }}>
+                        {isSectionOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  /* Collapsed Icon View */
+                  <div
+                    title={item.name}
+                    onClick={() => accordionEnabled && toggleSection(item.name)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0.6rem 0",
+                      color: hasActiveChild ? "var(--primary-color)" : "var(--text-muted)",
+                      cursor: "pointer",
+                      borderRadius: "4px"
+                    }}
+                  >
+                    {item.icon || <Layers size={18} />}
+                  </div>
+                )}
+
+                {/* Sub-item Links & Icons: Displayed when Dropdown is OPEN (both expanded & collapsed rail) */}
+                {isSectionOpen && (
+                  <div style={{ paddingLeft: isExpanded ? "0.5rem" : "0", marginTop: "0.15rem" }}>
+                    {item.children.map((child, cIndex) => (
+                      <NavLink
+                        key={cIndex}
+                        to={child.path}
+                        title={!isExpanded ? child.name : ""}
+                        onClick={handleLinkClick}
+                        style={({ isActive }) => ({
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: isExpanded ? "flex-start" : "center",
+                          gap: isExpanded ? "0.75rem" : "0",
+                          padding: isExpanded ? "0.6rem 0.85rem" : "0.6rem 0",
+                          borderRadius: "4px",
+                          textDecoration: "none",
+                          color: isActive
+                            ? "var(--primary-color)"
+                            : "var(--text-muted)",
+                          background: isActive
+                            ? "rgba(255, 153, 0, 0.12)"
+                            : "transparent",
+                          borderLeft: isActive && isExpanded ? "3px solid var(--primary-color)" : (isActive && !isExpanded ? "3px solid var(--primary-color)" : "3px solid transparent"),
+                          fontWeight: isActive ? "600" : "500",
+                          fontSize: "0.88rem",
+                          transition: "var(--transition)",
+                          marginBottom: "0.2rem",
+                        })}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '22px', flexShrink: 0 }}>
+                          {child.icon}
+                        </div>
+                        {isExpanded && <span style={{ whiteSpace: "nowrap" }}>{child.name}</span>}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+
+                {/* Floating Popover Sub-items with Icons when Collapsed */}
+                {!isExpanded && hoveredPopover === item.name && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: "65px",
+                      width: "220px",
+                      backgroundColor: "var(--panel-solid-bg)",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "8px",
+                      boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                      padding: "0.5rem",
+                      zIndex: 1000,
+                      animation: "fadeInRight 0.15s ease-out forwards"
+                    }}
+                  >
+                    <style>
+                      {`
+                        @keyframes fadeInRight {
+                          from { opacity: 0; transform: translateX(-5px); }
+                          to { opacity: 1; transform: translateX(0); }
+                        }
+                      `}
+                    </style>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", padding: "0.4rem 0.6rem 0.5rem 0.6rem", borderBottom: "1px solid var(--border-color)", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      {item.icon} {item.name}
+                    </div>
+                    {item.children.map((child, cIndex) => (
+                      <NavLink
+                        key={cIndex}
+                        to={child.path}
+                        onClick={handleLinkClick}
+                        style={({ isActive }) => ({
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.65rem",
+                          padding: "0.55rem 0.65rem",
+                          borderRadius: "4px",
+                          textDecoration: "none",
+                          color: isActive ? "var(--primary-color)" : "var(--text-dark)",
+                          background: isActive ? "rgba(255, 153, 0, 0.12)" : "transparent",
+                          fontWeight: isActive ? "600" : "500",
+                          fontSize: "0.85rem",
+                          marginBottom: "0.2rem",
+                        })}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '18px' }}>
+                          {child.icon}
+                        </div>
+                        <span>{child.name}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           }
+
           return (
             <NavLink
               key={index}
@@ -348,6 +554,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         })}
       </nav>
 
+      {/* Logout Button */}
       <div style={{ marginTop: "auto", paddingTop: "1rem" }}>
         <button
           onClick={logout}
