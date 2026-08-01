@@ -5,6 +5,7 @@ const os = require("os");
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
 const { getClient, getStatus: getRedisStatus } = require("../config/redis");
+const { uploadBase64 } = require("../config/cloudinary");
 const cloudinary = require("cloudinary").v2;
 
 // Middleware to ensure user is SuperAdmin
@@ -224,6 +225,24 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
     const updateData = { ...req.body };
     delete updateData._id;
     delete updateData.type;
+    
+    // Cloudinary upload for company stamp if it's a new base64 image
+    if (updateData.company && updateData.company.companyStampUrl && updateData.company.companyStampUrl.startsWith('data:image')) {
+      try {
+        const uploadResult = await uploadBase64(updateData.company.companyStampUrl, {
+          folder: "multimargcarriers/stamps",
+          publicId: `official_stamp_${Date.now()}`
+        });
+        
+        if (uploadResult.success) {
+          updateData.company.companyStampUrl = uploadResult.url;
+        } else {
+          console.warn("[Settings] Cloudinary upload failed or disabled, keeping base64 stamp.", uploadResult.message);
+        }
+      } catch (uploadErr) {
+        console.error("[Settings] Error uploading stamp to Cloudinary:", uploadErr.message);
+      }
+    }
     
     await collection.updateOne(
       { type: "global_config" },

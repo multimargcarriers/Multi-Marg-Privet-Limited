@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import axios from 'axios';
-import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash } from 'lucide-react';
+import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint, Lock, X } from 'lucide-react';
 
 const EmployeeActivity = () => {
   const { token, user } = useContext(AuthContext);
@@ -11,19 +11,26 @@ const EmployeeActivity = () => {
   const [activeTab, setActiveTab] = useState('activities');
   const [users, setUsers] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [failedLogins, setFailedLogins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activitySearchTerm, setActivitySearchTerm] = useState('');
+  const [failedSearchTerm, setFailedSearchTerm] = useState('');
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [usersRes, activityRes] = await Promise.all([
+        const [usersRes, activityRes, failedRes] = await Promise.all([
           axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
           axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/activity`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/failed-google-logins`, {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -33,6 +40,9 @@ const EmployeeActivity = () => {
         }
         if (activityRes.data?.success) {
           setActivities(activityRes.data.data);
+        }
+        if (failedRes.data?.success) {
+          setFailedLogins(failedRes.data.data);
         }
       } catch (err) {
         console.error(err);
@@ -64,9 +74,26 @@ const EmployeeActivity = () => {
     );
   });
 
+  const filteredFailedLogins = failedLogins.filter(f => {
+    const searchStr = failedSearchTerm.toLowerCase();
+    return (
+      (f.email && f.email.toLowerCase().includes(searchStr)) ||
+      (f.ip && f.ip.toLowerCase().includes(searchStr)) ||
+      (f.reason && f.reason.toLowerCase().includes(searchStr)) ||
+      (f.userAgent && f.userAgent.toLowerCase().includes(searchStr))
+    );
+  });
+
   const getUserDetails = (userId) => {
     return users.find(u => u.id === userId) || { name: 'Unknown User', email: 'N/A' };
   };
+
+  const tabStyle = (tabName) => ({
+    background: 'none', border: 'none', padding: '1rem 1.5rem', cursor: 'pointer',
+    fontSize: '1rem', fontWeight: 600, color: activeTab === tabName ? 'var(--primary-color)' : 'var(--text-muted)',
+    borderBottom: activeTab === tabName ? '3px solid var(--primary-color)' : '3px solid transparent',
+    display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', flex: '1 1 auto', justifyContent: 'center'
+  });
 
   return (
     <div className="fade-in" style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
@@ -84,27 +111,23 @@ const EmployeeActivity = () => {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '2rem', flexWrap: 'wrap' }}>
-        <button 
-          onClick={() => setActiveTab('activities')}
-          style={{ 
-            background: 'none', border: 'none', padding: '1rem 1.5rem', cursor: 'pointer',
-            fontSize: '1rem', fontWeight: 600, color: activeTab === 'activities' ? 'var(--primary-color)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'activities' ? '3px solid var(--primary-color)' : '3px solid transparent',
-            display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', flex: '1 1 auto', justifyContent: 'center'
-          }}
-        >
+        <button onClick={() => setActiveTab('activities')} style={tabStyle('activities')}>
           <Activity size={18} /> Global Activity Logs
         </button>
-        <button 
-          onClick={() => setActiveTab('employees')}
-          style={{ 
-            background: 'none', border: 'none', padding: '1rem 1.5rem', cursor: 'pointer',
-            fontSize: '1rem', fontWeight: 600, color: activeTab === 'employees' ? 'var(--primary-color)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'employees' ? '3px solid var(--primary-color)' : '3px solid transparent',
-            display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', flex: '1 1 auto', justifyContent: 'center'
-          }}
-        >
+        <button onClick={() => setActiveTab('employees')} style={tabStyle('employees')}>
           <Users size={18} /> Employee Data Directory
+        </button>
+        <button onClick={() => setActiveTab('failed')} style={tabStyle('failed')}>
+          <AlertTriangle size={18} /> Failed Login Attempts
+          {failedLogins.length > 0 && (
+            <span style={{
+              background: '#ef4444', color: '#fff', borderRadius: '50%', minWidth: '22px', height: '22px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700,
+              marginLeft: '0.25rem', padding: '0 5px', animation: 'pulse 2s infinite'
+            }}>
+              {failedLogins.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -264,7 +287,421 @@ const EmployeeActivity = () => {
               </div>
             </div>
           )}
+
+          {/* ===== FAILED LOGIN ATTEMPTS TAB ===== */}
+          {activeTab === 'failed' && (
+            <div className="fade-in">
+              {/* Warning Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem'
+              }}>
+                <div style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: '42px',
+                  height: '42px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.25rem 0', color: '#991b1b', fontSize: '1rem', fontWeight: 700 }}>
+                    Security Alert — Unauthorized Access Attempts
+                  </h4>
+                  <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.85rem' }}>
+                    The following records show failed Google sign-in attempts. These could be fake or unauthorized login attempts. Review regularly and take action on suspicious entries.
+                  </p>
+                </div>
+                <div style={{
+                  marginLeft: 'auto',
+                  background: '#dc2626',
+                  color: '#fff',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  minWidth: '60px',
+                  textAlign: 'center',
+                  flexShrink: 0
+                }}>
+                  {failedLogins.length}
+                  <div style={{ fontSize: '0.65rem', fontWeight: 500, opacity: 0.9 }}>Total</div>
+                </div>
+              </div>
+
+              {/* Search */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: '350px' }}>
+                  <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Search by email, IP, reason..."
+                    value={failedSearchTerm}
+                    onChange={(e) => setFailedSearchTerm(e.target.value)}
+                    style={{ width: '100%', padding: '0.6rem 1rem 0.6rem 2.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* Failed Logins Table */}
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid #fecaca', overflowX: 'auto', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.1)' }}>
+                <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead style={{ background: 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)' }}>
+                    <tr>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>#</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Attempted</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>IP Address</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Timestamp</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Browser / Device</th>
+                      <th style={{ padding: '1rem 1.25rem', borderBottom: '2px solid #fecaca', color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFailedLogins.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                            <ShieldCheck size={40} color="#10b981" />
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#10b981' }}>All Clear!</span>
+                            <span>No failed Google login attempts found. Your system is secure.</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredFailedLogins.map((attempt, idx) => {
+                        // Parse user agent for a shorter display
+                        const shortUA = attempt.userAgent
+                          ? attempt.userAgent.length > 60 
+                            ? attempt.userAgent.substring(0, 60) + '…' 
+                            : attempt.userAgent
+                          : 'Unknown';
+
+                        return (
+                          <tr 
+                            key={attempt.id} 
+                            style={{ 
+                              borderBottom: '1px solid var(--border-color)', 
+                              transition: 'background 0.2s',
+                              background: idx % 2 === 0 ? 'transparent' : 'rgba(254, 202, 202, 0.05)'
+                            }} 
+                            onMouseOver={e => e.currentTarget.style.background = '#fef2f2'} 
+                            onMouseOut={e => e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : 'rgba(254, 202, 202, 0.05)'}
+                          >
+                            <td style={{ padding: '0.9rem 1.25rem', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
+                              {idx + 1}
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{
+                                  background: '#fef2f2',
+                                  color: '#ef4444',
+                                  borderRadius: '50%',
+                                  width: '30px',
+                                  height: '30px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <XCircle size={14} />
+                                </div>
+                                <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.9rem' }}>
+                                  {attempt.email || 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem' }}>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                border: '1px solid #fecaca'
+                              }}>
+                                <AlertTriangle size={12} />
+                                {attempt.reason || 'Unknown'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem' }}>
+                              <span style={{ 
+                                fontFamily: 'monospace', 
+                                fontSize: '0.85rem', 
+                                color: 'var(--text-dark)',
+                                background: 'var(--bg-color)',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '4px'
+                              }}>
+                                {attempt.ip || 'Unknown'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                <Clock size={13} />
+                                {attempt.timestamp 
+                                  ? new Date(attempt.timestamp).toLocaleString('en-IN', { 
+                                      day: '2-digit', month: 'short', year: 'numeric',
+                                      hour: '2-digit', minute: '2-digit', second: '2-digit'
+                                    })
+                                  : 'N/A'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem' }}>
+                              <span 
+                                style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: '1.3', display: 'block', maxWidth: '220px' }}
+                                title={attempt.userAgent || 'Unknown'}
+                              >
+                                {shortUA}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
+                              <button 
+                                onClick={() => {
+                                  setSelectedAttempt(attempt);
+                                  setIsModalOpen(true);
+                                }}
+                                style={{
+                                  background: '#ef4444',
+                                  color: '#fff',
+                                  border: 'none',
+                                  padding: '0.5rem 0.85rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)',
+                                  transition: 'background 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
+                                onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
+                              >
+                                <Eye size={14} /> Full Report
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Summary footer */}
+              {filteredFailedLogins.length > 0 && (
+                <div style={{
+                  marginTop: '1rem',
+                  padding: '0.75rem 1.25rem',
+                  background: 'var(--bg-color)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-muted)'
+                }}>
+                  <span>Showing {filteredFailedLogins.length} of {failedLogins.length} records</span>
+                  <span style={{ fontWeight: 600, color: '#dc2626' }}>
+                    ⚠ Review suspicious IPs and take necessary security action
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </>
+      )}
+
+      {/* Security Threat Intelligence Modal */}
+      {isModalOpen && selectedAttempt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsModalOpen(false)}>
+          <div style={{ background: '#ffffff', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div style={{ background: 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', position: 'sticky', top: 0, zIndex: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ background: 'rgba(255, 255, 255, 0.2)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Fingerprint size={28} color="#ffffff" />
+                </div>
+                <div>
+                  <h2 style={{ color: '#ffffff', margin: 0, fontSize: '1.4rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Threat Intelligence Report</h2>
+                  <p style={{ color: '#fca5a5', margin: '0.25rem 0 0 0', fontSize: '0.9rem', fontWeight: 500 }}>Comprehensive forensic data for unauthorized access attempt</p>
+                </div>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', background: '#f8fafc' }}>
+              
+              {/* Identity Block */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ background: '#f1f5f9', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>
+                  <Users size={16} /> Attacker Identity Profile
+                </div>
+                <div style={{ padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                    {selectedAttempt.picture ? (
+                      <img src={selectedAttempt.picture} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', border: '3px solid #ef4444', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#334155', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, border: '3px solid #ef4444' }}>
+                        {(selectedAttempt.name || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>{selectedAttempt.name || 'Unknown'}</div>
+                      <div style={{ color: '#dc2626', fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Mail size={14} /> {selectedAttempt.email || 'N/A'}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Google ID</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-all' }}>{selectedAttempt.googleId || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Failure Reason</div>
+                      <div style={{ fontSize: '0.9rem', color: '#dc2626', fontWeight: 700, display: 'inline-block', background: '#fef2f2', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #fecaca' }}>{selectedAttempt.reason || 'Unknown'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Locale</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.googleLocale || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Hosted Domain</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.googleDomain || 'N/A'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Geo/Network Block */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ background: '#f1f5f9', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>
+                  <MapPin size={16} /> Geo-Location & Network
+                </div>
+                <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '1rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <Server size={24} color="#3b82f6" style={{ flexShrink: 0, marginTop: '4px' }} />
+                    <div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{selectedAttempt.ip || 'Unknown'}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>IP Address / X-Forwarded-For Chain: <span style={{ fontFamily: 'monospace', color: '#0f172a' }}>{selectedAttempt.ipChain || 'N/A'}</span></div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Location</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.location || 'Unknown'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Country Code</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.countryCode || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>ISP</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.isp || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Organization</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.org || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Coordinates</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.lat ? `${selectedAttempt.lat}, ${selectedAttempt.lon}` : 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Timezone / ZIP</div>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.timezone || 'N/A'} / {selectedAttempt.zip || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  {/* Threat Flags */}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                    {selectedAttempt.proxy ? <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><AlertTriangle size={12}/> VPN / PROXY</span> : null}
+                    {selectedAttempt.hosting ? <span style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Server size={12}/> DATACENTER</span> : null}
+                    {selectedAttempt.mobile ? <span style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Smartphone size={12}/> MOBILE IP</span> : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Footprint Block */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', gridColumn: '1 / -1' }}>
+                <div style={{ background: '#f1f5f9', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>
+                  <Network size={16} /> Device & Request Footprint
+                </div>
+                <div style={{ padding: '1.25rem' }}>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>User Agent String</div>
+                    <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500, fontFamily: 'monospace', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
+                      {selectedAttempt.userAgent || 'Unknown'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Referer</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-all' }}>{selectedAttempt.referer || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Origin</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-all' }}>{selectedAttempt.origin || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Client Platform</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.secChUaPlatform || 'N/A'} {selectedAttempt.secChUaMobile === '?1' ? '(Mobile)' : ''}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Browser Engine</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.secChUa || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Accept Language</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500 }}>{selectedAttempt.acceptLanguage || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Timestamp</div>
+                      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 700 }}>
+                        {selectedAttempt.timestamp 
+                          ? new Date(selectedAttempt.timestamp).toLocaleString('en-IN', { dateStyle: 'full', timeStyle: 'long' })
+                          : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+            
+            {/* Modal Footer */}
+            <div style={{ background: '#fff', padding: '1.25rem 2rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '0.6rem 1.5rem', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'} onMouseOut={e => e.currentTarget.style.background = '#f1f5f9'}>
+                Close Report
+              </button>
+            </div>
+            
+          </div>
+        </div>
       )}
     </div>
   );

@@ -108,6 +108,16 @@ async function uploadFile(filePath, options = {}) {
 }
 
 /**
+ * Upload the official company stamp to a fixed folder in Cloudinary
+ * @param {string} filePath - Local path to the stamp image
+ * @returns {Promise<object>} Cloudinary upload result
+ */
+async function uploadCompanyStamp(filePath) {
+  const options = { folder: "stamps", publicId: "official_stamp" };
+  return await uploadFile(filePath, options);
+}
+
+/**
  * Upload a file buffer directly to Cloudinary (for base64/memory uploads)
  * @param {string} base64Data - Base64 encoded file data
  * @param {object} options - Upload options
@@ -184,4 +194,5 @@ module.exports = {
   uploadBase64,
   deleteFile,
   getStatus,
+  uploadCompanyStamp,
 };

@@ -58,7 +58,7 @@ const Settings = () => {
   const [localCompany, setLocalCompany] = useState({});
   const [isSavingForm, setIsSavingForm] = useState(false);
   const [stampPreview, setStampPreview] = useState(() => {
-    return localStorage.getItem("company_custom_stamp") || globalSettings?.company?.companyStampUrl || "";
+    return globalSettings?.company?.companyStampUrl || "";
   });
 
   useEffect(() => {
@@ -84,9 +84,6 @@ const Settings = () => {
       const base64Url = event.target.result;
       setStampPreview(base64Url);
       setLocalCompany(prev => ({ ...prev, companyStampUrl: base64Url }));
-      try {
-        localStorage.setItem("company_custom_stamp", base64Url);
-      } catch (err) {}
       addToast("Stamp image selected! Click 'Save Profile' to apply globally.", "success");
     };
     reader.readAsDataURL(file);
@@ -95,9 +92,6 @@ const Settings = () => {
   const handleResetStamp = () => {
     setStampPreview("");
     setLocalCompany(prev => ({ ...prev, companyStampUrl: "" }));
-    try {
-      localStorage.removeItem("company_custom_stamp");
-    } catch (err) {}
     addToast("Reset to default vector stamp seal.", "success");
   };
 
@@ -120,11 +114,6 @@ const Settings = () => {
     if (!globalSettings) return;
     setIsSavingForm(true);
     const newSettings = { ...globalSettings, company: localCompany };
-    if (stampPreview) {
-      localStorage.setItem("company_custom_stamp", stampPreview);
-    } else {
-      localStorage.removeItem("company_custom_stamp");
-    }
     await updateGlobalSettings(newSettings);
     setIsSavingForm(false);
   };

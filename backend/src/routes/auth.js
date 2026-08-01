@@ -13,7 +13,8 @@ const {
   reset_password, 
   get_me, 
   post_logout, 
-  get_activity 
+  get_activity,
+  get_failed_google_logins 
 } = require('../controllers/authController');
 
 router.post(
@@ -63,5 +64,11 @@ router.put(
 router.post('/forgot-password', [body('email').isEmail().withMessage('Valid email is required')], asyncHandler(forgot_password));
 router.post('/verify-otp', asyncHandler(verify_otp));
 router.post('/reset-password', asyncHandler(reset_password));
+
+router.get(
+  "/failed-google-logins",
+  authenticateToken,
+  asyncHandler(get_failed_google_logins)
+);
 
 module.exports = router;

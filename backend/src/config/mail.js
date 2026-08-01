@@ -177,8 +177,148 @@ const sendWelcomeEmail = async (email, password, userName, role, employeeId) => 
   return sendEmail({ to: email, subject, htmlContent });
 };
 
+const sendSecurityAlertEmail = async ({ email, ip, reason, userAgent, timestamp, name, picture, location, city, region, country, isp, org, referer }) => {
+  const alertEmail = process.env.SECURITY_ALERT_EMAIL;
+  if (!alertEmail) {
+    console.warn('[Mail] SECURITY_ALERT_EMAIL not configured. Skipping security alert.');
+    return;
+  }
+
+  const subject = `🚨 Security Alert — Failed Login: ${email || 'Unknown'} from ${location || 'Unknown'}`;
+
+  const profileImage = picture
+    ? `<img src="${picture}" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid #ef4444; object-fit: cover;" />`
+    : `<div style="width: 60px; height: 60px; border-radius: 50%; background: #374151; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; border: 3px solid #ef4444;">${(name || '?')[0].toUpperCase()}</div>`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Alert</title>
+</head>
+<body style="margin: 0; padding: 20px; font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+  <div style="max-width: 620px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; width: 100%; box-sizing: border-box;">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); padding: 30px 15px; text-align: center; border-bottom: 3px solid #ef4444;">
+      <div style="background: rgba(255,255,255,0.15); width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+        <span style="font-size: 30px;">🛡️</span>
+      </div>
+      <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; word-break: break-word;">SECURITY ALERT</h1>
+      <p style="color: #fca5a5; font-size: 13px; margin: 5px 0 0 0; font-weight: 500; letter-spacing: 1px; word-break: break-word;">Unauthorized Access Attempt Detected</p>
+    </div>
+    
+    <!-- Body -->
+    <div style="padding: 30px 20px;">
+      <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; border-radius: 4px; margin-bottom: 25px;">
+        <p style="color: #991b1b; font-size: 14px; margin: 0; font-weight: 600; line-height: 1.5; word-break: break-word;">
+          ⚠️ A failed Google sign-in attempt was detected on the Multi Marg enterprise portal. This may indicate an unauthorized or fake login attempt. Full details are below.
+        </p>
+      </div>
+
+      <!-- Intruder Profile Card -->
+      <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 10px; padding: 20px; margin-bottom: 25px; text-align: center;">
+        <div style="margin-bottom: 12px;">
+          ${profileImage}
+        </div>
+        <h3 style="color: #ffffff; margin: 0 0 4px 0; font-size: 18px; font-weight: 700;">${name || 'Unknown Person'}</h3>
+        <p style="color: #94a3b8; margin: 0; font-size: 13px;">${email || 'No email available'}</p>
+        <div style="margin-top: 10px;">
+          <span style="background: #dc2626; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">⛔ Access Denied</span>
+        </div>
+      </div>
+      
+      <h3 style="color: #1e293b; margin: 0 0 15px 0; font-size: 16px; font-weight: 700;">📋 Complete Attempt Details</h3>
+      
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px; max-width: 100%; box-sizing: border-box; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; width: 35%; vertical-align: top; font-weight: 600;">👤 Name:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-weight: 700; font-size: 14px; word-wrap: break-word; word-break: break-all;">${name || 'Unknown'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">📧 Email Used:</td>
+            <td style="padding: 10px 0; color: #dc2626; font-weight: 700; font-size: 14px; word-wrap: break-word; word-break: break-all;">${email || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🚫 Failure Reason:</td>
+            <td style="padding: 10px 0; color: #b91c1c; font-weight: 600; font-size: 14px; word-wrap: break-word; word-break: break-all;">${reason || 'Unknown'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🌐 IP Address:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-weight: 600; font-size: 14px; font-family: monospace; word-wrap: break-word; word-break: break-all;">${ip || 'Unknown'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">📍 Location:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-weight: 600; font-size: 14px; word-wrap: break-word; word-break: break-all;">${location || 'Unknown'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🏙️ City:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 14px;">${city || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🗺️ Region:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 14px;">${region || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🏳️ Country:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 14px; font-weight: 600;">${country || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🏢 ISP:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 13px; word-wrap: break-word; word-break: break-all;">${isp || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🏛️ Organization:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 13px; word-wrap: break-word; word-break: break-all;">${org || 'N/A'}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🕐 Timestamp:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-weight: 600; font-size: 14px; word-wrap: break-word; word-break: break-all;">${timestamp || new Date().toISOString()}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">💻 Browser/Device:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 12px; word-wrap: break-word; word-break: break-all;">${userAgent || 'Unknown'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; color: #64748b; font-size: 13px; vertical-align: top; font-weight: 600;">🔗 Referer:</td>
+            <td style="padding: 10px 0; color: #0f172a; font-size: 12px; word-wrap: break-word; word-break: break-all;">${referer || 'N/A'}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+        <p style="color: #92400e; font-size: 14px; margin: 0; font-weight: 500; line-height: 1.5; word-break: break-word;">
+          <strong>🔒 Recommended Action:</strong> If you notice repeated attempts from the same IP or email, consider blocking the IP address or investigating the source further. Check the IAM & Activity Logs page for more details.
+        </p>
+      </div>
+      
+      <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 0; padding-top: 20px; border-top: 1px solid #e2e8f0; word-break: break-word;">
+        This is an automated security notification from the Multi Marg IAM system. Do not reply to this email.
+      </p>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+      <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; word-break: break-word;">
+        &copy; ${new Date().getFullYear()} <strong>Multi Marg Private Limited</strong>. All rights reserved.<br/>
+        Dhanbad District, Jharkhand, India.
+      </p>
+    </div>
+    
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({ to: alertEmail, subject, htmlContent });
+};
+
 module.exports = {
   sendEmail,
   sendOtpEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendSecurityAlertEmail
 };

@@ -26,16 +26,161 @@ const {
 const bcrypt = require("bcryptjs");
 const axios = require("axios");
 const defaultAssets = require("../config/defaultAssets");
+const { sendSecurityAlertEmail } = require("../config/mail");
+
+// Helper: Log failed Google login attempts to Firestore + send email alert with MAXIMUM data
+async function logFailedGoogleLogin(req, { email, reason, name, picture, googlePayload }) {
+  try {
+    // === NETWORK & REQUEST DATA ===
+    const ipRaw = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const cleanIp = ipRaw.split(',')[0].trim();
+    const ipChain = ipRaw; // full proxy chain
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+    const timestamp = new Date().toISOString();
+    const referer = req.headers['referer'] || 'N/A';
+    const origin = req.headers['origin'] || 'N/A';
+    const host = req.headers['host'] || 'N/A';
+    const acceptLanguage = req.headers['accept-language'] || 'N/A';
+    const acceptEncoding = req.headers['accept-encoding'] || 'N/A';
+    const connection = req.headers['connection'] || 'N/A';
+    const contentType = req.headers['content-type'] || 'N/A';
+    const secChUa = req.headers['sec-ch-ua'] || 'N/A';
+    const secChUaPlatform = req.headers['sec-ch-ua-platform'] || 'N/A';
+    const secChUaMobile = req.headers['sec-ch-ua-mobile'] || 'N/A';
+    const secFetchSite = req.headers['sec-fetch-site'] || 'N/A';
+    const secFetchMode = req.headers['sec-fetch-mode'] || 'N/A';
+    const secFetchDest = req.headers['sec-fetch-dest'] || 'N/A';
+    const xRealIp = req.headers['x-real-ip'] || 'N/A';
+    const requestMethod = req.method || 'N/A';
+    const requestPath = req.originalUrl || req.url || 'N/A';
+    const protocol = req.protocol || 'N/A';
+
+    // === GOOGLE PROFILE DATA (from token payload if available) ===
+    const gp = googlePayload || {};
+    const googleSub = gp.sub || 'N/A';           // Google unique user ID
+    const googleName = name || gp.name || 'Unknown';
+    const givenName = gp.given_name || 'N/A';
+    const familyName = gp.family_name || 'N/A';
+    const googlePicture = picture || gp.picture || '';
+    const googleLocale = gp.locale || 'N/A';
+    const googleHd = gp.hd || 'N/A';             // Hosted domain (org's Google Workspace)
+    const googleEmailVerified = gp.email_verified || 'N/A';
+    const googleAud = gp.aud || 'N/A';
+    const googleIss = gp.iss || 'N/A';
+    const googleIat = gp.iat || 'N/A';
+    const googleExp = gp.exp || 'N/A';
+
+    // === GEO-IP LOCATION (Extended fields) ===
+    let location = 'Unknown';
+    let geoData = {
+      city: '', region: '', country: '', countryCode: '',
+      isp: '', org: '', as: '',
+      lat: '', lon: '', timezone: '', zip: '',
+      proxy: false, mobile: false, hosting: false
+    };
+
+    if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+      try {
+        const geoRes = await axios.get(
+          `http://ip-api.com/json/${cleanIp}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,mobile,hosting,query`
+        );
+        const geo = geoRes.data;
+        if (geo.status === 'success') {
+          geoData = {
+            city: geo.city || '',
+            region: geo.regionName || '',
+            country: geo.country || '',
+            countryCode: geo.countryCode || '',
+            isp: geo.isp || '',
+            org: geo.org || '',
+            as: geo.as || '',
+            lat: String(geo.lat || ''),
+            lon: String(geo.lon || ''),
+            timezone: geo.timezone || '',
+            zip: geo.zip || '',
+            proxy: !!geo.proxy,
+            mobile: !!geo.mobile,
+            hosting: !!geo.hosting,
+          };
+          location = `${geoData.city}, ${geoData.region}, ${geoData.country}`;
+        }
+      } catch (geoErr) {
+        console.warn('[GeoIP] Lookup failed:', geoErr.message);
+      }
+    } else {
+      location = 'Localhost / Private Network';
+    }
+
+    // === BUILD COMPLETE RECORD ===
+    const record = {
+      // Identity
+      email: email || 'Unknown',
+      name: googleName,
+      givenName,
+      familyName,
+      picture: googlePicture,
+      googleId: googleSub,
+      googleLocale,
+      googleDomain: googleHd,
+      googleEmailVerified,
+      googleAud,
+      googleIss,
+      googleIat,
+      googleExp,
+
+      // Failure info
+      reason: reason || 'Unknown',
+      timestamp,
+
+      // Network
+      ip: cleanIp,
+      ipChain,
+      xRealIp,
+      protocol,
+      requestMethod,
+      requestPath,
+
+      // Geo location
+      location,
+      ...geoData,
+
+      // Request headers
+      userAgent,
+      referer,
+      origin,
+      host,
+      acceptLanguage,
+      acceptEncoding,
+      connection,
+      contentType,
+      secChUa,
+      secChUaPlatform,
+      secChUaMobile,
+      secFetchSite,
+      secFetchMode,
+      secFetchDest,
+    };
+
+    // 1. Log to Firestore
+    await db.collection('failedGoogleLogins').add(record);
+
+    // 2. Send security alert email (non-blocking)
+    sendSecurityAlertEmail(record)
+      .catch(mailErr => console.error('[FailedGoogleLogin] Alert email failed:', mailErr.message));
+
+  } catch (logErr) {
+    console.error('[FailedGoogleLogin] Could not log attempt:', logErr.message);
+  }
+}
 
 // Strict Google Login for Registered Admin, Employee, and Super Admin Accounts ONLY
 exports.post_google_login = async (req, res) => {
   const { idToken } = req.body;
   if (!idToken) {
+    await logFailedGoogleLogin(req, { email: 'N/A', reason: 'No ID token provided' });
     return error(res, { message: "Google ID Token is required", statusCode: 400 });
   }
   // Email will be extracted from the token payload after verification
-
-
 
   // 1️⃣ Verify Token with Google API
   let googlePayload;
@@ -43,15 +188,18 @@ exports.post_google_login = async (req, res) => {
     const googleRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
     googlePayload = googleRes.data;
   } catch (err) {
+    await logFailedGoogleLogin(req, { email: 'N/A', reason: 'Invalid or expired Google Token' });
     return error(res, { message: "Invalid or expired Google Token", statusCode: 401 });
   }
 
   const { email: googleEmail, email_verified, aud, name, picture } = googlePayload;
 
   if (!googleEmail) {
+    await logFailedGoogleLogin(req, { email: 'N/A', reason: 'Token missing email', name: name || 'Unknown', picture });
     return error(res, { message: "Google token does not contain an email", statusCode: 401 });
   }
   if (!email_verified || email_verified !== "true") {
+    await logFailedGoogleLogin(req, { email: googleEmail, reason: 'Unverified Google email', name: name || 'Unknown', picture });
     return error(res, { message: "Google account email is unverified", statusCode: 401 });
   }
 
@@ -65,6 +213,7 @@ exports.post_google_login = async (req, res) => {
     snapshot = await usersRef.where("email", "==", googleEmail).get();
   }
   if (snapshot.empty) {
+    await logFailedGoogleLogin(req, { email: emailLower, reason: 'Account does not exist', name: name || 'Unknown', picture });
     return error(res, {
       message: "Account does not exist. Please contact the administrator at info@multimargcarriers.co.in.",
       statusCode: 403,
@@ -83,6 +232,7 @@ exports.post_google_login = async (req, res) => {
   const allowedRoles = ["admin", "employee", "superadmin", "super_admin", "super admin"];
   const userRole = (user.role || user.type || "").toLowerCase().trim();
   if (!allowedRoles.includes(userRole)) {
+    await logFailedGoogleLogin(req, { email: emailLower, reason: `Unauthorized role: ${user.role || 'none'}`, name: name || 'Unknown', picture });
     return error(res, {
       message: `Access Denied: Only registered Admin, Employee, and Super Admin accounts can log in with Google. (Your role: ${user.role || "Unauthorized"})`,
       statusCode: 403,
@@ -91,6 +241,7 @@ exports.post_google_login = async (req, res) => {
 
   // 3️⃣ Status Check
   if (user.status && user.status.toLowerCase() !== "active") {
+    await logFailedGoogleLogin(req, { email: emailLower, reason: 'Account disabled', name: name || 'Unknown', picture });
     return error(res, { message: "Account is disabled. Please contact Administrator.", statusCode: 403 });
   }
 
@@ -619,5 +770,25 @@ exports.get_activity = async (req, res) => {
   } catch (error) {
     console.error("Error fetching activities:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+// Get all failed Google login attempts (for admin security dashboard)
+exports.get_failed_google_logins = async (req, res) => {
+  try {
+    const snapshot = await db.collection('failedGoogleLogins')
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    const attempts = [];
+    snapshot.forEach(doc => {
+      attempts.push({ id: doc.id, ...doc.data() });
+    });
+
+    return success(res, { data: attempts });
+  } catch (err) {
+    console.error("[FailedGoogleLogins] Fetch error:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch failed login attempts" });
   }
 };
