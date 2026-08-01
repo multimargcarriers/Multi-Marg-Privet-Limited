@@ -29,30 +29,13 @@ const defaultAssets = require("../config/defaultAssets");
 
 // Strict Google Login for Registered Admin, Employee, and Super Admin Accounts ONLY
 exports.post_google_login = async (req, res) => {
-  const { idToken, email } = req.body;
+  const { idToken } = req.body;
   if (!idToken) {
     return error(res, { message: "Google ID Token is required", statusCode: 400 });
   }
-  if (!email) {
-    return error(res, { message: "Email is required for Google login", statusCode: 400 });
-  }
+  // Email will be extracted from the token payload after verification
 
-  // 0️⃣ Verify that the email exists in the registered users collection and has an allowed role
-  const usersRef = db.collection("users");
-  const emailLower = email.toLowerCase().trim();
-  let snapshot = await usersRef.where("email", "==", emailLower).get();
-  if (snapshot.empty) {
-    // Also check mixed‑case email if exact lower snapshot is empty
-    snapshot = await usersRef.where("email", "==", email).get();
-  }
-  if (snapshot.empty) {
-    return error(res, {
-      message: `Access Denied: Email (${email}) is not registered in the system. Contact Administrator to register.`,
-      statusCode: 403,
-    });
-  }
-  const userDoc = snapshot.docs[0];
-  const user = { id: userDoc.id, ...userDoc.data() };
+
 
   // 1️⃣ Verify Token with Google API
   let googlePayload;
@@ -65,15 +48,32 @@ exports.post_google_login = async (req, res) => {
 
   const { email: googleEmail, email_verified, aud, name, picture } = googlePayload;
 
-  // Ensure the token email matches the supplied email
-  if (!googleEmail || googleEmail.toLowerCase() !== emailLower) {
-    return error(res, { message: "Google token email does not match supplied email", statusCode: 401 });
+  if (!googleEmail) {
+    return error(res, { message: "Google token does not contain an email", statusCode: 401 });
   }
-
   if (!email_verified || email_verified !== "true") {
     return error(res, { message: "Google account email is unverified", statusCode: 401 });
   }
 
+  const emailLower = googleEmail.toLowerCase().trim();
+
+  // 0️⃣ Verify that the email exists in the registered users collection and has an allowed role
+  const usersRef = db.collection("users");
+  let snapshot = await usersRef.where("email", "==", emailLower).get();
+  if (snapshot.empty) {
+    // fallback to case‑sensitive match
+    snapshot = await usersRef.where("email", "==", googleEmail).get();
+  }
+  if (snapshot.empty) {
+    return error(res, {
+      message: `Access Denied: Email (${googleEmail}) is not registered in the system. Contact Administrator to register.`,
+      statusCode: 403,
+    });
+  }
+  const userDoc = snapshot.docs[0];
+  const user = { id: userDoc.id, ...userDoc.data() };
+
+  // Verify client ID (optional warning)
   const expectedClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
   if (expectedClientId && aud !== expectedClientId) {
     console.warn("Google client ID mismatch", { expected: expectedClientId, received: aud });
@@ -84,7 +84,7 @@ exports.post_google_login = async (req, res) => {
   const userRole = (user.role || user.type || "").toLowerCase().trim();
   if (!allowedRoles.includes(userRole)) {
     return error(res, {
-      message: `Access Denied: Only registered Admin, Employee, and Super Admin accounts can log in with Google. (Your role: ${user.role || 'Unauthorized'})`,
+      message: `Access Denied: Only registered Admin, Employee, and Super Admin accounts can log in with Google. (Your role: ${user.role || "Unauthorized"})`,
       statusCode: 403,
     });
   }
@@ -104,10 +104,7 @@ exports.post_google_login = async (req, res) => {
   const token = generateToken(user);
   delete user.password;
 
-  return success(res, {
-    message: "Google login successful",
-    data: { token, user },
-  });
+  return success(res, { message: "Google login successful", data: { token, user } });
 };
 exports.get_me = async (req, res) => {
   const userId = req.user.id;
