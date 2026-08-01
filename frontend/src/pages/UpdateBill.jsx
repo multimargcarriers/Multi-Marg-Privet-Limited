@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Save, RefreshCw, Layers, Edit3, Trash2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import RupeeIcon from '../components/RupeeIcon';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -10,6 +11,8 @@ const UpdateBill = () => {
   const [search, setSearch] = useState("");
   const [selectedBill, setSelectedBill] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
+  const billIdFromUrl = searchParams.get("id");
 
   // Form State
   const [form, setForm] = useState({
@@ -23,7 +26,8 @@ const UpdateBill = () => {
     sacCode: "996511",
     status: "pending",
     gst: 5,
-    items: []
+    items: [],
+    invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
   });
 
   useEffect(() => {
@@ -33,7 +37,14 @@ const UpdateBill = () => {
   const fetchBills = async () => {
     try {
       const res = await axios.get(`${API}/bills`);
-      if (res.data.success) setBills(res.data.data || []);
+      if (res.data.success) {
+        const fetchedBills = res.data.data || [];
+        setBills(fetchedBills);
+        if (billIdFromUrl && !selectedBill) {
+          const targetBill = fetchedBills.find(b => b.id === billIdFromUrl);
+          if (targetBill) handleSelect(targetBill);
+        }
+      }
     } catch (err) {
       console.error("Fetch bills error", err);
     }
@@ -76,7 +87,8 @@ const UpdateBill = () => {
       sacCode: bill.sacCode || "996511",
       status: bill.status || "pending",
       gst: bill.gst !== undefined ? bill.gst : 5,
-      items: initialItems
+      items: initialItems,
+      invoiceDetails: (bill.invoiceDetails && bill.invoiceDetails.length > 0) ? bill.invoiceDetails : [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
     });
   };
 
@@ -126,12 +138,44 @@ const UpdateBill = () => {
     setForm({ ...form, items: updated });
   };
 
+  const addInvoiceRow = () => {
+    setForm({
+      ...form,
+      invoiceDetails: [...form.invoiceDetails, { invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
+    });
+  };
+
+  const removeInvoiceRow = (index) => {
+    setForm({
+      ...form,
+      invoiceDetails: form.invoiceDetails.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateInvoiceRow = (index, field, value) => {
+    const updated = [...form.invoiceDetails];
+    updated[index][field] = value;
+    setForm({ ...form, invoiceDetails: updated });
+  };
+
   // Calculations
   const calculatedTaxable = form.items.reduce((sum, item) => sum + parseFloat(item.total || 0), 0);
   const gstRate = parseFloat(form.gst || 0);
   const calculatedGst = calculatedTaxable * (gstRate / 100);
-  const calculatedCgst = calculatedGst / 2;
-  const calculatedSgst = calculatedGst / 2;
+  
+  const gstin = form.gstin || "";
+  const clientStateCode = gstin ? gstin.substring(0, 2) : "";
+  
+  let calculatedCgst = 0, calculatedSgst = 0, calculatedIgst = 0;
+  if (gstRate > 0) {
+    if (clientStateCode === "05" || !clientStateCode) {
+      calculatedCgst = calculatedGst / 2;
+      calculatedSgst = calculatedGst / 2;
+    } else {
+      calculatedIgst = calculatedGst;
+    }
+  }
+  
   const calculatedTotal = calculatedTaxable + calculatedGst;
 
   const handleUpdate = async (e) => {
@@ -145,7 +189,7 @@ const UpdateBill = () => {
       subtotal: calculatedTaxable,
       cgst: calculatedCgst,
       sgst: calculatedSgst,
-      igst: 0,
+      igst: calculatedIgst,
       total: calculatedTotal,
       totalPayable: calculatedTotal,
       amount: calculatedTotal
@@ -277,6 +321,58 @@ const UpdateBill = () => {
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>SAC Code</label>
                   <input className="form-control" value={form.sacCode} onChange={(e) => setForm({ ...form, sacCode: e.target.value })} />
                 </div>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Client Address</label>
+                  <input className="form-control" value={form.clientAddress} onChange={(e) => setForm({ ...form, clientAddress: e.target.value })} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>State Code</label>
+                  <input className="form-control" value={form.stateCode} onChange={(e) => setForm({ ...form, stateCode: e.target.value })} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>GST %</label>
+                  <input type="number" className="form-control" value={form.gst} onChange={(e) => setForm({ ...form, gst: parseFloat(e.target.value) || 0 })} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Status</label>
+                  <select className="form-control" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* INVOICE DETAILS */}
+              <div style={{ marginBottom: "1.5rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #CBD5E1", marginBottom: "1rem" }}>
+                  <label className="form-label" style={{ fontWeight: "800", color: "#0F172A", textTransform: "uppercase", marginBottom: 0, fontSize: "0.95rem" }}>INVOICE DETAILS</label>
+                  <button type="button" onClick={addInvoiceRow} style={{ padding: "0.35rem 0.75rem", background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}>
+                    + Add Row
+                  </button>
+                </div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "5px", padding: "8px 0", background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice No</div>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice Value</div>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice Date</div>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Part Number</div>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Eway Bill</div>
+                   <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Quantity</div>
+                </div>
+                {form.invoiceDetails.map((inv, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", e.target.value.toUpperCase())} />
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="date" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", flex: 1 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                      {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>&times;</button>}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Editable LR Items Table Grid */}
@@ -376,8 +472,14 @@ const UpdateBill = () => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F1F5F9", padding: "1rem 1.25rem", borderRadius: "8px", marginBottom: "1.5rem", border: "1px solid #CBD5E1" }}>
                 <div>
                   <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Subtotal: <strong>₹{calculatedTaxable.toFixed(2)}</strong></span>
-                  <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600", marginLeft: "1.5rem" }}>CGST (2.5%): <strong>₹{calculatedCgst.toFixed(2)}</strong></span>
-                  <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600", marginLeft: "1.5rem" }}>SGST (2.5%): <strong>₹{calculatedSgst.toFixed(2)}</strong></span>
+                  {calculatedIgst > 0 ? (
+                    <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600", marginLeft: "1.5rem" }}>IGST ({gstRate}%): <strong>₹{calculatedIgst.toFixed(2)}</strong></span>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600", marginLeft: "1.5rem" }}>CGST ({gstRate/2}%): <strong>₹{calculatedCgst.toFixed(2)}</strong></span>
+                      <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600", marginLeft: "1.5rem" }}>SGST ({gstRate/2}%): <strong>₹{calculatedSgst.toFixed(2)}</strong></span>
+                    </>
+                  )}
                 </div>
                 <div style={{ fontSize: "1.15rem", fontWeight: "900", color: "#0C4A6E" }}>
                   Total Payable: ₹{calculatedTotal.toFixed(2)}

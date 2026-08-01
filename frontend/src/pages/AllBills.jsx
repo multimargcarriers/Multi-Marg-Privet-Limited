@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 
-import { Eye, FileText, Search, Download, Trash2 } from "lucide-react";
+import { Eye, FileText, Search, Download, Trash2, Edit3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -44,6 +44,16 @@ const AllBills = () => {
     }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`, { status: newStatus });
+      setBills(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
+    } catch (err) {
+      console.error("Update status error", err);
+      alert("Failed to update status");
+    }
+  };
+
   const filtered = bills.filter(b =>
     !search || (b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
     (b.client || b.billedTo || "").toLowerCase().includes(search.toLowerCase())
@@ -80,17 +90,29 @@ const AllBills = () => {
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.amount || item.total || 0).toFixed(2)}</span></td>
             <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
             <td>
-              <span style={{
-                padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600",
-                background: item.status === "paid" ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                color: item.status === "paid" ? "#10b981" : "#f59e0b"
-              }}>
-                {item.status || "Pending"}
-              </span>
+              <select 
+                value={(item.status || "pending").toLowerCase()}
+                onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                style={{
+                  padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600",
+                  background: (item.status || "pending").toLowerCase() === "paid" ? "rgba(16, 185, 129, 0.1)" : 
+                              (item.status || "pending").toLowerCase() === "cancelled" ? "rgba(220, 38, 38, 0.1)" : "rgba(245, 158, 11, 0.1)",
+                  color: (item.status || "pending").toLowerCase() === "paid" ? "#10b981" : 
+                         (item.status || "pending").toLowerCase() === "cancelled" ? "#dc2626" : "#f59e0b",
+                  border: "1px solid transparent", outline: "none", cursor: "pointer",
+                  appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
+                  textAlign: "center"
+                }}
+              >
+                <option value="pending" style={{ color: "#f59e0b" }}>Pending</option>
+                <option value="paid" style={{ color: "#10b981" }}>Paid</option>
+                <option value="cancelled" style={{ color: "#dc2626" }}>Cancelled</option>
+              </select>
             </td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                 <button onClick={() => window.open(`/bills/view1/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
+                <button onClick={() => navigate(`/bills/update?id=${item.id}`)} style={{ background: "transparent", border: "none", color: "#2563eb", cursor: "pointer", display: 'flex' }}><Edit3 size={18} /></button>
                 <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${item.id}/pdf`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Download size={18} /></button>
                 {isSuperAdmin && (
                   <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>

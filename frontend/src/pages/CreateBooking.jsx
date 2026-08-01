@@ -42,6 +42,7 @@ const CreateBooking = () => {
     description: "",
     insuredBy: "",
     remarks: "",
+    paymentMode: "",
   });
   const [clients, setClients] = useState([]);
   const [cities, setCities] = useState([]);
@@ -171,7 +172,21 @@ const CreateBooking = () => {
   }, [formData.client, formData.origin, formData.destination, formData.mode, formData.charge_wt, rates]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === "paymentMode" && value === "Credit") {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        freight_charge: 0,
+        awb_charge: 0,
+        pickup_charge: 0,
+        delivery_charge: 0,
+        packaging_charge: 0,
+        handling_charge: 0,
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const addInvoiceRow = () => {
@@ -238,6 +253,7 @@ const CreateBooking = () => {
             description: "",
             insuredBy: "",
             remarks: "",
+            paymentMode: "",
           });
         } else {
           addToast("Booking updated successfully", "success");
@@ -325,6 +341,15 @@ const CreateBooking = () => {
               <option value="Rail">Rail</option>
               <option value="Air">Air</option>
               <option value="Sea">Sea</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Payment Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+            <select className="form-control" name="paymentMode" value={formData.paymentMode} onChange={handleChange} required>
+              <option value="">-- Select Payment Mode --</option>
+              <option value="To Pay">To Pay</option>
+              <option value="Paid">Paid</option>
+              <option value="Credit">Credit</option>
             </select>
           </div>
 
@@ -420,28 +445,28 @@ const CreateBooking = () => {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Frieght Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="freight_charge" placeholder="Enter the Frieght Charge" value={formData.freight_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Frieght Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="freight_charge" placeholder="Enter the Frieght Charge" value={formData.freight_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Awb Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="awb_charge" placeholder="Enter the Awb Charge" value={formData.awb_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Awb Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="awb_charge" placeholder="Enter the Awb Charge" value={formData.awb_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Pickup Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="pickup_charge" placeholder="Enter the Pickup Charge" value={formData.pickup_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Pickup Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="pickup_charge" placeholder="Enter the Pickup Charge" value={formData.pickup_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Delivery Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="delivery_charge" placeholder="Enter the Delivery Charge" value={formData.delivery_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Delivery Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="delivery_charge" placeholder="Enter the Delivery Charge" value={formData.delivery_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Packaging Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="packaging_charge" placeholder="Enter the Package Charge" value={formData.packaging_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Packaging Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="packaging_charge" placeholder="Enter the Package Charge" value={formData.packaging_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
           <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Handling Charge<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="handling_charge" placeholder="Enter the Handling Charge" value={formData.handling_charge} onChange={handleChange} required />
+            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Handling Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="handling_charge" placeholder="Enter the Handling Charge" value={formData.handling_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} />
           </div>
         </div>
 
@@ -508,6 +533,7 @@ const CreateBooking = () => {
                 packaging_charge: "",
                 handling_charge: "",
                 remarks: "",
+                paymentMode: "",
                 insuredBy: "",
                 invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
               })

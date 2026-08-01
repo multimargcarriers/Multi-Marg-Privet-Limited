@@ -49,6 +49,13 @@ import { NotificationProvider } from "./context/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
 
+// Prevent mouse wheel from changing number input values globally
+document.addEventListener("wheel", function(event) {
+  if (document.activeElement.type === "number") {
+    document.activeElement.blur();
+  }
+});
+
 function App() {
   return (
     <BrowserRouter>

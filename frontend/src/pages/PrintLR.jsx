@@ -71,13 +71,16 @@ const PrintLR = () => {
 
   const parseNum = (val) => parseFloat(val || 0);
 
-  const subTotal = 
-    parseNum(booking.freight_charge) + 
-    parseNum(booking.awb_charge) + 
-    parseNum(booking.pickup_charge) + 
-    parseNum(booking.delivery_charge) + 
-    parseNum(booking.packaging_charge) + 
-    parseNum(booking.handling_charge);
+  const isCredit = booking.paymentMode === "Credit";
+  
+  const printFreight = isCredit ? 0 : parseNum(booking.freight_charge);
+  const printAwb = isCredit ? 0 : parseNum(booking.awb_charge);
+  const printPickup = isCredit ? 0 : parseNum(booking.pickup_charge);
+  const printDelivery = isCredit ? 0 : parseNum(booking.delivery_charge);
+  const printPackaging = isCredit ? 0 : parseNum(booking.packaging_charge);
+  const printHandling = isCredit ? 0 : parseNum(booking.handling_charge);
+
+  const subTotal = printFreight + printAwb + printPickup + printDelivery + printPackaging + printHandling;
 
   const gst = 0; // Customize if GST applies
   const totalAmount = subTotal + gst;
@@ -447,23 +450,23 @@ const PrintLR = () => {
                 <tbody>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none", borderTop: "none" }}>Freight</td>
-                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none", borderTop: "none" }}><RupeeIcon size={11} />{parseNum(booking.freight_charge).toFixed(2)}</td>
+                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none", borderTop: "none" }}><RupeeIcon size={11} />{printFreight.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none" }}>AWB / Docket</td>
-                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{parseNum(booking.awb_charge).toFixed(2)}</td>
+                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printAwb.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none" }}>Pickup</td>
-                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{parseNum(booking.pickup_charge).toFixed(2)}</td>
+                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printPickup.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none" }}>Delivery</td>
-                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{parseNum(booking.delivery_charge).toFixed(2)}</td>
+                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printDelivery.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none" }}>Handling & Pkg</td>
-                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{(parseNum(booking.handling_charge) + parseNum(booking.packaging_charge)).toFixed(2)}</td>
+                    <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{(printHandling + printPackaging).toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="gray-cell" style={{ borderLeft: "none" }}>GST</td>

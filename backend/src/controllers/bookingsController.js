@@ -26,6 +26,127 @@ const {
 
 const CACHE_KEY = "bookings";
 
+const generateOrUpdateBillForBooking = async (booking, isNew) => {
+  const freight = parseFloat(booking.freight_charge || booking.freight || booking.frieght || 0);
+  const awb = parseFloat(booking.awb_charge || 0);
+  const pickup = parseFloat(booking.pickup_charge || 0);
+  const delivery = parseFloat(booking.delivery_charge || 0);
+  const packaging = parseFloat(booking.packaging_charge || 0);
+  const handling = parseFloat(booking.handling_charge || 0);
+  const gstin = booking.gstin || booking.consignee_gstin || booking.consignor_gstin || "";
+  const clientStateCode = gstin ? gstin.substring(0, 2) : "";
+  
+  const applyGst = true;
+  const gstRate = applyGst ? 18 : 0;
+  const taxable = freight + awb + pickup + delivery + packaging + handling;
+  const gstAmt = taxable * gstRate / 100;
+  
+  let cgst = 0, sgst = 0, igst = 0;
+  if (applyGst) {
+    if (clientStateCode === "05" || !clientStateCode) {
+      cgst = gstAmt / 2;
+      sgst = gstAmt / 2;
+    } else {
+      igst = gstAmt;
+    }
+  }
+  const total = taxable + gstAmt;
+
+  const lrNumber = booking.awb || booking.lrNumber || booking.id;
+  const refNumber = booking.invoice_no || booking.refNo || booking.reference_no || "-";
+  const lrDateFormatted = booking.dispatch_date ? new Date(booking.dispatch_date).toLocaleDateString("en-GB") : (booking.date ? new Date(booking.date).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"));
+  const originCity = booking.origin || "-";
+  const destCity = booking.destination || "-";
+  const pkgQty = booking.package_count || booking.pcs || booking.packages || 1;
+  const wtVal = booking.weight_chargeable || booking.weight || 0;
+  const rateVal = booking.rate || 0;
+
+  let existingBillId = null;
+  let billNo = "";
+  
+  if (!isNew) {
+    const snapshot = await db.collection("bills").where("lrNo", "==", lrNumber).get();
+    if (!snapshot.empty) {
+      existingBillId = snapshot.docs[0].id;
+      billNo = snapshot.docs[0].data().billNo;
+    }
+  }
+  
+  if (!existingBillId) {
+    if (booking.paymentMode === 'Credit') {
+      return; // Do not auto-generate bills for Credit bookings. They will be generated manually in bulk.
+    }
+    const countSnap = await db.collection("bills").count().get();
+    const totalBills = countSnap.data().count;
+    billNo = `MCPL/26-27/${String(totalBills + 1).padStart(4, "0")}`;
+  }
+
+  const bill = {
+    billNo,
+    client: booking.client,
+    clientAddress: booking.consignee_address || booking.consignor_address || booking.clientAddress || "SIDCUL PANTNAGAR",
+    gstin: gstin,
+    stateCode: booking.stateCode || "05",
+    mode: booking.mode || "Road",
+    sacCode: booking.sacCode || "996511",
+    amount: total,
+    total,
+    totalPayable: total,
+    taxable,
+    subtotal: taxable,
+    gst: gstRate,
+    cgst,
+    sgst,
+    igst,
+    lrNo: lrNumber,
+    lrDate: lrDateFormatted,
+    refNo: refNumber,
+    origin: originCity,
+    destination: destCity,
+    packages: pkgQty,
+    weight: wtVal,
+    rate: rateVal,
+    freight,
+    lrCharge: awb,
+    pickupCharge: pickup,
+    deliveryCharge: delivery,
+    specialCharge: packaging + handling,
+    otherCharge: 0,
+    invoiceDetails: booking.invoiceDetails || [],
+    items: [
+      {
+        si: 1,
+        lrNo: lrNumber,
+        lrDt: lrDateFormatted,
+        ref: refNumber,
+        org: originCity,
+        dest: destCity,
+        pkg: pkgQty,
+        wt: wtVal,
+        rate: rateVal,
+        frg: freight,
+        lr: awb,
+        pick: pickup,
+        del: delivery,
+        spl: packaging + handling,
+        oth: 0,
+        total: taxable.toFixed(2)
+      }
+    ]
+  };
+
+  if (existingBillId) {
+    await db.collection("bills").doc(existingBillId).update(bill);
+  } else {
+    bill.id = uuidv4();
+    bill.status = "pending";
+    bill.createdAt = new Date().toISOString();
+    await db.collection("bills").doc(bill.id).set(bill);
+    await db.collection("bookings").doc(booking.id).update({ status: "Billed" });
+  }
+  await delCache("bills");
+};
+
 
 exports.postRoot_1 = async (req, res) => {
   const errors = validationResult(req);
@@ -35,6 +156,10 @@ exports.postRoot_1 = async (req, res) => {
   booking.status = "Booked";
   booking.lrNumber = generateLRNumber();
   const docRef = await db.collection("bookings").add(booking);
+  
+  const createdBooking = { id: docRef.id, ...booking };
+  // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
+  
   await delCache(CACHE_KEY);
   return created(res, "Booking created successfully", {
     id: docRef.id,
@@ -76,6 +201,10 @@ exports.put_id_4 = async (req, res) => {
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
   await db.collection("bookings").doc(id).update(req.body);
+  
+  const updatedBooking = { id, ...doc.data(), ...req.body };
+  // await generateOrUpdateBillForBooking(updatedBooking, false); // Disabled auto-generation per user request
+  
   await delCache(CACHE_KEY);
   return success(res, "Booking updated successfully", {
     id,
