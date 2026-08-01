@@ -54,12 +54,17 @@ const Login = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-  // Google Sign-In SDK Initialization
+  // Google Sign-In SDK Initialization (run only once)
+  const googleInitRef = React.useRef(false);
   useEffect(() => {
+    if (googleInitRef.current) return; // Prevent duplicate init (e.g., StrictMode double mount)
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    
+    if (!googleClientId) {
+      console.error('Google Client ID missing');
+      return;
+    }
     const initGoogle = () => {
-      if (window.google && window.google.accounts && googleClientId) {
+      if (window.google && window.google.accounts) {
         window.google.accounts.id.initialize({
           client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
@@ -67,7 +72,6 @@ const Login = () => {
         });
       }
     };
-
     if (window.google && window.google.accounts) {
       initGoogle();
     } else {
@@ -79,6 +83,7 @@ const Login = () => {
       script.onload = initGoogle;
       document.body.appendChild(script);
     }
+    googleInitRef.current = true;
   }, []);
 
   const handleGoogleCredentialResponse = async (response) => {
@@ -102,25 +107,17 @@ const Login = () => {
   };
 
   const triggerGoogleSignIn = () => {
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!googleClientId) {
-      setError('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your .env file.');
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      setError('Google Sign-In SDK is initializing. Please try again in a moment.');
       return;
     }
-
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      window.google.accounts.id.initialize({
-        client_id: googleClientId,
-        callback: handleGoogleCredentialResponse,
-      });
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          window.google.accounts.id.prompt();
-        }
-      });
-    } else {
-      setError('Google Sign-In SDK is initializing. Please try again in a moment.');
-    }
+    // Prompt the One Tap UI; initialization already performed in useEffect
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // Retry prompt if not displayed or skipped
+        window.google.accounts.id.prompt();
+      }
+    });
   };
 
   const handleLogin = async (e) => {
