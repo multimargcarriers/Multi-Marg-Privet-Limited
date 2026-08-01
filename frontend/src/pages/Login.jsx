@@ -69,6 +69,7 @@ const Login = () => {
           client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
           auto_select: false,
+          use_fedcm_for_prompt: true
         });
       }
     };
