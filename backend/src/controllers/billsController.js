@@ -11,7 +11,7 @@ const CACHE_KEY = "bills";
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("bills").orderBy("createdAt", "desc").limit(100).get();
+    const snapshot = await db.collection("bills").orderBy("createdAt", "desc").limit(1000).get();
     const bills = [];
     snapshot.forEach(doc => bills.push({
       id: doc.id,
@@ -181,8 +181,23 @@ exports.post_generate_5 = async (req, res) => {
     return error(res, "Failed to fetch bookings", 404);
   }
 
-  const gstin = firstBooking.gstin || firstBooking.consignee_gstin || firstBooking.consignor_gstin || "";
-  const clientStateCode = gstin ? gstin.substring(0, 2) : "";
+  const clientName = firstBooking.client;
+  let clientMaster = null;
+  if (clientName) {
+    try {
+      const clientsSnap = await db.collection("clients").where("name", "==", clientName).get();
+      if (!clientsSnap.empty) {
+        clientMaster = clientsSnap.docs[0].data();
+      }
+    } catch (err) {
+      console.error("Error fetching client master:", err);
+    }
+  }
+
+  const gstin = clientMaster?.gst || firstBooking.gstin || firstBooking.consignee_gstin || firstBooking.consignor_gstin || "";
+  const clientStateCode = gstin ? gstin.substring(0, 2) : "05";
+  const clientAddress = clientMaster?.address || firstBooking.consignee_address || firstBooking.consignor_address || firstBooking.clientAddress || "SIDCUL PANTNAGAR";
+
   
   const gstRate = applyGst ? 18 : 0;
   const taxable = totalFreight + totalAwb + totalPickup + totalDelivery + totalPackaging + totalHandling;
@@ -204,15 +219,23 @@ exports.post_generate_5 = async (req, res) => {
   const totalBills = countSnap.data().count;
   const billNo = invoiceNo || `MCPL/26-27/${String(totalBills + 1).padStart(4, "0")}`;
 
+  let mode = firstBooking.mode || "Road";
+  let sacCode = "996511";
+  if (mode.toLowerCase() === "train") {
+      sacCode = "996512";
+  } else if (mode.toLowerCase() === "air") {
+      sacCode = "996531";
+  }
+
   const bill = {
     id: uuidv4(),
     billNo,
-    client: firstBooking.client,
-    clientAddress: firstBooking.consignee_address || firstBooking.consignor_address || firstBooking.clientAddress || "SIDCUL PANTNAGAR",
+    client: clientName,
+    clientAddress: clientAddress,
     gstin: gstin,
-    stateCode: firstBooking.stateCode || "05",
-    mode: firstBooking.mode || "Road",
-    sacCode: firstBooking.sacCode || "996511",
+    stateCode: clientStateCode,
+    mode: mode,
+    sacCode: sacCode,
     amount: total,
     total,
     totalPayable: total,

@@ -1,28 +1,11 @@
-const {
-  db
-} = require("../config/database");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  success,
-  created,
-  error
-} = require("../utils/response");
-const {
-  asyncHandler
-} = require("../middleware/errorHandler");
-const {
-  getOrSet,
-  delCache
-} = require("../config/redis");
-const {
-  body,
-  validationResult
-} = require("express-validator");
+const { db } = require("../config/database");
+const { v4: uuidv4 } = require("uuid");
+const { success, created, error } = require("../utils/response");
+const { asyncHandler } = require("../middleware/errorHandler");
+const { getOrSet, delCache } = require("../config/redis");
+const { body, validationResult } = require("express-validator");
 
 const CACHE_KEY = "vendors";
-
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
@@ -101,3 +84,18 @@ exports.delete_id_4 = async (req, res) => {
   });
 };
 
+exports.deleteAll = async (req, res) => {
+  try {
+    await db.mongoDb.collection("vendors").deleteMany({});
+    await delCache(CACHE_KEY);
+    return success(res, {
+      message: "All vendors deleted successfully"
+    });
+  } catch (err) {
+    console.error("Error deleting all vendors:", err);
+    return error(res, {
+      message: "Failed to delete all vendors",
+      statusCode: 500
+    });
+  }
+};

@@ -189,7 +189,7 @@ const PrintTripList = () => {
                             <td className="data-cell" style={{ textAlign: "center" }}>{item.box || "-"}</td>
                             <td className="data-cell" style={{ textAlign: "center" }}>{item.weight || "-"}</td>
                             <td className="data-cell">{item.vehicleNo}<br/><span style={{ fontSize: "0.65rem", color: "#475569", fontWeight: "normal" }}>{item.vehicleType}</span></td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{item.mode || "-"}</td>
+                            <td className="data-cell" style={{ textAlign: "center", textTransform: "uppercase" }}>{item.mode || "-"}</td>
                             <td className="data-cell" style={{ textAlign: "right" }}>
                                 {parseFloat(item.freight || 0).toFixed(2)}
                                 {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (

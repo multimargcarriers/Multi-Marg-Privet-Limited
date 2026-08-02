@@ -8,6 +8,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
+import CsvImportExport from "../components/CsvImportExport";
 
 const BookingsList = () => {
   const { user } = useContext(AuthContext);
@@ -54,14 +55,17 @@ const BookingsList = () => {
 
   return (
     <div>
-      <div className="header-flex">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>All Bookings (LR)</h3>
           <p className="text-muted">View and manage all lorry receipt bookings.</p>
         </div>
-        <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px" }} onClick={() => navigate("/bookings/create")}>
-          + New Booking
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <CsvImportExport moduleName="bookings" onImportSuccess={fetchBookings} />
+          <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px", whiteSpace: "nowrap" }} onClick={() => navigate("/bookings/create")}>
+            + New Booking
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel" style={{ padding: "1rem", marginBottom: "2rem" }}>

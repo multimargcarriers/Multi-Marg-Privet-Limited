@@ -654,6 +654,31 @@ textarea.form-control {
   .table-container {
     overflow-x: auto;
   }
+  .page-content {
+    padding: 1rem !important;
+  }
+  .table th, .table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+  .btn {
+    padding: 0 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table th, .table td {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .form-control {
+    font-size: 0.85rem;
+    height: 38px;
+  }
+  .btn {
+    height: 38px;
+  }
 }
 
 /* Action Buttons for MIS Tables */

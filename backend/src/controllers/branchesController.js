@@ -28,7 +28,7 @@ const CACHE_KEY = "branches";
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("branches").limit(100).get();
+    const snapshot = await db.collection("branches").limit(1000).get();
     const branches = [];
     snapshot.forEach(doc => branches.push({
       id: doc.id,
@@ -104,3 +104,38 @@ exports.delete_id_4 = async (req, res) => {
   });
 };
 
+exports.deleteAll = async (req, res) => {
+  try {
+    if (db.mongoDb) {
+      await db.mongoDb.collection("branches").deleteMany({});
+    } else {
+      // Fallback for strict firestore
+      const snapshot = await db.collection("branches").get();
+      const batches = [];
+      let currentBatch = db.batch();
+      let count = 0;
+      
+      snapshot.docs.forEach((doc) => {
+        currentBatch.delete(db.collection("branches").doc(doc.id));
+        count++;
+        
+        if (count === 400) {
+          batches.push(currentBatch.commit());
+          currentBatch = db.batch();
+          count = 0;
+        }
+      });
+      
+      if (count > 0) {
+        batches.push(currentBatch.commit());
+      }
+      await Promise.all(batches);
+    }
+    
+    await delCache(CACHE_KEY);
+    return success(res, { message: "All branches deleted successfully" });
+  } catch (err) {
+    console.error("DeleteAll Error:", err);
+    return error(res, "Failed to delete all branches: " + err.message, 500);
+  }
+};

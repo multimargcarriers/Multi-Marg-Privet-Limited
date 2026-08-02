@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
+import CsvImportExport from "../components/CsvImportExport";
 
 const Branches = () => {
   const { user } = useContext(AuthContext);
@@ -17,7 +18,6 @@ const Branches = () => {
   const [isAdding, setIsAdding] = useState(false);
   
   const initialFormState = {
-    codeInitial: "MCPL",
     code: "",
     branch: "",
     name: "",
@@ -50,7 +50,6 @@ const Branches = () => {
 
   const handleEditClick = (item) => {
     setForm({
-      codeInitial: item.codeInitial || "MCPL",
       code: item.code || "",
       branch: item.branch || "",
       name: item.name || "",
@@ -105,7 +104,43 @@ const Branches = () => {
     }
   };
 
-  // Filter branches based on search query
+  const handleDeleteAll = async () => {
+    const isConfirmed = await confirm({
+      title: "Delete ALL Branches",
+      message: "WARNING: This will permanently delete ALL branches from the database. This action CANNOT be undone. Are you absolutely sure?",
+      confirmText: "DELETE ALL",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/branches/all`);
+      setBranches([]);
+    } catch (err) {
+      console.error("Delete all error", err);
+      fetchBranches();
+    }
+  };
+
+  const handleAddNewClick = () => {
+    let nextCode = 101;
+    if (branches.length > 0) {
+      const codes = branches.map(b => {
+        if (!b.code) return NaN;
+        // Extract only the numbers from the string (e.g. "MCP-105" -> 105)
+        const digits = b.code.replace(/\D/g, '');
+        return digits ? parseInt(digits, 10) : NaN;
+      }).filter(n => !isNaN(n));
+      
+      if (codes.length > 0) {
+        nextCode = Math.max(...codes) + 1;
+      }
+    }
+    setForm({ ...initialFormState, code: `MCPL${nextCode}` });
+    setIsAdding(true);
+  };
+
+  // Filter and sort branches based on search query and latest first
   const filteredBranches = branches.filter(b => {
     const query = searchQuery.toLowerCase();
     return (
@@ -116,6 +151,10 @@ const Branches = () => {
       (b.phno || "").toLowerCase().includes(query) ||
       (b.email || "").toLowerCase().includes(query)
     );
+  }).sort((a, b) => {
+    const codeA = a.code ? parseInt(a.code.replace(/\D/g, ''), 10) || 0 : 0;
+    const codeB = b.code ? parseInt(b.code.replace(/\D/g, ''), 10) || 0 : 0;
+    return codeB - codeA;
   });
 
   // Pagination calculations
@@ -143,16 +182,27 @@ const Branches = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Title & Add Button */}
-      <div className="header-flex">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Branches Master</h3>
-        {!isAdding && !editing && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-          >
-            + Add New
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isSuperAdmin && branches.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 1px 2px rgba(239, 68, 68, 0.2)" }}
+            >
+              <Trash2 size={16} /> Delete All Data
+            </button>
+          )}
+          <CsvImportExport moduleName="branches" onImportSuccess={fetchBranches} />
+          {!isAdding && !editing && (
+            <button 
+              onClick={handleAddNewClick}
+              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+            >
+              + Add New
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Section */}
@@ -170,24 +220,19 @@ const Branches = () => {
               <form onSubmit={handleSave}>
                 <div className="grid-2-col">
                   <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Code Initial</label>
-                    <input 
-                      type="text" 
-                      value={form.codeInitial} 
-                      readOnly
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#f1f5f9", color: "#475569", outline: "none", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                    />
-                  </div>
-                  <div>
                     <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Branch Code</label>
-                    <input 
-                      type="text" 
-                      value={form.code} 
-                      onChange={(e) => setForm({ ...form, code: e.target.value })} 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                    />
+                    <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)', backgroundColor: 'white', transition: "border-color 0.2s" }} onFocus={(e) => e.currentTarget.style.borderColor = "#4F46E5"} onBlur={(e) => e.currentTarget.style.borderColor = "#cbd5e1"}>
+                      <span style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', color: '#475569', borderRight: '1px solid #cbd5e1', fontWeight: '600' }}>
+                        MCPL
+                      </span>
+                      <input 
+                        type="text" 
+                        value={form.code ? form.code.replace(/mcpl/i, '') : ''} 
+                        onChange={(e) => setForm({ ...form, code: 'MCPL' + e.target.value.replace(/\D/g, '') })}
+                        placeholder="101"
+                        style={{ flex: 1, padding: '0.75rem', border: 'none', outline: 'none', color: '#0f172a' }}
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -196,9 +241,9 @@ const Branches = () => {
                       type="text" 
                       value={form.branch} 
                       placeholder="Enter Branch"
-                      onChange={(e) => setForm({ ...form, branch: formatAllCaps(e.target.value) })} 
+                      onChange={(e) => setForm({ ...form, branch: e.target.value.toLowerCase() })} 
                       required
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
+                      style={{ textTransform: "uppercase", width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     />
@@ -224,7 +269,7 @@ const Branches = () => {
                     rows="3"
                     value={form.address} 
                     placeholder="Enter the Address"
-                    onChange={(e) => setForm({ ...form, address: e.target.value })} 
+                    onChange={(e) => setForm({ ...form, address: formatTitleCase(e.target.value) })} 
                     required
                     style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", resize: "none", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
@@ -252,7 +297,7 @@ const Branches = () => {
                       type="email" 
                       value={form.email} 
                       placeholder="Enter the Email"
-                      onChange={(e) => setForm({ ...form, email: e.target.value })} 
+                      onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase() })} 
                       required
                       style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
@@ -315,7 +360,7 @@ const Branches = () => {
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
           <div className="table-responsive">
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Branch Code</th>
@@ -340,10 +385,10 @@ const Branches = () => {
               ) : (
                 currentData.map((item, idx) => (
                   <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.codeInitial || "MCPL"}-{item.code || ""}</td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.branch || "-"}</td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.code || "-"}</td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.branch || "-"}</td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.name || "-"}</td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", maxWidth: "250px" }}>{item.address || "-"}</td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", maxWidth: "250px", textTransform: "capitalize" }}>{item.address || "-"}</td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.phno || "-"}</td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.email || "-"}</td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>

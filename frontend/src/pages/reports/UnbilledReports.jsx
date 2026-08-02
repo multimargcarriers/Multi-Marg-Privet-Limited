@@ -66,9 +66,9 @@ const UnbilledReports = () => {
               <td style={{ whiteSpace: "nowrap" }}>{item.date ? formatDate(item.date) : item.bookingDate ? formatDate(item.bookingDate) : "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
-              <td style={{ whiteSpace: "nowrap" }}>{item.origin || "-"}</td>
-              <td style={{ whiteSpace: "nowrap" }}>{item.destination || "-"}</td>
-              <td style={{ whiteSpace: "nowrap" }}>{item.mode || "-"}</td>
+              <td style={{ whiteSpace: "nowrap", textTransform: "uppercase" }}>{item.origin || "-"}</td>
+              <td style={{ whiteSpace: "nowrap", textTransform: "uppercase" }}>{item.destination || "-"}</td>
+              <td style={{ whiteSpace: "nowrap", textTransform: "uppercase" }}>{item.mode || "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.box || item.packages || "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.chargeableWeight || item.chargedWeight || "0"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.billedTo || "-"}</td>

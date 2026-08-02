@@ -5,8 +5,9 @@ const os = require("os");
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
 const { getClient, getStatus: getRedisStatus } = require("../config/redis");
-const { uploadBase64 } = require("../config/cloudinary");
+const { uploadBase64, uploadCompanyStamp } = require("../config/cloudinary");
 const cloudinary = require("cloudinary").v2;
+const { createUploadMiddleware } = require("../middleware/upload");
 
 // Middleware to ensure user is SuperAdmin
 const requireSuperAdmin = (req, res, next) => {
@@ -254,6 +255,41 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
     return success(res, "Configuration updated successfully", updatedSettings);
   } catch (err) {
     console.error("Error updating config", err);
+    return error(res, err);
+  }
+});
+
+// POST upload stamp directly via form-data
+const stampUpload = createUploadMiddleware("stamps", { maxFileSize: 2 * 1024 * 1024 }); // 2MB limit
+
+router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return error(res, { message: "No image file provided" }, 400);
+    }
+
+    if (!db || !db.mongoDb) return error(res, { message: "DB not connected" });
+
+    // Upload to cloudinary
+    const uploadResult = await uploadCompanyStamp(req.file.path);
+
+    if (!uploadResult.success) {
+      return error(res, { message: `Cloudinary upload failed: ${uploadResult.message}` }, 500);
+    }
+
+    const collection = db.mongoDb.collection("system_settings");
+
+    // Update the company stamp URL in MongoDB
+    await collection.updateOne(
+      { type: "global_config" },
+      { $set: { "company.companyStampUrl": uploadResult.url } },
+      { upsert: true }
+    );
+
+    const updatedSettings = await collection.findOne({ type: "global_config" });
+    return success(res, "Stamp uploaded successfully", updatedSettings);
+  } catch (err) {
+    console.error("Error uploading stamp:", err);
     return error(res, err);
   }
 });

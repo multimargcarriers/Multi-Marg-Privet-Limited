@@ -57,6 +57,7 @@ const Settings = () => {
   // Local state for complex forms (Company Profile)
   const [localCompany, setLocalCompany] = useState({});
   const [isSavingForm, setIsSavingForm] = useState(false);
+  const [isUploadingStamp, setIsUploadingStamp] = useState(false);
   const [stampPreview, setStampPreview] = useState(() => {
     return globalSettings?.company?.companyStampUrl || "";
   });
@@ -70,7 +71,7 @@ const Settings = () => {
     }
   }, [globalSettings]);
 
-  const handleStampFileUpload = (e) => {
+  const handleStampFileUpload = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
@@ -79,14 +80,43 @@ const Settings = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Url = event.target.result;
-      setStampPreview(base64Url);
-      setLocalCompany(prev => ({ ...prev, companyStampUrl: base64Url }));
-      addToast("Stamp image selected! Click 'Save Profile' to apply globally.", "success");
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingStamp(true);
+    const formData = new FormData();
+    formData.append("stampImage", file);
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/upload-stamp`, formData, {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        addToast("Stamp uploaded successfully!", "success");
+        // Force refresh the global settings from context so the new stamp is loaded
+        if (typeof window !== 'undefined') {
+           window.dispatchEvent(new CustomEvent('settings-refresh-needed'));
+        }
+        
+        // Also update local state for preview
+        const newStampUrl = response.data.data.company.companyStampUrl;
+        setStampPreview(newStampUrl);
+        setLocalCompany(prev => ({ ...prev, companyStampUrl: newStampUrl }));
+        
+        // Let's also update the global settings in context via updateGlobalSettings? No, refreshSettings is better, but it's not destructured. 
+        // We'll update the settings locally in the context state by calling updateGlobalSettings with the returned data.
+        await updateGlobalSettings(response.data.data);
+      } else {
+        addToast("Failed to upload stamp: " + response.data.message, "error");
+      }
+    } catch (err) {
+      console.error("Error uploading stamp:", err);
+      addToast("Error uploading stamp. Check console.", "error");
+    } finally {
+      setIsUploadingStamp(false);
+    }
   };
 
   const handleResetStamp = () => {
@@ -317,7 +347,7 @@ const Settings = () => {
                           gap: '0.5rem'
                         }}
                       >
-                        <Upload size={16} /> Choose & Upload Stamp Image
+                        <Upload size={16} /> {isUploadingStamp ? 'Uploading...' : 'Choose & Upload Stamp Image'}
                       </label>
 
                       {stampPreview && (

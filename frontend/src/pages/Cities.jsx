@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatAllCaps } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
+import CsvImportExport from "../components/CsvImportExport";
 
 const Cities = () => {
   const { user } = useContext(AuthContext);
@@ -18,9 +19,7 @@ const Cities = () => {
   
   const initialFormState = {
     city: "",
-    short: "",
-    state: "",
-    stateCode: ""
+    short: ""
   };
   const [form, setForm] = useState(initialFormState);
 
@@ -48,9 +47,7 @@ const Cities = () => {
   const handleEditClick = (item) => {
     setForm({
       city: item.city || item.name || "", // sometimes the mock might have 'name' instead of 'city'
-      short: item.short || "",
-      state: item.state || "",
-      stateCode: item.stateCode || ""
+      short: item.short || ""
     });
     setEditing(item);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -105,9 +102,7 @@ const Cities = () => {
     const cName = c.city || c.name || "";
     return (
       cName.toLowerCase().includes(query) ||
-      (c.short || "").toLowerCase().includes(query) ||
-      (c.state || "").toLowerCase().includes(query) ||
-      (c.stateCode || "").toLowerCase().includes(query)
+      (c.short || "").toLowerCase().includes(query)
     );
   });
 
@@ -136,16 +131,19 @@ const Cities = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Title & Add Button */}
-      <div className="header-flex">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Cities Master</h3>
-        {!isAdding && !editing && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-          >
-            + Add New
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <CsvImportExport moduleName="cities" onImportSuccess={fetchCities} />
+          {!isAdding && !editing && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+            >
+              + Add New
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ADD/EDIT FORM SECTION */}
@@ -186,26 +184,6 @@ const Cities = () => {
                       value={form.short} 
                       onChange={(e) => setForm({ ...form, short: formatAllCaps(e.target.value) })} 
                       placeholder="e.g. DEL"
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State</label>
-                    <input 
-                      type="text" 
-                      value={form.state} 
-                      placeholder="e.g. DELHI"
-                      onChange={(e) => setForm({ ...form, state: formatAllCaps(e.target.value) })} 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>State Code (GST)</label>
-                    <input 
-                      type="text" 
-                      value={form.stateCode} 
-                      placeholder="e.g. 07"
-                      onChange={(e) => setForm({ ...form, stateCode: e.target.value })} 
                       style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                     />
                   </div>
@@ -263,25 +241,23 @@ const Cities = () => {
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
           <div className="table-responsive">
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>City Name</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Short Code</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>State</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>State Code</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>Edit</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center" }}>Delete</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
+                  <td colSpan="4" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
                 </tr>
               ) : currentData.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
+                  <td colSpan="4" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
@@ -294,8 +270,6 @@ const Cities = () => {
                         </span>
                       ) : "-"}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.state || "-"}</td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.stateCode || "-"}</td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 

@@ -1,32 +1,16 @@
-const {
-  db
-} = require("../config/database");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  success,
-  created,
-  error
-} = require("../utils/response");
-const {
-  asyncHandler
-} = require("../middleware/errorHandler");
-const {
-  getOrSet,
-  delCache
-} = require("../config/redis");
-const {
-  body,
-  validationResult
-} = require("express-validator");
+const { db } = require("../config/database");
+const { v4: uuidv4 } = require("uuid");
+const { success, created, error } = require("../utils/response");
+const { asyncHandler } = require("../middleware/errorHandler");
+const { getOrSet, delCache } = require("../config/redis");
+const { body, validationResult } = require("express-validator");
 
 const CACHE_KEY = "clients";
 
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("clients").limit(100).get();
+    const snapshot = await db.collection("clients").limit(1000).get();
     const clients = [];
     snapshot.forEach(doc => {
       clients.push({
@@ -101,3 +85,18 @@ exports.delete_id_4 = async (req, res) => {
   });
 };
 
+exports.deleteAll = async (req, res) => {
+  try {
+    await db.mongoDb.collection("clients").deleteMany({});
+    await delCache(CACHE_KEY);
+    return success(res, {
+      message: "All clients deleted successfully"
+    });
+  } catch (err) {
+    console.error("Error deleting all clients:", err);
+    return error(res, {
+      message: "Failed to delete all clients",
+      statusCode: 500
+    });
+  }
+};

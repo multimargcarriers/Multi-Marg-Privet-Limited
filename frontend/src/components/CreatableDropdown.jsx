@@ -38,16 +38,14 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
   });
 
   const handleSelect = (selectedValue, selectedOption) => {
-    setQuery(selectedValue);
-    onChange(selectedValue, selectedOption);
+    const val = selectedValue.toLowerCase();
+    setQuery(val);
+    onChange(val, selectedOption);
     setIsOpen(false);
   };
 
   const handleChange = (e) => {
-    let val = e.target.value;
-    if (format) {
-      val = format(val);
-    }
+    let val = e.target.value.toLowerCase();
     setQuery(val);
     setIsOpen(true);
     if (val === "") {
@@ -73,7 +71,8 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
             paddingLeft: 36, 
             paddingRight: value ? 64 : 36, 
             cursor: "text",
-            background: "#fff"
+            background: "#fff",
+            textTransform: "uppercase"
           }}
         />
         
@@ -133,7 +132,8 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
                   borderRadius: "6px",
                   transition: "background 0.2s",
                   color: "var(--text-color)",
-                  fontWeight: 500
+                  fontWeight: 500,
+                  textTransform: "uppercase"
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = "rgba(13, 110, 253, 0.05)"}
                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
@@ -147,10 +147,10 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
             <div 
               onClick={() => {
                 if (onCreate) {
-                  onCreate(query.trim());
+                  onCreate(query.trim().toLowerCase());
                   setIsOpen(false);
                 } else {
-                  handleSelect(query.trim());
+                  handleSelect(query.trim().toLowerCase());
                 }
               }}
               style={{ 
@@ -164,7 +164,8 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
                 color: "var(--primary-color)",
                 fontWeight: 600,
                 borderTop: filteredOptions.length > 0 ? "1px solid rgba(0, 0, 0, 0.05)" : "none",
-                marginTop: filteredOptions.length > 0 ? "4px" : "0"
+                marginTop: filteredOptions.length > 0 ? "4px" : "0",
+                textTransform: "uppercase"
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = "rgba(13, 110, 253, 0.05)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}

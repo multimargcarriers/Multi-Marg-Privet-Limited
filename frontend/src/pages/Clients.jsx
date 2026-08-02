@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
+import CsvImportExport from "../components/CsvImportExport";
 
 const Clients = () => {
   const { user } = useContext(AuthContext);
@@ -109,6 +110,52 @@ const Clients = () => {
     }
   };
 
+  const handleAddClick = () => {
+    let maxCode = 0;
+    
+    clients.forEach(c => {
+      if (c.clientCode) {
+        const numericMatch = String(c.clientCode).match(/\d+/);
+        if (numericMatch) {
+          const code = parseInt(numericMatch[0], 10);
+          if (!isNaN(code) && code > maxCode) {
+            maxCode = code;
+          }
+        }
+      }
+    });
+    
+    // If no numeric code is found at all, start at 201. Otherwise, increment the absolute highest found.
+    const nextCode = maxCode === 0 ? "201" : String(maxCode + 1).padStart(3, '0');
+    
+    setForm({
+      ...initialFormState,
+      clientCode: nextCode
+    });
+    setIsAdding(true);
+  };
+
+  const handleDeleteAll = async () => {
+    const isConfirmed = await confirm({
+      title: "Delete All Clients",
+      message: "Are you absolutely sure you want to delete ALL clients? This action is irreversible and all client data will be permanently wiped.",
+      confirmText: "Yes, Delete All",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+    
+    setLoading(true);
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/clients/all`);
+      setClients([]);
+    } catch (err) {
+      console.error("Delete all error", err);
+      fetchClients();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter clients based on search query
   const filteredClients = clients.filter(c => {
     const query = searchQuery.toLowerCase();
@@ -119,6 +166,15 @@ const Clients = () => {
       (c.gst || "").toLowerCase().includes(query) ||
       (c.address || "").toLowerCase().includes(query)
     );
+  }).sort((a, b) => {
+    // Extract numeric values from clientCode to sort them logically
+    const matchA = String(a.clientCode || "").match(/\d+/);
+    const matchB = String(b.clientCode || "").match(/\d+/);
+    
+    const numA = matchA ? parseInt(matchA[0], 10) : 0;
+    const numB = matchB ? parseInt(matchB[0], 10) : 0;
+    
+    return numB - numA; // Descending order (highest/latest code at the top)
   });
 
   // Pagination calculations
@@ -146,16 +202,27 @@ const Clients = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Title & Add Button */}
-      <div className="header-flex">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Clients Master</h3>
-        {!isAdding && !editing && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-          >
-            + Add New
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <CsvImportExport moduleName="clients" onImportSuccess={fetchClients} />
+          {isSuperAdmin && clients.length > 0 && (
+            <button 
+              onClick={handleDeleteAll}
+              style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(239, 68, 68, 0.2)" }}
+            >
+              <Trash2 size={16} /> Delete All
+            </button>
+          )}
+          {!isAdding && !editing && (
+            <button 
+              onClick={handleAddClick}
+              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+            >
+              + Add New
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Section */}
@@ -173,26 +240,19 @@ const Clients = () => {
               <form onSubmit={handleSave}>
             <div className="grid-2-col">
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Code Initial</label>
-                <input 
-                  type="text" 
-                  value={form.codeInitial} 
-                  onChange={(e) => setForm({ ...form, codeInitial: e.target.value })} 
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#f1f5f9", color: "#475569", outline: "none", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                  readOnly
-                />
-              </div>
-              <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Code</label>
-                <input 
-                  type="text" 
-                  value={form.clientCode} 
-                  onChange={(e) => setForm({ ...form, clientCode: e.target.value })} 
-                  placeholder="e.g. 001"
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                  onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                  onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                />
+                <div style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '6px', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)', backgroundColor: 'white', transition: "border-color 0.2s" }} onFocus={(e) => e.currentTarget.style.borderColor = "#4F46E5"} onBlur={(e) => e.currentTarget.style.borderColor = "#cbd5e1"}>
+                  <span style={{ padding: '0.75rem', backgroundColor: '#f1f5f9', color: '#475569', borderRight: '1px solid #cbd5e1', fontWeight: '600' }}>
+                    MCPL
+                  </span>
+                  <input 
+                    type="text" 
+                    value={form.clientCode} 
+                    onChange={(e) => setForm({ ...form, clientCode: e.target.value.replace(/\D/g, '') })} 
+                    placeholder="e.g. 201"
+                    style={{ flex: 1, padding: '0.75rem', border: 'none', outline: 'none', color: '#0f172a' }}
+                  />
+                </div>
               </div>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client Name<span style={{ color: "#ef4444" }}>*</span></label>
@@ -213,7 +273,7 @@ const Clients = () => {
                   type="text" 
                   value={form.gst} 
                   placeholder="Enter GST"
-                  onChange={(e) => setForm({ ...form, gst: e.target.value })} 
+                  onChange={(e) => setForm({ ...form, gst: e.target.value.toUpperCase() })} 
                   style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
@@ -232,12 +292,12 @@ const Clients = () => {
                 />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Email</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Email (Multiple separated by comma)</label>
                 <input 
-                  type="email" 
+                  type="text" 
                   value={form.email} 
-                  placeholder="Enter Email"
-                  onChange={(e) => setForm({ ...form, email: e.target.value })} 
+                  placeholder="e.g. a@x.com, b@x.com"
+                  onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase() })} 
                   style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                   onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
@@ -248,7 +308,7 @@ const Clients = () => {
                 <textarea 
                   value={form.address} 
                   placeholder="Enter Address"
-                  onChange={(e) => setForm({ ...form, address: e.target.value })} 
+                  onChange={(e) => setForm({ ...form, address: formatTitleCase(e.target.value) })} 
                   required
                   rows="2"
                   style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", resize: "none", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
@@ -312,13 +372,15 @@ const Clients = () => {
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
           <div className="table-responsive">
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", width: "100px" }}>Code</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Client Name</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>GST</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Address</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Contact Person</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Email</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete</th>
               </tr>
@@ -326,26 +388,42 @@ const Clients = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
+                  <td colSpan="8" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
                 </tr>
               ) : currentData.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
+                  <td colSpan="8" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
                   <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
-                      {item.codeInitial || "MCPL"}-{item.clientCode || ""}
+                      MCPL{String(item.clientCode || "").replace(/^mcpl-?/i, "")}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600" }}>
-                      {item.name}
+                      {formatAllCaps(item.name || "")}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                      {item.gst || "NA"}
+                      {formatAllCaps(item.gst || "NA")}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                      {item.address || "NA"}
+                      {formatTitleCase(item.address || "NA")}
+                    </td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
+                      {formatTitleCase(item.contact || "NA")}
+                    </td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
+                      {item.email ? (
+                        <div style={{ wordBreak: 'break-all', maxWidth: '200px' }}>
+                          {item.email.split(',').map((email, i) => (
+                            <div key={i} style={{ marginBottom: i < item.email.split(',').length - 1 ? '4px' : '0' }}>
+                              {email.trim().toLowerCase()}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        "NA"
+                      )}
                     </td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>

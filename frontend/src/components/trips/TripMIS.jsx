@@ -371,7 +371,7 @@ const TripMIS = () => {
               </td>
               <td>
                 <span style={{ 
-                  padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
+                  padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase",
                   background: item.mode === 'Normal' ? '#f1f5f9' : item.mode === 'Special' ? '#f3e8ff' : '#fef3c7',
                   color: item.mode === 'Normal' ? '#475569' : item.mode === 'Special' ? '#7e22ce' : '#b45309'
                 }}>

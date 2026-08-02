@@ -169,7 +169,7 @@ exports.postRoot_1 = async (req, res) => {
 
 exports.getRoot_2 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("bookings").orderBy("date", "desc").limit(100).get();
+    const snapshot = await db.collection("bookings").orderBy("date", "desc").limit(1000).get();
     const bookings = [];
     snapshot.forEach(doc => {
       bookings.push({

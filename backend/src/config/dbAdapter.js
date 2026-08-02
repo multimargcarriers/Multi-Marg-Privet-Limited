@@ -214,6 +214,33 @@ class FirestoreToMongoAdapter {
   collection(colName) {
     return new CollectionReference(this.mongoDb, colName);
   }
+
+  batch() {
+    return {
+      operations: [],
+      set(docRef, data, options = {}) {
+        this.operations.push({ type: 'set', docRef, data, options });
+      },
+      update(docRef, data) {
+        this.operations.push({ type: 'update', docRef, data });
+      },
+      delete(docRef) {
+        this.operations.push({ type: 'delete', docRef });
+      },
+      async commit() {
+        // Run sequentially for simplicity and safety, though Promise.all is possible
+        for (const op of this.operations) {
+          if (op.type === 'set') {
+            await op.docRef.set(op.data, op.options);
+          } else if (op.type === 'update') {
+            await op.docRef.update(op.data);
+          } else if (op.type === 'delete') {
+            await op.docRef.delete();
+          }
+        }
+      }
+    };
+  }
 }
 
 module.exports = FirestoreToMongoAdapter;

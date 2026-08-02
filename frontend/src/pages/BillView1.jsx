@@ -160,12 +160,13 @@ const BillView1 = () => {
         filename:     `Invoice_${billData.billNo || id}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
         html2canvas:  { 
-          scale: 2, 
+          scale: 4, 
           useCORS: true, 
           width: 980,
           windowWidth: 980,
           scrollY: 0,
-          scrollX: 0
+          scrollX: 0,
+          letterRendering: true
         },
         jsPDF:        { unit: 'px', format: [980, 1131], orientation: 'portrait' }
       };
@@ -248,7 +249,7 @@ const BillView1 = () => {
   const igstVal = parseFloat(billData.igst || 0);
   const totalPayableVal = parseFloat(billData.totalPayable || billData.total || (subtotalVal + cgstVal + sgstVal + igstVal));
 
-  const customStampUrl = localStorage.getItem("company_custom_stamp") || globalSettings?.company?.companyStampUrl || "";
+  const customStampUrl = globalSettings?.company?.companyStampUrl || "";
 
   return (
     <div>
@@ -489,10 +490,17 @@ const BillView1 = () => {
               <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.date || "30-07-2026"}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Mode:</div>
-              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.mode || "Road"}</div>
+              <div style={{ fontWeight: "700", color: "#0F172A", textTransform: "uppercase" }}>{billData.mode || "Road"}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>SAC Code:</div>
-              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.sacCode || "996511"}</div>
+              <div style={{ fontWeight: "700", color: "#0F172A" }}>
+                {(() => {
+                  const modeLower = (billData.mode || "Road").toLowerCase();
+                  if (modeLower === "train") return "996512";
+                  if (modeLower === "air") return "996531";
+                  return "996511";
+                })()}
+              </div>
             </div>
           </div>
 
@@ -554,7 +562,7 @@ const BillView1 = () => {
                 <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.bankDetails?.bank || "Bank of Baroda, Rudrapur"}</div>
 
                 <div style={{ fontWeight: "800", color: "#475569" }}>A/c:</div>
-                <div style={{ fontWeight: "800", color: "#0C4A6E", fontFamily: "monospace", fontSize: "0.9rem" }}>{billData.bankDetails?.acNo || "24980400007426"}</div>
+                <div style={{ fontWeight: "800", color: "#000000", fontFamily: "monospace", fontSize: "0.9rem" }}>{billData.bankDetails?.acNo || "24980400007426"}</div>
 
                 <div style={{ fontWeight: "800", color: "#475569" }}>IFSC:</div>
                 <div style={{ fontWeight: "800", color: "#0F172A", fontFamily: "monospace" }}>{billData.bankDetails?.ifsc || "BARBORUDAVA"}</div>
@@ -613,9 +621,9 @@ const BillView1 = () => {
             {/* Stamp Slot: Conditional based on includeStamp toggle & custom uploaded stamp image */}
             <div style={{ height: "105px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0.25rem 0" }}>
               {includeStamp ? (
-                (localStorage.getItem("company_custom_stamp") || globalSettings?.company?.companyStampUrl) ? (
+                (globalSettings?.company?.companyStampUrl) ? (
                   <img 
-                    src={localStorage.getItem("company_custom_stamp") || globalSettings?.company?.companyStampUrl} 
+                    src={globalSettings?.company?.companyStampUrl} 
                     alt="Official Company Stamp" 
                     style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain', transform: 'rotate(-4deg)' }} 
                   />

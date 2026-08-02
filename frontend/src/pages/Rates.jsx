@@ -9,6 +9,7 @@ import { useDialog } from "../context/DialogContext";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
+import CsvImportExport from "../components/CsvImportExport";
 
 const Rates = () => {
   const { user } = useContext(AuthContext);
@@ -167,6 +168,27 @@ const Rates = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const isConfirmed = await confirm({
+      title: "Delete All Rates",
+      message: "Are you absolutely sure you want to delete ALL rates? This action is irreversible.",
+      confirmText: "Yes, Delete All",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+    
+    setLoading(true);
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/rates/all`);
+      setRates([]);
+    } catch (err) {
+      console.error("Delete all error", err);
+      fetchRates();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter rates based on search query
   const filteredRates = rates.filter(r => {
     const query = searchQuery.toLowerCase();
@@ -202,16 +224,29 @@ const Rates = () => {
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* Title & Add Button */}
-      <div className="header-flex">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Rates Master</h3>
-        {!isAdding && !editing && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-          >
-            + Add New
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <CsvImportExport moduleName="rates" onImportSuccess={fetchRates} />
+          {user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' ? (
+            rates.length > 0 && (
+              <button 
+                onClick={handleDeleteAll}
+                style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(239, 68, 68, 0.2)" }}
+              >
+                Delete All
+              </button>
+            )
+          ) : null}
+          {!isAdding && !editing && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+            >
+              + Add New
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Section */}
@@ -392,10 +427,10 @@ const Rates = () => {
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Client</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Origin</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Destination</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0" }}>Awb Charge</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "25%" }}>Client</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "15%" }}>Origin</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "15%" }}>Destination</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", width: "45%", textAlign: "center" }}>Rates & Charges</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit</th>
                 <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete</th>
               </tr>
@@ -412,17 +447,59 @@ const Rates = () => {
               ) : (
                 currentData.map((item, idx) => (
                   <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "700", textTransform: "uppercase", textAlign: "center" }}>
                       {item.client}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center" }}>
                       {item.origin}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center" }}>
                       {item.destination}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                      <RupeeIcon size={14} /> {item.awbCharge || "0"}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
+                          <div style={{ fontWeight: '700', color: '#334155', marginBottom: '4px', fontSize: '0.85rem' }}>BASIC CHARGES</div>
+                          <div style={{ display: 'flex', gap: '12px', fontSize: '0.85rem' }}>
+                            <span>AWB: <span style={{color: '#0f172a', fontWeight: '600'}}>₹{item.awbCharge || '0'}</span></span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', textAlign: 'left' }}>
+                          <div style={{ backgroundColor: '#eff6ff', padding: '8px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>
+                            <div style={{ fontWeight: '700', color: '#1d4ed8', marginBottom: '4px', fontSize: '0.85rem' }}>AIR</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem', color: '#475569' }}>
+                              <span>Rate: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.airRate || '0'}</span></span>
+                              <span>Pickup: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.airPickup || '0'}</span></span>
+                              <span>Delivery: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.airDelivery || '0'}</span></span>
+                            </div>
+                          </div>
+                          <div style={{ backgroundColor: '#fdf4ff', padding: '8px', borderRadius: '4px', border: '1px solid #fbcfe8' }}>
+                            <div style={{ fontWeight: '700', color: '#a21caf', marginBottom: '4px', fontSize: '0.85rem' }}>TRAIN</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem', color: '#475569' }}>
+                              <span>Rate: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.trainRate || '0'}</span></span>
+                              <span>Pickup: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.trainPickup || '0'}</span></span>
+                              <span>Delivery: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.trainDelivery || '0'}</span></span>
+                            </div>
+                          </div>
+                          <div style={{ backgroundColor: '#f0fdf4', padding: '8px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                            <div style={{ fontWeight: '700', color: '#15803d', marginBottom: '4px', fontSize: '0.85rem' }}>ROAD</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem', color: '#475569' }}>
+                              <span>Rate: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadRate || '0'}</span></span>
+                              <span>Pickup: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadPickup || '0'}</span></span>
+                              <span>Delivery: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadDelivery || '0'}</span></span>
+                            </div>
+                          </div>
+                          <div style={{ backgroundColor: '#fff7ed', padding: '8px', borderRadius: '4px', border: '1px solid #fed7aa' }}>
+                            <div style={{ fontWeight: '700', color: '#c2410c', marginBottom: '4px', fontSize: '0.85rem' }}>ROAD EXPRESS</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85rem', color: '#475569' }}>
+                              <span>Rate: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadExpressRate || '0'}</span></span>
+                              <span>Pickup: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadExpressPickup || '0'}</span></span>
+                              <span>Delivery: <span style={{color: '#1e293b', fontWeight: '500'}}>₹{item.roadExpressDelivery || '0'}</span></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>

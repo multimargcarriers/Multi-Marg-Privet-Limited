@@ -75,3 +75,18 @@ exports.delete_id_4 = async (req, res) => {
   return success(res, "Rate deleted successfully");
 };
 
+exports.deleteAll = async (req, res) => {
+  try {
+    await db.mongoDb.collection("rates").deleteMany({});
+    await delCache(CACHE_KEY);
+    return success(res, {
+      message: "All rates deleted successfully"
+    });
+  } catch (err) {
+    console.error("Error deleting all rates:", err);
+    return error(res, {
+      message: "Failed to delete all rates",
+      statusCode: 500
+    });
+  }
+};

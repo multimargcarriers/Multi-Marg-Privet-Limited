@@ -441,11 +441,11 @@ const Trips = () => {
           renderRow={(item, index) => (
             <tr key={item.id || index}>
               <td className="font-semibold">{item.tripNo || "-"}</td>
-              <td>{item.mode || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.mode || "-"}</td>
               <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
-              <td>{item.vendor || "-"}</td>
-              <td>{item.origin || "-"}</td>
-              <td>{item.destination || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.vendor || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.origin || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.destination || "-"}</td>
               <td>
                 {item.materialDetails && item.materialDetails.length > 0 ? (
                   <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxHeight: "100px", overflowY: "auto" }}>
