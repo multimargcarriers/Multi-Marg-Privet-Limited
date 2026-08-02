@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -29,6 +29,8 @@ const TripMIS = () => {
 
   const [tripListForm, setTripListForm] = useState(initialTripListForm);
   const [showTripListForm, setShowTripListForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingStatus, setEditingStatus] = useState('');
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
 
   useEffect(() => {
@@ -54,7 +56,7 @@ const TripMIS = () => {
              Print Trip MIS
            </button>
            {!showTripListForm && (
-             <button className="btn btn-primary" onClick={() => setShowTripListForm(true)}>
+             <button className="btn btn-primary" onClick={() => { setTripListForm(initialTripListForm); setEditingId(null); setEditingStatus(''); setShowTripListForm(true); }}>
                <Plus size={16} style={{ marginRight: 6 }} /> Add Trip MIS Entry
              </button>
            )}
@@ -91,19 +93,31 @@ const TripMIS = () => {
               };
               
               try {
-                const res = await axios.post(`${API}/trip-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
-                if(res.data.success) {
-                  setTripListEntries([res.data.data, ...tripListEntries]);
-                  setTripListForm(initialTripListForm);
-                  setShowTripListForm(false);
-                  addToast("Trip MIS entry added successfully!", "success");
+                if (editingId) {
+                  const res = await axios.put(`${API}/trip-mis/${editingId}`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
+                  if(res.data.success) {
+                    setTripListEntries(tripListEntries.map(t => t.id === editingId ? { ...t, ...newEntry } : t));
+                    setTripListForm(initialTripListForm);
+                    setEditingId(null);
+                    setEditingStatus('');
+                    setShowTripListForm(false);
+                    addToast("Trip MIS entry updated successfully!", "success");
+                  }
+                } else {
+                  const res = await axios.post(`${API}/trip-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
+                  if(res.data.success) {
+                    setTripListEntries([res.data.data, ...tripListEntries]);
+                    setTripListForm(initialTripListForm);
+                    setShowTripListForm(false);
+                    addToast("Trip MIS entry added successfully!", "success");
+                  }
                 }
               } catch(err) {
-                addToast("Failed to add entry", "error");
+                addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
             <h5 style={{ marginBottom: "1.5rem", color: "var(--primary-color)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Truck size={20} /> Enter Trip Details
+              <Truck size={20} /> {editingId ? "Edit Trip Details" : "Enter Trip Details"}
             </h5>
             <div className="grid-3-col" style={{ padding: "1.5rem", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "2rem" }}>
               <div className="form-group">
@@ -248,8 +262,8 @@ const TripMIS = () => {
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-              <button type="button" className="btn" onClick={() => setShowTripListForm(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>Save Trip MIS Entry</button>
+              <button type="button" className="btn" onClick={() => { setShowTripListForm(false); setEditingId(null); setEditingStatus(''); setTripListForm(initialTripListForm); }}>Cancel</button>
+              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Trip MIS Entry" : "Save Trip MIS Entry"}</button>
             </div>
          </form>
       )}
@@ -348,76 +362,91 @@ const TripMIS = () => {
                   {item.approvalStatus || 'Approved'}
                 </span>
               </td>
-              <td style={{ textAlign: "right", display: "flex", gap: "4px", justifyContent: "flex-end", flexWrap: "wrap", minWidth: "100px" }}>
-                {isAdminOrSuperAdmin && (
-                  <>
-                    {item.approvalStatus !== 'Approved' && (
-                      <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...tripListEntries];
-                             newEntries[idx].approvalStatus = 'Approved';
-                             setTripListEntries(newEntries);
-                             addToast("Entry Approved!", "success");
-                          }
-                        } catch(e) { addToast("Error approving entry", "error"); }
-                      }} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Approve</button>
-                    )}
-                    
-                    {item.approvalStatus !== 'Rejected' && (
-                      <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...tripListEntries];
-                             newEntries[idx].approvalStatus = 'Rejected';
-                             setTripListEntries(newEntries);
-                             addToast("Entry Rejected", "success");
-                          }
-                        } catch(e) { addToast("Error rejecting entry", "error"); }
-                      }} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Reject</button>
-                    )}
+              <td style={{ textAlign: "right" }}>
+                <div className="action-buttons-wrapper">
+                  {isAdminOrSuperAdmin && (
+                    <>
+                      {item.approvalStatus !== 'Approved' && (
+                        <button onClick={async () => {
+                          try {
+                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...tripListEntries];
+                               newEntries[idx].approvalStatus = 'Approved';
+                               setTripListEntries(newEntries);
+                               addToast("Entry Approved!", "success");
+                            }
+                          } catch(e) { addToast("Error approving entry", "error"); }
+                        }} className="action-btn action-btn-success">
+                          <Check size={14} /> Approve
+                        </button>
+                      )}
+                      
+                      {item.approvalStatus !== 'Rejected' && (
+                        <button onClick={async () => {
+                          try {
+                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...tripListEntries];
+                               newEntries[idx].approvalStatus = 'Rejected';
+                               setTripListEntries(newEntries);
+                               addToast("Entry Rejected", "success");
+                            }
+                          } catch(e) { addToast("Error rejecting entry", "error"); }
+                        }} className="action-btn action-btn-danger">
+                          <X size={14} /> Reject
+                        </button>
+                      )}
 
-                    {item.approvalStatus !== 'Pending' && (
+                      {item.approvalStatus !== 'Pending' && (
+                        <button onClick={async () => {
+                          try {
+                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Pending' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...tripListEntries];
+                               newEntries[idx].approvalStatus = 'Pending';
+                               setTripListEntries(newEntries);
+                               addToast("Entry Moved to Pending", "success");
+                            }
+                          } catch(e) { addToast("Error moving to pending", "error"); }
+                        }} className="action-btn action-btn-warning">
+                          <Clock size={14} /> Pending
+                        </button>
+                      )}
                       <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Pending' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...tripListEntries];
-                             newEntries[idx].approvalStatus = 'Pending';
-                             setTripListEntries(newEntries);
-                             addToast("Entry Moved to Pending", "success");
-                          }
-                        } catch(e) { addToast("Error moving to pending", "error"); }
-                      }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
-                    )}
-                    <button onClick={async () => {
-                      if (window.confirm("Are you sure you want to delete this Trip MIS entry?")) {
-                        try {
-                          const res = await axios.delete(`${API}/trip-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
-                          if (res.data.success) {
-                            setTripListEntries(tripListEntries.filter(t => t.id !== item.id));
-                            addToast("Entry deleted successfully", "success");
-                          }
-                        } catch(e) { addToast("Error deleting entry", "error"); }
-                      }
-                    }} style={{ background: "#475569", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", marginLeft: "4px" }}>Delete</button>
-                  </>
-                )}
-                <button 
-                  onClick={() => window.open(`/print-single-trip/${idx}`, '_blank')}
-                  style={{
-                    background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", 
-                    fontSize: "0.75rem", padding: "6px 8px", cursor: "pointer", fontWeight: "600",
-                    display: "inline-flex", alignItems: "center", gap: "4px", transition: "all 0.2s"
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569'; }}
-                  title="Print Single Trip"
-                >
-                  Print
-                </button>
+                        if (window.confirm("Are you sure you want to delete this Trip MIS entry?")) {
+                          try {
+                            const res = await axios.delete(`${API}/trip-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                            if (res.data.success) {
+                              setTripListEntries(tripListEntries.filter(t => t.id !== item.id));
+                              addToast("Entry deleted successfully", "success");
+                            }
+                          } catch(e) { addToast("Error deleting entry", "error"); }
+                        }
+                      }} className="action-btn action-btn-secondary">
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </>
+                  )}
+                  {(isAdminOrSuperAdmin || (user?.role === 'Vendor' && item.createdBy === user?.id && item.approvalStatus !== 'Approved')) && (
+                    <button onClick={() => {
+                      setTripListForm(item);
+                      setEditingId(item.id);
+                      setEditingStatus(item.approvalStatus || 'Pending');
+                      setShowTripListForm(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }} className="action-btn action-btn-primary">
+                      <Edit size={14} /> Edit
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => window.open(`/print-single-trip/${idx}`, '_blank')}
+                    className="action-btn action-btn-light"
+                    title="Print Single Trip"
+                  >
+                    <Printer size={14} /> Print
+                  </button>
+                </div>
               </td>
             </tr>
           )}

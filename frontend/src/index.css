@@ -656,3 +656,100 @@ textarea.form-control {
   }
 }
 
+/* Action Buttons for MIS Tables */
+.action-buttons-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Button Variants */
+.action-btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.action-btn-danger:hover {
+  background: #dc2626;
+}
+
+.action-btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+.action-btn-warning:hover {
+  background: #d97706;
+}
+
+.action-btn-success {
+  background: #10b981;
+  color: white;
+}
+.action-btn-success:hover {
+  background: #059669;
+}
+
+.action-btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+.action-btn-primary:hover {
+  background: #2563eb;
+}
+
+.action-btn-secondary {
+  background: #475569;
+  color: white;
+}
+.action-btn-secondary:hover {
+  background: #334155;
+}
+
+.action-btn-light {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.action-btn-light:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .action-buttons-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 120px;
+  }
+  .action-btn {
+    width: 100%;
+    padding: 8px 10px;
+  }
+}

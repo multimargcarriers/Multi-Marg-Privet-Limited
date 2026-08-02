@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -30,6 +30,8 @@ const VendorMIS = () => {
 
   const [vendorMisForm, setVendorMisForm] = useState(initialVendorMisForm);
   const [showVendorMisForm, setShowVendorMisForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingStatus, setEditingStatus] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -51,7 +53,7 @@ const VendorMIS = () => {
          <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vendor Vehicle MIS</h3>
          <div style={{ display: "flex", gap: "10px" }}>
            {!showVendorMisForm && (
-             <button className="btn btn-primary" onClick={() => setShowVendorMisForm(true)}>
+             <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
                <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor MIS Entry
              </button>
            )}
@@ -74,19 +76,31 @@ const VendorMIS = () => {
               };
               
               try {
-                const res = await axios.post(`${API}/vendor-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
-                if(res.data.success) {
-                  setVendorMisEntries([res.data.data, ...vendorMisEntries]);
-                  setVendorMisForm(initialVendorMisForm);
-                  setShowVendorMisForm(false);
-                  addToast("Vendor MIS entry added successfully!", "success");
+                if (editingId) {
+                  const res = await axios.put(`${API}/vendor-mis/${editingId}`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
+                  if(res.data.success) {
+                    setVendorMisEntries(vendorMisEntries.map(v => v.id === editingId ? { ...v, ...newEntry } : v));
+                    setVendorMisForm(initialVendorMisForm);
+                    setEditingId(null);
+                    setEditingStatus('');
+                    setShowVendorMisForm(false);
+                    addToast("Vendor MIS entry updated successfully!", "success");
+                  }
+                } else {
+                  const res = await axios.post(`${API}/vendor-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
+                  if(res.data.success) {
+                    setVendorMisEntries([res.data.data, ...vendorMisEntries]);
+                    setVendorMisForm(initialVendorMisForm);
+                    setShowVendorMisForm(false);
+                    addToast("Vendor MIS entry added successfully!", "success");
+                  }
                 }
               } catch(err) {
-                 addToast("Failed to add entry", "error");
+                 addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
             <h5 style={{ marginBottom: "1.5rem", color: "var(--primary-color)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Truck size={20} /> Enter Vendor MIS Details
+              <Truck size={20} /> {editingId ? "Edit Vendor MIS Details" : "Enter Vendor MIS Details"}
             </h5>
             <div style={{ padding: "1.5rem", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "2rem" }}>
               <div className="form-group" style={{ maxWidth: "400px" }}>
@@ -148,6 +162,8 @@ const VendorMIS = () => {
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Others (₹)</label>
                       <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Others" value={detail.others} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].others = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} />
                     </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Amount (₹)</label>
                       <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Amount" value={detail.amount} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].amount = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
@@ -166,8 +182,8 @@ const VendorMIS = () => {
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-              <button type="button" className="btn" onClick={() => setShowVendorMisForm(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>Save Vendor MIS Entry</button>
+              <button type="button" className="btn" onClick={() => { setShowVendorMisForm(false); setEditingId(null); setEditingStatus(''); setVendorMisForm(initialVendorMisForm); }}>Cancel</button>
+              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Vendor MIS Entry" : "Save Vendor MIS Entry"}</button>
             </div>
          </form>
       )}
@@ -268,66 +284,87 @@ const VendorMIS = () => {
                   {item.approvalStatus || 'Approved'}
                 </span>
               </td>
-              <td style={{ textAlign: "right", display: "flex", gap: "4px", justifyContent: "flex-end", flexWrap: "wrap", minWidth: "100px" }}>
-                {isAdminOrSuperAdmin && (
-                  <>
-                    {item.approvalStatus !== 'Approved' && (
-                      <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...vendorMisEntries];
-                             newEntries[idx].approvalStatus = 'Approved';
-                             setVendorMisEntries(newEntries);
-                             addToast("Entry Approved!", "success");
-                          }
-                        } catch(e) { addToast("Error approving entry", "error"); }
-                      }} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Approve</button>
-                    )}
-                    
-                    {item.approvalStatus !== 'Rejected' && (
-                      <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...vendorMisEntries];
-                             newEntries[idx].approvalStatus = 'Rejected';
-                             setVendorMisEntries(newEntries);
-                             addToast("Entry Rejected", "success");
-                          }
-                        } catch(e) { addToast("Error rejecting entry", "error"); }
-                      }} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Reject</button>
-                    )}
-
-                    {item.approvalStatus !== 'Pending' && (
-                      <button onClick={async () => {
-                        try {
-                          const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Pending' }, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                             const newEntries = [...vendorMisEntries];
-                             newEntries[idx].approvalStatus = 'Pending';
-                             setVendorMisEntries(newEntries);
-                             addToast("Entry Moved to Pending", "success");
-                          }
-                        } catch(e) { addToast("Error moving to pending", "error"); }
-                      }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
-                    )}
-                    
-                    <button onClick={async () => {
-                       if(window.confirm("Are you sure you want to delete this Vendor MIS entry?")) {
+              <td style={{ textAlign: "right" }}>
+                <div className="action-buttons-wrapper">
+                  {isAdminOrSuperAdmin && (
+                    <>
+                      {item.approvalStatus !== 'Approved' && (
+                        <button onClick={async () => {
                           try {
-                             const res = await axios.delete(`${API}/vendor-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
-                             if(res.data.success) {
-                               setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
-                               addToast("Entry deleted successfully", "success");
-                             }
-                          } catch(err) {
-                             addToast("Failed to delete entry", "error");
-                          }
-                       }
-                    }} style={{ background: "#475569", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Delete</button>
-                  </>
-                )}
+                            const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...vendorMisEntries];
+                               newEntries[idx].approvalStatus = 'Approved';
+                               setVendorMisEntries(newEntries);
+                               addToast("Entry Approved!", "success");
+                            }
+                          } catch(e) { addToast("Error approving entry", "error"); }
+                        }} className="action-btn action-btn-success">
+                          <Check size={14} /> Approve
+                        </button>
+                      )}
+                      
+                      {item.approvalStatus !== 'Rejected' && (
+                        <button onClick={async () => {
+                          try {
+                            const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...vendorMisEntries];
+                               newEntries[idx].approvalStatus = 'Rejected';
+                               setVendorMisEntries(newEntries);
+                               addToast("Entry Rejected", "success");
+                            }
+                          } catch(e) { addToast("Error rejecting entry", "error"); }
+                        }} className="action-btn action-btn-danger">
+                          <X size={14} /> Reject
+                        </button>
+                      )}
+
+                      {item.approvalStatus !== 'Pending' && (
+                        <button onClick={async () => {
+                          try {
+                            const res = await axios.put(`${API}/vendor-mis/${item.id}`, { approvalStatus: 'Pending' }, { headers: { Authorization: `Bearer ${token}` } });
+                            if(res.data.success) {
+                               const newEntries = [...vendorMisEntries];
+                               newEntries[idx].approvalStatus = 'Pending';
+                               setVendorMisEntries(newEntries);
+                               addToast("Entry Moved to Pending", "success");
+                            }
+                          } catch(e) { addToast("Error moving to pending", "error"); }
+                        }} className="action-btn action-btn-warning">
+                          <Clock size={14} /> Pending
+                        </button>
+                      )}
+                      
+                      <button onClick={async () => {
+                         if(window.confirm("Are you sure you want to delete this Vendor MIS entry?")) {
+                            try {
+                               const res = await axios.delete(`${API}/vendor-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                               if(res.data.success) {
+                                 setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
+                                 addToast("Entry deleted successfully", "success");
+                               }
+                            } catch(err) {
+                               addToast("Failed to delete entry", "error");
+                            }
+                         }
+                      }} className="action-btn action-btn-secondary">
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </>
+                  )}
+                  {(isAdminOrSuperAdmin || (user?.role === 'Vendor' && item.createdBy === user?.id && item.approvalStatus !== 'Approved')) && (
+                    <button onClick={() => {
+                      setVendorMisForm(item);
+                      setEditingId(item.id);
+                      setEditingStatus(item.approvalStatus || 'Pending');
+                      setShowVendorMisForm(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }} className="action-btn action-btn-primary">
+                      <Edit size={14} /> Edit
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           )}
