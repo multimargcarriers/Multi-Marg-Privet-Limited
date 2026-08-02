@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -19,6 +19,41 @@ const VendorMIS = () => {
   const initialVendorMisForm = { vendorName: "", details: [ { ...initialVendorMisRow } ] };
   
   const [vendorMisEntries, setVendorMisEntries] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const filteredEntries = vendorMisEntries.filter(item => {
+    if (!startDate && !endDate) return true;
+    const itemDate = new Date(item.createdAt);
+    itemDate.setHours(0,0,0,0);
+    const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+    start.setHours(0,0,0,0);
+    const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+    end.setHours(23,59,59,999);
+    return itemDate >= start && itemDate <= end;
+  });
+
+  const handleExportCSV = () => {
+    let csv = "Created At,Vendor Name,Handover To,Date,From,To,Vehicle No,Particular,Mode,Amount,Others,Status,Total Amount,Approval Status\n";
+    filteredEntries.forEach(item => {
+      if (item.details && item.details.length > 0) {
+        item.details.forEach(d => {
+          csv += `"${item.createdAt ? item.createdAt.substring(0,10) : ''}","${item.vendorName || ''}","${d.handoverTo || ''}","${d.date || ''}","${d.from || ''}","${d.to || ''}","${d.vehicleNo || ''}","${d.particular || ''}","${d.mode || ''}","${d.amount || ''}","${d.others || ''}","${d.status || ''}","${item.totalAmount || ''}","${item.approvalStatus || ''}"\n`;
+        });
+      } else {
+        csv += `"${item.createdAt ? item.createdAt.substring(0,10) : ''}","${item.vendorName || ''}","","","","","","","","","","","${item.totalAmount || ''}","${item.approvalStatus || ''}"\n`;
+      }
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `Vendor_MIS_Export_${formatDate(new Date())}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   useEffect(() => {
     if(token) {
@@ -49,9 +84,25 @@ const VendorMIS = () => {
 
   return (
     <div>
+      <div className="no-print">
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
          <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vendor Vehicle MIS</h3>
-         <div style={{ display: "flex", gap: "10px" }}>
+         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+           <div style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+             <Filter size={16} color="#64748b" />
+             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+             <span style={{ color: "#94a3b8" }}>-</span>
+             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+           </div>
+           
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
+             <Download size={16} style={{ marginRight: 6 }} /> Export CSV
+           </button>
+           
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
+             <Printer size={16} style={{ marginRight: 6 }} /> Print All
+           </button>
+           
            {!showVendorMisForm && (
              <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
                <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor MIS Entry
@@ -192,7 +243,7 @@ const VendorMIS = () => {
         <Table 
           loading={false}
           headers={["Vendor Name", "Date Created", "Details", "Total Amount", "Status", "Actions"]}
-          data={vendorMisEntries}
+          data={filteredEntries}
           emptyMessage="No Vendor MIS entries added yet. Click 'Add Vendor MIS Entry' to start."
           renderRow={(item, idx) => (
             <tr key={idx}>
@@ -369,6 +420,66 @@ const VendorMIS = () => {
             </tr>
           )}
         />
+      </div>
+      </div>
+
+      <div className="print-only">
+        <h2 style={{ textAlign: "center", marginBottom: "5px" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
+        <h4 style={{ textAlign: "center", marginBottom: "20px" }}>Vendor MIS Report {startDate && endDate ? `(${startDate} to ${endDate})` : "(All Data)"}</h4>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Created At</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Vendor Name</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "right" }}>Total Amount</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "center" }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEntries.map((item, idx) => (
+              <React.Fragment key={idx}>
+                <tr>
+                  <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>{item.vendorName || "-"}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "right", fontWeight: "bold" }}>₹{parseFloat(item.totalAmount || 0).toFixed(2)}</td>
+                  <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "center" }}>{item.approvalStatus || 'Approved'}</td>
+                </tr>
+                {item.details && item.details.length > 0 && (
+                  <tr>
+                    <td colSpan="4" style={{ padding: "0", border: "1px solid #ccc" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", backgroundColor: "#fafafa" }}>
+                        <thead>
+                          <tr>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Date</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Vehicle</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Route</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Particular</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Handover</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Mode</th>
+                            <th style={{ border: "1px solid #ddd", padding: "4px", textAlign: "right" }}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {item.details.map((d, i) => (
+                            <tr key={i}>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.date || "-"}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.vehicleNo || "-"}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.from} &rarr; {d.to}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.particular || "-"}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.handoverTo || "-"}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.mode || "-"}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "4px", textAlign: "right" }}>₹{parseFloat(d.amount || 0).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -753,3 +753,31 @@ textarea.form-control {
     padding: 8px 10px;
   }
 }
+
+/* Native Print Styles for Endless Tables */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print, .sidebar, .topbar, .right-sidebar { 
+    display: none !important; 
+  }
+  .print-only { 
+    display: block !important; 
+  }
+  .main-content { 
+    margin: 0 !important; 
+    width: 100% !important; 
+    padding: 0 !important; 
+  }
+  .app-container { 
+    padding: 0 !important; 
+    background: white !important; 
+  }
+  body { 
+    background: white !important; 
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact; 
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -18,6 +18,41 @@ const TripMIS = () => {
   const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const filteredEntries = tripListEntries.filter(item => {
+    if (!startDate && !endDate) return true;
+    const itemDate = new Date(item.date || item.createdAt);
+    itemDate.setHours(0,0,0,0);
+    const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+    start.setHours(0,0,0,0);
+    const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+    end.setHours(23,59,59,999);
+    return itemDate >= start && itemDate <= end;
+  });
+
+  const handleExportCSV = () => {
+    let csv = "Trip Date,Trip No,Vehicle No,Vehicle Type,Mode,Payment,Client Name,Origin,Destination,LR No,Consignor,Consignee,LR Origin,LR Destination,Box,Weight,Freight,Pickup,Delivery,Special,Other,Paid Amount,Approval Status\n";
+    filteredEntries.forEach(trip => {
+      if (trip.parcels && trip.parcels.length > 0) {
+        trip.parcels.forEach(p => {
+          csv += `"${trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')}","${trip.tripNo}","${trip.vehicleNo}","${trip.vehicleType}","${trip.mode || ''}","${trip.payment || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","${p.lrNo || ''}","${p.consignor || ''}","${p.consignee || ''}","${p.origin || ''}","${p.destination || ''}","${p.box || ''}","${p.weight || ''}","${p.freight || ''}","${p.pickup || ''}","${p.delivery || ''}","${p.special || ''}","${p.other || ''}","${trip.paidAmount || ''}","${trip.approvalStatus || ''}"\n`;
+        });
+      } else {
+        csv += `"${trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')}","${trip.tripNo}","${trip.vehicleNo}","${trip.vehicleType}","${trip.mode || ''}","${trip.payment || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","","","","","","","","","","","","","${trip.paidAmount || ''}","${trip.approvalStatus || ''}"\n`;
+      }
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `Trip_MIS_Export_${formatDate(new Date())}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   useEffect(() => {
     if(token) {
@@ -49,11 +84,23 @@ const TripMIS = () => {
 
   return (
     <div>
+      <div className="no-print">
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
          <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Trip MIS Entries</h3>
-         <div style={{ display: "flex", gap: "10px" }}>
-           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.open('/print-trip-list', '_blank')}>
-             Print Trip MIS
+         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+           <div style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+             <Filter size={16} color="#64748b" />
+             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+             <span style={{ color: "#94a3b8" }}>-</span>
+             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+           </div>
+           
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
+             <Download size={16} style={{ marginRight: 6 }} /> Export CSV
+           </button>
+           
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
+             <Printer size={16} style={{ marginRight: 6 }} /> Print All
            </button>
            {!showTripListForm && (
              <button className="btn btn-primary" onClick={() => { setTripListForm(initialTripListForm); setEditingId(null); setEditingStatus(''); setShowTripListForm(true); }}>
@@ -276,7 +323,7 @@ const TripMIS = () => {
             <div style={{ textAlign: "center", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>,
             "Status", "Actions"
           ]}
-          data={tripListEntries}
+          data={filteredEntries}
           emptyMessage="No trip MIS entries added yet. Click 'Add Trip MIS Entry' to start."
           renderRow={(item, idx) => (
             <tr key={idx}>
@@ -500,6 +547,38 @@ const TripMIS = () => {
           </div>
         </div>
       )}
+      </div>
+
+      <div className="print-only">
+        <h2 style={{ textAlign: "center", marginBottom: "5px" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
+        <h4 style={{ textAlign: "center", marginBottom: "20px" }}>Trip MIS Report {startDate && endDate ? `(${startDate} to ${endDate})` : "(All Data)"}</h4>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Trip Date</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Trip No</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Vehicle</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Client</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Route</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "right" }}>Total Freight</th>
+              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "center" }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEntries.map((item, idx) => (
+              <tr key={idx}>
+                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : "-")}</td>
+                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.tripNo || "-"}</td>
+                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.vehicleNo}<br/><small>{item.vehicleType}</small></td>
+                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.clientName}</td>
+                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.origin} &rarr; {item.destination}</td>
+                <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "right" }}>₹{parseFloat(item.freight || 0).toFixed(2)}</td>
+                <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "center" }}>{item.approvalStatus || 'Approved'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

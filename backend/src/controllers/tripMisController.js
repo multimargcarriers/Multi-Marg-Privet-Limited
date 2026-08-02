@@ -5,11 +5,11 @@ const { getNextSequence } = require("../utils/sequenceGenerator");
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
   
-  let query = db.collection("trip_mis").orderBy("createdAt", "desc").limit(100);
+  let query = db.collection("trip_mis").orderBy("createdAt", "desc");
   
   // If user is a Vendor, they can only see their own trips
   if (user && user.role === 'Vendor') {
-    query = db.collection("trip_mis").where("createdBy", "==", user.id).orderBy("createdAt", "desc").limit(100);
+    query = db.collection("trip_mis").where("createdBy", "==", user.id).orderBy("createdAt", "desc");
   }
   
   const snapshot = await query.get();
