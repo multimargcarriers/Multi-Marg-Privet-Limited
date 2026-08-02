@@ -1,4 +1,5 @@
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { CheckCircle, Loader2, ShoppingCart, Trash2 } from "lucide-react";
@@ -294,7 +295,7 @@ const Purchase = () => {
             <tr key={item.id || index}>
               <td className="font-semibold"><ShoppingCart size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.vendor}</td>
               <td>{item.billNo || "-"}</td>
-              <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
+              <td>{item.date ? formatDate(item.date) : "-"}</td>
               <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
               <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.gst || 0).toFixed(2)}</span></td>
               <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>

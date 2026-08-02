@@ -20,6 +20,7 @@ const {
   body,
   validationResult
 } = require("express-validator");
+const { getNextSequence } = require("../utils/sequenceGenerator");
 
 const CACHE_KEY = "trips";
 
@@ -43,6 +44,12 @@ exports.postRoot_2 = async (req, res) => {
   const trip = req.body;
   trip.date = trip.date || new Date().toISOString();
   trip.status = "Active";
+  trip.approvalStatus = req.user?.role === 'Vendor' ? 'Pending' : 'Approved';
+  
+  if (!trip.tripNo || trip.tripNo.trim() === '') {
+    trip.tripNo = await getNextSequence('TRP');
+  }
+  
   const docRef = await db.collection("trips").add(trip);
   await delCache(CACHE_KEY);
   return created(res, "Trip created successfully", {

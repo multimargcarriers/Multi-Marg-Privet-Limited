@@ -238,6 +238,8 @@ const logsRoutes = require("./src/routes/logs");
 const analyticsRoutes = require("./src/routes/analytics");
 const searchRoutes = require("./src/routes/search");
 const settingsRoutes = require("./src/routes/settings");
+const tripMisRoutes = require("./src/routes/trip-mis");
+const vendorMisRoutes = require("./src/routes/vendor-mis");
 
 // ============================================================
 // Mount Public Routes
@@ -313,6 +315,8 @@ app.use("/api/purchase-report", purchaseReportRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/trip-mis", tripMisRoutes);
+app.use("/api/vendor-mis", vendorMisRoutes);
 
 // ============================================================
 // Error Handling

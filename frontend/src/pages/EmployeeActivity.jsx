@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import axios from 'axios';
 import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint, Lock, X } from 'lucide-react';
+import { formatDate } from '../utils/formatters';
 
 const EmployeeActivity = () => {
   const { token, user } = useContext(AuthContext);
@@ -328,7 +329,7 @@ const EmployeeActivity = () => {
                             <Hash size={14} /> <span style={{ width: '80px', fontWeight: 600 }}>Employee ID:</span> <span style={{ color: 'var(--text-dark)', fontFamily: 'monospace', background: 'var(--bg-color)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{emp.employeeId || 'N/A'}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            <Clock size={14} /> <span style={{ width: '80px', fontWeight: 600 }}>Created On:</span> <span style={{ color: 'var(--text-dark)' }}>{emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : 'N/A'}</span>
+                            <Clock size={14} /> <span style={{ width: '80px', fontWeight: 600 }}>Created On:</span> <span style={{ color: 'var(--text-dark)' }}>{emp.createdAt ? formatDate(emp.createdAt) : 'N/A'}</span>
                           </div>
                           
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>

@@ -35,6 +35,8 @@ const PERMISSIONS_TREE = [
       { id: 'bookings', name: 'Bookings (LR)' },
       { id: 'create_booking', name: 'Create Booking' },
       { id: 'trips', name: 'Trips' },
+      { id: 'tripmis', name: 'Trip MIS' },
+      { id: 'vendormis', name: 'Vendor Vehicle MIS' },
       { id: 'tracking', name: 'Tracking' },
       { id: 'pod', name: 'POD Upload' }
     ]
@@ -281,12 +283,13 @@ const IAM = () => {
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     >
+                      <option value="Vendor">Vendor</option>
                       <option value="Admin">Admin</option>
                       <option value="SuperAdmin">Super Admin</option>
                     </select>
                   </div>
 
-                  {formData.role === 'Admin' && (
+                  {formData.role !== 'SuperAdmin' && (
                     <div style={{ gridColumn: "1 / -1" }}>
                       <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Module & Page Permissions</label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '10px', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>

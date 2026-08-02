@@ -5,6 +5,7 @@ import { Upload, FileText, CheckCircle, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDate } from '../utils/formatters';
 
 const POD = () => {
   const { user } = useContext(AuthContext);
@@ -170,7 +171,7 @@ const POD = () => {
           <tr key={item.id || index}>
             <td className="font-semibold">#{item.lrNo}</td>
             <td><FileText size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.filename}</td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+            <td>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
             <td>
               <span style={{ padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600", background: "rgba(16, 185, 129, 0.1)", color: "#10b981", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <CheckCircle size={14} /> Uploaded

@@ -230,7 +230,7 @@ exports.post_google_login = async (req, res) => {
   }
 
   // 2️⃣ Strict Check: User MUST be Admin, Employee, or SuperAdmin
-  const allowedRoles = ["admin", "employee", "superadmin", "super_admin", "super admin"];
+  const allowedRoles = ["admin", "employee", "superadmin", "super_admin", "super admin", "vendor"];
   const userRole = (user.role || user.type || "").toLowerCase().trim();
   if (!allowedRoles.includes(userRole)) {
     await logFailedGoogleLogin(req, { email: emailLower, reason: `Unauthorized role: ${user.role || 'none'}`, name: name || 'Unknown', picture });
@@ -347,9 +347,9 @@ exports.post_login_1 = async (req, res) => {
     });
   }
 
-  // Enforce IAM Role based access (Only Admins and Super Admins allowed)
+  // Enforce IAM Role based access (Admins, Super Admins, and Vendors allowed)
   const role = (userData.role || "SuperAdmin").toLowerCase().replace(/\s+/g, '');
-  if (role !== 'admin' && role !== 'superadmin') {
+  if (role !== 'admin' && role !== 'superadmin' && role !== 'vendor') {
     return error(res, {
       message: "Access Denied: Your account does not have sufficient IAM permissions to access this portal.",
       statusCode: 403

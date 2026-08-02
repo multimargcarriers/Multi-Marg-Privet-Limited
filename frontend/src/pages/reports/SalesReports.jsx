@@ -3,6 +3,7 @@ import axios from "axios";
 import Table from "../../components/Table";
 import { Search } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
+import { formatDate } from "../../utils/formatters";
 
 const SalesReports = () => {
   const [data, setData] = useState([]);
@@ -61,7 +62,7 @@ const SalesReports = () => {
           renderRow={(item, index) => (
             <tr key={index}>
               <td className="font-semibold">{item.billNo || "-"}</td>
-              <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+              <td>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
               <td>{item.client || "-"}</td>
               <td>{item.lrNo || "-"}</td>
               <td>

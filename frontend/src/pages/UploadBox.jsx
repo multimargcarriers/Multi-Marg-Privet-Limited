@@ -4,6 +4,7 @@ import Table from "../components/Table";
 import { Upload, Package, Eye, Trash2 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { formatDate } from "../utils/formatters";
 
 const UploadBox = () => {
   const { user } = useContext(AuthContext);
@@ -87,7 +88,7 @@ const UploadBox = () => {
           <tr key={index}>
             <td className="font-semibold"><Package size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.filename}</td>
             <td>{item.description || "-"}</td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+            <td>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
             <td>
               <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/uploads/box/${item.filename}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Eye size={16} /> View

@@ -1,4 +1,5 @@
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FileText, Search, Download, Send, CheckCircle, Loader2 } from "lucide-react";
@@ -390,7 +391,7 @@ const GenerateBill = () => {
                 <tr key={index} style={{ borderBottom: "1px solid rgba(0, 0, 0, 0.05)", cursor: "pointer", background: selected.includes(item.id) ? "rgba(13, 110, 253, 0.05)" : "transparent" }} onClick={() => toggleSelect(item.id)}>
                   <td style={{ padding: "0.5rem" }}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelect(item.id)} onClick={(e) => e.stopPropagation()} /></td>
                   <td style={{ padding: "0.5rem", fontWeight: 600, fontSize: "0.8rem", whiteSpace: "nowrap" }}>#{item.awb || item.consignment || item.id?.slice(-6) || index + 1}</td>
-                  <td style={{ padding: "0.5rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{item.dispatch_date || item.date || item.createdAt ? new Date(item.dispatch_date || item.date || item.createdAt).toLocaleDateString() : "-"}</td>
+                  <td style={{ padding: "0.5rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{item.dispatch_date || item.date || item.createdAt ? formatDate(item.dispatch_date || item.date || item.createdAt) : "-"}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.origin}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.destination}</td>
                   <td style={{ padding: "0.5rem" }}>

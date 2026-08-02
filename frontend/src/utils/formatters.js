@@ -30,3 +30,21 @@ export const formatPhoneNumber = (value) => {
   // Limit to 10 digits
   return digitsOnly.slice(0, 10);
 };
+
+/**
+ * Formats date to DD-MM-YYYY format globally.
+ */
+export const formatDate = (dateValue) => {
+  if (!dateValue) return "-";
+  // Handle Firestore timestamps (seconds)
+  if (dateValue && dateValue.seconds) {
+    dateValue = dateValue.seconds * 1000;
+  }
+  const date = new Date(dateValue);
+  if (isNaN(date.getTime())) return "-";
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};

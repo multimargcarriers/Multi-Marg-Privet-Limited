@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 
 const BookingsList = () => {
   const { user } = useContext(AuthContext);
@@ -79,7 +80,7 @@ const BookingsList = () => {
         renderRow={(item, index) => (
           <tr key={index}>
             <td className="font-semibold">#{item.awb || item.lrNo || item.id?.slice(-6) || index + 1}</td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
+            <td>{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</td>
             <td>{item.client || item.consignor || "-"}</td>
             <td>{item.origin || "-"}</td>
             <td>{item.destination || "-"}</td>

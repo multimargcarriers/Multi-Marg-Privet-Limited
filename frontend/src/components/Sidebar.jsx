@@ -195,13 +195,19 @@ export const menuItems = [
   }
 ];
 
-export const getVisibleMenuItems = (hasPermission, globalSettings) => {
+export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
   return menuItems
     .map(item => {
       if (item.isHeader) {
         const hasParentPermission = !item.permission || hasPermission(item.permission);
         const visibleChildren = item.children.filter(child => {
           if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+          
+          if (user?.role === 'Vendor') {
+            if (child.permission === 'trips' && (hasPermission('tripmis') || hasPermission('vendormis'))) return true;
+            return child.permission && hasPermission(child.permission);
+          }
+
           if (hasParentPermission) return true;
           return child.permission && hasPermission(child.permission);
         });
@@ -312,7 +318,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
     }
   };
 
-  const visibleItems = getVisibleMenuItems(hasPermission, globalSettings);
+  const visibleItems = getVisibleMenuItems(hasPermission, globalSettings, user);
   const accordionEnabled = globalSettings?.ui?.accordionSidebar !== false;
 
   return (

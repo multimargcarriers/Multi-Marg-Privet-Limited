@@ -5,6 +5,7 @@ import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -260,7 +261,7 @@ const CashSheet = () => {
           data={entries}
           renderRow={(item, index) => (
             <tr key={item.id || index}>
-              <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
+              <td>{item.date ? formatDate(item.date) : "-"}</td>
               <td>
                 <span style={{
                   padding: "0.25rem 0.75rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "600",

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, RefreshCw, Clock, Truck } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
+import { formatDate } from '../utils/formatters';
 import RupeeIcon from '../components/RupeeIcon';
 
 const StatCard = ({ title, value, icon, subtitle, trend }) => (
@@ -76,7 +77,7 @@ const Dashboard = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-            Last Updated: {stats?.lastUpdated ? new Date(stats.lastUpdated).toLocaleString() : 'Never'}
+            Last Updated: {stats?.lastUpdated ? formatDate(stats.lastUpdated) : 'Never'}
           </span>
           <button 
             onClick={handleSync}
@@ -225,7 +226,7 @@ const Dashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
                       <h5 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a', fontWeight: '600' }}>{activity.title}</h5>
                       <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Clock size={12} /> {new Date(activity.timestamp?.seconds ? activity.timestamp.seconds * 1000 : activity.timestamp).toLocaleDateString()}
+                        <Clock size={12} /> {formatDate(activity.timestamp?.seconds ? activity.timestamp.seconds * 1000 : activity.timestamp)}
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activity.subtitle}</p>

@@ -3,6 +3,7 @@ import axios from "axios";
 import { Search, Save, RefreshCw, Layers, Edit3, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -114,7 +115,7 @@ const UpdateBill = () => {
     const newRow = {
       si: form.items.length + 1,
       lrNo: "",
-      lrDt: new Date().toLocaleDateString('en-GB'),
+      lrDt: formatDate(new Date()),
       ref: "-",
       org: "DELHI",
       dest: "PANTNAGAR",

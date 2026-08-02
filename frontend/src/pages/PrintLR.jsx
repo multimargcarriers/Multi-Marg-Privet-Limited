@@ -6,6 +6,7 @@ import RupeeIcon from "../components/RupeeIcon";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
+import { formatDate } from "../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -329,7 +330,7 @@ const PrintLR = () => {
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>AWB NO.</td>
                   <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem", whiteSpace: "nowrap" }}>{booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
-                  <td className="data-cell" style={{ width: "25%" }}>{booking.dispatch_date ? new Date(booking.dispatch_date).toLocaleDateString('en-GB').replaceAll('/', '-') : new Date(booking.createdAt).toLocaleDateString('en-GB').replaceAll('/', '-')}</td>
+                  <td className="data-cell" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
                   <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>
                   <td className="data-cell" style={{ width: "10%" }}>{booking.mode?.toUpperCase()}</td>
                 </tr>
@@ -411,7 +412,7 @@ const PrintLR = () => {
                 {invoices.map((inv, idx) => (
                   <tr key={idx}>
                     <td className="data-cell" style={{ textAlign: "center" }}>{inv.invoiceNo || "-"}</td>
-                    <td className="data-cell" style={{ textAlign: "center" }}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB').replaceAll('/', '-') : "-"}</td>
+                    <td className="data-cell" style={{ textAlign: "center" }}>{inv.invoiceDate ? formatDate(inv.invoiceDate) : "-"}</td>
                     <td className="data-cell" style={{ textAlign: "center" }}>{inv.quantity || "-"}</td>
                     <td className="data-cell" style={{ textAlign: "center" }}>{inv.partNumber || "-"}</td>
                     <td className="data-cell" style={{ textAlign: "center" }}>{inv.invoiceValue || "-"}</td>

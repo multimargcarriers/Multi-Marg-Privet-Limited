@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
+import { formatDate } from '../utils/formatters';
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
@@ -88,7 +89,7 @@ const AllBills = () => {
             <td className="font-semibold">#{item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client || item.billedTo || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.amount || item.total || 0).toFixed(2)}</span></td>
-            <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+            <td>{formatDate(item.createdAt)}</td>
             <td>
               <select 
                 value={(item.status || "pending").toLowerCase()}

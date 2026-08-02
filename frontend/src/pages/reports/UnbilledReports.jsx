@@ -3,6 +3,7 @@ import axios from "axios";
 import Table from "../../components/Table";
 import { Search } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
+import { formatDate } from "../../utils/formatters";
 
 const UnbilledReports = () => {
   const [data, setData] = useState([]);
@@ -62,7 +63,7 @@ const UnbilledReports = () => {
           renderRow={(item, index) => (
             <tr key={index}>
               <td className="font-semibold" style={{ whiteSpace: "nowrap" }}>{item.awbNo || item.lrNumber || "-"}</td>
-              <td style={{ whiteSpace: "nowrap" }}>{item.date ? new Date(item.date).toLocaleDateString('en-IN') : item.bookingDate ? new Date(item.bookingDate).toLocaleDateString('en-IN') : "-"}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{item.date ? formatDate(item.date) : item.bookingDate ? formatDate(item.bookingDate) : "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.origin || "-"}</td>

@@ -16,6 +16,7 @@ const DashboardLayout = () => {
 
   const visibleMenuItems = getVisibleMenuItems(hasPermission, globalSettings);
   const hasSidebar = visibleMenuItems.length > 0;
+  const hasRightSidebar = ['operations', 'billing', 'masters', 'accounts', 'reports', 'superadmin'].some(perm => hasPermission(perm));
 
   useEffect(() => {
     const handleResize = () => {
@@ -31,13 +32,13 @@ const DashboardLayout = () => {
   return (
     <div className="app-container">
       {hasSidebar && <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />}
-      <div className={`main-content ${hasSidebar ? (isSidebarOpen ? 'sidebar-open' : 'sidebar-closed') : 'no-sidebar'}`}>
+      <div className={`main-content ${hasSidebar ? (isSidebarOpen ? 'sidebar-open' : 'sidebar-closed') : 'no-sidebar'} ${!hasRightSidebar ? 'no-right-sidebar' : ''}`}>
         <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} hasSidebar={hasSidebar} />
         <div className="page-content">
           <Outlet />
         </div>
       </div>
-      {hasSidebar && <RightSidebar />}
+      {hasSidebar && hasRightSidebar && <RightSidebar />}
       <CommandPalette isOpen={isCommandPaletteOpen} setIsOpen={setIsCommandPaletteOpen} />
     </div>
   );

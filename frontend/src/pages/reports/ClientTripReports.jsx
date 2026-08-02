@@ -3,6 +3,7 @@ import axios from "axios";
 import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import Table from "../../components/Table";
+import { formatDate } from "../../utils/formatters";
 
 const ClientTripReports = () => {
   const [data, setData] = useState([]);
@@ -193,7 +194,7 @@ const ClientTripReports = () => {
             renderRow={(item, idx) => (
               <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: idx % 2 === 0 ? "#f8fafc" : "white" }}>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.tripNo || "-"}</td>
-                <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.date ? new Date(item.date).toLocaleDateString("en-IN") : "-"}</td>
+                <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.date ? formatDate(item.date) : "-"}</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.vehicleType || "-"}</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.vehicleNo || "-"}</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", whiteSpace: "nowrap" }}>{item.vendor || "-"}</td>

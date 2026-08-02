@@ -87,6 +87,10 @@ const RightSidebar = () => {
     }
   ];
 
+  const visibleLinks = quickLinks.filter(link => !link.permission || hasPermission(link.permission));
+
+  if (visibleLinks.length === 0) return null;
+
   return (
     <aside 
       className="right-sidebar glass-panel" 
@@ -104,8 +108,7 @@ const RightSidebar = () => {
       
       <div className="right-sidebar-content" style={{ padding: isHovered ? '0.75rem 1rem' : '0.75rem 0', transition: 'padding var(--transition)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          {quickLinks.map((link, index) => {
-            if (link.permission && !hasPermission(link.permission)) return null;
+          {visibleLinks.map((link, index) => {
             return (
               <NavLink 
                 key={index} 

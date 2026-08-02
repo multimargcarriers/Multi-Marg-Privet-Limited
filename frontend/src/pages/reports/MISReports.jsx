@@ -4,6 +4,7 @@ import Table from "../../components/Table";
 import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import { Search, Download } from "lucide-react";
+import { formatDate } from "../../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -76,14 +77,14 @@ const MISReports = () => {
       headers.join(","),
       ...data.map(row => [
         row.lrNumber || "",
-        row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "",
+        row.bookingDate ? formatDate(row.bookingDate) : "",
         `"${row.consignor || ""}"`,
         `"${row.consignee || ""}"`,
         row.origin || "",
         row.destination || "",
         row.mode || "",
         row.invoiceNo || "",
-        row.invoiceDate ? new Date(row.invoiceDate).toLocaleDateString() : "",
+        row.invoiceDate ? formatDate(row.invoiceDate) : "",
         row.partNumber || "",
         row.noOfPackages || "",
         row.actualWeight || "",
@@ -170,7 +171,7 @@ const MISReports = () => {
           renderRow={(item, index) => (
             <tr key={index} style={{ borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", color: "#4b5563" }}>
               <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.lrNumber || item.awbNo || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.date ? (item.date.includes('-') && item.date.length === 10 && item.date.startsWith('20') ? new Date(item.date).toLocaleDateString('en-IN') : item.date) : item.bookingDate ? new Date(item.bookingDate).toLocaleDateString('en-IN') : "-"}</td>
+              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.date ? (item.date.includes('-') && item.date.length === 10 && item.date.startsWith('20') ? formatDate(item.date) : item.date) : item.bookingDate ? formatDate(item.bookingDate) : "-"}</td>
               <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
               <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
               <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.origin || "-"}</td>

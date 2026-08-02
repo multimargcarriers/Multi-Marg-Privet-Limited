@@ -83,7 +83,7 @@ function optionalAuth(req, res, next) {
  * @returns {string} JWT token
  */
 function generateToken(payload) {
-  const expiresIn = process.env.JWT_EXPIRES_IN || "2h";
+  const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
 }
 

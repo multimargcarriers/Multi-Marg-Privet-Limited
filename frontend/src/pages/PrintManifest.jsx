@@ -5,6 +5,7 @@ import { Download, ArrowLeft } from "lucide-react";
 import RupeeIcon from "../components/RupeeIcon";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
+import { formatDate } from "../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -38,9 +39,12 @@ const PrintManifest = () => {
   useEffect(() => {
     const fetchTrip = async () => {
       try {
-        const res = await axios.get(`${API}/print/manifest/${id}`);
-        if (res.data.success && res.data.data.trip) {
-          setTrip(res.data.data.trip);
+        const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
+        const foundTrip = localTrips.find(t => t.id === id);
+        if (foundTrip) {
+          setTrip(foundTrip);
+        } else {
+          console.error("Manifest not found locally");
         }
       } catch (err) {
         console.error("Failed to fetch manifest", err);
@@ -106,7 +110,7 @@ const PrintManifest = () => {
   };
 
   const tripNo = trip.trip || trip.tripNo || trip.id.slice(-6);
-  const date = trip.date ? new Date(trip.date).toLocaleDateString("en-GB").replaceAll('/', '-') : new Date().toLocaleDateString("en-GB").replaceAll('/', '-');
+  const date = trip.date ? formatDate(trip.date) : formatDate(new Date());
 
   return (
     <div style={{ background: "#e2e8f0", minHeight: "100vh", padding: "2rem" }} className="print-wrapper">
@@ -180,7 +184,7 @@ const PrintManifest = () => {
                 </div>
 
                 <div style={{ background: "#f8fafc", padding: "4px", textAlign: "center", borderBottom: "1px solid #cbd5e1" }}>
-                  <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP MANIFEST</h2>
+                  <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP AIR / FLIGHT EXPRESS</h2>
                 </div>
 
                 <div className="manifest-section">
@@ -188,30 +192,30 @@ const PrintManifest = () => {
                   <table className="manifest-table">
                     <tbody>
                       <tr>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>TRIP NO.</td>
-                        <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem" }}>{tripNo}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>FLIGHT NO.</td>
+                        <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem" }}>{(trip.tripNo || tripNo).toUpperCase()}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
                         <td className="data-cell" style={{ width: "15%" }}>{date}</td>
-                        <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>VENDOR</td>
-                        <td className="data-cell" style={{ width: "20%" }}>{trip.vendor?.toUpperCase() || "NA"}</td>
+                        <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>
+                        <td className="data-cell" style={{ width: "20%" }}>{(trip.mode || "NA").toUpperCase()}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
                 <div className="manifest-section">
-                  <div className="section-header">2. Vehicle Information</div>
+                  <div className="section-header">2. Documentation & Vendor Details</div>
                   <table className="manifest-table">
                     <tbody>
                       <tr>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>VEHICLE TYPE</td>
-                        <td className="data-cell" style={{ width: "35%" }}>{(trip.vehicleType || trip.vtype || "NA").toUpperCase()}</td>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>VEHICLE NO.</td>
-                        <td className="data-cell" style={{ width: "35%" }}>{(trip.vehicleNo || trip.vehicle || trip.vno || "NA").toUpperCase()}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>AWB NO.</td>
+                        <td className="data-cell" style={{ width: "35%" }}>{(trip.awbNo || "NA").toUpperCase()}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>CD NO.</td>
+                        <td className="data-cell" style={{ width: "35%" }}>{(trip.cdNo || "NA").toUpperCase()}</td>
                       </tr>
                       <tr>
-                        <td className="gray-cell" style={{ textAlign: "center" }}>DRIVER NAME</td>
-                        <td className="data-cell" colSpan="3">{(trip.driverName || trip.driver || "NA").toUpperCase()}</td>
+                        <td className="gray-cell" style={{ textAlign: "center" }}>VENDOR</td>
+                        <td className="data-cell" colSpan="3">{(trip.vendor || "NA").toUpperCase()}</td>
                       </tr>
                     </tbody>
                   </table>

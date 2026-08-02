@@ -161,6 +161,7 @@ h1, h2, h3, h4, h5, h6 {
 .main-content.sidebar-open { margin-left: var(--sidebar-width); }
 .main-content.sidebar-closed { margin-left: var(--sidebar-collapsed-width); }
 .main-content.no-sidebar { margin-left: 0; width: 100%; }
+.main-content.no-right-sidebar { margin-right: 0; }
 
 /* Right Sidebar Overrides */
 .right-sidebar {
@@ -608,6 +609,12 @@ textarea.form-control {
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
+.grid-4-col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
 .grid-auto-large {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
@@ -637,7 +644,7 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
-  .grid-2-col, .grid-3-col {
+  .grid-2-col, .grid-3-col, .grid-4-col {
     grid-template-columns: 1fr;
   }
   .header-flex {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Edit, Trash2 } from "lucide-react";
 import Table from "../../components/Table";
+import { formatDate } from "../../utils/formatters";
 
 const CashsheetReports = () => {
   const [data, setData] = useState([]);
@@ -161,7 +162,7 @@ const CashsheetReports = () => {
                   {idx + 1}
                 </td>
                 <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                  {item.date ? new Date(item.date).toLocaleDateString("en-GB") : "-"}
+                  {item.date ? formatDate(item.date) : "-"}
                 </td>
                 <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>
                   {item.remarks || "-"}

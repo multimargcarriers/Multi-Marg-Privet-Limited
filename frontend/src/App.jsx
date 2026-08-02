@@ -13,6 +13,8 @@ import BillView2 from "./pages/BillView2";
 import BookingsList from "./pages/BookingsList";
 import PrintLR from "./pages/PrintLR";
 import PrintManifest from "./pages/PrintManifest";
+import PrintTripList from "./pages/PrintTripList";
+import PrintSingleTrip from "./pages/PrintSingleTrip";
 import Branches from "./pages/Branches";
 import CashSheet from "./pages/CashSheet";
 import Cities from "./pages/Cities";
@@ -101,9 +103,15 @@ function App() {
               <Route path="/bookings/edit/:id" element={<CreateBooking />} />
               <Route path="/print-lr/:id" element={<PrintLR />} />
               <Route path="/print-manifest/:id" element={<PrintManifest />} />
+              <Route path="/print-trip-list" element={<PrintTripList />} />
+              <Route path="/print-single-trip/:index" element={<PrintSingleTrip />} />
               <Route path="/pod" element={<POD />} />
-              <Route path="/trips" element={<Trips />} />
               <Route path="/tracking" element={<Tracking />} />
+            </Route>
+
+            {/* Trips - Has its own permission requirement because vendors need it without operations */}
+            <Route element={<ProtectedRoute requiredPermission="trips" />}>
+              <Route path="/trips" element={<Trips />} />
             </Route>
 
             {/* Billing */}
