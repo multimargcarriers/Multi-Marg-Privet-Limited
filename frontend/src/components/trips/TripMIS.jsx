@@ -550,32 +550,62 @@ const TripMIS = () => {
       </div>
 
       <div className="print-only">
-        <h2 style={{ textAlign: "center", marginBottom: "5px" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
-        <h4 style={{ textAlign: "center", marginBottom: "20px" }}>Trip MIS Report {startDate && endDate ? `(${startDate} to ${endDate})` : "(All Data)"}</h4>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+        <div style={{ textAlign: "center", marginBottom: "20px", borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
+          <h2 style={{ margin: "0 0 5px", color: "#1e3a8a", textTransform: "uppercase" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
+          <h4 style={{ margin: 0, color: "#475569" }}>Trip MIS Report {startDate && endDate ? `(${formatDate(startDate)} to ${formatDate(endDate)})` : "(Complete Record)"}</h4>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", fontFamily: "sans-serif" }}>
           <thead>
-            <tr>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Trip Date</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Trip No</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Vehicle</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Client</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Route</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "right" }}>Total Freight</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "center" }}>Status</th>
+            <tr style={{ backgroundColor: "#1e293b", color: "white", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Trip Info</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Vehicle & Route</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>LR Details</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Parcels</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>Freight (₹)</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Status</th>
             </tr>
           </thead>
           <tbody>
-            {filteredEntries.map((item, idx) => (
-              <tr key={idx}>
-                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : "-")}</td>
-                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.tripNo || "-"}</td>
-                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.vehicleNo}<br/><small>{item.vehicleType}</small></td>
-                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.clientName}</td>
-                <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.origin} &rarr; {item.destination}</td>
-                <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "right" }}>₹{parseFloat(item.freight || 0).toFixed(2)}</td>
-                <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "center" }}>{item.approvalStatus || 'Approved'}</td>
+            {filteredEntries.map((item, idx) => {
+              const tripDate = item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : "-");
+              const parcels = item.parcels && item.parcels.length > 0 ? item.parcels : [{}];
+              
+              return parcels.map((p, pIdx) => (
+                <tr key={`${idx}-${pIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    <strong>{item.tripNo || "-"}</strong><br/>
+                    <span style={{ color: "#64748b", fontSize: "8pt" }}>{tripDate}</span><br/>
+                    <span style={{ color: "#475569", fontSize: "8pt" }}>{item.clientName}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    <strong>{item.vehicleNo}</strong> <span style={{ color: "#64748b", fontSize: "8pt" }}>({item.vehicleType})</span><br/>
+                    <span style={{ fontSize: "8pt" }}>{item.origin} &rarr; {item.destination}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    <strong>{p.lrNo || "-"}</strong><br/>
+                    <span style={{ fontSize: "8pt", color: "#475569" }}>From: {p.consignor || "-"}</span><br/>
+                    <span style={{ fontSize: "8pt", color: "#475569" }}>To: {p.consignee || "-"}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    Box: {p.box || "0"} | Wt: {p.weight || "0"}<br/>
+                    <span style={{ fontSize: "8pt", color: "#64748b" }}>{p.origin || "-"} &rarr; {p.destination || "-"}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>
+                    <strong>{parseFloat(p.freight || 0).toFixed(2)}</strong><br/>
+                    {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Pickup: {p.pickup}</span>}
+                    {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Del: {p.delivery}</span>}
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: item.approvalStatus === 'Pending' ? '#d97706' : '#16a34a' }}>
+                    {item.approvalStatus || 'Approved'}
+                  </td>
+                </tr>
+              ));
+            })}
+            {filteredEntries.length === 0 && (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No data available for the selected dates.</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

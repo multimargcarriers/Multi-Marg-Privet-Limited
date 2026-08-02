@@ -424,60 +424,58 @@ const VendorMIS = () => {
       </div>
 
       <div className="print-only">
-        <h2 style={{ textAlign: "center", marginBottom: "5px" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
-        <h4 style={{ textAlign: "center", marginBottom: "20px" }}>Vendor MIS Report {startDate && endDate ? `(${startDate} to ${endDate})` : "(All Data)"}</h4>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10pt" }}>
+        <div style={{ textAlign: "center", marginBottom: "20px", borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
+          <h2 style={{ margin: "0 0 5px", color: "#1e3a8a", textTransform: "uppercase" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
+          <h4 style={{ margin: 0, color: "#475569" }}>Vendor MIS Report {startDate && endDate ? `(${formatDate(startDate)} to ${formatDate(endDate)})` : "(Complete Record)"}</h4>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", fontFamily: "sans-serif" }}>
           <thead>
-            <tr>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Created At</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "left" }}>Vendor Name</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "right" }}>Total Amount</th>
-              <th style={{ border: "1px solid #ccc", padding: "6px", backgroundColor: "#f1f5f9", textAlign: "center" }}>Status</th>
+            <tr style={{ backgroundColor: "#1e293b", color: "white", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Vendor Details</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Date & Vehicle</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Route & Mode</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Particulars</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "left" }}>Handover</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>Amount (₹)</th>
+              <th style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center" }}>Status</th>
             </tr>
           </thead>
           <tbody>
-            {filteredEntries.map((item, idx) => (
-              <React.Fragment key={idx}>
-                <tr>
-                  <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>{item.vendorName || "-"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "right", fontWeight: "bold" }}>₹{parseFloat(item.totalAmount || 0).toFixed(2)}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "6px", textAlign: "center" }}>{item.approvalStatus || 'Approved'}</td>
+            {filteredEntries.map((item, idx) => {
+              const details = item.details && item.details.length > 0 ? item.details : [{}];
+              const createdDate = item.createdAt ? formatDate(item.createdAt) : "-";
+              
+              return details.map((d, dIdx) => (
+                <tr key={`${idx}-${dIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    <strong>{item.vendorName || "-"}</strong><br/>
+                    <span style={{ fontSize: "8pt", color: "#64748b" }}>Created: {createdDate}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    {d.date ? formatDate(d.date) : "-"}<br/>
+                    <strong>{d.vehicleNo || "-"}</strong>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                    {d.from || "-"} &rarr; {d.to || "-"}<br/>
+                    <span style={{ fontSize: "8pt", color: "#475569" }}>Mode: {d.mode || "-"}</span>
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{d.particular || "-"}</td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>{d.handoverTo || "-"}</td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>
+                    <strong>{parseFloat(d.amount || 0).toFixed(2)}</strong><br/>
+                    {parseFloat(d.others || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Others: {d.others}</span>}
+                  </td>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: d.status === 'Pending' ? '#d97706' : '#16a34a' }}>
+                    {d.status || 'Pending'}
+                  </td>
                 </tr>
-                {item.details && item.details.length > 0 && (
-                  <tr>
-                    <td colSpan="4" style={{ padding: "0", border: "1px solid #ccc" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", backgroundColor: "#fafafa" }}>
-                        <thead>
-                          <tr>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Date</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Vehicle</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Route</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Particular</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Handover</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px" }}>Mode</th>
-                            <th style={{ border: "1px solid #ddd", padding: "4px", textAlign: "right" }}>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {item.details.map((d, i) => (
-                            <tr key={i}>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.date || "-"}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.vehicleNo || "-"}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.from} &rarr; {d.to}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.particular || "-"}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.handoverTo || "-"}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px" }}>{d.mode || "-"}</td>
-                              <td style={{ border: "1px solid #ddd", padding: "4px", textAlign: "right" }}>₹{parseFloat(d.amount || 0).toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
+              ));
+            })}
+            {filteredEntries.length === 0 && (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No data available for the selected dates.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -205,7 +205,7 @@ const Trips = () => {
 
   return (
     <div>
-      <div className="header-flex">
+      <div className="header-flex no-print">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
             {view === 'manifest' ? 'TRIP AIR / FLIGHT EXPRESS' : 
@@ -222,7 +222,7 @@ const Trips = () => {
       </div>
 
       {success && (
-        <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem", display: "flex", alignItems: "center", gap: "1rem", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.2)" }}>
+        <div className="glass-panel no-print" style={{ padding: "1.5rem", marginBottom: "2rem", display: "flex", alignItems: "center", gap: "1rem", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.2)" }}>
           <CheckCircle size={32} color="#16a34a" />
           <div>
             <h5 style={{ color: "#16a34a", marginBottom: "0.25rem", margin: 0 }}>Manifest Created Successfully!</h5>
@@ -412,7 +412,7 @@ const Trips = () => {
       )}
 
       {/* Tabs */}
-      <div className="glass-panel" style={{ padding: "1rem", marginBottom: "2rem" }}>
+      <div className="glass-panel no-print" style={{ padding: "1rem", marginBottom: "2rem" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {[
             { key: "manifest", label: "TRIP AIR / FLIGHT EXPRESS", icon: ClipboardList, permission: "trips" },
