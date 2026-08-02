@@ -16,11 +16,16 @@ const PrintSingleTrip = () => {
   const [trip, setTrip] = useState(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tripListEntries");
-    if (saved) {
-      const entries = JSON.parse(saved);
-      if (entries[index]) {
-        setTrip(entries[index]);
+    if (index === 'mis-print') {
+      const saved = localStorage.getItem("printSingleTripData");
+      if (saved) setTrip(JSON.parse(saved));
+    } else {
+      const saved = localStorage.getItem("tripListEntries");
+      if (saved) {
+        const entries = JSON.parse(saved);
+        if (entries[index]) {
+          setTrip(entries[index]);
+        }
       }
     }
   }, [index]);

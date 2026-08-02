@@ -439,13 +439,18 @@ const TripMIS = () => {
                       <Edit size={14} /> Edit
                     </button>
                   )}
-                  <button 
-                    onClick={() => window.open(`/print-single-trip/${idx}`, '_blank')}
-                    className="action-btn action-btn-light"
-                    title="Print Single Trip"
-                  >
-                    <Printer size={14} /> Print
-                  </button>
+                  {isAdminOrSuperAdmin && (
+                    <button 
+                      onClick={() => {
+                        localStorage.setItem("printSingleTripData", JSON.stringify(item));
+                        window.open(`/print-single-trip/mis-print`, '_blank');
+                      }}
+                      className="action-btn action-btn-light"
+                      title="Print Single Trip"
+                    >
+                      <Printer size={14} /> Print
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
