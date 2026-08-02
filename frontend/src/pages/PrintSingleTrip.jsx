@@ -11,9 +11,11 @@ const PrintSingleTrip = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);
   const [trip, setTrip] = useState(null);
+  const [printHeader, setPrintHeader] = useState("MULTIMARG");
 
   useEffect(() => {
     if (index === 'mis-print') {
@@ -72,7 +74,7 @@ const PrintSingleTrip = () => {
     setTimeout(() => {
       const opt = {
         margin: 0,
-        filename: `Trip_Receipt_${trip?.lrNo || index}.pdf`,
+        filename: `Trip_Receipt_${trip?.tripNo || index}.pdf`,
         image: { type: 'jpeg', quality: 1 },
         html2canvas: { scale: 2, useCORS: true, width: 1400, height: 990, windowWidth: 1400, scrollY: 0, scrollX: 0 },
         jsPDF: { unit: 'px', format: [1400, 990], orientation: 'landscape' }
@@ -128,6 +130,17 @@ const PrintSingleTrip = () => {
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {isSuperAdmin && (
+            <select 
+              className="form-control" 
+              style={{ border: "1px solid #cbd5e1", height: "35px", fontSize: "0.85rem", width: "170px", padding: "0 5px", background: "white", borderRadius: "6px", outline: "none" }}
+              value={printHeader}
+              onChange={e => setPrintHeader(e.target.value)}
+            >
+              <option value="MULTIMARG">Header: Multimarg</option>
+              <option value="PRIME">Header: Prime Roadways</option>
+            </select>
+          )}
           <input type="text" value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Sign Name" style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.85rem", width: "160px", outline: "none" }} />
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
             <Download size={18} className="mr-2" /> Download Trip Receipt
@@ -144,24 +157,42 @@ const PrintSingleTrip = () => {
             <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
               
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
+                 <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
               </div>
       
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
                 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 2rem", borderBottom: "2px solid #1e293b" }}>
-                  <div style={{ width: "120px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
-                  <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "2px 0 2px", fontSize: "0.9rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "600", color: "#334155" }}>
-                      <span>Contact: 05944-324033</span><span>|</span><span>info@multimargcarriers.co.in</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "700", color: "#0f172a" }}>
-                      <span>GST: 05AANCM3054E1ZN</span><span>|</span><span>PAN: AANCM3054E1ZN</span>
-                    </div>
-                  </div>
+                  {printHeader === "PRIME" ? (
+                    <>
+                      <div style={{ width: "120px", flexShrink: 0 }}><img src="/Prime RoadWAYS.png" alt="Prime Roadways" style={{ width: "100%", height: "auto" }} /></div>
+                      <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
+                        <h1 style={{ margin: "0 0 2px", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "#b91c1c" }}>PRIME ROADWAYS</h1>
+                        <p style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: "600", color: "#334155" }}>PLOT NO 292/292A & 292B, OM VIHAR, WEST DELHI, NEW DELHI-110059</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "600", color: "#334155" }}>
+                          <span>Contact: +91 7503112217</span><span>|</span><span>info@primeroadways.co.in</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "700", color: "#0f172a" }}>
+                          <span>GST: 07BBCPP8550Q1ZX</span><span>|</span><span>PAN: BBCPP8550Q</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ width: "120px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
+                      <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
+                        <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                        <p style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                        <p style={{ margin: "2px 0 2px", fontSize: "0.9rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "600", color: "#334155" }}>
+                          <span>Contact: 05944-324033</span><span>|</span><span>info@multimargcarriers.co.in</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "700", color: "#0f172a" }}>
+                          <span>GST: 05AANCM3054E1ZN</span><span>|</span><span>PAN: AANCM3054E1ZN</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div style={{ width: "120px", flexShrink: 0, textAlign: "right", alignSelf: "flex-start" }}>
                       <div style={{ border: "2px solid #1e293b", padding: "6px 10px", display: "inline-block", background: "#f8fafc", borderRadius: "6px", boxShadow: "2px 2px 0px #1e293b", minWidth: "100px", textAlign: "center" }}>
                         <div style={{ fontSize: "0.65rem", fontWeight: "700", color: "#475569", marginBottom: "2px", letterSpacing: "1px" }}>TRIP NO</div>
