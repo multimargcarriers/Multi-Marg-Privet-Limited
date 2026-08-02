@@ -13,6 +13,7 @@ const TripMIS = () => {
   const { addToast } = useToast();
   const { token, user } = useContext(AuthContext);
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
   const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", freight: "", pickup: "", delivery: "", special: "", other: "" };
   const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
@@ -20,6 +21,7 @@ const TripMIS = () => {
   const [tripListEntries, setTripListEntries] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [printHeader, setPrintHeader] = useState("MULTIMARG");
 
   const filteredEntries = tripListEntries.filter(item => {
     if (!startDate && !endDate) return true;
@@ -110,6 +112,18 @@ const TripMIS = () => {
            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
              <Download size={16} style={{ marginRight: 6 }} /> Export CSV
            </button>
+           
+           {isSuperAdmin && (
+             <select 
+               className="form-control" 
+               style={{ border: "1px solid #cbd5e1", height: "30px", fontSize: "0.8rem", width: "170px", padding: "0 5px", background: "white" }}
+               value={printHeader}
+               onChange={e => setPrintHeader(e.target.value)}
+             >
+               <option value="MULTIMARG">Header: Multimarg</option>
+               <option value="PRIME">Header: Prime Roadways</option>
+             </select>
+           )}
            
            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
              <Printer size={16} style={{ marginRight: 6 }} /> Print All
@@ -562,10 +576,27 @@ const TripMIS = () => {
       </div>
 
       <div className="print-only">
-        <div style={{ textAlign: "center", marginBottom: "20px", borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
-          <h2 style={{ margin: "0 0 5px", color: "#1e3a8a", textTransform: "uppercase" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
-          <h4 style={{ margin: 0, color: "#475569" }}>Trip MIS Report {startDate && endDate ? `(${formatDate(startDate)} to ${formatDate(endDate)})` : "(Complete Record)"}</h4>
-        </div>
+        {printHeader === "PRIME" ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "15px", borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
+              <img src="/Prime RoadWAYS.png" alt="Prime Roadways" style={{ height: "70px", objectFit: "contain" }} />
+              <div style={{ textAlign: "right" }}>
+                <h2 style={{ margin: "0 0 4px", color: "#b91c1c", textTransform: "uppercase", letterSpacing: "1px" }}>PRIME ROADWAYS</h2>
+                <p style={{ margin: "0 0 2px", fontSize: "9pt", color: "#334155" }}>PLOT NO 292/292A & 292B, OM VIHAR, WEST DELHI, NEW DELHI-110059</p>
+                <p style={{ margin: "0 0 2px", fontSize: "9pt", color: "#334155" }}>+91 7503112217 | info@primeroadways.co.in</p>
+                <p style={{ margin: 0, fontSize: "9pt", color: "#334155", fontWeight: "600" }}>GSTIN: 07BBCPP8550Q1ZX | PAN NO: BBCPP8550Q</p>
+              </div>
+            </div>
+            <h4 style={{ margin: "0 0 15px", color: "#1e293b", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Trip MIS Report {startDate && endDate ? `(${formatDate(startDate)} to ${formatDate(endDate)})` : "(Complete Record)"}
+            </h4>
+          </>
+        ) : (
+          <div style={{ textAlign: "center", marginBottom: "20px", borderBottom: "2px solid #1e293b", paddingBottom: "10px" }}>
+            <h2 style={{ margin: "0 0 5px", color: "#1e3a8a", textTransform: "uppercase" }}>MULTIMARG CARRIERS PVT. LTD.</h2>
+            <h4 style={{ margin: 0, color: "#475569" }}>Trip MIS Report {startDate && endDate ? `(${formatDate(startDate)} to ${formatDate(endDate)})` : "(Complete Record)"}</h4>
+          </div>
+        )}
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9pt", fontFamily: "sans-serif" }}>
           <thead>
             <tr style={{ backgroundColor: "#1e293b", color: "white", textTransform: "uppercase", letterSpacing: "0.5px" }}>
