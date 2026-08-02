@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -21,18 +21,47 @@ const TripMIS = () => {
   const [tripListEntries, setTripListEntries] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
 
   const filteredEntries = tripListEntries.filter(item => {
-    if (!startDate && !endDate) return true;
-    const itemDate = new Date(item.date || item.createdAt);
-    itemDate.setHours(0,0,0,0);
-    const start = startDate ? new Date(startDate) : new Date("1970-01-01");
-    start.setHours(0,0,0,0);
-    const end = endDate ? new Date(endDate) : new Date("2100-01-01");
-    end.setHours(23,59,59,999);
-    return itemDate >= start && itemDate <= end;
+    // 1. Date Filter
+    if (startDate || endDate) {
+      const itemDate = new Date(item.date || item.createdAt);
+      itemDate.setHours(0,0,0,0);
+      const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+      start.setHours(0,0,0,0);
+      const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+      end.setHours(23,59,59,999);
+      if (itemDate < start || itemDate > end) return false;
+    }
+    
+    // 2. Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesMain = 
+        (item.clientName || "").toLowerCase().includes(q) ||
+        (item.tripNo || "").toLowerCase().includes(q) ||
+        (item.vehicleNo || "").toLowerCase().includes(q) ||
+        (item.origin || "").toLowerCase().includes(q) ||
+        (item.destination || "").toLowerCase().includes(q);
+        
+      const matchesParcels = item.parcels?.some(p => 
+        (p.lrNo || "").toLowerCase().includes(q) ||
+        (p.consignor || "").toLowerCase().includes(q) ||
+        (p.consignee || "").toLowerCase().includes(q) ||
+        (p.origin || "").toLowerCase().includes(q) ||
+        (p.destination || "").toLowerCase().includes(q)
+      );
+      if (!matchesMain && !matchesParcels) return false;
+    }
+    return true;
   });
+
+  const totalFreight = filteredEntries.reduce((sum, item) => {
+    const parcelsFreight = (item.parcels || []).reduce((pSum, p) => pSum + (parseFloat(p.freight) || 0), 0);
+    return sum + parcelsFreight;
+  }, 0);
 
   const handleExportCSV = () => {
     let csv = "Trip Date,Trip No,Vehicle No,Vehicle Type,Mode,Payment,Client Name,Origin,Destination,LR No,Consignor,Consignee,LR Origin,LR Destination,Box,Weight,Freight,Pickup,Delivery,Special,Other,Paid Amount,Approval Status\n";
@@ -136,6 +165,23 @@ const TripMIS = () => {
          </div>
       </div>
       
+      <div className="no-print" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+         <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+           <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+           <input 
+             type="text" 
+             className="form-control" 
+             placeholder="Search by client, trip no, vehicle, LR no, origin, destination..." 
+             style={{ paddingLeft: '40px', height: '45px', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} 
+             value={searchQuery} 
+             onChange={e => setSearchQuery(e.target.value)} 
+           />
+         </div>
+         <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '0 1.5rem', borderRadius: '8px', height: '45px', display: 'flex', alignItems: 'center', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+           Total Freight: &nbsp;<RupeeIcon size={14} /> {totalFreight.toFixed(2)}
+         </div>
+       </div>
+       
       {showTripListForm && (
          <form className="glass-panel slide-down" style={{ padding: "2rem", marginBottom: "2rem" }} onSubmit={async (e) => {
              e.preventDefault();

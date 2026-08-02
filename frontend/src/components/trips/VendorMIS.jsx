@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -21,18 +21,38 @@ const VendorMIS = () => {
   const [vendorMisEntries, setVendorMisEntries] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
 
   const filteredEntries = vendorMisEntries.filter(item => {
-    if (!startDate && !endDate) return true;
-    const itemDate = new Date(item.createdAt);
-    itemDate.setHours(0,0,0,0);
-    const start = startDate ? new Date(startDate) : new Date("1970-01-01");
-    start.setHours(0,0,0,0);
-    const end = endDate ? new Date(endDate) : new Date("2100-01-01");
-    end.setHours(23,59,59,999);
-    return itemDate >= start && itemDate <= end;
+    // 1. Date Filter
+    if (startDate || endDate) {
+      const itemDate = new Date(item.createdAt);
+      itemDate.setHours(0,0,0,0);
+      const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+      start.setHours(0,0,0,0);
+      const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+      end.setHours(23,59,59,999);
+      if (itemDate < start || itemDate > end) return false;
+    }
+    
+    // 2. Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesVendor = (item.vendorName || "").toLowerCase().includes(q);
+      const matchesDetails = item.details?.some(d => 
+        (d.particular || "").toLowerCase().includes(q) ||
+        (d.vehicleNo || "").toLowerCase().includes(q) ||
+        (d.from || "").toLowerCase().includes(q) ||
+        (d.to || "").toLowerCase().includes(q) ||
+        (d.handoverTo || "").toLowerCase().includes(q)
+      );
+      if (!matchesVendor && !matchesDetails) return false;
+    }
+    return true;
   });
+
+  const totalReceivable = filteredEntries.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0);
 
   const handleExportCSV = () => {
     let csv = "Created At,Vendor Name,Handover To,Date,From,To,Vehicle No,Particular,Mode,Amount,Others,Status,Total Amount,Approval Status\n";
@@ -129,6 +149,23 @@ const VendorMIS = () => {
          </div>
       </div>
       
+       <div className="no-print" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+         <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+           <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+           <input 
+             type="text" 
+             className="form-control" 
+             placeholder="Search by vendor name, vehicle no, origin, destination, particulars..." 
+             style={{ paddingLeft: '40px', height: '45px', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} 
+             value={searchQuery} 
+             onChange={e => setSearchQuery(e.target.value)} 
+           />
+         </div>
+         <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '0 1.5rem', borderRadius: '8px', height: '45px', display: 'flex', alignItems: 'center', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+           Total Amount: &nbsp;<RupeeIcon size={14} /> {totalReceivable.toFixed(2)}
+         </div>
+       </div>
+
       {showVendorMisForm && (
          <form className="glass-panel slide-down" style={{ padding: "2rem", marginBottom: "2rem" }} onSubmit={async e => {
               e.preventDefault();
