@@ -36,11 +36,23 @@ const TripMIS = () => {
     let csv = "Trip Date,Trip No,Vehicle No,Vehicle Type,Mode,Payment,Client Name,Origin,Destination,LR No,Consignor,Consignee,LR Origin,LR Destination,Box,Weight,Freight,Pickup,Delivery,Special,Other,Paid Amount,Approval Status\n";
     filteredEntries.forEach(trip => {
       if (trip.parcels && trip.parcels.length > 0) {
-        trip.parcels.forEach(p => {
-          csv += `"${trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')}","${trip.tripNo}","${trip.vehicleNo}","${trip.vehicleType}","${trip.mode || ''}","${trip.payment || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","${p.lrNo || ''}","${p.consignor || ''}","${p.consignee || ''}","${p.origin || ''}","${p.destination || ''}","${p.box || ''}","${p.weight || ''}","${p.freight || ''}","${p.pickup || ''}","${p.delivery || ''}","${p.special || ''}","${p.other || ''}","${trip.paidAmount || ''}","${trip.approvalStatus || ''}"\n`;
+        trip.parcels.forEach((p, pIdx) => {
+          const tripDate = pIdx === 0 ? (trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')) : '';
+          const tripNo = pIdx === 0 ? (trip.tripNo || '') : '';
+          const vehicleNo = pIdx === 0 ? (trip.vehicleNo || '') : '';
+          const vehicleType = pIdx === 0 ? (trip.vehicleType || '') : '';
+          const clientName = pIdx === 0 ? (trip.clientName || '') : '';
+          const mode = pIdx === 0 ? (trip.mode || '') : '';
+          const payment = pIdx === 0 ? (trip.payment || '') : '';
+          const origin = pIdx === 0 ? (trip.origin || '') : '';
+          const destination = pIdx === 0 ? (trip.destination || '') : '';
+          const paidAmount = pIdx === 0 ? (trip.paidAmount || '') : '';
+          const approvalStatus = pIdx === 0 ? (trip.approvalStatus || '') : '';
+          
+          csv += `"${tripDate}","${tripNo}","${vehicleNo}","${vehicleType}","${mode}","${payment}","${clientName}","${origin}","${destination}","${p.lrNo || ''}","${p.consignor || ''}","${p.consignee || ''}","${p.origin || ''}","${p.destination || ''}","${p.box || ''}","${p.weight || ''}","${p.freight || ''}","${p.pickup || ''}","${p.delivery || ''}","${p.special || ''}","${p.other || ''}","${paidAmount}","${approvalStatus}"\n`;
         });
       } else {
-        csv += `"${trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')}","${trip.tripNo}","${trip.vehicleNo}","${trip.vehicleType}","${trip.mode || ''}","${trip.payment || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","","","","","","","","","","","","","${trip.paidAmount || ''}","${trip.approvalStatus || ''}"\n`;
+        csv += `"${trip.date || (trip.createdAt ? trip.createdAt.substring(0,10) : '')}","${trip.tripNo || ''}","${trip.vehicleNo || ''}","${trip.vehicleType || ''}","${trip.mode || ''}","${trip.payment || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","","","","","","","","","","","","","${trip.paidAmount || ''}","${trip.approvalStatus || ''}"\n`;
       }
     });
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -573,13 +585,21 @@ const TripMIS = () => {
               return parcels.map((p, pIdx) => (
                 <tr key={`${idx}-${pIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    <strong>{item.tripNo || "-"}</strong><br/>
-                    <span style={{ color: "#64748b", fontSize: "8pt" }}>{tripDate}</span><br/>
-                    <span style={{ color: "#475569", fontSize: "8pt" }}>{item.clientName}</span>
+                    {pIdx === 0 && (
+                      <>
+                        <strong>{item.tripNo || "-"}</strong><br/>
+                        <span style={{ color: "#64748b", fontSize: "8pt" }}>{tripDate}</span><br/>
+                        <span style={{ color: "#475569", fontSize: "8pt" }}>{item.clientName}</span>
+                      </>
+                    )}
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    <strong>{item.vehicleNo}</strong> <span style={{ color: "#64748b", fontSize: "8pt" }}>({item.vehicleType})</span><br/>
-                    <span style={{ fontSize: "8pt" }}>{item.origin} &rarr; {item.destination}</span>
+                    {pIdx === 0 && (
+                      <>
+                        <strong>{item.vehicleNo}</strong> <span style={{ color: "#64748b", fontSize: "8pt" }}>({item.vehicleType})</span><br/>
+                        <span style={{ fontSize: "8pt" }}>{item.origin} &rarr; {item.destination}</span>
+                      </>
+                    )}
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
                     <strong>{p.lrNo || "-"}</strong><br/>
@@ -596,7 +616,7 @@ const TripMIS = () => {
                     {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Del: {p.delivery}</span>}
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: item.approvalStatus === 'Pending' ? '#d97706' : '#16a34a' }}>
-                    {item.approvalStatus || 'Approved'}
+                    {pIdx === 0 ? (item.approvalStatus || 'Approved') : ''}
                   </td>
                 </tr>
               ));

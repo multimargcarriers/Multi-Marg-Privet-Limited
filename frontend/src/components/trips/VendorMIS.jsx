@@ -37,8 +37,13 @@ const VendorMIS = () => {
     let csv = "Created At,Vendor Name,Handover To,Date,From,To,Vehicle No,Particular,Mode,Amount,Others,Status,Total Amount,Approval Status\n";
     filteredEntries.forEach(item => {
       if (item.details && item.details.length > 0) {
-        item.details.forEach(d => {
-          csv += `"${item.createdAt ? item.createdAt.substring(0,10) : ''}","${item.vendorName || ''}","${d.handoverTo || ''}","${d.date || ''}","${d.from || ''}","${d.to || ''}","${d.vehicleNo || ''}","${d.particular || ''}","${d.mode || ''}","${d.amount || ''}","${d.others || ''}","${d.status || ''}","${item.totalAmount || ''}","${item.approvalStatus || ''}"\n`;
+        item.details.forEach((d, dIdx) => {
+          const createdAt = dIdx === 0 ? (item.createdAt ? item.createdAt.substring(0,10) : '') : '';
+          const vendorName = dIdx === 0 ? (item.vendorName || '') : '';
+          const totalAmt = dIdx === 0 ? (item.totalAmount || '') : '';
+          const approvalStatus = dIdx === 0 ? (item.approvalStatus || '') : '';
+          
+          csv += `"${createdAt}","${vendorName}","${d.handoverTo || ''}","${d.date || ''}","${d.from || ''}","${d.to || ''}","${d.vehicleNo || ''}","${d.particular || ''}","${d.mode || ''}","${d.amount || ''}","${d.others || ''}","${d.status || ''}","${totalAmt}","${approvalStatus}"\n`;
         });
       } else {
         csv += `"${item.createdAt ? item.createdAt.substring(0,10) : ''}","${item.vendorName || ''}","","","","","","","","","","","${item.totalAmount || ''}","${item.approvalStatus || ''}"\n`;
@@ -448,8 +453,12 @@ const VendorMIS = () => {
               return details.map((d, dIdx) => (
                 <tr key={`${idx}-${dIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    <strong>{item.vendorName || "-"}</strong><br/>
-                    <span style={{ fontSize: "8pt", color: "#64748b" }}>Created: {createdDate}</span>
+                    {dIdx === 0 && (
+                      <>
+                        <strong>{item.vendorName || "-"}</strong><br/>
+                        <span style={{ fontSize: "8pt", color: "#64748b" }}>Created: {createdDate}</span>
+                      </>
+                    )}
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
                     {d.date ? formatDate(d.date) : "-"}<br/>
