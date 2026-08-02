@@ -10,8 +10,7 @@ const MODULE_SCHEMAS = {
   cities: ["city", "short"],
   branches: ["code", "branch_name", "contact_person", "address", "phone", "email"],
   vendors: ["vendor_code", "name", "gst", "branch", "mode", "address", "contact_person", "phno", "email"],
-  bookings: ["awb", "date", "mode", "client", "origin", "destination", "consignor", "consignee", "box", "actual_wt", "charge_wt", "type_of_delivery", "insured", "remarks", "clerk_name", "status", "frieght_charge", "awb_charge", "pickup_charge", "delivery_charge", "packaging_charge", "handling_charge"],
-  lr_details: ["awb", "invdate", "value", "invoice", "part", "eway", "quantity"],
+  bookings: ["lr_no", "date", "client", "origin", "destination", "weight", "packages", "rate", "freight"],
   rates: ["client", "origin", "destination", "awb_charge", "air_rate", "air_pickup", "air_delivery", "train_rate", "train_pickup", "train_delivery", "road_rate", "road_pickup", "road_delivery", "road_express_rate", "road_express_pickup", "road_express_delivery"]
 };
 
@@ -22,7 +21,6 @@ const COLLECTION_MAP = {
   branches: "branches",
   vendors: "vendors",
   bookings: "bookings",
-  lr_details: "bookings", // stored inside bookings collection
   rates: "rates"
 };
 
@@ -33,7 +31,6 @@ const CACHE_MAP = {
   branches: "branches",
   vendors: "vendors",
   bookings: "bookings",
-  lr_details: "bookings",
   rates: "rates"
 };
 
@@ -43,7 +40,12 @@ function toCSV(headers, rows, module) {
     headers
       .map((h) => {
         let dbKey = h;
-        if (module === 'branches') {
+        if (module === 'bookings') {
+          if (h === 'lr_no') dbKey = 'awb';
+          if (h === 'packages') dbKey = 'package_count';
+          if (h === 'weight') dbKey = 'weight_actual';
+          if (h === 'freight') dbKey = 'freight_charge';
+        } else if (module === 'branches') {
           if (h === 'branch_name') dbKey = 'branch';
           if (h === 'contact_person') dbKey = 'name';
           if (h === 'phone') dbKey = 'phno';
@@ -70,7 +72,7 @@ function toCSV(headers, rows, module) {
           if (h === 'road_express_delivery') dbKey = 'roadExpressDelivery';
         }
         
-        const val = row[dbKey] !== undefined && row[dbKey] !== null ? String(row[dbKey]) : "";
+        const val = row[dbKey] !== undefined && row[dbKey] !== null ? String(row[dbKey]).toLowerCase() : "";
         return val.includes(",") ? `"${val}"` : val;
       })
       .join(",")
@@ -89,28 +91,8 @@ exports.exportCSV = async (req, res) => {
     }
 
     const snapshot = await db.collection(collectionName).get();
-    let rows = [];
-    
-    if (module === 'lr_details') {
-      // Flatten parcels out of all bookings
-      snapshot.forEach((doc) => {
-        const booking = doc.data();
-        const parcels = booking.parcels || [];
-        parcels.forEach(parcel => {
-          rows.push({
-            awb: booking.awb || booking.lrNumber || '',
-            invdate: parcel.invdate || '',
-            value: parcel.value || '',
-            invoice: parcel.invoice || parcel.invoiceNo || '',
-            part: parcel.part || parcel.partNo || '',
-            eway: parcel.eway || parcel.ewayBill || '',
-            quantity: parcel.quantity || parcel.qty || ''
-          });
-        });
-      });
-    } else {
-      snapshot.forEach((doc) => rows.push(doc.data()));
-    }
+    const rows = [];
+    snapshot.forEach((doc) => rows.push(doc.data()));
 
     const csvData = toCSV(headers, rows, module);
     
@@ -175,12 +157,9 @@ exports.importCSV = async (req, res) => {
         .on("data", (data) => {
           if (!headersValid) return; 
 
-          const row = {};
-          if (module !== 'lr_details') {
-            row.id = uuidv4();
-            row.createdAt = new Date().toISOString();
-          }
+          const row = { id: uuidv4(), createdAt: new Date().toISOString() };
           
+          // Bookings specific initialization if module is bookings
           if (module === 'bookings') {
             row.status = "Booked";
           }
@@ -189,23 +168,32 @@ exports.importCSV = async (req, res) => {
             const actualKey = Object.keys(data).find(k => k.trim().toLowerCase() === key);
             let val = actualKey && data[actualKey] ? String(data[actualKey]).trim() : "";
             
-            if (module === 'branches') {
+            // Map bookings fields to internal schema names since internal schema is slightly different from sample headers
+            if (module === 'bookings') {
+              let dbKey = key;
+              if (key === 'lr_no') dbKey = 'awb';
+              if (key === 'packages') dbKey = 'package_count';
+              if (key === 'weight') dbKey = 'weight_actual';
+              if (key === 'freight') dbKey = 'freight_charge';
+              row[dbKey] = val.toLowerCase();
+              if (key === 'weight') row['weight_chargeable'] = val.toLowerCase();
+            } else if (module === 'branches') {
                let dbKey = key;
                if (key === 'branch_name') dbKey = 'branch';
                if (key === 'contact_person') dbKey = 'name';
                if (key === 'phone') dbKey = 'phno';
-               row[dbKey] = val;
+               row[dbKey] = val.toLowerCase();
             } else if (module === 'vendors') {
                let dbKey = key;
                if (key === 'vendor_code') dbKey = 'vendorCode';
                if (key === 'contact_person') dbKey = 'contact';
-               row[dbKey] = val;
+               row[dbKey] = val.toLowerCase();
             } else if (module === 'clients') {
                let dbKey = key;
                if (key === 'client_code') dbKey = 'clientCode';
                if (key === 'client_name') dbKey = 'name';
                if (key === 'contact_person') dbKey = 'contact';
-               row[dbKey] = val;
+               row[dbKey] = val.toLowerCase();
             } else if (module === 'rates') {
                let dbKey = key;
                if (key === 'awb_charge') dbKey = 'awbCharge';
@@ -221,16 +209,11 @@ exports.importCSV = async (req, res) => {
                if (key === 'road_express_rate') dbKey = 'roadExpressRate';
                if (key === 'road_express_pickup') dbKey = 'roadExpressPickup';
                if (key === 'road_express_delivery') dbKey = 'roadExpressDelivery';
-               row[dbKey] = val;
+               row[dbKey] = val.toLowerCase();
             } else {
-               row[key] = val;
+               row[key] = val.toLowerCase();
             }
           }
-          
-          if (module === 'bookings' && !row.clerk_name) {
-            row.clerk_name = req.user?.name || "Admin";
-          }
-
           results.push(row);
         })
         .on("end", () => {
@@ -251,60 +234,18 @@ exports.importCSV = async (req, res) => {
       return error(res, "CSV file is empty or contains no valid data rows", 400);
     }
 
-    if (module === 'lr_details') {
-      // Group parcels by AWB
-      const parcelsByAwb = {};
-      results.forEach(row => {
-        const awb = row.awb;
-        if (!awb) return;
-        if (!parcelsByAwb[awb]) parcelsByAwb[awb] = [];
-        
-        // Remove awb from the parcel details to keep it clean
-        const parcelData = { ...row };
-        delete parcelData.awb;
-        
-        parcelsByAwb[awb].push(parcelData);
-      });
-      
-      const awbs = Object.keys(parcelsByAwb);
-      
-      // We need to fetch each booking by AWB and update it
-      let updatedCount = 0;
-      for (const awb of awbs) {
-         const snapshot = await db.collection(collectionName).where("awb", "==", awb).get();
-         if (!snapshot.empty) {
-            const bookingDoc = snapshot.docs[0];
-            const bookingData = bookingDoc.data();
-            const existingParcels = bookingData.parcels || [];
-            
-            const newParcels = [...existingParcels, ...parcelsByAwb[awb]];
-            await db.collection(collectionName).doc(bookingDoc.id).update({
-              parcels: newParcels
-            });
-            updatedCount += parcelsByAwb[awb].length;
-         }
-      }
-
-      if (CACHE_MAP[module]) {
-        await delCache(CACHE_MAP[module]);
-      }
-
-      return success(res, `Successfully imported ${updatedCount} parcel details into existing bookings`, { importedCount: updatedCount });
-    } else {
-      // Standard insert for Bookings and others
-      const batch = db.batch();
-      for (const row of results) {
-        const docRef = db.collection(collectionName).doc(row.id);
-        batch.set(docRef, row);
-      }
-      await batch.commit();
-
-      if (CACHE_MAP[module]) {
-        await delCache(CACHE_MAP[module]);
-      }
-
-      return success(res, `Successfully imported ${results.length} records into ${module}`, { importedCount: results.length });
+    const batch = db.batch();
+    for (const row of results) {
+      const docRef = db.collection(collectionName).doc(row.id);
+      batch.set(docRef, row);
     }
+    await batch.commit();
+
+    if (CACHE_MAP[module]) {
+      await delCache(CACHE_MAP[module]);
+    }
+
+    return success(res, `Successfully imported ${results.length} records into ${module}`, { importedCount: results.length });
 
   } catch (err) {
     console.error(`Error importing ${req.params.module}:`, err);

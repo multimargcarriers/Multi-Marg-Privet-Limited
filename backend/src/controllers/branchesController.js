@@ -28,7 +28,7 @@ const CACHE_KEY = "branches";
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("branches").limit(1000).get();
+    const snapshot = await db.collection("branches").get();
     const branches = [];
     snapshot.forEach(doc => branches.push({
       id: doc.id,

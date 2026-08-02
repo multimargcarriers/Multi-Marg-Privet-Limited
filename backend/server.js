@@ -86,8 +86,8 @@ app.use(compression());
 // Request Parsing
 // ============================================================
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Data Sanitization against NoSQL query injection
 // app.use(mongoSanitize()); // Disabled: Incompatible with Express 5 (req.query is read-only)

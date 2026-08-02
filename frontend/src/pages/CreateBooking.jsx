@@ -406,27 +406,49 @@ const CreateBooking = () => {
           <button type="button" onClick={addInvoiceRow} style={{ background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", color: "#374151", cursor: "pointer", fontWeight: "600", fontSize: "0.875rem", padding: "4px 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>+ Add Row</button>
         </div>
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "5px", padding: "8px 0", background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice No</div>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice Value</div>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Invoice Date</div>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Part Number</div>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Eway Bill</div>
-           <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", paddingLeft: "4px" }}>Quantity</div>
+        <div style={{ overflowX: "auto", marginBottom: "1rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "5%" }}>S.No.</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice No</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Value</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Date</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Part Number</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Eway Bill</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "15%" }}>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.invoiceDetails.map((inv, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                  <td style={{ padding: "8px", textAlign: "center", fontWeight: "500", color: "#374151" }}>{i + 1}</td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                      {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>&times;</button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {formData.invoiceDetails.map((inv, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
-            <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", flex: 1 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
-              {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>&times;</button>}
-            </div>
-          </div>
-        ))}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "2rem", marginTop: "2rem" }}>
           <div className="form-group">

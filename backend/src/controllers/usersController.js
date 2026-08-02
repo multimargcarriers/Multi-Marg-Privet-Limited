@@ -176,7 +176,7 @@ exports.delete_id_4 = async (req, res) => {
 };
 
 exports.getAllUserActivities = async (req, res) => {
-  const snapshot = await db.collection("userActivities").orderBy("date", "desc").limit(1000).get();
+  const snapshot = await db.collection("userActivities").orderBy("date", "desc").get();
   const activities = [];
   snapshot.forEach(doc => {
     activities.push({

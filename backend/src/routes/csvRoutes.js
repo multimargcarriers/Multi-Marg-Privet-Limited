@@ -4,7 +4,7 @@ const { requirePermission } = require("../middleware/rbac");
 const { createUploadMiddleware } = require("../middleware/upload");
 const csvController = require("../controllers/csvController");
 
-const csvUpload = createUploadMiddleware("csv", { maxFileSize: 10 * 1024 * 1024, strictTypes: false });
+const csvUpload = createUploadMiddleware("csv", { maxFileSize: 50 * 1024 * 1024, strictTypes: false });
 
 router.use(requirePermission(["masters", "operations"]));
 

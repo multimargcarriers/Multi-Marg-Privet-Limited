@@ -6,7 +6,8 @@ const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");
-const { generateLRNumber } = require("../utils/helpers");const { postRoot_1, getRoot_2, get_id_3, put_id_4, delete_id_5 } = require('../controllers/bookingsController');
+const { generateLRNumber } = require("../utils/helpers");
+const { postRoot_1, getRoot_2, get_id_3, put_id_4, delete_id_5, delete_clear_all_6 } = require('../controllers/bookingsController');
 const { requirePermission } = require("../middleware/rbac");
 
 const CACHE_KEY = "bookings";
@@ -79,6 +80,12 @@ router.get(
 
   )
 );
+// Clear all bookings
+router.delete(
+  "/clear/all",
+  asyncHandler(delete_clear_all_6)
+);
+
 // Get single booking
 router.get(
   "/:id",

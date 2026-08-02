@@ -155,6 +155,9 @@ exports.postRoot_1 = async (req, res) => {
   booking.date = new Date().toISOString();
   booking.status = "Booked";
   booking.lrNumber = generateLRNumber();
+  if (!booking.clerk_name) {
+    booking.clerk_name = req.user?.name || "Admin";
+  }
   const docRef = await db.collection("bookings").add(booking);
   
   const createdBooking = { id: docRef.id, ...booking };
@@ -169,7 +172,7 @@ exports.postRoot_1 = async (req, res) => {
 
 exports.getRoot_2 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("bookings").orderBy("date", "desc").limit(1000).get();
+    const snapshot = await db.collection("bookings").orderBy("date", "desc").get();
     const bookings = [];
     snapshot.forEach(doc => {
       bookings.push({
@@ -221,5 +224,33 @@ exports.delete_id_5 = async (req, res) => {
   await db.collection("bookings").doc(id).delete();
   await delCache(CACHE_KEY);
   return success(res, "Booking deleted successfully");
+};
+
+exports.delete_clear_all_6 = async (req, res) => {
+  // Optional safety check: Ensure user is SuperAdmin
+  const role = (req.user?.role || "").toLowerCase().replace(/\s+/g, '');
+  if (role !== 'superadmin' && req.user?.email !== 'admin@multimargcarriers.co.in') {
+    return error(res, "Forbidden: Only SuperAdmins can clear all bookings.", 403);
+  }
+
+  try {
+    const snapshot = await db.collection("bookings").get();
+    if (snapshot.empty) {
+      return success(res, "No bookings found to delete.");
+    }
+
+    // Delete in batches since Firestore/MongoDB adapters might have limits
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(db.collection("bookings").doc(doc.id));
+    });
+    
+    await batch.commit();
+    await delCache(CACHE_KEY);
+    return success(res, `Successfully deleted ${snapshot.size} bookings.`);
+  } catch (err) {
+    console.error("Error clearing bookings:", err);
+    return error(res, "Failed to clear bookings", 500);
+  }
 };
 

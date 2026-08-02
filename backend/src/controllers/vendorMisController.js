@@ -8,7 +8,7 @@ exports.getRoot_1 = async (req, res) => {
   let query = db.collection("vendor_mis").orderBy("createdAt", "desc");
   
   // If user is a Vendor, they can only see their own entries
-  if (user && user.role === 'Vendor') {
+  if (user && user.role && user.role.toLowerCase() === 'vendor') {
     query = db.collection("vendor_mis").where("createdBy", "==", user.id).orderBy("createdAt", "desc");
   }
   
@@ -32,7 +32,7 @@ exports.postRoot_2 = async (req, res) => {
   payload.creatorName = user.name || user.email || 'Unknown';
   
   // Vendors have their entries marked as 'Pending' automatically
-  if (user.role === 'Vendor') {
+  if (user && user.role && user.role.toLowerCase() === 'vendor') {
     payload.approvalStatus = 'Pending';
   } else {
     payload.approvalStatus = 'Approved';
@@ -60,12 +60,12 @@ exports.put_id_3 = async (req, res) => {
   const existingData = doc.data();
   
   // Vendors cannot update approvalStatus
-  if (user.role === 'Vendor' && req.body.approvalStatus && req.body.approvalStatus !== existingData.approvalStatus) {
+  if (user && user.role && user.role.toLowerCase() === 'vendor' && req.body.approvalStatus && req.body.approvalStatus !== existingData.approvalStatus) {
     return error(res, "Vendors are not allowed to approve or reject entries.", 403);
   }
 
   // Vendors can only edit their own entries
-  if (user.role === 'Vendor' && existingData.createdBy !== user.id) {
+  if (user && user.role && user.role.toLowerCase() === 'vendor' && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to edit this entry.", 403);
   }
   
@@ -86,7 +86,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
   
   const existingData = doc.data();
-  if (user.role === 'Vendor' && existingData.createdBy !== user.id) {
+  if (user && user.role && user.role.toLowerCase() === 'vendor' && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to delete this entry.", 403);
   }
   

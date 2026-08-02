@@ -11,7 +11,7 @@ const CACHE_KEY = "bills";
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("bills").orderBy("createdAt", "desc").limit(1000).get();
+    const snapshot = await db.collection("bills").orderBy("createdAt", "desc").get();
     const bills = [];
     snapshot.forEach(doc => bills.push({
       id: doc.id,

@@ -10,7 +10,7 @@ const CACHE_KEY = "clients";
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const snapshot = await db.collection("clients").limit(1000).get();
+    const snapshot = await db.collection("clients").get();
     const clients = [];
     snapshot.forEach(doc => {
       clients.push({

@@ -93,7 +93,8 @@ class CollectionReference {
         return {
           id: id,
           data: () => data,
-          exists: true
+          exists: true,
+          ref: new DocumentReference(this.mongoDb, this.colName, id)
         };
       });
 
@@ -216,6 +217,7 @@ class FirestoreToMongoAdapter {
   }
 
   batch() {
+    const mongoDb = this.mongoDb;
     return {
       operations: [],
       set(docRef, data, options = {}) {
@@ -228,14 +230,56 @@ class FirestoreToMongoAdapter {
         this.operations.push({ type: 'delete', docRef });
       },
       async commit() {
-        // Run sequentially for simplicity and safety, though Promise.all is possible
+        if (this.operations.length === 0) return;
+
+        // Group operations by collection
+        const byCollection = {};
         for (const op of this.operations) {
+          const colName = op.docRef.colName;
+          if (!byCollection[colName]) byCollection[colName] = [];
+
           if (op.type === 'set') {
-            await op.docRef.set(op.data, op.options);
+            const docData = { ...op.data, id: op.docRef.id, _id: op.docRef.id };
+            if (op.options.merge) {
+              byCollection[colName].push({
+                updateOne: {
+                  filter: { $or: [{ _id: op.docRef.id }, { id: op.docRef.id }] },
+                  update: { $set: op.data },
+                  upsert: true
+                }
+              });
+            } else {
+              byCollection[colName].push({
+                replaceOne: {
+                  filter: { $or: [{ _id: op.docRef.id }, { id: op.docRef.id }] },
+                  replacement: docData,
+                  upsert: true
+                }
+              });
+            }
           } else if (op.type === 'update') {
-            await op.docRef.update(op.data);
+            byCollection[colName].push({
+              updateOne: {
+                filter: { $or: [{ _id: op.docRef.id }, { id: op.docRef.id }] },
+                update: { $set: op.data }
+              }
+            });
           } else if (op.type === 'delete') {
-            await op.docRef.delete();
+            byCollection[colName].push({
+              deleteOne: {
+                filter: { $or: [{ _id: op.docRef.id }, { id: op.docRef.id }] }
+              }
+            });
+          }
+        }
+
+        // Execute bulkWrite per collection
+        for (const colName of Object.keys(byCollection)) {
+          const ops = byCollection[colName];
+          const chunkSize = 20000; // Safe chunk size for MongoDB
+          for (let i = 0; i < ops.length; i += chunkSize) {
+            const chunk = ops.slice(i, i + chunkSize);
+            await mongoDb.collection(colName).bulkWrite(chunk, { ordered: false });
           }
         }
       }
