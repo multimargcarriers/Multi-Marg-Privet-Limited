@@ -125,10 +125,14 @@ const Trips = () => {
     const totalAmount = form.materialDetails.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const tripData = { ...form, totalAmount };
 
+    const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
+    if (!tripData.tripNo || tripData.tripNo.trim() === '') {
+       tripData.tripNo = `FLIGHT-${localTrips.length + 1}`;
+    }
+
     const tempId = "temp-" + Date.now();
     try {
       const newTrip = { ...tripData, id: tempId, approvalStatus: 'Pending' };
-      const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
       const updatedTrips = [newTrip, ...localTrips];
       localStorage.setItem('mockTrips', JSON.stringify(updatedTrips));
       
@@ -230,8 +234,8 @@ const Trips = () => {
         <form onSubmit={handleSave} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "2rem" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Flight No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="text" className="form-control" placeholder="Enter Flight Number" value={form.tripNo} onChange={e => setForm({ ...form, tripNo: formatAllCaps(e.target.value) })} required />
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Flight No</label>
+              <input type="text" className="form-control" placeholder="Auto-generated (e.g. FLIGHT-1)" value={form.tripNo} disabled />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>

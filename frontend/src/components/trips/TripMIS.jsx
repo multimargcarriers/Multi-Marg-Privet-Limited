@@ -392,6 +392,17 @@ const TripMIS = () => {
                         } catch(e) { addToast("Error moving to pending", "error"); }
                       }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
                     )}
+                    <button onClick={async () => {
+                      if (window.confirm("Are you sure you want to delete this Trip MIS entry?")) {
+                        try {
+                          const res = await axios.delete(`${API}/trip-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                          if (res.data.success) {
+                            setTripListEntries(tripListEntries.filter(t => t.id !== item.id));
+                            addToast("Entry deleted successfully", "success");
+                          }
+                        } catch(e) { addToast("Error deleting entry", "error"); }
+                      }
+                    }} style={{ background: "#475569", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", marginLeft: "4px" }}>Delete</button>
                   </>
                 )}
                 <button 

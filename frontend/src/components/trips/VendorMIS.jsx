@@ -312,22 +312,22 @@ const VendorMIS = () => {
                         } catch(e) { addToast("Error moving to pending", "error"); }
                       }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
                     )}
+                    
+                    <button onClick={async () => {
+                       if(window.confirm("Are you sure you want to delete this Vendor MIS entry?")) {
+                          try {
+                             const res = await axios.delete(`${API}/vendor-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                             if(res.data.success) {
+                               setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
+                               addToast("Entry deleted successfully", "success");
+                             }
+                          } catch(err) {
+                             addToast("Failed to delete entry", "error");
+                          }
+                       }
+                    }} style={{ background: "#475569", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Delete</button>
                   </>
                 )}
-                 <button onClick={async () => {
-                    if(window.confirm("Are you sure you want to delete this Vendor MIS entry?")) {
-                       try {
-                          const res = await axios.delete(`${API}/vendor-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
-                          if(res.data.success) {
-                            setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
-                          }
-                       } catch(err) {
-                          addToast("Failed to delete entry", "error");
-                       }
-                    }
-                 }} className="action-icon delete" title="Delete">
-                    <i className="fi fi-rr-trash"></i>
-                 </button>
               </td>
             </tr>
           )}
