@@ -9,6 +9,7 @@ router.use(requirePermission(["trips", "tripmis", "all"]));
 router.get("/", asyncHandler(tripMisController.getRoot_1));
 router.post("/", asyncHandler(tripMisController.postRoot_2));
 router.put("/:id", asyncHandler(tripMisController.put_id_3));
+router.post("/:id/remarks", asyncHandler(tripMisController.addRemark_5));
 router.delete("/:id", asyncHandler(tripMisController.delete_id_4));
 
 module.exports = router;

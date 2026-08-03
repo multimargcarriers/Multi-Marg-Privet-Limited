@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, User } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -19,6 +19,9 @@ const TripMIS = () => {
   const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
+  const [activeRemarksModal, setActiveRemarksModal] = useState(null);
+  const [remarkText, setRemarkText] = useState("");
+  const [submittingRemark, setSubmittingRemark] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,7 +61,11 @@ const TripMIS = () => {
     return true;
   });
 
+  // Exclude pending/rejected entries from total freight
   const totalFreight = filteredEntries.reduce((sum, item) => {
+    if (item.approvalStatus === 'Pending' || item.approvalStatus === 'Rejected') {
+      return sum;
+    }
     const parcelsFreight = (item.parcels || []).reduce((pSum, p) => pSum + (parseFloat(p.freight) || 0), 0);
     return sum + parcelsFreight;
   }, 0);
@@ -393,7 +400,7 @@ const TripMIS = () => {
           headers={[
             "Trip No", "Client Name", "Date", "Vehicle Details", "Mode", "Parcels (LRs)", "Total Box", "Total Weight", 
             <div style={{ textAlign: "center", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>,
-            "Status", "Actions"
+            "Status", "Remarks", "Actions"
           ]}
           data={filteredEntries}
           emptyMessage="No trip MIS entries added yet. Click 'Add Trip MIS Entry' to start."
@@ -480,6 +487,51 @@ const TripMIS = () => {
                 }}>
                   {item.approvalStatus || 'Approved'}
                 </span>
+              </td>
+              {/* Remarks Column */}
+              <td style={{ textAlign: "center" }}>
+                <button
+                  onClick={() => { setActiveRemarksModal(item); setRemarkText(""); }}
+                  style={{
+                    background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "8px",
+                    padding: "6px 14px",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    color: "#1e40af",
+                    transition: "all 0.2s",
+                    position: "relative"
+                  }}
+                  title="Open Remarks"
+                >
+                  <MessageSquare size={15} />
+                  <span>Remarks</span>
+                  {(item.remarks && item.remarks.length > 0) && (
+                    <span style={{
+                      position: "absolute",
+                      top: "-6px",
+                      right: "-6px",
+                      background: "#2563eb",
+                      color: "#fff",
+                      fontSize: "0.6rem",
+                      fontWeight: 700,
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 2px 4px rgba(37, 99, 235, 0.4)"
+                    }}>
+                      {item.remarks.length}
+                    </span>
+                  )}
+                </button>
               </td>
               <td style={{ textAlign: "right" }}>
                 <div className="action-buttons-wrapper">
@@ -620,6 +672,295 @@ const TripMIS = () => {
         </div>
       )}
       </div>
+
+      {/* Communication & Remarks Modal */}
+      {activeRemarksModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.7)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "1rem"
+        }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            width: "95%",
+            maxWidth: "640px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: "88vh",
+            border: "1px solid #cbd5e1"
+          }}>
+            {/* Modal Header with Company Logo & Status Info */}
+            <div style={{
+              background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
+              color: "#ffffff",
+              padding: "1rem 1.25rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
+              flexShrink: 0
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <img
+                  src="/mc.png"
+                  alt="Multimarg Logo"
+                  style={{
+                    height: "40px",
+                    width: "auto",
+                    objectFit: "contain",
+                    background: "#ffffff",
+                    padding: "4px 8px",
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+                  }}
+                />
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "1rem", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                    <span>Multimarg Carriers</span>
+                    <span style={{ fontSize: "0.65rem", background: "rgba(255,255,255,0.15)", padding: "2px 6px", borderRadius: "6px", fontWeight: "700" }}>COMMUNICATIONS</span>
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "#cbd5e1", marginTop: "4px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span>Trip: <strong style={{ color: "#ffffff" }}>{activeRemarksModal.tripNo}</strong></span>
+                    <span>•</span>
+                    <span>Client: <strong style={{ color: "#ffffff" }}>{activeRemarksModal.clientName}</strong></span>
+                    <span>•</span>
+                    <span style={{
+                      background: activeRemarksModal.approvalStatus === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                      color: activeRemarksModal.approvalStatus === 'Approved' ? '#6ee7b7' : '#fcd34d',
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      fontWeight: 700,
+                      fontSize: "0.7rem"
+                    }}>
+                      {activeRemarksModal.approvalStatus || 'Approved'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveRemarksModal(null)}
+                style={{
+                  background: "rgba(255,255,255,0.15)",
+                  border: "none",
+                  color: "#ffffff",
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background 0.2s",
+                  flexShrink: 0,
+                  marginLeft: "10px"
+                }}
+                title="Close Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Conversation Messages List */}
+            <div style={{
+              padding: "1.25rem",
+              overflowY: "auto",
+              flex: "1 1 auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              background: "#f8fafc",
+              minHeight: "240px"
+            }}>
+              {(!activeRemarksModal.remarks || activeRemarksModal.remarks.length === 0) ? (
+                <div style={{
+                  textAlign: "center",
+                  padding: "2.5rem 1rem",
+                  color: "#64748b",
+                  background: "#ffffff",
+                  borderRadius: "12px",
+                  border: "1px dashed #cbd5e1"
+                }}>
+                  <MessageSquare size={36} style={{ color: "#94a3b8", marginBottom: "8px" }} />
+                  <p style={{ fontWeight: 600, margin: "0 0 4px", color: "#334155" }}>No communication history yet</p>
+                  <p style={{ fontSize: "0.85rem", margin: 0 }}>Start the discussion between Client and Admin below.</p>
+                </div>
+              ) : (
+                activeRemarksModal.remarks.map((remark, idx) => {
+                  const isClient = remark.senderRole === 'Vendor' || remark.senderRole === 'Client';
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        alignSelf: isClient ? "flex-start" : "flex-end",
+                        maxWidth: "85%",
+                        background: isClient ? "#ffffff" : "#eff6ff",
+                        border: isClient ? "1px solid #e2e8f0" : "1px solid #bfdbfe",
+                        borderRadius: isClient ? "14px 14px 14px 4px" : "14px 14px 4px 14px",
+                        padding: "12px 16px",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "6px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: isClient ? "#fef3c7" : "#dbeafe",
+                            color: isClient ? "#92400e" : "#1e40af",
+                            textTransform: "uppercase"
+                          }}>
+                            {isClient ? "Client" : (remark.senderRole === 'SuperAdmin' ? "Super Admin" : "Admin")}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#334155" }}>
+                            {remark.senderName || (isClient ? "Client" : "Admin")}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>
+                          {remark.createdAt ? formatDate(remark.createdAt) : ""}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.9rem", color: "#1e293b", lineHeight: "1.4", wordBreak: "break-word" }}>
+                        {remark.message}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input Footer or Closed Notice */}
+            {(user?.role === 'Vendor' && activeRemarksModal.approvalStatus === 'Approved') ? (
+              <div style={{
+                padding: "1.25rem 1.5rem",
+                background: "#fff1f2",
+                borderTop: "1px solid #fecdd3",
+                color: "#be123c",
+                textAlign: "center",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                flexShrink: 0,
+                boxShadow: "0 -2px 10px rgba(0,0,0,0.02)"
+              }}>
+                <span style={{ fontSize: "1.1rem" }}>🔒</span>
+                <span>Remarks are closed for Clients because this entry has been Approved.</span>
+              </div>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!remarkText || !remarkText.trim() || submittingRemark) return;
+                  setSubmittingRemark(true);
+                  try {
+                    const res = await axios.post(
+                      `${API}/trip-mis/${activeRemarksModal.id}/remarks`,
+                      { message: remarkText.trim() },
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    if (res.data.success && res.data.data) {
+                      const newRemark = res.data.data;
+                      const updatedRemarks = [...(activeRemarksModal.remarks || []), newRemark];
+                      setActiveRemarksModal({
+                        ...activeRemarksModal,
+                        remarks: updatedRemarks
+                      });
+                      const updatedEntries = tripListEntries.map(entry =>
+                        entry.id === activeRemarksModal.id
+                          ? { ...entry, remarks: updatedRemarks }
+                          : entry
+                      );
+                      setTripListEntries(updatedEntries);
+                      setRemarkText("");
+                      addToast("Remark sent!", "success");
+                    }
+                  } catch (err) {
+                    addToast(err.response?.data?.message || "Failed to send remark", "error");
+                  } finally {
+                    setSubmittingRemark(false);
+                  }
+                }}
+                style={{
+                  padding: "1rem 1.25rem",
+                  background: "#ffffff",
+                  borderTop: "1px solid #e2e8f0",
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "flex-end",
+                  flexShrink: 0,
+                  boxShadow: "0 -2px 10px rgba(0,0,0,0.03)"
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <textarea
+                    className="form-control"
+                    rows={2}
+                    placeholder="Write a remark for Admin / Client..."
+                    value={remarkText}
+                    onChange={(e) => setRemarkText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        e.currentTarget.form.requestSubmit();
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.85rem",
+                      resize: "none",
+                      outline: "none",
+                      fontFamily: "inherit"
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submittingRemark || !remarkText.trim()}
+                  style={{
+                    background: submittingRemark || !remarkText.trim() ? "#94a3b8" : "#2563eb",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: submittingRemark || !remarkText.trim() ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    height: "42px",
+                    transition: "background 0.2s",
+                    flexShrink: 0
+                  }}
+                >
+                  <Send size={16} />
+                  <span>Send</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="print-only">
         {printHeader === "PRIME" ? (
