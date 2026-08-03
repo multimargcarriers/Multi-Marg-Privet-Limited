@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
 import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, User } from "lucide-react";
@@ -30,6 +30,13 @@ const VendorMIS = () => {
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const remarksEndRef = useRef(null);
+
+  useEffect(() => {
+    if (activeRemarksModal && activeRemarksModal.remarks) {
+      remarksEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [activeRemarksModal?.remarks]);
 
   const filteredEntries = vendorMisEntries.filter(item => {
     // 1. Date Filter
@@ -717,6 +724,7 @@ const VendorMIS = () => {
                   );
                 })
               )}
+              <div ref={remarksEndRef} />
             </div>
 
             {/* Input Footer or Closed Notice */}
