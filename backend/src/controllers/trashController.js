@@ -1,5 +1,6 @@
 const { db } = require('../config/database');
 const { ObjectId } = require('mongodb');
+const { cleanupOrphanCloudinaryFiles } = require('../services/cloudinaryCleanupService');
 
 // Get all items in the trash, optionally filtering by collection
 exports.getTrash = async (req, res) => {
@@ -77,6 +78,9 @@ exports.forceDeleteTrash = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Trash item not found' });
     }
 
+    // Automatically trigger Cloudinary orphan cleanup in background
+    cleanupOrphanCloudinaryFiles().catch(err => console.error('[Trash] Orphan cleanup error:', err));
+
     res.status(200).json({ success: true, message: 'Item permanently deleted' });
   } catch (error) {
     console.error('Error force deleting trash item:', error);
@@ -88,6 +92,8 @@ exports.forceDeleteTrash = async (req, res) => {
 exports.clearTrash = async (req, res) => {
   try {
     await db.mongoDb.collection('trash').deleteMany({});
+    // Automatically trigger Cloudinary orphan cleanup in background
+    cleanupOrphanCloudinaryFiles().catch(err => console.error('[Trash] Orphan cleanup error:', err));
     res.status(200).json({ success: true, message: 'Trash emptied successfully' });
   } catch (error) {
     console.error('Error emptying trash:', error);

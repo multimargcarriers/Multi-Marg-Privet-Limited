@@ -158,20 +158,63 @@ async function uploadBase64(base64Data, options = {}) {
 }
 
 /**
- * Delete a file from Cloudinary
- * @param {string} publicId - The public ID of the file to delete
+ * Extract public_id from a Cloudinary URL or return as-is if already public_id
+ * @param {string} urlOrId
+ * @returns {string|null}
+ */
+function extractPublicIdFromUrl(urlOrId) {
+  if (!urlOrId || typeof urlOrId !== "string") return null;
+  if (!urlOrId.includes("cloudinary.com/")) return urlOrId; // Already a publicId
+  const match = urlOrId.match(/\/upload\/(?:v\d+\/)?([^\.]+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Check if a URL is a default shared asset (avatar or banner)
+ * @param {string} urlOrId
+ * @returns {boolean}
+ */
+function isDefaultAsset(urlOrId) {
+  if (!urlOrId || typeof urlOrId !== "string") return false;
+  return urlOrId.includes("/default_avatars/") || urlOrId.includes("/default_banners/");
+}
+
+/**
+ * Delete a file from Cloudinary (by URL or publicId)
+ * Safely skips default shared avatars/banners
+ * @param {string} urlOrId - Full URL or public ID of the file to delete
+ * @param {string} [resourceType="image"] - 'image', 'raw', 'video'
  * @returns {Promise<object>}
  */
-async function deleteFile(publicId) {
-  if (!USE_CLOUDINARY) {
-    return { success: false, message: "Cloudinary not enabled" };
+async function deleteFile(urlOrId, resourceType = "image") {
+  if (!USE_CLOUDINARY || !urlOrId) {
+    return { success: false, message: "Cloudinary not enabled or missing ID" };
+  }
+
+  // Do not delete default shared assets
+  if (isDefaultAsset(urlOrId)) {
+    console.log(`[Cloudinary] Skipping delete for shared default asset: ${urlOrId}`);
+    return { success: true, skipped: true, message: "Default asset preserved" };
+  }
+
+  const publicId = extractPublicIdFromUrl(urlOrId);
+  if (!publicId) {
+    return { success: false, message: "Invalid Cloudinary ID" };
   }
 
   try {
-    const result = await cloudinary.uploader.destroy(publicId);
-    return { success: result.result === "ok", result };
+    let result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    if (result.result !== "ok" && resourceType === "image") {
+      // try 'raw' and 'video' if 'image' didn't work
+      result = await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+      if (result.result !== "ok") {
+        result = await cloudinary.uploader.destroy(publicId, { resource_type: "video" });
+      }
+    }
+    console.log(`[Cloudinary] Deleted asset ${publicId}: ${result.result}`);
+    return { success: result.result === "ok", result, publicId };
   } catch (error) {
-    console.error("[Cloudinary] Delete error:", error.message);
+    console.error(`[Cloudinary] Delete error for ${publicId}:`, error.message);
     return { success: false, message: error.message };
   }
 }
@@ -193,6 +236,8 @@ module.exports = {
   uploadFile,
   uploadBase64,
   deleteFile,
+  extractPublicIdFromUrl,
+  isDefaultAsset,
   getStatus,
   uploadCompanyStamp,
 };

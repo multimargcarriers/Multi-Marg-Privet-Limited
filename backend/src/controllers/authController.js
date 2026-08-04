@@ -21,7 +21,8 @@ const {
   handleMulterError
 } = require("../middleware/upload");
 const {
-  uploadFile
+  uploadFile,
+  deleteFile
 } = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
 const axios = require("axios");
@@ -530,6 +531,16 @@ exports.put_profile_2 = async (req, res) => {
       statusCode: 404
     });
   }
+
+  // Delete old photo or banner from Cloudinary if replacing
+  const oldData = doc.data() || {};
+  if (photoUrl && oldData.photo && oldData.photo !== photoUrl) {
+    await deleteFile(oldData.photo, "image");
+  }
+  if (bannerUrl && oldData.banner && oldData.banner !== bannerUrl) {
+    await deleteFile(oldData.banner, "image");
+  }
+
   if (newId && newId !== userId) {
     // Verify the new ID is not already taken
     const newDocRef = db.collection("users").doc(newId);

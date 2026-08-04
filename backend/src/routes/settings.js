@@ -5,7 +5,8 @@ const os = require("os");
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
 const { getClient, getStatus: getRedisStatus } = require("../config/redis");
-const { uploadBase64, uploadCompanyStamp } = require("../config/cloudinary");
+const { uploadBase64, uploadCompanyStamp, deleteFile } = require("../config/cloudinary");
+const { cleanupOrphanCloudinaryFiles } = require("../services/cloudinaryCleanupService");
 const cloudinary = require("cloudinary").v2;
 const { createUploadMiddleware } = require("../middleware/upload");
 
@@ -236,6 +237,10 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
         });
         
         if (uploadResult.success) {
+          const oldConfig = await collection.findOne({ type: "global_config" });
+          if (oldConfig && oldConfig.company && oldConfig.company.companyStampUrl && oldConfig.company.companyStampUrl !== uploadResult.url) {
+            await deleteFile(oldConfig.company.companyStampUrl, "image");
+          }
           updateData.company.companyStampUrl = uploadResult.url;
         } else {
           console.warn("[Settings] Cloudinary upload failed or disabled, keeping base64 stamp.", uploadResult.message);
@@ -279,6 +284,12 @@ router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage")
 
     const collection = db.mongoDb.collection("system_settings");
 
+    // Delete old company stamp from Cloudinary if replacing
+    const oldConfig = await collection.findOne({ type: "global_config" });
+    if (oldConfig && oldConfig.company && oldConfig.company.companyStampUrl && oldConfig.company.companyStampUrl !== uploadResult.url) {
+      await deleteFile(oldConfig.company.companyStampUrl, "image");
+    }
+
     // Update the company stamp URL in MongoDB
     await collection.updateOne(
       { type: "global_config" },
@@ -306,6 +317,35 @@ router.post("/clear-cache", requireSuperAdmin, async (req, res) => {
     }
   } catch (err) {
     console.error("Error clearing cache", err);
+    return error(res, err);
+  }
+});
+
+// POST Cloudinary Cleanup (Deletes orphan files not in MongoDB)
+router.post("/cloudinary-cleanup", requireSuperAdmin, async (req, res) => {
+  try {
+    const dryRun = req.body.dryRun === true;
+    const result = await cleanupOrphanCloudinaryFiles({ dryRun });
+    if (!result.success) {
+      return error(res, { message: result.message || "Cloudinary cleanup failed" }, 500);
+    }
+    const message = dryRun 
+      ? `Dry run complete. Found ${result.deletedOrphansCount} orphan file(s).` 
+      : `Cloudinary cleanup complete. Deleted ${result.deletedOrphansCount} orphan file(s).`;
+    return success(res, message, result);
+  } catch (err) {
+    console.error("Error during Cloudinary cleanup:", err);
+    return error(res, err);
+  }
+});
+
+// GET Cloudinary Cleanup Status (Dry Run preview)
+router.get("/cloudinary-cleanup/status", requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await cleanupOrphanCloudinaryFiles({ dryRun: true });
+    return success(res, "Cloudinary orphan status retrieved", result);
+  } catch (err) {
+    console.error("Error checking Cloudinary orphans:", err);
     return error(res, err);
   }
 });

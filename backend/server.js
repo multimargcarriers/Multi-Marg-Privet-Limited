@@ -23,6 +23,7 @@ dotenv.config();
 const { logger } = require("./src/config/logger");
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
 const { initAnalyticsCron } = require("./src/jobs/analyticsJob");
+const { initCloudinaryCleanupCron } = require("./src/jobs/cloudinaryCleanupJob");
 
 // Import services (initialized on demand)
 let redisClient = null;
@@ -32,6 +33,10 @@ const app = express();
 app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
+
+// Initialize Crons
+initAnalyticsCron();
+initCloudinaryCleanupCron();
 
 // ============================================================
 // Security Middleware
@@ -371,6 +376,7 @@ async function initializeServices() {
 async function startServer() {
   await initializeServices();
   initAnalyticsCron();
+  initCloudinaryCleanupCron();
 
   const server = app.listen(PORT, () => {
     logger.info(`========================================`);

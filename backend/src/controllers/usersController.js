@@ -169,6 +169,15 @@ exports.delete_id_4 = async (req, res) => {
     message: "User not found",
     statusCode: 404
   });
+  const userData = doc.data() || {};
+  if (userData.photo) {
+    const { deleteFile } = require("../config/cloudinary");
+    await deleteFile(userData.photo, "image");
+  }
+  if (userData.banner) {
+    const { deleteFile } = require("../config/cloudinary");
+    await deleteFile(userData.banner, "image");
+  }
   await docRef.delete();
   return success(res, {
     message: "User deleted successfully"
