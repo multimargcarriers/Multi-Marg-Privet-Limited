@@ -7,6 +7,7 @@ const { getOrSet, delCache } = require("../config/redis");
 const { body, param, validationResult } = require("express-validator");
 const { generatePDF } = require("../utils/pdfGenerator");
 const { uploadBase64 } = require("../config/cloudinary");
+const { recalculatePartyPayments } = require("../utils/paymentUtils");
 
 const CACHE_KEY = "bills";
 
@@ -247,11 +248,12 @@ exports.post_generate_5 = async (req, res) => {
     cgst,
     sgst,
     igst,
-    lrNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
-    lrDate: invoiceDate ? new Date(invoiceDate).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
-    refNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.invoice_no || firstBooking.refNo || "-"),
-    origin: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.origin,
-    destination: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.destination,
+      lrNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
+      lrDate: invoiceDate ? new Date(invoiceDate).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
+      refNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
+      date: invoiceDate ? new Date(invoiceDate).toISOString() : new Date().toISOString(),
+      origin: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.origin,
+      destination: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.destination,
     packages: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseInt(curr.pkg || 0), 0) : firstBooking.package_count,
     weight: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseFloat(curr.wt || 0), 0) : firstBooking.weight_chargeable,
     rate: bookingIds.length > 1 ? 0 : firstBooking.rate,
@@ -268,6 +270,9 @@ exports.post_generate_5 = async (req, res) => {
   };
 
   await db.collection("bills").doc(bill.id).set(bill);
+  if (bill.client) {
+    await recalculatePartyPayments('Client', bill.client);
+  }
 
   // Delete old individual pending bills that contained these LRs
   try {
@@ -344,6 +349,9 @@ exports.post_misc_6 = async (req, res) => {
     createdAt: new Date().toISOString()
   };
   await db.collection("bills").doc(bill.id).set(bill);
+  if (bill.client) {
+    await recalculatePartyPayments('Client', bill.client);
+  }
   await delCache(CACHE_KEY);
   emitDataUpdated("bills");
   emitDataUpdated("bills");
@@ -395,6 +403,14 @@ exports.put_id_7 = async (req, res) => {
   }
 
   await db.collection("bills").doc(id).update(updatedData);
+  const oldClient = doc.data().client;
+  const newClient = updatedData.client || oldClient;
+  if (oldClient && oldClient !== newClient) {
+      await recalculatePartyPayments('Client', oldClient);
+  }
+  if (newClient) {
+      await recalculatePartyPayments('Client', newClient);
+  }
   await delCache(CACHE_KEY);
   emitDataUpdated("bills");
     return success(res, "Bill updated successfully", {
@@ -432,6 +448,9 @@ exports.delete_id_8 = async (req, res) => {
   }
 
   await db.collection("bills").doc(id).delete(req.user);
+  if (billData.client) {
+    await recalculatePartyPayments('Client', billData.client);
+  }
   await delCache(CACHE_KEY);
   await delCache("bookings");
   emitDataUpdated("bills");

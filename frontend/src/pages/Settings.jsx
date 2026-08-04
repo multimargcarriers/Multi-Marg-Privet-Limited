@@ -306,9 +306,9 @@ const Settings = () => {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>GSTIN</label>
-                <input 
-                  type="text" name="gstin" value={localCompany.gstin || ''} onChange={handleCompanyChange}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                  <input 
+                    type="text" name="gstin" value={localCompany.gstin || ''} onChange={(e) => setLocalCompany({ ...localCompany, gstin: e.target.value.toUpperCase() })}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                 />
               </div>
               <div>
@@ -600,14 +600,19 @@ const Settings = () => {
                 <h5 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>External Integrations</h5>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {Object.entries(globalSettings.integrations || {}).map(([key, value]) => (
-                  <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: '#334155' }}>{key} Integration</span>
-                    <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
-                      {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
-                    </button>
-                  </div>
-                ))}
+                {Object.entries(globalSettings.integrations || {}).map(([key, value]) => {
+                  let label = `${key} Integration`;
+                  if (key === 'enableBulkDelete') label = 'Enable Bulk Delete / Clear All Features';
+                  
+                  return (
+                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: key === 'enableBulkDelete' ? '#dc2626' : '#334155', fontWeight: key === 'enableBulkDelete' ? '600' : 'normal' }}>{label}</span>
+                      <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                        {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

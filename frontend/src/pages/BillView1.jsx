@@ -141,49 +141,41 @@ const BillView1 = () => {
   const handleDownloadLocalPDF = () => {
     window.scrollTo(0, 0);
     const element = document.getElementById("bill-content");
-    const clone = element.cloneNode(true);
-    clone.style.transform = "none";
-    clone.style.position = "static"; // static inside the wrapper
-    clone.style.margin = "0";
-    clone.style.boxShadow = "none";
-    clone.style.width = "940px"; // Original width of the invoice
     
-    const wrapper = document.createElement("div");
-    wrapper.className = "print-wrapper";
-    wrapper.style.position = "fixed";
-    wrapper.style.top = "0";
-    wrapper.style.left = "-9999px";
-    wrapper.style.width = "980px"; // 940 + 20 + 20 padding
-    wrapper.style.padding = "20px"; // Natural margin for the PDF
-    wrapper.style.background = "#ffffff";
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
+    // Temporarily remove shadow for cleaner PDF
+    const originalShadow = element.style.boxShadow;
+    const originalBorder = element.style.border;
+    element.style.boxShadow = "none";
+    element.style.border = "none";
 
-    // Allow DOM to repaint
-    setTimeout(() => {
-      const opt = {
-        margin:       0,
-        filename:     `Invoice_${billData.billNo || id}.pdf`,
-        image:        { type: 'jpeg', quality: 1 },
-        html2canvas:  { 
-          scale: 4, 
-          useCORS: true, 
-          width: 980,
-          windowWidth: 980,
-          scrollY: 0,
-          scrollX: 0,
-          letterRendering: true
-        },
-        jsPDF:        { unit: 'px', format: [980, 1131], orientation: 'portrait' }
-      };
-      
-      html2pdf().set(opt).from(wrapper).save().then(() => {
-        document.body.removeChild(wrapper);
-      }).catch(err => {
-        console.error("PDF generation failed:", err);
-        document.body.removeChild(wrapper);
-      });
-    }, 300);
+    const width = element.offsetWidth || 940;
+    const height = element.offsetHeight + 10; // Extra padding so nothing cuts off
+    
+    const opt = {
+      margin:       0,
+      filename:     `Invoice_${billData.billNo || id}.pdf`,
+      image:        { type: 'jpeg', quality: 1 },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        width: width,
+        height: height,
+        windowWidth: width,
+        scrollY: 0,
+        scrollX: 0
+      },
+      jsPDF:        { unit: 'px', format: [width, height], orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Restore styles after generation
+      element.style.boxShadow = originalShadow;
+      element.style.border = originalBorder;
+    }).catch(err => {
+      console.error("PDF generation failed:", err);
+      element.style.boxShadow = originalShadow;
+      element.style.border = originalBorder;
+    });
   };
 
   // Mock / Fallback Bill Data formatted to match Tax Invoice exact layout
@@ -450,13 +442,7 @@ const BillView1 = () => {
               GSTIN : 05AANCM3054E1ZN &nbsp;&nbsp;|&nbsp;&nbsp; PAN NO : AANCM3054E &nbsp;&nbsp;|&nbsp;&nbsp; CIN : U60300UR2020PTC010749
             </p>
           </div>
-
-          {/* Original Copy Badge */}
-          <div style={{ textAlign: "right", minWidth: "120px" }}>
-            <span style={{ fontSize: "0.68rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", background: "#F1F5F9", color: "#334155", padding: "0.35rem 0.65rem", borderRadius: "4px", border: "1px solid #CBD5E1", display: "inline-block" }}>
-              ORIGINAL RECIPIENT
-            </span>
-          </div>
+          <div style={{ minWidth: "120px" }}></div>
         </div>
 
         {/* Title */}
@@ -475,14 +461,14 @@ const BillView1 = () => {
               <div style={{ fontSize: "0.75rem", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", letterSpacing: "0.5px", marginBottom: "0.35rem" }}>
                 Bill To:
               </div>
-              <h3 style={{ margin: "0 0 0.35rem 0", fontSize: "0.98rem", fontWeight: "800", color: "#0F172A" }}>
+              <h3 style={{ margin: "0 0 0.35rem 0", fontSize: "0.98rem", fontWeight: "800", color: "#0F172A", textTransform: "uppercase" }}>
                 {billData.client}
               </h3>
               <p style={{ margin: "0 0 0.35rem 0", fontSize: "0.82rem", fontWeight: "600", textTransform: "uppercase", color: "#334155", lineHeight: "1.3" }}>
                 {billData.clientAddress}
               </p>
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.4rem", fontSize: "0.82rem", fontWeight: "700" }}>
-                <span><strong style={{ color: "#0F172A" }}>GSTIN:</strong> {billData.gstin}</span>
+                <span><strong style={{ color: "#0F172A" }}>GSTIN:</strong> {billData.gstin ? String(billData.gstin).toUpperCase() : ""}</span>
                 <span><strong style={{ color: "#0F172A" }}>State Code:</strong> {billData.stateCode}</span>
               </div>
             </div>
@@ -493,7 +479,7 @@ const BillView1 = () => {
               <div style={{ fontWeight: "800", color: "#0C4A6E" }}>{billData.billNo || billData.invoiceNo || "MCPL/26-27/0159"}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Date:</div>
-              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.date || "30-07-2026"}</div>
+              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.date ? new Date(billData.date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.lrDate ? String(billData.lrDate).replace(/\//g, "-") : "30-07-2026")}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Mode:</div>
               <div style={{ fontWeight: "700", color: "#0F172A", textTransform: "uppercase" }}>{billData.mode || "Road"}</div>
@@ -582,15 +568,15 @@ const BillView1 = () => {
                 <span style={{ fontWeight: "800", color: "#0F172A" }}>₹{subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>CGST:</span>
+                <span style={{ fontWeight: "700", color: "#475569" }}>CGST ({cgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
                 <span style={{ fontWeight: "600" }}>₹{cgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>SGST:</span>
+                <span style={{ fontWeight: "700", color: "#475569" }}>SGST ({sgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
                 <span style={{ fontWeight: "600" }}>₹{sgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.45rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>IGST:</span>
+                <span style={{ fontWeight: "700", color: "#475569" }}>IGST ({igstVal > 0 && billData.gst ? parseFloat(billData.gst) + "%" : "0%"}):</span>
                 <span style={{ fontWeight: "600" }}>₹{igstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0.6rem", background: "#0C4A6E", color: "#FFFFFF", borderRadius: "4px", fontWeight: "900", fontSize: "1rem", marginTop: "0.2rem" }}>
@@ -614,12 +600,13 @@ const BillView1 = () => {
             <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: "1.45", color: "#334155" }}>
               <li style={{ marginBottom: "0.25rem" }}>Payment due on receipt of the bill.</li>
               <li style={{ marginBottom: "0.25rem" }}>Payment to be made by Cheque/DD/RTGS in favour of <strong>MULTIMARG CARRIERS PVT. LTD.</strong> only.</li>
-              <li>Interest will be charged at 18% per annum if the payment not made within agreed period.</li>
+              <li style={{ marginBottom: "0.25rem" }}>Interest will be charged at 18% per annum if the payment not made within agreed period.</li>
+              <li>Contact within 3 days in case of any discrepancy in this bill.</li>
             </ul>
           </div>
 
           {/* Official Stamp & Authorised Signature Block */}
-          <div style={{ flex: 0.8, textAlign: "center", minWidth: "220px", background: "#FFFFFF", padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0" }}>
+          <div style={{ flex: 0.8, textAlign: "center", minWidth: "220px", background: "#FFFFFF", padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <p style={{ margin: "0 0 0.25rem 0", fontSize: "0.88rem", fontWeight: "800", color: "#0F172A" }}>
               For Multimarg Carriers Pvt. Ltd.
             </p>
@@ -641,9 +628,15 @@ const BillView1 = () => {
               )}
             </div>
 
-            <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "800", color: "#0C4A6E" }}>
-              (Authorised Sign)
-            </p>
+              {includeStamp ? (
+                <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: "700", color: "#64748b" }}>
+                  This is a system generated invoice,<br/>no signature required.
+                </p>
+              ) : (
+                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "800", color: "#0C4A6E" }}>
+                  (Authorised Sign)
+                </p>
+              )}
           </div>
         </div>
 

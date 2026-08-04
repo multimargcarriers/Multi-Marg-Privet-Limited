@@ -75,9 +75,14 @@ const AllBills = () => {
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>All Bills</h3>
           <p className="text-muted">View and manage all generated invoices and bills.</p>
         </div>
-        <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px" }} onClick={() => navigate("/bills/generate")}>
-          <FileText size={18} /> Generate New
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" style={{ padding: "0 1.5rem", height: "45px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600 }} onClick={() => navigate("/bills/misc")}>
+            <FileText size={18} /> New Misc Bill
+          </button>
+          <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px" }} onClick={() => navigate("/bills/generate")}>
+            <FileText size={18} /> Generate New
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel" style={{ padding: "1rem", marginBottom: "2rem" }}>
@@ -90,13 +95,20 @@ const AllBills = () => {
       </div>
 
       <Table
-        headers={["Bill No", "Client", "Amount", "Date", "Status", "Actions"]}
+        headers={["Bill No", "Client", "Total Amt", "Received", "Pending", "Date", "Status", "Actions"]}
         data={filtered}
-        renderRow={(item, index) => (
+        renderRow={(item, index) => {
+          const totalAmt = parseFloat(item.amount || item.total || 0);
+          const receivedAmt = parseFloat(item.paidAmount || 0);
+          const pendingAmt = totalAmt - receivedAmt;
+          
+          return (
           <tr key={item.id || index}>
             <td className="font-semibold">{item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client || item.billedTo || "-"}</td>
-            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.amount || item.total || 0).toFixed(2)}</span></td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#3b82f6", fontWeight: "700" }}><RupeeIcon size={14} />&nbsp;{totalAmt.toFixed(2)}</span></td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#10b981", fontWeight: "600" }}><RupeeIcon size={14} />&nbsp;{receivedAmt.toFixed(2)}</span></td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#ef4444", fontWeight: "600" }}><RupeeIcon size={14} />&nbsp;{pendingAmt.toFixed(2)}</span></td>
             <td>{formatDate(item.createdAt)}</td>
             <td>
               <select 
@@ -129,7 +141,8 @@ const AllBills = () => {
               </div>
             </td>
           </tr>
-        )}
+          );
+        }}
       />
     </div>
   );

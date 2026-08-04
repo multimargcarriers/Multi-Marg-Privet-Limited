@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
-import { Search, TrendingUp, IndianRupee, PieChart, FileText } from "lucide-react";
+import { Search, Download, TrendingUp, IndianRupee, PieChart, FileText } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatDate } from "../../utils/formatters";
 
@@ -9,7 +9,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const SalesReports = () => {
   const [data, setData] = useState([]);
-  const [filters, setFilters] = useState({ fr: "", to: "" });
+  const [filters, setFilters] = useState({ fr: "", to: "", search: "" });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { fetchSales(); }, []);
@@ -35,12 +35,55 @@ const SalesReports = () => {
     finally { setLoading(false); }
   };
 
+  const filteredData = useMemo(() => {
+    let list = data;
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      list = list.filter(b => 
+        (b.billNo || "").toLowerCase().includes(q) ||
+        (b.client || "").toLowerCase().includes(q) ||
+        (b.lrNo || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [data, filters.search]);
+
+  const handleExport = () => {
+    if (filteredData.length === 0) return;
+    const headers = ["Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredData.map(row => {
+        const dateStr = row.createdAt ? formatDate(row.createdAt) : "";
+        return [
+          `"${row.billNo || ""}"`,
+          `"${dateStr}"`,
+          `"${row.client || ""}"`,
+          `"${row.lrNo || ""}"`,
+          row.status ? row.status.toUpperCase() : "PENDING",
+          parseFloat(row.taxable || row.amount || 0).toFixed(2),
+          parseFloat(row.total || row.amount || 0).toFixed(2)
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Sales_Report.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const stats = useMemo(() => {
-    const totalInvoices = data.length;
-    const totalTaxable = data.reduce((s, b) => s + parseFloat(b.taxable || b.amount || 0), 0);
-    const totalSales = data.reduce((s, b) => s + parseFloat(b.total || b.amount || 0), 0);
+    const totalInvoices = filteredData.length;
+    const totalTaxable = filteredData.reduce((s, b) => s + parseFloat(b.taxable || b.amount || 0), 0);
+    const totalSales = filteredData.reduce((s, b) => s + parseFloat(b.total || b.amount || 0), 0);
     return { totalInvoices, totalTaxable, totalSales };
-  }, [data]);
+  }, [filteredData]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
@@ -105,30 +148,59 @@ const SalesReports = () => {
                 style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
               />
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button 
-                type="submit" 
-                style={{
-                  background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                  color: "white",
-                  border: "none",
-                  padding: "0.65rem 2rem",
-                  borderRadius: "8px",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
-                  height: "41px",
-                  width: "100%",
-                  justifyContent: "center"
-                }}
-              >
-                <Search size={16} /> SEARCH SALES
-              </button>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Search Keyword</label>
+              <input 
+                type="text" 
+                placeholder="Search Invoice No, Client..."
+                value={filters.search} 
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
             </div>
+          </div>
+          
+          <div className="responsive-btn-group" style={{ marginTop: "1.5rem" }}>
+            <button 
+              type="button" 
+              onClick={handleExport}
+              disabled={filteredData.length === 0}
+              style={{
+                backgroundColor: "#e2e8f0",
+                color: "#475569",
+                border: "none",
+                padding: "0.65rem 1.5rem",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                cursor: filteredData.length === 0 ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity: filteredData.length === 0 ? 0.5 : 1
+              }}
+            >
+              <Download size={16} /> EXPORT CSV
+            </button>
+            <button 
+              type="submit" 
+              style={{
+                background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                color: "white",
+                border: "none",
+                padding: "0.65rem 2.5rem",
+                borderRadius: "8px",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)"
+              }}
+            >
+              <Search size={16} /> FILTER REPORT
+            </button>
           </div>
         </div>
       </form>
@@ -172,7 +244,7 @@ const SalesReports = () => {
           loading={loading}
           pagination={true}
           headers={["Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"]}
-          data={data}
+          data={filteredData}
           renderRow={(item, index) => (
             <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
               <td style={{ padding: "1rem", fontWeight: 600, color: "#3b82f6" }}>{item.billNo || "-"}</td>

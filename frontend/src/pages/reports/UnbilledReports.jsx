@@ -12,7 +12,8 @@ import {
   TrendingUp, 
   FileText, 
   X,
-  AlertCircle
+  AlertCircle,
+  Download
 } from "lucide-react";
 
 // Robust Date Formatter that handles DD-MM-YYYY, ISO strings, and timestamp objects
@@ -168,6 +169,47 @@ const UnbilledReports = () => {
 
   const handleClearFilters = () => {
     setFilters({ fr: "", to: "", search: "" });
+  };
+
+  const handleExport = () => {
+    if (filteredData.length === 0) return;
+    const headers = [
+      "AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", 
+      "Mode", "Box", "Chargeable Wt", "Billed To / Client", "Freight", "Remarks"
+    ];
+    
+    const csvContent = [
+      headers.join(","),
+      ...filteredData.map(row => {
+        const awbNo = getAwbNo(row);
+        const dateObj = getBookingDateObj(row);
+        const dateStr = dateObj ? String(dateObj.getDate()).padStart(2, '0') + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + dateObj.getFullYear() : "";
+        return [
+          `"${awbNo}"`,
+          `"${dateStr}"`,
+          `"${row.consignor || ""}"`,
+          `"${row.consignee || ""}"`,
+          `"${row.origin || ""}"`,
+          `"${row.destination || ""}"`,
+          `"${row.mode || ""}"`,
+          getBoxCount(row),
+          getChargeableWeight(row),
+          `"${getBilledTo(row)}"`,
+          getFreightAmount(row),
+          `"${row.remarks || row.status || ""}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Unbilled_Reports.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePrint = () => {
@@ -542,8 +584,29 @@ const UnbilledReports = () => {
             />
           </div>
 
-          {/* Clear Filters */}
-          {(filters.fr || filters.to || filters.search) && (
+          {/* Action Buttons */}
+          <div className="responsive-btn-group" style={{ marginLeft: "auto" }}>
+            <button
+              onClick={handleExport}
+              disabled={filteredData.length === 0}
+              style={{
+                background: "#e2e8f0",
+                border: "none",
+                color: "#475569",
+                padding: "0.6rem 1rem",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                cursor: filteredData.length === 0 ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                opacity: filteredData.length === 0 ? 0.5 : 1
+              }}
+            >
+              <Download size={16} /> Export CSV
+            </button>
+            {(filters.fr || filters.to || filters.search) && (
             <button
               onClick={handleClearFilters}
               style={{
@@ -563,6 +626,7 @@ const UnbilledReports = () => {
               <X size={16} /> Clear Filters
             </button>
           )}
+          </div>
         </div>
       </div>
 

@@ -10,8 +10,7 @@ const MODULE_SCHEMAS = {
   cities: ["city", "short"],
   branches: ["code", "branch_name", "contact_person", "address", "phone", "email"],
   vendors: ["vendor_code", "name", "gst", "branch", "mode", "address", "contact_person", "phno", "email"],
-  bookings: ["awb", "date", "mode", "client", "origin", "destination", "consignor", "consignee", "box", "actual_wt", "charge_wt", "type_of_delivery", "insured", "remarks", "clerk_name", "status", "frieght_charge", "awb_charge", "pickup_charge", "delivery_charge", "packaging_charge", "handling_charge"],
-  lr_details: ["awb", "invdate", "value", "invoice", "part", "eway", "quantity"],
+  bookings: ["awb", "date", "mode", "client", "origin", "destination", "consignor", "consignee", "box", "actual_wt", "charge_wt", "type_of_delivery", "insured", "remarks", "clerk_name", "status", "frieght_charge", "awb_charge", "pickup_charge", "delivery_charge", "packaging_charge", "handling_charge", "invdate", "value", "invoice", "part", "eway", "quantity"],
   rates: ["client", "origin", "destination", "awb_charge", "air_rate", "air_pickup", "air_delivery", "train_rate", "train_pickup", "train_delivery", "road_rate", "road_pickup", "road_delivery", "road_express_rate", "road_express_pickup", "road_express_delivery"]
 };
 
@@ -89,6 +88,7 @@ function toCSV(headers, rows, module) {
 exports.exportCSV = async (req, res) => {
   try {
     const { module } = req.params;
+    const { search } = req.query;
     const collectionName = COLLECTION_MAP[module];
     const headers = MODULE_SCHEMAS[module];
 
@@ -99,25 +99,82 @@ exports.exportCSV = async (req, res) => {
     const snapshot = await db.collection(collectionName).get();
     let rows = [];
     
-    if (module === 'lr_details') {
-      // Flatten parcels out of all bookings
+    if (module === 'bookings') {
       snapshot.forEach((doc) => {
         const booking = doc.data();
-        const parcels = booking.parcels || [];
-        parcels.forEach(parcel => {
-          rows.push({
-            awb: booking.awb || booking.lrNumber || '',
-            invdate: parcel.invdate || '',
-            value: parcel.value || '',
-            invoice: parcel.invoice || parcel.invoiceNo || '',
-            part: parcel.part || parcel.partNo || '',
-            eway: parcel.eway || parcel.ewayBill || '',
-            quantity: parcel.quantity || parcel.qty || ''
+        
+        // Apply search filter if provided
+        if (search) {
+          const s = search.toLowerCase();
+          const matches = (booking.client || booking.consignor || "").toLowerCase().includes(s) ||
+                          (booking.awb || booking.lrNo || booking.consignment || "").toLowerCase().includes(s) ||
+                          (booking.origin || "").toLowerCase().includes(s) ||
+                          (booking.destination || "").toLowerCase().includes(s);
+          if (!matches) return;
+        }
+
+        const parcels = (booking.invoiceDetails && booking.invoiceDetails.length > 0) ? booking.invoiceDetails : (booking.parcels || []);
+        
+        const bookingHeaders = {
+          awb: booking.awb || booking.lrNo || booking.consignment || '',
+          date: booking.date || booking.lrDate || booking.createdAt || '',
+          mode: booking.mode || 'Road',
+          client: booking.client || booking.clientName || '',
+          origin: booking.origin || '',
+          destination: booking.destination || '',
+          consignor: booking.consignor || '',
+          consignee: booking.consignee || '',
+          box: booking.boxes || booking.box || booking.pkgs || booking.quantity || '',
+          actual_wt: booking.actualWeight || booking.actual_wt || '',
+          charge_wt: booking.chargedWeight || booking.charge_wt || '',
+          type_of_delivery: booking.deliveryType || booking.type_of_delivery || 'Door',
+          insured: booking.insured || 'NA',
+          remarks: booking.remarks || '',
+          clerk_name: booking.clerkName || booking.clerk_name || 'Admin',
+          status: booking.status || 'Booked',
+          frieght_charge: booking.freightCharge || booking.frieght_charge || booking.frieght || booking.freight || booking.weight || 0,
+          awb_charge: booking.awbCharge || booking.awb_charge || 0,
+          pickup_charge: booking.pickupCharge || booking.pickup_charge || 0,
+          delivery_charge: booking.deliveryCharge || booking.delivery_charge || 0,
+          packaging_charge: booking.packagingCharge || booking.packaging_charge || 0,
+          handling_charge: booking.handlingCharge || booking.handling_charge || 0
+        };
+
+        if (parcels.length > 0) {
+          parcels.forEach(parcel => {
+            rows.push({
+              ...bookingHeaders,
+              invdate: parcel.invdate || parcel.invoiceDate || '',
+              value: parcel.value || parcel.invoiceValue || '',
+              invoice: parcel.invoice || parcel.invoiceNo || '',
+              part: parcel.part || parcel.partNo || parcel.partNumber || '',
+              eway: parcel.eway || parcel.ewayBill || '',
+              quantity: parcel.quantity || parcel.qty || ''
+            });
           });
-        });
+        } else {
+          // Booking with no parcels
+          rows.push({
+            ...bookingHeaders,
+            invdate: '',
+            value: '',
+            invoice: '',
+            part: '',
+            eway: '',
+            quantity: ''
+          });
+        }
       });
     } else {
-      snapshot.forEach((doc) => rows.push(doc.data()));
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (search) {
+          const s = search.toLowerCase();
+          const matches = Object.values(data).some(val => String(val).toLowerCase().includes(s));
+          if (!matches) return;
+        }
+        rows.push(data);
+      });
     }
 
     const csvData = toCSV(headers, rows, module);
@@ -312,47 +369,64 @@ exports.importCSV = async (req, res) => {
       return error(res, "CSV file is empty or contains no valid data rows", 400);
     }
 
-    if (module === 'lr_details') {
-      // Group parcels by AWB
-      const parcelsByAwb = {};
+    if (module === 'bookings') {
+      const bookingsByAwb = {};
       results.forEach(row => {
         const awb = row.awb;
         if (!awb) return;
-        if (!parcelsByAwb[awb]) parcelsByAwb[awb] = [];
-        
-        // Remove awb from the parcel details to keep it clean
-        const parcelData = { ...row };
-        delete parcelData.awb;
-        
-        parcelsByAwb[awb].push(parcelData);
+
+        if (!bookingsByAwb[awb]) {
+          // Create the booking header using the first row
+          const bookingData = { ...row };
+          delete bookingData.invdate;
+          delete bookingData.value;
+          delete bookingData.invoice;
+          delete bookingData.part;
+          delete bookingData.eway;
+          delete bookingData.quantity;
+          bookingData.parcels = [];
+          bookingData.invoiceDetails = [];
+          bookingsByAwb[awb] = bookingData;
+        }
+
+        // Add parcel details if present in this row
+        if (row.invdate || row.value || row.invoice || row.part || row.eway || row.quantity) {
+          bookingsByAwb[awb].invoiceDetails.push({
+            invdate: row.invdate || '',
+            invoiceValue: row.value || '',
+            invoiceNo: row.invoice || '',
+            partNumber: row.part || '',
+            ewayBill: row.eway || '',
+            qty: row.quantity || ''
+          });
+          bookingsByAwb[awb].parcels.push({
+            invdate: row.invdate || '',
+            value: row.value || '',
+            invoice: row.invoice || '',
+            part: row.part || '',
+            eway: row.eway || '',
+            quantity: row.quantity || ''
+          });
+        }
       });
+
+      const batch = db.batch();
+      const uniqueBookings = Object.values(bookingsByAwb);
       
-      const awbs = Object.keys(parcelsByAwb);
-      
-      // We need to fetch each booking by AWB and update it
-      let updatedCount = 0;
-      for (const awb of awbs) {
-         const snapshot = await db.collection(collectionName).where("awb", "==", awb).get();
-         if (!snapshot.empty) {
-            const bookingDoc = snapshot.docs[0];
-            const bookingData = bookingDoc.data();
-            const existingParcels = bookingData.parcels || [];
-            
-            const newParcels = [...existingParcels, ...parcelsByAwb[awb]];
-            await db.collection(collectionName).doc(bookingDoc.id).update({
-              parcels: newParcels
-            });
-            updatedCount += parcelsByAwb[awb].length;
-         }
+      for (const booking of uniqueBookings) {
+        // Find existing booking by awb to preserve id, or use the new id
+        const docRef = db.collection(collectionName).doc(booking.id);
+        batch.set(docRef, booking);
       }
+      await batch.commit();
 
       if (CACHE_MAP[module]) {
         await delCache(CACHE_MAP[module]);
       }
 
-      return success(res, `Successfully imported ${updatedCount} parcel details into existing bookings`, { importedCount: updatedCount });
+      return success(res, `Successfully imported ${uniqueBookings.length} bookings with nested parcels`, { importedCount: uniqueBookings.length });
     } else {
-      // Standard insert for Bookings and others
+      // Standard insert for others
       const batch = db.batch();
       for (const row of results) {
         const docRef = db.collection(collectionName).doc(row.id);

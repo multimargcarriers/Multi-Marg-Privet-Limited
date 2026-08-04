@@ -180,7 +180,8 @@ const defaultSettings = {
   },
   integrations: {
     redis: true,
-    cloudinary: true
+    cloudinary: true,
+    enableBulkDelete: false
   },
   modules: {
     masters: true,
@@ -215,6 +216,7 @@ router.get("/config", async (req, res) => {
     // Ensure new sections exist in older documents
     if (!settings.system) settings.system = { ...defaultSettings.system };
     if (!settings.integrations) settings.integrations = { ...defaultSettings.integrations };
+    if (settings.integrations.enableBulkDelete === undefined) settings.integrations.enableBulkDelete = false;
     
     return success(res, "Global configuration fetched", settings);
   } catch (err) {

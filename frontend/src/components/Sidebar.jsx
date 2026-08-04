@@ -39,16 +39,69 @@ export const menuItems = [
     permission: "dashboard"
   },
   {
-    name: "IAM",
-    path: "/iam",
-    icon: <Shield size={20} />,
-    permission: "superadmin"
+    name: "Operations",
+    isHeader: true,
+    icon: <ClipboardList size={18} />,
+    permission: "operations",
+    children: [
+      {
+        name: "ALL Bookings",
+        path: "/bookings",
+        icon: <ClipboardList size={18} />,
+        permission: "bookings"
+      },
+      { name: "Trip Management", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
+      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
+      { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
+      {
+        name: "Upload Box",
+        path: "/upload-box",
+        icon: <Package size={18} />,
+        permission: "upload_box"
+      },
+    ],
   },
   {
-    name: "Activity Logs",
-    path: "/logs",
-    icon: <Activity size={20} />,
-    permission: "logs"
+    name: "Accounts",
+    isHeader: true,
+    icon: <FileText size={18} />,
+    permission: "accounts",
+    children: [
+      {
+        name: "Cash Sheet",
+        path: "/cash-sheet",
+        icon: <DollarSign size={18} />,
+        permission: "cash_sheet"
+      },
+      {
+        name: "Purchases",
+        path: "/purchases",
+        icon: <ShoppingCart size={18} />,
+        permission: "purchases"
+      },
+      { 
+        name: "All Bills", 
+        path: "/bills/all", 
+        icon: <Receipt size={18} />, 
+        permission: "all_bills" 
+      },
+    ],
+  },
+  {
+    name: "Reports",
+    isHeader: true,
+    icon: <TrendingUp size={18} />,
+    permission: "reports",
+    children: [
+      { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
+      { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} />, permission: "gst_reports" },
+      { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} />, permission: "mis_reports" },
+      { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
+      { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
+      { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
+      { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
+      { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
+    ],
   },
   {
     name: "Masters",
@@ -77,121 +130,27 @@ export const menuItems = [
     ],
   },
   {
-    name: "Operations",
-    isHeader: true,
-    icon: <ClipboardList size={18} />,
-    permission: "operations",
-    children: [
-      {
-        name: "Bookings (LR)",
-        path: "/bookings",
-        icon: <ClipboardList size={18} />,
-        permission: "bookings"
-      },
-      {
-        name: "Create Booking",
-        path: "/bookings/create",
-        icon: <Plus size={18} />,
-        permission: "create_booking"
-      },
-      { name: "Trips", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
-      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
-      { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
-    ],
-  },
-  {
-    name: "Bills",
-    isHeader: true,
-    icon: <Receipt size={18} />,
-    permission: "billing",
-    children: [
-      { name: "All Bills", path: "/bills/all", icon: <Receipt size={18} />, permission: "all_bills" },
-      {
-        name: "Generate Bills",
-        path: "/bills/generate",
-        icon: <Plus size={18} />,
-        permission: "generate_bills"
-      },
-      {
-        name: "Misc Bill",
-        path: "/bills/misc",
-        icon: <FileText size={18} />,
-        permission: "misc_bill"
-      },
-      {
-        name: "Update Bill",
-        path: "/bills/update",
-        icon: <Edit size={18} />,
-        permission: "update_bill"
-      },
-    ],
-  },
-  {
-    name: "Accounts",
-    isHeader: true,
-    icon: <FileText size={18} />,
-    permission: "accounts",
-    children: [
-      {
-        name: "Cash Sheet",
-        path: "/cash-sheet",
-        icon: <DollarSign size={18} />,
-        permission: "cash_sheet"
-      },
-      {
-        name: "Purchases",
-        path: "/purchases",
-        icon: <ShoppingCart size={18} />,
-        permission: "purchases"
-      },
-    ],
-  },
-  {
-    name: "Reports",
-    isHeader: true,
-    icon: <TrendingUp size={18} />,
-    permission: "reports",
-    children: [
-      { name: "Deep Analytics", path: "/reports/analytics", icon: <TrendingUp size={18} />, permission: "analytics" },
-      { name: "GSTR Reports", path: "/reports/gst", icon: <FileText size={18} />, permission: "gst_reports" },
-      { name: "MIS Reports", path: "/reports/mis", icon: <LayoutDashboard size={18} />, permission: "mis_reports" },
-      { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
-      { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
-      { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
-      { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
-      { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
-    ],
-  },
-  {
-    name: "Uploads",
-    isHeader: true,
-    icon: <Upload size={18} />,
-    permission: "uploads",
-    children: [
-      {
-        name: "Upload Box",
-        path: "/upload-box",
-        icon: <Package size={18} />,
-        permission: "upload_box"
-      },
-      {
-        name: "Upload Vouchers",
-        path: "/upload-vouchers",
-        icon: <Upload size={18} />,
-        permission: "upload_vouchers"
-      },
-    ],
-  },
-  {
-    name: "Settings & Integrations",
-    path: "/settings",
-    icon: <Settings size={20} />,
+    name: "IAM",
+    path: "/iam",
+    icon: <Shield size={20} />,
     permission: "superadmin"
+  },
+  {
+    name: "Activity Logs",
+    path: "/logs",
+    icon: <Activity size={20} />,
+    permission: "logs"
   },
   {
     name: "Employee Data",
     path: "/employee-activity",
     icon: <Users size={20} />,
+    permission: "superadmin"
+  },
+  {
+    name: "Settings & Integrations",
+    path: "/settings",
+    icon: <Settings size={20} />,
     permission: "superadmin"
   },
   {

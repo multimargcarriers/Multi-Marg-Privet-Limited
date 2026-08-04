@@ -4,7 +4,7 @@ import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
-import { Search, Map, Truck, Users, Activity } from "lucide-react";
+import { Search, Download, Map, Truck, Users, Activity } from "lucide-react";
 import RupeeIcon from "../../components/RupeeIcon";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -118,6 +118,41 @@ const ClientTripReports = () => {
     }).format(amount || 0);
   };
 
+  const handleExport = () => {
+    if (data.length === 0) return;
+    const headers = ["Trip No", "Date", "Vehicle Type", "Vehicle No", "Vendor", "Origin", "Destination", "Client", "Description", "Box", "Chg. Wt", "Total"];
+    const csvContent = [
+      headers.join(","),
+      ...data.map(row => {
+        const dateStr = row.date ? formatDate(row.date) : "";
+        return [
+          `"${row.tripNo || ""}"`,
+          `"${dateStr}"`,
+          `"${row.vehicleType || ""}"`,
+          `"${row.vehicleNo || ""}"`,
+          `"${row.vendor || ""}"`,
+          `"${row.origin || ""}"`,
+          `"${row.destination || ""}"`,
+          `"${row.client || ""}"`,
+          `"${row.description || ""}"`,
+          row.box || "0",
+          row.chargeableWeight || "0",
+          parseFloat(row.amount || row.totalAmount || 0).toFixed(2)
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Client_Trip_Report.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
       {/* HEADER BAR */}
@@ -162,7 +197,7 @@ const ClientTripReports = () => {
       }}>
         <div style={{ background: "linear-gradient(90deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)", height: "4px", width: "100%" }} />
         <div style={{ padding: "1.5rem 1.75rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1.5rem" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client</label>
               <div style={{ background: "white", borderRadius: "8px", padding: "1px" }}>
@@ -193,17 +228,46 @@ const ClientTripReports = () => {
                 style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
               />
             </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Search Keyword</label>
+              <input 
+                type="text" 
+                placeholder="Search Trips, Vehicle..."
+                value={searchQuery}
+                onChange={handleSearchBoxChange}
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
           </div>
           
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button type="button" style={{ backgroundColor: "#06b6d4", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", fontWeight: "600", fontSize: "0.8rem", cursor: "pointer", boxShadow: "0 2px 4px rgba(6, 182, 212, 0.2)" }}>
+          <div className="responsive-btn-group" style={{ marginTop: "1.5rem" }}>
+              <button 
+                type="button" 
+                onClick={handleExport}
+                disabled={data.length === 0}
+                style={{
+                  backgroundColor: "#e2e8f0",
+                  color: "#475569",
+                  border: "none",
+                  padding: "0.65rem 1.5rem",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  cursor: data.length === 0 ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: data.length === 0 ? 0.5 : 1
+                }}
+              >
+                <Download size={16} /> EXPORT CSV
+              </button>
+              <button type="button" style={{ backgroundColor: "#06b6d4", color: "white", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer", boxShadow: "0 2px 4px rgba(6, 182, 212, 0.2)" }}>
                 CLIENT TRIP REPORT
               </button>
-              <button type="button" style={{ backgroundColor: "#10b981", color: "white", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", fontWeight: "600", fontSize: "0.8rem", cursor: "pointer", boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)" }}>
+              <button type="button" style={{ backgroundColor: "#10b981", color: "white", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer", boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)" }}>
                 GENERATE INVOICE
               </button>
-            </div>
             <button 
               type="submit" 
               style={{
@@ -264,16 +328,6 @@ const ClientTripReports = () => {
       <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }}>
           <div style={{ fontWeight: 700, color: "#0f172a" }}>TRIP RECORDS</div>
-          <div style={{ position: "relative", width: "250px" }}>
-            <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-            <input 
-              type="text" 
-              placeholder="Search trips..."
-              value={searchQuery}
-              onChange={handleSearchBoxChange}
-              style={{ padding: "0.45rem 0.45rem 0.45rem 2rem", borderRadius: "6px", border: "1px solid #cbd5e1", width: "100%", fontSize: "0.85rem", outline: "none" }}
-            />
-          </div>
         </div>
 
         <div style={{ overflowX: "auto" }}>

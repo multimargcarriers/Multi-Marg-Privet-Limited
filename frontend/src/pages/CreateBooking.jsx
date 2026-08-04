@@ -111,6 +111,28 @@ const CreateBooking = () => {
             }
             setFormData(b);
           }
+        } else {
+          const bookingsRes = await axios.get(`${API}/bookings`);
+          if (bookingsRes.data.success) {
+            const allBookings = bookingsRes.data.data;
+            let maxNum = 0;
+            let prefix = "";
+            allBookings.forEach(b => {
+              const awbStr = b.awb || b.consignment || b.lrNo || "";
+              const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
+              if (match) {
+                const num = parseInt(match[2], 10);
+                if (num > maxNum) {
+                  maxNum = num;
+                  prefix = match[1] || "";
+                }
+              }
+            });
+            if (maxNum > 0) {
+              const nextAwb = `${prefix}${maxNum + 1}`;
+              setFormData(prev => ({ ...prev, consignment: nextAwb }));
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching data", err);
@@ -228,41 +250,8 @@ const CreateBooking = () => {
       }
       
       if (response.data.success) {
-        setSuccess(response.data.data || []);
-        
-        if (!isEditMode) {
-          setFormData({
-            client: "",
-            consignment: "",
-            dispatch_date: "",
-            mode: "",
-            origin: "",
-            originState: "",
-            originCode: "",
-            destination: "",
-            destState: "",
-            destCode: "",
-            consignor: "",
-            consignee: "",
-            invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }],
-            box: "",
-            actual_wt: "",
-            charge_wt: "",
-            freight_charge: "",
-            awb_charge: "",
-            pickup_charge: "",
-            delivery_charge: "",
-            packaging_charge: "",
-            handling_charge: "",
-            description: "",
-            insuredBy: "",
-            remarks: "",
-            paymentMode: "",
-          });
-        } else {
-          addToast("Booking updated successfully", "success");
-          setTimeout(() => navigate("/bookings"), 1500);
-        }
+        addToast(`Booking ${isEditMode ? 'updated' : 'created'} successfully`, "success");
+        navigate("/bookings");
       }
     } catch (error) {
       console.error("Error creating booking", error);
@@ -278,9 +267,31 @@ const CreateBooking = () => {
   return (
     <div style={{ width: "100%", margin: "0 auto" }}>
       <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-        <h3 style={{ fontSize: "1.8rem", marginBottom: 0, color: "#111827" }}>
-          {isEditMode ? "Edit Booking" : "Add Booking"}
-        </h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <h3 style={{ fontSize: "1.8rem", marginBottom: 0, color: "#111827" }}>
+            {isEditMode ? "Edit Booking" : "Add Booking"}
+          </h3>
+          <button 
+            type="button"
+            onClick={() => navigate("/bookings")}
+            style={{
+              background: "#f1f5f9",
+              color: "#475569",
+              border: "1px solid #cbd5e1",
+              padding: "0.5rem 1rem",
+              borderRadius: "8px",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.2s"
+            }}
+          >
+            <FileText size={16} /> All Bookings
+          </button>
+        </div>
 
         {isEditMode && (
           <button
@@ -360,7 +371,8 @@ const CreateBooking = () => {
         className="glass-panel"
         style={{ padding: "2.5rem" }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
+        {/* AWB & Billed To */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Awb No</label>
             <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={(e) => setFormData({...formData, consignment: formatAllCaps(e.target.value)})} />
@@ -376,7 +388,10 @@ const CreateBooking = () => {
               format={formatAllCaps}
             />
           </div>
+        </div>
 
+        {/* Date, Mode, Payment Mode */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="dispatch_date" value={formData.dispatch_date} onChange={handleChange} required />
@@ -400,7 +415,10 @@ const CreateBooking = () => {
               <option value="Credit">Credit</option>
             </select>
           </div>
+        </div>
 
+        {/* Consignor, Consignee */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Consignor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
@@ -423,7 +441,10 @@ const CreateBooking = () => {
               format={formatAllCaps}
             />
           </div>
+        </div>
 
+        {/* Origin, Destination */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 

@@ -6,7 +6,7 @@ const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");
-
+const { recalculatePartyPayments } = require("../utils/paymentUtils");
 const CACHE_KEY = "purchases";
 
 exports.getRoot_1 = async (req, res) => {
@@ -33,6 +33,8 @@ exports.postRoot_2 = async (req, res) => {
     taxable: req.body.taxable || 0,
     gst: req.body.gst || 0,
     total: req.body.total || 0,
+    paidAmount: 0,
+    status: "Unpaid",
     createdAt: new Date().toISOString()
   };
 
@@ -53,12 +55,72 @@ exports.postRoot_2 = async (req, res) => {
   }
 
   const docRef = await db.collection("purchases").add(purchase);
+  if (purchase.vendor) {
+    await recalculatePartyPayments('Vendor', purchase.vendor);
+  }
   await delCache(CACHE_KEY);
   emitDataUpdated("purchases");
   return created(res, "Purchase created successfully", {
     id: docRef.id,
     ...purchase
   });
+};
+
+exports.put_id_4 = async (req, res) => {
+  const { id } = req.params;
+  const docRef = db.collection("purchases").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) return error(res, "Purchase entry not found", 404);
+
+  let voucherUrl = req.body.voucherUrl;
+  let cloudinaryUrl = req.body.cloudinaryUrl;
+  let cloudinaryPublicId = req.body.cloudinaryPublicId;
+  let fileName = req.body.fileName;
+
+  if (req.files && req.files.voucher) {
+    const file = req.files.voucher;
+    const uploaded = await uploadFile(file.tempFilePath, "purchase_vouchers");
+    if (uploaded) {
+      cloudinaryUrl = uploaded.url;
+      cloudinaryPublicId = uploaded.public_id;
+      voucherUrl = uploaded.url;
+    }
+  } else if (req.body.fileData) {
+    const uploadResult = await uploadFile(req.body.fileData, {
+      folder: "multimarg/purchases",
+      resourceType: "auto"
+    });
+    if (uploadResult && uploadResult.url) {
+      cloudinaryUrl = uploadResult.url;
+      cloudinaryPublicId = uploadResult.publicId;
+      voucherUrl = uploadResult.url;
+    }
+  }
+
+  const updateData = {
+    ...req.body,
+    cloudinaryUrl: cloudinaryUrl || doc.data().cloudinaryUrl,
+    cloudinaryPublicId: cloudinaryPublicId || doc.data().cloudinaryPublicId,
+    voucherUrl: voucherUrl || doc.data().voucherUrl,
+    fileName: fileName || doc.data().fileName,
+    updatedAt: new Date().toISOString()
+  };
+
+  delete updateData.fileData;
+  delete updateData.id;
+
+  await docRef.update(updateData);
+  const oldVendor = doc.data().vendor;
+  const newVendor = updateData.vendor || oldVendor;
+  if (oldVendor && oldVendor !== newVendor) {
+      await recalculatePartyPayments('Vendor', oldVendor);
+  }
+  if (newVendor) {
+      await recalculatePartyPayments('Vendor', newVendor);
+  }
+  await delCache(CACHE_KEY);
+  
+  return success(res, "Purchase entry updated successfully");
 };
 
 exports.delete_id_3 = async (req, res) => {
@@ -78,6 +140,9 @@ exports.delete_id_3 = async (req, res) => {
   }
 
   await docRef.delete(req.user);
+  if (data.vendor) {
+    await recalculatePartyPayments('Vendor', data.vendor);
+  }
   await delCache(CACHE_KEY);
   emitDataUpdated("purchases");
     return success(res, "Purchase deleted successfully");

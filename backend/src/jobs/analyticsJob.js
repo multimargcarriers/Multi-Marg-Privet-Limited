@@ -23,9 +23,14 @@ const runAnalyticsAggregation = async () => {
     let paidAmount = 0;
     let taxLiability = 0;
     let unbilledRevenue = 0;
+    let unbilledAwbCount = 0;
     let totalCashIn = 0;
     let totalCashOut = 0;
     let totalBillsAmount = 0;
+    let totalPurchaseBills = 0;
+    let totalPurchaseValue = 0;
+    let totalPurchaseGst = 0;
+    let outstandingPurchases = 0;
     
     const clientSalesMap = {};
     const bookingsCount = {};
@@ -44,17 +49,19 @@ const runAnalyticsAggregation = async () => {
 
     // 1. Process Bills via streaming cursor (O(1) memory footprint)
     const billsCursor = mongoDb.collection("bills").find({}, { 
-      projection: { total: 1, amount: 1, status: 1, cgst: 1, sgst: 1, igst: 1, client: 1, createdAt: 1 } 
+      projection: { total: 1, amount: 1, status: 1, cgst: 1, sgst: 1, igst: 1, client: 1, createdAt: 1, paidAmount: 1 } 
     });
 
     for await (const bill of billsCursor) {
       const amt = Number(bill.total || bill.amount) || 0;
+      const paid = Number(bill.paidAmount) || 0;
       totalBillsAmount += amt;
       
-      if (!bill.status || String(bill.status).toLowerCase() !== 'paid') {
-        outstandingReceivables += amt;
-      } else {
+      if (bill.status && String(bill.status).toLowerCase() === 'paid') {
         paidAmount += amt;
+      } else {
+        paidAmount += paid;
+        outstandingReceivables += (amt - paid);
       }
 
       const cgst = Number(bill.cgst) || 0;
@@ -70,9 +77,7 @@ const runAnalyticsAggregation = async () => {
         const bd = new Date(bill.createdAt);
         if (!isNaN(bd.getTime())) {
           const key = `${monthNames[bd.getMonth()]} ${bd.getFullYear()}`;
-          if (revenueByMonth[key] !== undefined) {
-             revenueByMonth[key] += amt;
-          }
+          // Removed revenueByMonth[key] += amt; so graph only plots actual Cash In
         }
       }
     }
@@ -83,7 +88,8 @@ const runAnalyticsAggregation = async () => {
     });
 
     for await (const booking of bookingsCursor) {
-      if (booking.status === 'Booked' || !booking.status) {
+      if (booking.status !== 'Billed' && booking.status !== 'billed') {
+        unbilledAwbCount++;
         let bookingRev = Number(booking.totalAmount) || Number(booking.freight_charge);
         if (!bookingRev && booking.chargedWeight) {
             bookingRev = Number(booking.chargedWeight) * 12.5;
@@ -133,6 +139,26 @@ const runAnalyticsAggregation = async () => {
         });
     }
 
+    // 4. Process Purchases via streaming cursor
+    const purchasesCursor = mongoDb.collection("purchases").find({}, {
+      projection: { total: 1, gst: 1, taxable: 1, paidAmount: 1, status: 1 }
+    });
+
+    for await (const p of purchasesCursor) {
+      const amt = Number(p.total) || 0;
+      const paid = Number(p.paidAmount) || 0;
+      
+      totalPurchaseBills++;
+      totalPurchaseValue += amt;
+      totalPurchaseGst += (Number(p.gst) || 0);
+
+      if (p.status && String(p.status).toLowerCase() === 'paid') {
+         // fully paid
+      } else {
+         outstandingPurchases += (amt - paid);
+      }
+    }
+
     // Compile results
     let bookingsData = Object.keys(bookingsCount).map(city => ({
       name: city,
@@ -170,6 +196,7 @@ const runAnalyticsAggregation = async () => {
       paidAmount,
       taxLiability,
       unbilledRevenue,
+      unbilledAwbCount,
       salesByClient,
       financialStatusData,
       cashFlowData,
@@ -179,6 +206,10 @@ const runAnalyticsAggregation = async () => {
       totalCashIn,
       totalCashOut,
       totalBillsAmount,
+      totalPurchaseBills,
+      totalPurchaseValue,
+      totalPurchaseGst,
+      outstandingPurchases,
       revenueData,
       bookingsData,
       topLeaders,

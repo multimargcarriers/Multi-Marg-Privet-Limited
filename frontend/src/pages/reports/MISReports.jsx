@@ -11,7 +11,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 const MISReports = () => {
   const [data, setData] = useState([]);
   const [clients, setClients] = useState([]);
-  const [filters, setFilters] = useState({ client: "", fr: "", to: "" });
+  const [filters, setFilters] = useState({ client: "", fr: "", to: "", search: "" });
   const [loading, setLoading] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,6 +63,19 @@ const MISReports = () => {
         if (filters.to) {
           bookings = bookings.filter(b => new Date(b.bookingDate) <= new Date(filters.to));
         }
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          bookings = bookings.filter(b => {
+            const awb = b.awb || b.consignment || b.lrNumber || b.lrNo || b.lr_number || b.awbNo || (b.id ? String(b.id).slice(-6) : "");
+            return (
+              (awb.toLowerCase().includes(q)) ||
+              (b.consignor || "").toLowerCase().includes(q) ||
+              (b.consignee || "").toLowerCase().includes(q) ||
+              (b.origin || "").toLowerCase().includes(q) ||
+              (b.destination || "").toLowerCase().includes(q)
+            );
+          });
+        }
         
         setData(bookings);
       }
@@ -113,8 +126,14 @@ const MISReports = () => {
 
   const stats = useMemo(() => {
     const totalBookings = data.length;
-    const totalBoxes = data.reduce((sum, item) => sum + parseInt(item.box || item.boxes || item.noOfPackages || item.packages || item.qty || 0, 10), 0);
-    const totalWeight = data.reduce((sum, item) => sum + parseFloat(item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || 0), 0);
+    const totalBoxes = data.reduce((sum, item) => {
+      const val = parseInt(item.box || item.boxes || item.noOfPackages || item.packages || item.qty || 0, 10);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+    const totalWeight = data.reduce((sum, item) => {
+      const val = parseFloat(item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || 0);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
     return { totalBookings, totalBoxes, totalWeight };
   }, [data]);
 
@@ -162,7 +181,7 @@ const MISReports = () => {
       }}>
         <div style={{ background: "linear-gradient(90deg, #d946ef 0%, #c026d3 50%, #a21caf 100%)", height: "4px", width: "100%" }} />
         <div style={{ padding: "1.5rem 1.75rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1.5rem" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client</label>
               <div style={{ background: "white", borderRadius: "8px", padding: "1px" }}>
@@ -193,9 +212,19 @@ const MISReports = () => {
                 style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
               />
             </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Search Keyword</label>
+              <input 
+                type="text" 
+                placeholder="Search AWB, Origin, Dest..."
+                value={filters.search} 
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
+          <div className="responsive-btn-group" style={{ marginTop: "1.5rem" }}>
             <button 
               type="button" 
               onClick={handleExport}

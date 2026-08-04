@@ -6,7 +6,7 @@ import {
   Plus, 
   FileText, 
   CheckCircle, 
-  Trash2, 
+  Trash2, Edit3, 
   AlertCircle, 
   Eye, 
   X,
@@ -26,6 +26,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -37,8 +39,18 @@ const CashSheet = () => {
 
   // Data states
   const [entries, setEntries] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [vendors, setVendors] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
+
+  // QuickAdd Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState("");
+  const [modalInitialName, setModalInitialName] = useState("");
 
   // Modal / Add Form states
   const [isAdding, setIsAdding] = useState(false);
@@ -50,6 +62,8 @@ const CashSheet = () => {
     amount: "",
     date: new Date().toISOString().slice(0, 10),
     type: "in",
+    partyType: "Other",
+    partyName: "",
     remarks: ""
   });
 
@@ -67,10 +81,16 @@ const CashSheet = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/cash`);
-      if (res.data.success) {
-        setEntries(res.data.data || []);
-      }
+      const [cashRes, clientRes, vendorRes, empRes] = await Promise.all([
+        axios.get(`${API}/cash`),
+        axios.get(`${API}/clients`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API}/vendors`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API}/employees`).catch(() => ({ data: { data: [] } }))
+      ]);
+      if (cashRes.data.success) setEntries(cashRes.data.data || []);
+      setClients(clientRes.data.data || []);
+      setVendors(vendorRes.data.data || []);
+      setEmployees(empRes.data.data || []);
     } catch (err) { 
       console.error("Fetch cash error", err); 
     } finally {
@@ -82,6 +102,25 @@ const CashSheet = () => {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
+  };
+
+  const handleCreateNew = (type, name) => {
+    setModalType(type);
+    setModalInitialName(name);
+    setModalOpen(true);
+  };
+
+  const handleModalSave = (data) => {
+    if (modalType === "client") {
+      setClients([...clients, data]);
+      setFormData({ ...formData, partyName: data.name || data.client });
+    } else if (modalType === "vendor") {
+      setVendors([...vendors, data]);
+      setFormData({ ...formData, partyName: data.name || data.vendor });
+    } else if (modalType === "employee") {
+      setEmployees([...employees, data]);
+      setFormData({ ...formData, partyName: data.name || data.employee });
+    }
   };
 
   const handleChange = (e) => {
@@ -142,6 +181,10 @@ const CashSheet = () => {
       alertDialog({ title: "Invalid Amount", message: "Please enter a valid positive amount." });
       return;
     }
+    if (!formData.partyName) {
+      alertDialog({ title: "Name Required", message: "Please enter or select a name for this transaction." });
+      return;
+    }
 
     setUploading(true);
     try {
@@ -149,25 +192,35 @@ const CashSheet = () => {
         amount: parseFloat(formData.amount),
         date: formData.date,
         type: formData.type,
+        partyType: formData.partyType,
+        partyName: formData.partyName?.name || formData.partyName,
         remarks: formData.remarks,
         fileName: selectedFile ? selectedFile.name : null,
         fileData: selectedFile ? selectedFile.dataUrl : null,
       };
 
-      const res = await axios.post(`${API}/cash`, payload);
-      if (res.data.success) {
-        await fetchData();
-        // Reset form
-        setFormData({
-          amount: "",
-          date: new Date().toISOString().slice(0, 10),
-          type: "in",
-          remarks: ""
-        });
-        setSelectedFile(null);
-        setIsAdding(false);
+      if (editMode && editId) {
+        const res = await axios.put(`${API}/cash/${editId}`, payload);
+        if (res.data.success) {
+          await fetchData();
+          setFormData({ amount: "", date: new Date().toISOString().slice(0, 10), type: "in", partyType: "Other", partyName: "", remarks: "" });
+          setSelectedFile(null);
+          setIsAdding(false);
+          setEditMode(false);
+          setEditId(null);
+        } else {
+          alertDialog({ title: "Error", message: res.data.message || "Failed to update entry." });
+        }
       } else {
-        alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
+        const res = await axios.post(`${API}/cash`, payload);
+        if (res.data.success) {
+          await fetchData();
+          setFormData({ amount: "", date: new Date().toISOString().slice(0, 10), type: "in", partyType: "Other", partyName: "", remarks: "" });
+          setSelectedFile(null);
+          setIsAdding(false);
+        } else {
+          alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
+        }
       }
     } catch (err) {
       console.error("Save cash entry error", err);
@@ -175,6 +228,30 @@ const CashSheet = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleEdit = (item) => {
+    setEditMode(true);
+    setEditId(item.id);
+    setIsAdding(true);
+    setFormData({
+      amount: item.amount || "",
+      date: item.date || new Date().toISOString().slice(0, 10),
+      type: item.type || "in",
+      partyType: item.partyType || "Other",
+      partyName: item.partyName || "",
+      remarks: item.remarks || ""
+    });
+    if (item.cloudinaryUrl || item.voucherUrl || item.fileName) {
+      setSelectedFile({
+        name: "Existing Voucher",
+        type: "image",
+        dataUrl: item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API}/uploads/${item.fileName}` : null)
+      });
+    } else {
+      setSelectedFile(null);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -435,6 +512,50 @@ const CashSheet = () => {
                       </div>
                     </div>
 
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Party Type</label>
+                        <select
+                          name="partyType"
+                          value={formData.partyType}
+                          onChange={(e) => setFormData({...formData, partyType: e.target.value, partyName: ""})}
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}
+                        >
+                          <option value="Client">Client</option>
+                          <option value="Vendor">Vendor</option>
+                          <option value="Employee">Employee</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>
+                          {formData.partyType} Name *
+                        </label>
+                        {formData.partyType === "Other" ? (
+                          <input
+                            type="text"
+                            name="partyName"
+                            value={formData.partyName}
+                            onChange={handleChange}
+                            placeholder="Enter name..."
+                            required
+                            style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+                          />
+                        ) : (
+                          <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
+                            <CreatableDropdown 
+                              options={formData.partyType === "Client" ? clients : formData.partyType === "Vendor" ? vendors : employees} 
+                              value={formData.partyName} 
+                              onChange={(val) => setFormData({ ...formData, partyName: val })} 
+                              onCreate={(name) => handleCreateNew(formData.partyType.toLowerCase(), name)}
+                              placeholder={`-- Select ${formData.partyType} --`} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div>
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Remarks</label>
                       <input
@@ -579,11 +700,35 @@ const CashSheet = () => {
                     )}
                     
                     <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+                      {editMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditId(null);
+                            setIsAdding(false);
+                            setFormData({ amount: "", date: new Date().toISOString().slice(0, 10), type: "in", remarks: "" });
+                            setSelectedFile(null);
+                          }}
+                          style={{
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            border: "none",
+                            padding: "0.85rem 1rem",
+                            borderRadius: "10px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
                         type="submit"
-                        disabled={uploading || !formData.amount}
+                        disabled={uploading || !formData.amount || !formData.partyName}
                         style={{
-                          width: "100%",
+                          flex: 1,
                           background: formData.type === "in" ? "linear-gradient(135deg, #16a34a 0%, #15803d 100%)" : "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)",
                           color: "white",
                           border: "none",
@@ -597,11 +742,11 @@ const CashSheet = () => {
                           justifyContent: "center",
                           gap: "8px",
                           boxShadow: formData.type === "in" ? "0 4px 12px rgba(22, 163, 74, 0.25)" : "0 4px 12px rgba(239, 68, 68, 0.25)",
-                          opacity: uploading || !formData.amount ? 0.5 : 1
+                          opacity: uploading || !formData.amount || !formData.partyName ? 0.5 : 1
                         }}
                       >
                         <Plus size={18} />
-                        {uploading ? "Saving Entry..." : `Record Cash ${formData.type === "in" ? "In" : "Out"}`}
+                        {uploading ? (editMode ? "Updating..." : "Saving Entry...") : (editMode ? "Update Entry" : `Record Cash ${formData.type === "in" ? "In" : "Out"}`)}
                       </button>
                     </div>
                   </div>
@@ -648,7 +793,7 @@ const CashSheet = () => {
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["Date", "Type", "Amount", "Remarks", "Voucher", "Actions"]}
+          headers={["Date", "Type", "Amount", "Party", "Remarks", "Voucher", "Actions"]}
           data={entries}
           loading={loading}
           pagination={true}
@@ -687,6 +832,11 @@ const CashSheet = () => {
                   <div style={{ display: "flex", alignItems: "center" }}>
                     {isIncome ? "+" : "-"}<RupeeIcon size={14} /> {parseFloat(item.amount || 0).toFixed(2)}
                   </div>
+                </td>
+
+                <td style={{ padding: "1rem" }}>
+                  <div style={{ fontWeight: 600, color: "#0f172a" }}>{item.partyName || "—"}</div>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{item.partyType || "Other"}</div>
                 </td>
 
                 <td style={{ padding: "1rem", color: "#334155" }}>
@@ -734,6 +884,15 @@ const CashSheet = () => {
                     )}
                     {isSuperAdmin && (
                       <button 
+                        onClick={() => handleEdit(item)}
+                        style={{ background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", padding: "4px" }}
+                        title="Edit Entry"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                    )}
+                    {isSuperAdmin && (
+                      <button 
                         onClick={() => handleDelete(item.id)}
                         style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}
                         title="Delete Entry"
@@ -748,6 +907,15 @@ const CashSheet = () => {
           }}
         />
       </div>
+
+      {/* QUICK ADD MODAL for Dropdowns */}
+      <QuickAddModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        onSave={handleModalSave}
+        type={modalType}
+        initialName={modalInitialName}
+      />
 
       {/* STUDIO MODAL */}
       <PODImageStudioModal

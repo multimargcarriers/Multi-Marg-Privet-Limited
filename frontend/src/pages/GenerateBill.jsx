@@ -6,6 +6,7 @@ import { FileText, Search, Download, Send, CheckCircle, Loader2, Calculator } fr
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
+import { useNavigate } from "react-router-dom";
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +25,7 @@ const GenerateBill = () => {
   const { globalSettings } = useSettings();
   const { user } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -119,7 +121,7 @@ const GenerateBill = () => {
 
             if (rateValue === 0 && foundRate > 0) rateValue = foundRate;
             
-            const wt = parseFloat(b.weight_chargeable || b.weight || 0);
+            const wt = parseFloat(b.charge_wt || b.weight_chargeable || b.weight || 0);
             if (freight === 0 && foundRate > 0 && wt > 0) freight = foundRate * wt;
             if (awb === 0 && foundAwb > 0) awb = foundAwb;
             if (pickup === 0 && foundPickup > 0) pickup = foundPickup;
@@ -129,7 +131,7 @@ const GenerateBill = () => {
           return {
             ...b,
             editable_pkg: parseInt(b.package_count || b.pcs || b.packages || 1),
-            editable_wt: parseFloat(b.weight_chargeable || b.weight || 0),
+            editable_wt: parseFloat(b.charge_wt || b.weight_chargeable || b.weight || 0),
             editable_rate: rateValue,
             editable_freight: freight,
             editable_awb: awb,
@@ -191,7 +193,7 @@ const GenerateBill = () => {
         }
 
         if (foundRate > 0) rateValue = foundRate;
-        const wt = parseFloat(b.editable_wt || b.weight_chargeable || b.weight || 0);
+        const wt = parseFloat(b.editable_wt || b.charge_wt || b.weight_chargeable || b.weight || 0);
         if (foundRate > 0 && wt > 0) freight = foundRate * wt;
         if (foundAwb > 0) awb = foundAwb;
         if (foundPickup > 0) pickup = foundPickup;
@@ -258,11 +260,11 @@ const GenerateBill = () => {
         invoiceDate: filters.invoiceDate,
         gst: filters.gst
       });
-      setResult(res.data);
-      setSelected([]);
-      fetchData();
+      addToast(`Invoice ${res.data?.billNo || res.data?.data?.billNo || 'Generated'} Successfully!`, "success");
+      navigate("/bills/all");
     } catch (err) { 
       console.error("Generate bill error", err); 
+      addToast("Failed to generate bill", "error");
     }
     setGenerating(false);
   };
@@ -300,14 +302,31 @@ const GenerateBill = () => {
             <Calculator size={22} style={{ color: "#3b82f6" }} />
           </div>
           <div>
-            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
-              Generate Invoices
-            </h3>
-            <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
-              Select pending bookings and automatically generate client invoices
-            </span>
+            <h3 style={{ margin: 0, fontSize: "1.4rem", color: "#0f172a", fontWeight: 700 }}>Generate New Invoice</h3>
+            <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem", marginTop: "2px" }}>Search unbilled trips and combine them into a single invoice.</p>
           </div>
         </div>
+        
+        <button 
+          type="button"
+          onClick={() => navigate("/bills/all")}
+          style={{
+            background: "#f1f5f9",
+            color: "#475569",
+            border: "1px solid #cbd5e1",
+            padding: "0.5rem 1rem",
+            borderRadius: "8px",
+            fontWeight: 600,
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "all 0.2s"
+          }}
+        >
+          <FileText size={16} /> All Bills
+        </button>
       </div>
 
       {result && (
@@ -435,7 +454,7 @@ const GenerateBill = () => {
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Origin</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Destination</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 80 }}>Pkg</th>
-                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 100 }}>Weight</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 120 }}>Act/Chg Wt</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 100 }}>Rate</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 110 }}>Freight</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 110 }}>Awb Charge</th>
@@ -457,8 +476,11 @@ const GenerateBill = () => {
                   <td style={{ padding: "0.5rem" }}>
                     <input type="number" style={{ width: "100%", minWidth: "65px", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_pkg} onChange={(e) => handleEditableChange(item.id, "editable_pkg", e.target.value)} onClick={(e) => e.stopPropagation()} />
                   </td>
-                  <td style={{ padding: "0.5rem" }}>
-                    <input type="number" style={{ width: "100%", minWidth: "80px", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_wt} onChange={(e) => handleEditableChange(item.id, "editable_wt", e.target.value)} onClick={(e) => e.stopPropagation()} />
+                  <td style={{ padding: "0.5rem", minWidth: "100px" }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Act: {item.actual_wt || item.weight || '0'}</div>
+                      <input type="number" style={{ width: "100%", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_wt} onChange={(e) => handleEditableChange(item.id, "editable_wt", e.target.value)} onClick={(e) => e.stopPropagation()} title="Charge Weight" />
+                    </div>
                   </td>
                   <td style={{ padding: "0.5rem" }}>
                     <input type="number" style={{ width: "100%", minWidth: "80px", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_rate} onChange={(e) => handleEditableChange(item.id, "editable_rate", e.target.value)} onClick={(e) => e.stopPropagation()} />

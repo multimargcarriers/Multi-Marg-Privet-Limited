@@ -357,13 +357,13 @@ const PrintLR = () => {
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>CONSIGNOR</td>
                   <td className="data-cell" style={{ width: "55%" }}>{booking.consignor?.toUpperCase()}</td>
                   <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>GSTIN</td>
-                  <td className="data-cell" style={{ width: "20%" }}>{booking.consignorGst || "NA"}</td>
+                  <td className="data-cell" style={{ width: "20%" }}>{booking.consignorGst ? String(booking.consignorGst).toUpperCase() : "NA"}</td>
                 </tr>
                 <tr>
                   <td className="gray-cell" style={{ textAlign: "center" }}>CONSIGNEE</td>
                   <td className="data-cell">{booking.consignee?.toUpperCase()}</td>
                   <td className="gray-cell" style={{ textAlign: "center" }}>GSTIN</td>
-                  <td className="data-cell">{booking.consigneeGst || "NA"}</td>
+                  <td className="data-cell">{booking.consigneeGst ? String(booking.consigneeGst).toUpperCase() : "NA"}</td>
                 </tr>
                 <tr>
                   <td className="gray-cell" style={{ textAlign: "center" }}>BILL TO</td>

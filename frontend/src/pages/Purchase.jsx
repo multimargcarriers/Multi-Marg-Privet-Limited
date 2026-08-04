@@ -6,7 +6,7 @@ import {
   Plus, 
   FileText, 
   CheckCircle, 
-  Trash2, 
+  Trash2, Edit3, 
   Eye, 
   X,
   Calendar, 
@@ -42,6 +42,13 @@ const Purchase = () => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
+
+  // Pay Bill State
+  const [payBillOpen, setPayBillOpen] = useState(false);
+  const [payBillData, setPayBillData] = useState(null);
+  const [payingBill, setPayingBill] = useState(false);
 
   // Modal / Add Form states
   const [isAdding, setIsAdding] = useState(false);
@@ -204,23 +211,28 @@ const Purchase = () => {
         fileData: selectedFile ? selectedFile.dataUrl : null,
       };
 
-      const res = await axios.post(`${API}/purchases`, payload);
-      if (res.data.success) {
-        await fetchData();
-        // Reset form
-        setFormData({
-          vendor: "",
-          billNo: "",
-          date: new Date().toISOString().slice(0, 10),
-          taxable: "",
-          gstSlab: "0",
-          gst: "",
-          total: ""
-        });
-        setSelectedFile(null);
-        setIsAdding(false);
+      if (editMode && editId) {
+        const res = await axios.put(`${API}/purchases/${editId}`, payload);
+        if (res.data.success) {
+          await fetchData();
+          setFormData({ vendor: "", billNo: "", date: new Date().toISOString().slice(0, 10), taxable: "", gstSlab: "0", gst: "", total: "" });
+          setSelectedFile(null);
+          setIsAdding(false);
+          setEditMode(false);
+          setEditId(null);
+        } else {
+          alertDialog({ title: "Error", message: res.data.message || "Failed to update entry." });
+        }
       } else {
-        alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
+        const res = await axios.post(`${API}/purchases`, payload);
+        if (res.data.success) {
+          await fetchData();
+          setFormData({ vendor: "", billNo: "", date: new Date().toISOString().slice(0, 10), taxable: "", gstSlab: "0", gst: "", total: "" });
+          setSelectedFile(null);
+          setIsAdding(false);
+        } else {
+          alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
+        }
       }
     } catch (err) {
       console.error("Save purchase entry error", err);
@@ -228,6 +240,39 @@ const Purchase = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleEdit = (item) => {
+    setEditMode(true);
+    setEditId(item.id);
+    setIsAdding(true);
+    let slab = "custom";
+    if (item.taxable > 0 && item.gst >= 0) {
+      const percentage = (item.gst / item.taxable) * 100;
+      if ([0, 5, 12, 18, 28].includes(Math.round(percentage))) {
+        slab = Math.round(percentage).toString();
+      }
+    }
+    
+    setFormData({
+      vendor: item.vendor || "",
+      billNo: item.billNo || "",
+      date: item.date ? item.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      taxable: item.taxable || "",
+      gstSlab: slab,
+      gst: item.gst || "",
+      total: item.total || ""
+    });
+    if (item.cloudinaryUrl || item.voucherUrl || item.fileName) {
+      setSelectedFile({
+        name: "Existing Voucher",
+        type: "image",
+        dataUrl: item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API}/uploads/${item.fileName}` : null)
+      });
+    } else {
+      setSelectedFile(null);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -248,11 +293,55 @@ const Purchase = () => {
     }
   };
 
+  const handlePayBill = (item) => {
+    const balance = Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0));
+    setPayBillData({
+      purchaseId: item.id,
+      vendor: item.vendor,
+      billNo: item.billNo,
+      date: new Date().toISOString().slice(0, 10),
+      amount: balance,
+      remarks: "Entered by purchase sheet"
+    });
+    setPayBillOpen(true);
+  };
+
+  const handlePayBillSubmit = async (e) => {
+    e.preventDefault();
+    setPayingBill(true);
+    try {
+      const payload = {
+        amount: parseFloat(payBillData.amount) || 0,
+        date: payBillData.date,
+        type: "out",
+        partyType: "Vendor",
+        partyName: payBillData.vendor,
+        remarks: payBillData.remarks
+      };
+      
+      const res = await axios.post(`${API}/cash`, payload);
+      if (res.data.success) {
+        setPayBillOpen(false);
+        setPayBillData(null);
+        await fetchData();
+      } else {
+        alertDialog({ title: "Error", message: res.data.message || "Failed to process payment." });
+      }
+    } catch (err) {
+      console.error("Pay bill error", err);
+      alertDialog({ title: "Error", message: "An error occurred while processing payment." });
+    } finally {
+      setPayingBill(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const totalPurchases = purchases.length;
     const totalAmount = purchases.reduce((s, e) => s + parseFloat(e.total || 0), 0);
     const totalGst = purchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
-    return { totalPurchases, totalAmount, totalGst };
+    const totalPaid = purchases.reduce((s, e) => s + parseFloat(e.paidAmount || 0), 0);
+    const outstanding = totalAmount - totalPaid;
+    return { totalPurchases, totalAmount, totalGst, outstanding };
   }, [purchases]);
 
   return (
@@ -658,11 +747,35 @@ const Purchase = () => {
                     )}
                     
                     <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+                      {editMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditMode(false);
+                            setEditId(null);
+                            setIsAdding(false);
+                            setFormData({ vendor: "", billNo: "", date: new Date().toISOString().slice(0, 10), taxable: "", gstSlab: "0", gst: "", total: "" });
+                            setSelectedFile(null);
+                          }}
+                          style={{
+                            background: "#f1f5f9",
+                            color: "#475569",
+                            border: "none",
+                            padding: "0.85rem 1rem",
+                            borderRadius: "10px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
                         type="submit"
                         disabled={uploading || !formData.vendor || !formData.billNo}
                         style={{
-                          width: "100%",
+                          flex: 1,
                           background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
                           color: "white",
                           border: "none",
@@ -680,7 +793,7 @@ const Purchase = () => {
                         }}
                       >
                         <Plus size={18} />
-                        {uploading ? "Saving Purchase..." : "Record Purchase"}
+                        {uploading ? (editMode ? "Updating..." : "Saving Purchase...") : (editMode ? "Update Purchase" : "Record Purchase")}
                       </button>
                     </div>
                   </div>
@@ -692,7 +805,7 @@ const Purchase = () => {
       </AnimatePresence>
 
       {/* STATS CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Purchases</div>
@@ -722,12 +835,22 @@ const Purchase = () => {
           </div>
           <div style={{ background: "#fffbeb", padding: "12px", borderRadius: "12px" }}><Receipt size={24} color="#f59e0b" /></div>
         </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Outstanding</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.outstanding.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#fef2f2", padding: "12px", borderRadius: "12px" }}><DollarSign size={24} color="#ef4444" /></div>
+        </div>
       </div>
 
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["Date", "Vendor", "Bill No", "Taxable", "GST", "Total", "Bill Image", "Actions"]}
+          headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status", "Bill Image", "Actions"]}
           data={purchases}
           loading={loading}
           pagination={true}
@@ -751,14 +874,13 @@ const Purchase = () => {
                 </td>
 
                 <td style={{ padding: "1rem", color: "#475569" }}>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.taxable || 0).toFixed(2)}
-                  </div>
-                </td>
-                
-                <td style={{ padding: "1rem", color: "#f59e0b" }}>
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.gst || 0).toFixed(2)}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px" }}>
+                    <span style={{ fontSize: "0.9rem", color: "#0f172a" }}>
+                       <RupeeIcon size={12}/>{parseFloat(item.taxable || 0).toFixed(2)}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "#f59e0b", fontWeight: 600 }}>
+                       + <RupeeIcon size={10}/>{parseFloat(item.gst || 0).toFixed(2)} GST
+                    </span>
                   </div>
                 </td>
 
@@ -766,6 +888,28 @@ const Purchase = () => {
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}
                   </div>
+                </td>
+
+                <td style={{ padding: "1rem", color: "#10b981", fontWeight: 600 }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <RupeeIcon size={14} /> {parseFloat(item.paidAmount || 0).toFixed(2)}
+                  </div>
+                </td>
+
+                <td style={{ padding: "1rem", color: "#ef4444", fontWeight: 700 }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <RupeeIcon size={14} /> {Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0)).toFixed(2)}
+                  </div>
+                </td>
+
+                <td style={{ padding: "1rem" }}>
+                  {item.status === 'Paid' ? (
+                      <span style={{ background: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Paid</span>
+                  ) : item.status === 'Partial' ? (
+                      <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Partial</span>
+                  ) : (
+                      <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Unpaid</span>
+                  )}
                 </td>
 
                 <td style={{ padding: "1rem" }}>
@@ -796,6 +940,15 @@ const Purchase = () => {
 
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    {isSuperAdmin && item.status !== 'Paid' && (
+                       <button
+                         onClick={() => handlePayBill(item)}
+                         style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", color: "#6d28d9", cursor: "pointer", padding: "4px 8px", borderRadius: "6px", fontWeight: 600, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}
+                         title="Pay Bill"
+                       >
+                         <DollarSign size={12} /> Pay
+                       </button>
+                    )}
                     {fileUrl && (
                       <a
                         href={fileUrl}
@@ -806,6 +959,15 @@ const Purchase = () => {
                       >
                         <ExternalLink size={16} />
                       </a>
+                    )}
+                    {isSuperAdmin && (
+                      <button 
+                        onClick={() => handleEdit(item)}
+                        style={{ background: "transparent", border: "none", color: "#8b5cf6", cursor: "pointer", padding: "4px" }}
+                        title="Edit Entry"
+                      >
+                        <Edit3 size={16} />
+                      </button>
                     )}
                     {isSuperAdmin && (
                       <button 
@@ -841,6 +1003,55 @@ const Purchase = () => {
         initialImageSrc={studioInitialSrc}
         onSave={handleStudioSave}
       />
+
+      {/* PAY BILL MODAL */}
+      <AnimatePresence>
+        {payBillOpen && payBillData && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{ background: "white", borderRadius: "16px", padding: "2rem", width: "100%", maxWidth: "400px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+            >
+              <h3 style={{ margin: "0 0 1.5rem 0", display: "flex", alignItems: "center", gap: "8px", color: "#0f172a" }}>
+                <DollarSign size={20} color="#8b5cf6" /> Pay Vendor Bill
+              </h3>
+              
+              <form onSubmit={handlePayBillSubmit}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Vendor Name</label>
+                    <input type="text" value={payBillData.vendor} disabled style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f1f5f9", color: "#64748b", boxSizing: "border-box" }} />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Payment Date</label>
+                    <input type="date" value={payBillData.date} onChange={(e) => setPayBillData({...payBillData, date: e.target.value})} required style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Payment Amount (₹)</label>
+                    <input type="number" step="0.01" value={payBillData.amount} onChange={(e) => setPayBillData({...payBillData, amount: e.target.value})} required style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid #8b5cf6", boxSizing: "border-box", outline: "none", fontWeight: 700 }} />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Remarks</label>
+                    <input type="text" value={payBillData.remarks} onChange={(e) => setPayBillData({...payBillData, remarks: e.target.value})} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+                  <button type="button" onClick={() => setPayBillOpen(false)} style={{ background: "#f1f5f9", color: "#475569", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                  <button type="submit" disabled={payingBill} style={{ background: "#8b5cf6", color: "white", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
+                    {payingBill ? "Processing..." : "Confirm Payment"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
