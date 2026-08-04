@@ -6,7 +6,8 @@ import {
   Filter,
   AlertCircle,
   Database,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
 import axios from 'axios';
 import { useDialog } from '../context/DialogContext';
@@ -95,18 +96,80 @@ const Trash = () => {
     }
   };
 
+  const handleClearTrash = async () => {
+    if (!isSuperAdmin) {
+      addToast("Only SuperAdmin can clear all trash.", "error");
+      return;
+    }
+    
+    if (items.length === 0) {
+      addToast("Trash is already empty.", "info");
+      return;
+    }
+
+    const isConfirmed = await confirm({
+      title: "Clear All Trash",
+      message: "WARNING: This will permanently delete ALL data in the trash. This action CANNOT be undone. Are you absolutely sure you want to clear all trash?",
+      confirmText: "Clear All",
+      requireInput: "confirm"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/trash/clear`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchTrash();
+      addToast("Trash cleared successfully", "success");
+    } catch (err) {
+      console.error("Clear trash error", err);
+      addToast("Failed to clear trash.", "error");
+    }
+  };
+
   const getPreviewText = (doc) => {
     if (!doc) return "Unknown Data";
-    if (doc.name) return doc.name;
-    if (doc.lrNumber) return `LR: ${doc.lrNumber}`;
-    if (doc.billNo) return `Bill: ${doc.billNo}`;
-    if (doc.tripNo) return `Trip: ${doc.tripNo}`;
-    return doc.id || "Document";
+    const parts = [];
+    if (doc.name) parts.push(doc.name);
+    if (doc.clientName && doc.clientName !== doc.name) parts.push(`Client: ${doc.clientName}`);
+    if (doc.vendorName && doc.vendorName !== doc.name) parts.push(`Vendor: ${doc.vendorName}`);
+    if (doc.lrNumber) parts.push(`LR: ${doc.lrNumber}`);
+    if (doc.awb && doc.awb !== doc.lrNumber) parts.push(`AWB: ${doc.awb}`);
+    if (doc.billNo) parts.push(`Bill: ${doc.billNo}`);
+    if (doc.tripNo) parts.push(`Trip: ${doc.tripNo}`);
+    if (doc.invoiceNo) parts.push(`Inv: ${doc.invoiceNo}`);
+    if (doc.branchName) parts.push(`Branch: ${doc.branchName}`);
+    if (doc.origin && doc.destination) parts.push(`${doc.origin} ➔ ${doc.destination}`);
+    if (doc.email) parts.push(doc.email);
+    if (doc.phone || doc.mobile) parts.push(doc.phone || doc.mobile);
+
+    if (parts.length > 0) return parts.join(" | ");
+    
+    // Fallback: show first 2-3 meaningful string/number properties
+    const keys = Object.keys(doc).filter(k => 
+      !['_id', 'id', 'createdAt', 'updatedAt', '__v'].includes(k) && 
+      (typeof doc[k] === 'string' || typeof doc[k] === 'number')
+    );
+    if (keys.length > 0) {
+      return keys.slice(0, 3).map(k => `${k}: ${doc[k]}`).join(" | ");
+    }
+
+    return doc.id || doc._id || "Document";
   };
 
   const filteredItems = items.filter(item => {
-    const matchesSearch = getPreviewText(item.document).toLowerCase().includes(search.toLowerCase());
-    if (!matchesSearch) return false;
+    if (search && search.trim() !== '') {
+      const searchLower = search.toLowerCase().trim();
+      const matchInDoc = JSON.stringify(item.document || {}).toLowerCase().includes(searchLower);
+      const matchInMeta = JSON.stringify({
+        collection: item.originalCollection,
+        deletedBy: item.deletedBy
+      }).toLowerCase().includes(searchLower);
+      const matchInPreview = getPreviewText(item.document).toLowerCase().includes(searchLower);
+      
+      if (!matchInDoc && !matchInMeta && !matchInPreview) return false;
+    }
 
     if (startDate) {
       const itemDate = new Date(item.deletedAt);
@@ -138,47 +201,118 @@ const Trash = () => {
       </div>
 
       <div className="data-table-container">
-        {/* Toolbar */}
-        <div style={{ padding: "1.25rem", borderBottom: "1px solid #e2e8f0", display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyItems: "space-between" }}>
-          
-          <div className="search-wrapper" style={{ flex: "1 1 300px", position: "relative" }}>
-            <Search style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", width: "18px", height: "18px" }} />
+        {/* Professional Full-Width Grid Toolbar */}
+        <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e2e8f0", backgroundColor: "#fff" }}>
+          {/* Top Row: Full-width modern Search Bar */}
+          <div style={{ position: "relative", width: "100%", marginBottom: "1rem" }}>
+            <Search style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#64748b", width: "18px", height: "18px" }} />
             <input
               type="text"
-              placeholder="Search deleted items..."
+              placeholder="Search by name, LR number, bill no, city, amount, or deleted by..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: "100%", padding: "0.5rem 1rem 0.5rem 2.2rem", border: "1px solid #cbd5e1", borderRadius: "6px", outline: "none", fontSize: "0.9rem" }}
+              style={{
+                width: "100%",
+                padding: "0.75rem 2.5rem 0.75rem 2.5rem",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                outline: "none",
+                fontSize: "0.95rem",
+                color: "#1e293b",
+                backgroundColor: "#f8fafc",
+                transition: "all 0.2s",
+                boxSizing: "border-box"
+              }}
+              onFocus={(e) => {
+                e.target.style.backgroundColor = "#fff";
+                e.target.style.borderColor = "#3b82f6";
+                e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.backgroundColor = "#f8fafc";
+                e.target.style.borderColor = "#cbd5e1";
+                e.target.style.boxShadow = "none";
+              }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px"
+                }}
+                title="Clear search"
+              >
+                <X style={{ width: "16px", height: "16px" }} />
+              </button>
+            )}
           </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginLeft: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600" }}>From:</label>
+
+          {/* Bottom Row: Responsive Grid (2 to 3 items per line, taking full device width) */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "1rem",
+            alignItems: "center",
+            width: "100%"
+          }}>
+            {/* From Date */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", backgroundColor: "#f8fafc", padding: "0.55rem 1rem", borderRadius: "8px", border: "1px solid #cbd5e1", width: "100%", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <Calendar style={{ color: "#64748b", width: "16px", height: "16px" }} />
+                <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>From:</label>
+              </div>
               <input 
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                style={{ padding: "0.4rem 0.8rem", border: "1px solid #cbd5e1", borderRadius: "6px", outline: "none", fontSize: "0.9rem", color: "#475569" }}
+                style={{ border: "none", backgroundColor: "transparent", outline: "none", fontSize: "0.88rem", color: "#1e293b", fontWeight: "600", cursor: "pointer" }}
               />
             </div>
             
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600" }}>To:</label>
+            {/* To Date */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", backgroundColor: "#f8fafc", padding: "0.55rem 1rem", borderRadius: "8px", border: "1px solid #cbd5e1", width: "100%", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <Calendar style={{ color: "#64748b", width: "16px", height: "16px" }} />
+                <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600", whiteSpace: "nowrap" }}>To:</label>
+              </div>
               <input 
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                style={{ padding: "0.4rem 0.8rem", border: "1px solid #cbd5e1", borderRadius: "6px", outline: "none", fontSize: "0.9rem", color: "#475569" }}
+                style={{ border: "none", backgroundColor: "transparent", outline: "none", fontSize: "0.88rem", color: "#1e293b", fontWeight: "600", cursor: "pointer" }}
               />
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Filter style={{ color: "#94a3b8", width: "18px", height: "18px" }} />
+            {/* Collection Filter */}
+            <div style={{ position: "relative", width: "100%", boxSizing: "border-box" }}>
+              <Filter style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#64748b", width: "16px", height: "16px", pointerEvents: "none" }} />
               <select
                 value={collectionFilter}
                 onChange={(e) => setCollectionFilter(e.target.value)}
-                style={{ padding: "0.45rem 1rem", border: "1px solid #cbd5e1", borderRadius: "6px", backgroundColor: "#fff", fontSize: "0.9rem", outline: "none", color: "#475569", minWidth: "150px" }}
+                style={{
+                  width: "100%",
+                  padding: "0.6rem 1rem 0.6rem 2.5rem",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  backgroundColor: "#f8fafc",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  outline: "none",
+                  color: "#1e293b",
+                  cursor: "pointer",
+                  boxSizing: "border-box"
+                }}
               >
                 <option value="">All Collections</option>
                 <option value="clients">Clients</option>
@@ -190,6 +324,40 @@ const Trash = () => {
                 <option value="rates">Rates</option>
               </select>
             </div>
+
+            {/* Clear All Button */}
+            {isSuperAdmin && items.length > 0 && (
+              <button
+                onClick={handleClearTrash}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  padding: "0.6rem 1.25rem",
+                  backgroundColor: "#ef4444",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "0.9rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  boxShadow: "0 4px 6px -1px rgba(239, 68, 68, 0.25), 0 2px 4px -1px rgba(239, 68, 68, 0.15)",
+                  width: "100%",
+                  boxSizing: "border-box"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#dc2626";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "#ef4444";
+                }}
+              >
+                <Trash2 style={{ width: "18px", height: "18px" }} />
+                Clear All Trash
+              </button>
+            )}
           </div>
         </div>
 
