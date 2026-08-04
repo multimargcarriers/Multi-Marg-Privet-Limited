@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 
-const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, onConfirm, onCancel }) => {
+const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requireInput, onConfirm, onCancel }) => {
   const [show, setShow] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setShow(true);
+      setInputValue('');
     } else {
       const timer = setTimeout(() => setShow(false), 300); // match transition duration
       return () => clearTimeout(timer);
@@ -13,6 +15,8 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, onConf
   }, [isOpen]);
 
   if (!show && !isOpen) return null;
+
+  const isConfirmDisabled = requireInput && inputValue.trim() !== requireInput;
 
   return (
     <div
@@ -60,6 +64,31 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, onConf
           <p style={{ margin: 0, color: '#4b5563', fontSize: '1rem', lineHeight: 1.5 }}>
             {message}
           </p>
+
+          {requireInput && (
+            <div style={{ marginTop: '20px', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>
+                Please type <strong>{requireInput}</strong> to confirm:
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={`Type "${requireInput}"`}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+              />
+            </div>
+          )}
         </div>
         <div style={{ 
           display: 'flex', 
@@ -88,21 +117,23 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, onConf
           </button>
           <button
             onClick={onConfirm}
+            disabled={isConfirmDisabled}
             style={{
               flex: 1,
               padding: '10px 16px',
               borderRadius: '8px',
               border: 'none',
-              background: '#ef4444',
+              background: isConfirmDisabled ? '#fca5a5' : '#ef4444',
               color: '#ffffff',
               fontSize: '1rem',
               fontWeight: 500,
-              cursor: 'pointer',
+              cursor: isConfirmDisabled ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
+              boxShadow: isConfirmDisabled ? 'none' : '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
+              opacity: isConfirmDisabled ? 0.7 : 1
             }}
-            onMouseOver={(e) => e.target.style.background = '#dc2626'}
-            onMouseOut={(e) => e.target.style.background = '#ef4444'}
+            onMouseOver={(e) => !isConfirmDisabled && (e.target.style.background = '#dc2626')}
+            onMouseOut={(e) => !isConfirmDisabled && (e.target.style.background = '#ef4444')}
           >
             {confirmText}
           </button>

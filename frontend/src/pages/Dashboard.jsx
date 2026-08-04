@@ -5,6 +5,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { formatDate } from '../utils/formatters';
 import RupeeIcon from '../components/RupeeIcon';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const StatCard = ({ title, value, icon, subtitle, trend }) => (
   <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -30,6 +32,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const { user } = useAuth();
+  const { addToast } = useToast();
 
   const fetchStats = async () => {
     try {
@@ -57,7 +61,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error syncing stats:', error);
-      alert('Failed to sync analytics. Please try again.');
+      addToast('Failed to sync analytics. Please try again.', "error");
     } finally {
       setSyncing(false);
     }

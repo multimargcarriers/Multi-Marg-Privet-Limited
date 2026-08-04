@@ -157,7 +157,7 @@ const EmployeeActivity = () => {
   });
 
   return (
-    <div className="fade-in" style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="fade-in" style={{ padding: '2rem', width: "100%", margin: '0 auto' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
         <div>

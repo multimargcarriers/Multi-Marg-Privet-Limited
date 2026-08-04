@@ -70,7 +70,7 @@ exports.delete_id_4 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("vendorOutstanding").doc(id).get();
   if (!doc.exists) return error(res, "Vendor outstanding entry not found", 404);
-  await db.collection("vendorOutstanding").doc(id).delete();
+  await db.collection("vendorOutstanding").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Vendor outstanding entry deleted successfully");
 };

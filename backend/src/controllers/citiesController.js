@@ -94,7 +94,7 @@ exports.delete_id_4 = async (req, res) => {
     message: "City not found",
     statusCode: 404
   });
-  await db.collection("cities").doc(id).delete();
+  await db.collection("cities").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, {
     message: "City deleted successfully"

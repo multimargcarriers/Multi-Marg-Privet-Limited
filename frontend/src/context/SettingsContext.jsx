@@ -4,6 +4,10 @@ import { AuthContext } from './AuthContext';
 
 export const SettingsContext = createContext();
 
+export const useSettings = () => {
+  return useContext(SettingsContext);
+};
+
 export const SettingsProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
   

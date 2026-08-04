@@ -196,9 +196,22 @@ class DocumentReference {
     }
   }
 
-  async delete() {
+  async delete(user = null) {
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
+
+      // Backup to trash before deleting
+      const doc = await this.mongoDb.collection(this.colName).findOne({ $or: [{ _id: this.id }, { id: this.id }] });
+      if (doc && this.colName !== 'trash' && this.colName !== 'systemLogs') {
+        await this.mongoDb.collection('trash').insertOne({
+          originalCollection: this.colName,
+          document: doc,
+          deletedAt: new Date(),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days TTL
+          deletedBy: user ? { id: user.id, name: user.name, role: user.role } : null
+        });
+      }
+
       await this.mongoDb.collection(this.colName).deleteOne({ $or: [{ _id: this.id }, { id: this.id }] });
     } catch (error) {
       console.error(`[MongoDB] Error on doc delete for ${this.colName}/${this.id}:`, error.message);

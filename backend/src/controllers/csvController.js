@@ -71,6 +71,14 @@ function toCSV(headers, rows, module) {
         }
         
         const val = row[dbKey] !== undefined && row[dbKey] !== null ? String(row[dbKey]) : "";
+        
+        // Protect large numeric strings (like e-way bills) and specific fields from being converted 
+        // into scientific notation (e.g. 5.65E+11) when opened in Excel
+        if (dbKey === 'eway' || dbKey === 'ewayBill' || dbKey === 'invoice' || dbKey === 'part' || dbKey === 'awb' || /^\d{10,}$/.test(val)) {
+          // Use Excel's formula syntax to force text formatting
+          return `="${val}"`;
+        }
+        
         return val.includes(",") ? `"${val}"` : val;
       })
       .join(",")
@@ -120,6 +128,56 @@ exports.exportCSV = async (req, res) => {
   } catch (err) {
     console.error(`Error exporting ${req.params.module}:`, err);
     return error(res, err);
+  }
+};
+
+exports.fixScientific = async (req, res) => {
+  try {
+    const dbCollection = db.collection('bookings');
+    const snapshot = await dbCollection.get();
+    let updated = 0;
+
+    const updates = [];
+    snapshot.forEach(doc => {
+      const b = doc.data();
+      let changed = false;
+
+      if (b.parcels && Array.isArray(b.parcels)) {
+        b.parcels.forEach(p => {
+          ['eway', 'ewayBill', 'invoice', 'invoiceNo', 'part', 'partNo', 'awb'].forEach(key => {
+            if (p[key] && typeof p[key] === 'string' && /^\d+(\.\d+)?e\+\d+$/i.test(p[key])) {
+              p[key] = Number(p[key]).toLocaleString('fullwide', { useGrouping: false });
+              changed = true;
+            }
+          });
+        });
+      }
+
+      if (b.invoiceDetails && Array.isArray(b.invoiceDetails)) {
+        b.invoiceDetails.forEach(inv => {
+          ['eway', 'ewayBill', 'invoice', 'invoiceNo', 'part', 'partNo', 'awb'].forEach(key => {
+            if (inv[key] && typeof inv[key] === 'string' && /^\d+(\.\d+)?e\+\d+$/i.test(inv[key])) {
+              inv[key] = Number(inv[key]).toLocaleString('fullwide', { useGrouping: false });
+              changed = true;
+            }
+          });
+        });
+      }
+
+      if (changed) {
+        updates.push({ id: b.id || doc.id, parcels: b.parcels, invoiceDetails: b.invoiceDetails });
+      }
+    });
+
+    for (let u of updates) {
+      await dbCollection.doc(u.id).update({ parcels: u.parcels, invoiceDetails: u.invoiceDetails });
+      updated++;
+    }
+
+    res.json({ success: true, updated });
+  } catch (err) {
+    console.error("Fix scientific error:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -188,6 +246,9 @@ exports.importCSV = async (req, res) => {
           for (const key of expectedHeaders) {
             const actualKey = Object.keys(data).find(k => k.trim().toLowerCase() === key);
             let val = actualKey && data[actualKey] ? String(data[actualKey]).trim() : "";
+            
+            // Strip Excel formula string formatting if present (e.g. ="1234")
+            val = val.replace(/^="|"$/g, '');
             
             if (module === 'branches') {
                let dbKey = key;

@@ -6,6 +6,9 @@ const csvController = require("../controllers/csvController");
 
 const csvUpload = createUploadMiddleware("csv", { maxFileSize: 50 * 1024 * 1024, strictTypes: false });
 
+// Fix Scientific Notation Migration Script
+router.get("/fix-scientific", csvController.fixScientific);
+
 router.use(requirePermission(["masters", "operations"]));
 
 // GET export CSV

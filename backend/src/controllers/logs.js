@@ -33,7 +33,7 @@ exports.getSystemLogs = async (req, res, next) => {
 exports.deleteLog = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await db.collection("systemLogs").doc(id).delete();
+    await db.collection("systemLogs").doc(id).delete(req.user);
     
     res.status(200).json({
       success: true,
@@ -59,7 +59,7 @@ exports.deleteLogsByDate = async (req, res, next) => {
     
     let count = 0;
     for (const doc of snapshot.docs) {
-      await db.collection("systemLogs").doc(doc.id).delete();
+      await db.collection("systemLogs").doc(doc.id).delete(req.user);
       count++;
     }
     

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Printer, Cloud, Download, CheckSquare, Square, Building2, ShieldCheck } from "lucide-react";
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
+import { useToast } from "../context/ToastContext";
 import html2pdf from "html2pdf.js";
 
 // Indian Currency Number to Words converter
@@ -69,6 +70,7 @@ const numberToWordsIndian = (num) => {
 const BillView1 = () => {
   const { id } = useParams();
   const { globalSettings } = useContext(SettingsContext);
+  const { addToast } = useToast();
   const [bill, setBill] = useState(null);
   const [uploading, setUploading] = useState(false);
   
@@ -123,13 +125,17 @@ const BillView1 = () => {
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}/upload-pdf`);
       if (res.data.success) {
-        alert("PDF successfully saved to Cloudinary! URL: " + res.data.data.url);
+        addToast("PDF saved to Cloudinary successfully!", "success");
         setBill({ ...bill, pdfUrl: res.data.data.url });
+      } else {
+        addToast("Failed to upload PDF", "error");
       }
     } catch (err) {
-      alert("Failed to upload PDF");
+      console.error(err);
+      addToast("Failed to upload PDF", "error");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleDownloadLocalPDF = () => {

@@ -138,9 +138,10 @@ const Clients = () => {
   const handleDeleteAll = async () => {
     const isConfirmed = await confirm({
       title: "Delete All Clients",
-      message: "Are you absolutely sure you want to delete ALL clients? This action is irreversible and all client data will be permanently wiped.",
+      message: "Are you absolutely sure you want to delete ALL clients? This action is irreversible and all client data will be moved to Trash.",
       confirmText: "Yes, Delete All",
-      cancelText: "Cancel"
+      cancelText: "Cancel",
+      requireInput: "confirm"
     });
     if (!isConfirmed) return;
     

@@ -6,6 +6,9 @@ import { FileText, Search, Download, Send, CheckCircle, Loader2 } from "lucide-r
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
+import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -18,6 +21,9 @@ const GenerateBill = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
+  const { globalSettings } = useSettings();
+  const { user } = useAuth();
+  const { addToast } = useToast();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -226,9 +232,9 @@ const GenerateBill = () => {
 
   const handleGenerate = async () => {
     if (selected.length === 0) return;
-    if (!filters.invoiceNo) { alert("Please enter an Invoice No before generating."); return; }
-    if (!filters.invoiceDate) { alert("Please select an Invoice Date before generating."); return; }
-    if (!filters.gst) { alert("Please select if GST is applicable before generating."); return; }
+    if (!filters.invoiceNo) { addToast("Please enter an Invoice No before generating.", "warning"); return; }
+    if (!filters.invoiceDate) { addToast("Please select an Invoice Date before generating.", "warning"); return; }
+    if (!filters.gst) { addToast("Please select if GST is applicable before generating.", "warning"); return; }
     
     setGenerating(true);
     try {

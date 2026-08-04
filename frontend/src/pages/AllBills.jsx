@@ -6,12 +6,14 @@ import { Eye, FileText, Search, Download, Trash2, Edit3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useToast } from "../context/ToastContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
+  const { addToast } = useToast();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
   const [bills, setBills] = useState([]);
@@ -39,8 +41,10 @@ const AllBills = () => {
     setBills(prev => prev.filter(b => b.id !== id));
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`);
+      addToast("Bill deleted successfully", "success");
     } catch (err) {
       console.error("Delete bill error", err);
+      addToast("Failed to delete bill", "error");
       fetchBills();
     }
   };
@@ -49,9 +53,10 @@ const AllBills = () => {
     try {
       await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`, { status: newStatus });
       setBills(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
+      addToast("Status updated successfully", "success");
     } catch (err) {
       console.error("Update status error", err);
-      alert("Failed to update status");
+      addToast("Failed to update status", "error");
     }
   };
 

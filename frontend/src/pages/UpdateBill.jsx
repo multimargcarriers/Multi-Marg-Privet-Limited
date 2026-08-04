@@ -4,6 +4,7 @@ import { Search, Save, RefreshCw, Layers, Edit3, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -13,6 +14,7 @@ const UpdateBill = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [saving, setSaving] = useState(false);
   const [searchParams] = useSearchParams();
+  const { addToast } = useToast();
   const billIdFromUrl = searchParams.get("id");
 
   // Form State
@@ -198,12 +200,12 @@ const UpdateBill = () => {
 
     try {
       await axios.put(`${API}/bills/${selectedBill.id}`, payload);
-      alert("Invoice updated successfully!");
+      addToast("Invoice updated successfully!", "success");
       setSelectedBill(null);
       fetchBills();
     } catch (err) {
       console.error("Update bill error", err);
-      alert("Failed to update invoice");
+      addToast("Failed to update invoice", "error");
     } finally {
       setSaving(false);
     }

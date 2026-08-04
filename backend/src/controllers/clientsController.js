@@ -78,7 +78,7 @@ exports.delete_id_4 = async (req, res) => {
     message: "Client not found",
     statusCode: 404
   });
-  await db.collection("clients").doc(id).delete();
+  await db.collection("clients").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, {
     message: "Client deleted successfully"
@@ -87,16 +87,38 @@ exports.delete_id_4 = async (req, res) => {
 
 exports.deleteAll = async (req, res) => {
   try {
+    const clients = await db.mongoDb.collection("clients").find({}).toArray();
+    if (clients.length > 0) {
+      const trashDocs = clients.map(doc => ({
+        originalCollection: "clients",
+        document: doc,
+        deletedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        deletedBy: req.user ? { id: req.user.id, name: req.user.name, role: req.user.role } : null
+      }));
+      await db.mongoDb.collection("trash").insertMany(trashDocs);
+    }
+    
     await db.mongoDb.collection("clients").deleteMany({});
-    await delCache(CACHE_KEY);
-    return success(res, {
-      message: "All clients deleted successfully"
-    });
-  } catch (err) {
-    console.error("Error deleting all clients:", err);
-    return error(res, {
-      message: "Failed to delete all clients",
-      statusCode: 500
-    });
+    
+    // Attempt cache delete but don't fail if it doesn't exist
+    try {
+      if (typeof delCache !== 'undefined' && typeof CACHE_KEY !== 'undefined') {
+        await delCache(CACHE_KEY);
+      }
+    } catch(e) {}
+
+    if (typeof success !== 'undefined') {
+      return success(res, { message: "All clients moved to Trash" });
+    } else {
+      return res.status(200).json({ success: true, message: "All clients moved to Trash" });
+    }
+  } catch (error) {
+    console.error("Error in deleteAll clients:", error);
+    if (typeof error !== 'undefined' && typeof error === 'function') {
+      return error(res, { message: "Failed to delete all clients", statusCode: 500 });
+    } else {
+      return res.status(500).json({ success: false, message: "Failed to delete all clients", error: error.message });
+    }
   }
 };

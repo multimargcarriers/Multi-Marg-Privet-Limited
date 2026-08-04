@@ -109,7 +109,8 @@ const Branches = () => {
       title: "Delete ALL Branches",
       message: "WARNING: This will permanently delete ALL branches from the database. This action CANNOT be undone. Are you absolutely sure?",
       confirmText: "DELETE ALL",
-      cancelText: "Cancel"
+      cancelText: "Cancel",
+      requireInput: "confirm"
     });
     if (!isConfirmed) return;
 

@@ -101,7 +101,7 @@ exports.delete_id_4 = async (req, res) => {
     return error(res, "You are not authorized to delete this entry.", 403);
   }
 
-  await db.collection("vendor_mis").doc(id).delete();
+  await db.collection("vendor_mis").doc(id).delete(req.user);
 
   return success(res, "Vendor MIS deleted successfully");
 };

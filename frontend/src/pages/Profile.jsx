@@ -316,7 +316,7 @@ const Profile = () => {
       
       {/* Microsoft/LinkedIn-style Hero Banner */}
       <div style={{ height: '220px', background: getBannerUrl() ? `url(${getBannerUrl()}) center/cover no-repeat` : 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', height: '100%', position: 'relative' }}>
+        <div style={{ width: "100%", margin: '0 auto', height: '100%', position: 'relative' }}>
           {/* Decorative Elements (only if no banner image) */}
           {!getBannerUrl() && <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>}
           

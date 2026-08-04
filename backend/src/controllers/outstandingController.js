@@ -70,7 +70,7 @@ exports.delete_id_4 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("outstanding").doc(id).get();
   if (!doc.exists) return error(res, "Outstanding entry not found", 404);
-  await db.collection("outstanding").doc(id).delete();
+  await db.collection("outstanding").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Outstanding entry deleted successfully");
 };

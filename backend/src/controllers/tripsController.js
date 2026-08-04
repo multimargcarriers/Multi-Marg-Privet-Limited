@@ -78,7 +78,7 @@ exports.delete_id_4 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("trips").doc(id).get();
   if (!doc.exists) return error(res, "Trip not found", 404);
-  await db.collection("trips").doc(id).delete();
+  await db.collection("trips").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Trip deleted successfully");
 };

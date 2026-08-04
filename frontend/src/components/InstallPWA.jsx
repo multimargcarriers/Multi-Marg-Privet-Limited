@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Share, PlusSquare, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     // Check if the app is already installed/running in standalone mode
@@ -40,6 +42,16 @@ const InstallPWA = () => {
     };
   }, []);
 
+  // Auto-hide the prompt after 7 seconds whenever it is shown
+  useEffect(() => {
+    if (showInstallPrompt) {
+      const timer = setTimeout(() => {
+        setShowInstallPrompt(false);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [showInstallPrompt]);
+
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     
@@ -55,6 +67,9 @@ const InstallPWA = () => {
   const closePrompt = () => {
     setShowInstallPrompt(false);
   };
+
+  // Only show on the login page (root path)
+  if (location.pathname !== '/') return null;
 
   if (isStandalone || !showInstallPrompt) return null;
 
@@ -79,12 +94,18 @@ const InstallPWA = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            background: '#eff6ff',
-            padding: '10px',
+            background: '#ffffff',
+            padding: '6px',
             borderRadius: '12px',
-            color: '#2563eb'
+            border: '1px solid #f1f5f9',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '48px',
+            height: '48px'
           }}>
-            <Download size={24} />
+            <img src="/mc.png" alt="Multimarg Carriers" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>Install App</h4>

@@ -80,6 +80,7 @@ const SystemLogs = () => {
       message: isClearAll 
         ? "WARNING: This will permanently delete ALL system logs from the database. Are you absolutely sure you want to proceed?"
         : "Are you sure you want to delete all logs matching the selected criteria? This action cannot be undone.",
+      requireInput: isClearAll ? "confirm" : null,
       onConfirm: () => executeBulkDelete(isClearAll, payload)
     });
   };

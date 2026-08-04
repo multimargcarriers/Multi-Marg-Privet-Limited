@@ -669,7 +669,7 @@ exports.verify_otp = async (req, res) => {
     }
 
     if (new Date(otpData.expiresAt) < new Date()) {
-      await db.collection('otps').doc(targetEmail).delete();
+      await db.collection('otps').doc(targetEmail).delete(req.user);
       return res.status(400).json({ success: false, message: 'OTP has expired' });
     }
 
@@ -723,7 +723,7 @@ exports.reset_password = async (req, res) => {
     }
 
     if (new Date(otpData.expiresAt) < new Date()) {
-      await db.collection('otps').doc(targetEmail).delete();
+      await db.collection('otps').doc(targetEmail).delete(req.user);
       return res.status(400).json({ success: false, message: 'Session expired, please try again' });
     }
 
@@ -737,7 +737,7 @@ exports.reset_password = async (req, res) => {
     });
 
     // Clean up OTP document
-    await db.collection('otps').doc(targetEmail).delete();
+    await db.collection('otps').doc(targetEmail).delete(req.user);
 
     return res.status(200).json({ success: true, message: 'Password updated successfully' });
   } catch (err) {

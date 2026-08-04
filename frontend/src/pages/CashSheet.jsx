@@ -107,7 +107,7 @@ const CashSheet = () => {
   const netBalance = totalIncome - totalExpense;
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+    <div style={{ width: "100%", margin: "0 auto" }}>
       <div style={{ marginBottom: "2rem" }}>
         <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
           Cash sheet

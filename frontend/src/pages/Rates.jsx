@@ -171,9 +171,10 @@ const Rates = () => {
   const handleDeleteAll = async () => {
     const isConfirmed = await confirm({
       title: "Delete All Rates",
-      message: "Are you absolutely sure you want to delete ALL rates? This action is irreversible.",
+      message: "Are you absolutely sure you want to delete ALL rates? This action is irreversible and they will be moved to Trash.",
       confirmText: "Yes, Delete All",
-      cancelText: "Cancel"
+      cancelText: "Cancel",
+      requireInput: "confirm"
     });
     if (!isConfirmed) return;
     

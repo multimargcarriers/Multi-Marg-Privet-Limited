@@ -44,6 +44,7 @@ import IAM from "./pages/IAM";
 import SystemLogs from "./pages/SystemLogs";
 import Tracking from "./pages/Tracking";
 import Settings from "./pages/Settings";
+import Trash from "./pages/Trash";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -74,6 +75,7 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route element={<ProtectedRoute />}>
               <Route path="/profile" element={<Profile />} />
+              <Route path="/trash" element={<Trash />} />
             </Route>
             <Route element={<ProtectedRoute requiredPermission="dashboard" />}>
               <Route path="/dashboard" element={<Dashboard />} />

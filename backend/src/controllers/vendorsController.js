@@ -77,7 +77,7 @@ exports.delete_id_4 = async (req, res) => {
     message: "Vendor not found",
     statusCode: 404
   });
-  await db.collection("vendors").doc(id).delete();
+  await db.collection("vendors").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, {
     message: "Vendor deleted successfully"
@@ -86,6 +86,17 @@ exports.delete_id_4 = async (req, res) => {
 
 exports.deleteAll = async (req, res) => {
   try {
+    const vendors = await db.mongoDb.collection("vendors").find({}).toArray();
+    if (vendors.length > 0) {
+      const trashDocs = vendors.map(doc => ({
+        originalCollection: "vendors",
+        document: doc,
+        deletedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        deletedBy: req.user ? { id: req.user.id, name: req.user.name, role: req.user.role } : null
+      }));
+      await db.mongoDb.collection("trash").insertMany(trashDocs);
+    }
     await db.mongoDb.collection("vendors").deleteMany({});
     await delCache(CACHE_KEY);
     return success(res, {

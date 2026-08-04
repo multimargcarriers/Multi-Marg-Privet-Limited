@@ -241,6 +241,7 @@ const searchRoutes = require("./src/routes/search");
 const settingsRoutes = require("./src/routes/settings");
 const tripMisRoutes = require("./src/routes/trip-mis");
 const vendorMisRoutes = require("./src/routes/vendor-mis");
+const trashRoutes = require("./src/routes/trash");
 
 // ============================================================
 // Mount Public Routes
@@ -319,6 +320,7 @@ app.use("/api/logs", logsRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/trip-mis", tripMisRoutes);
 app.use("/api/vendor-mis", vendorMisRoutes);
+app.use("/api/trash", trashRoutes);
 
 // ============================================================
 // Error Handling
@@ -334,7 +336,7 @@ app.use(errorHandler);
 // Initialize Services & Start Server
 // ============================================================
 
-const { initMongo } = require("./src/config/database");
+const { initMongo, db } = require("./src/config/database");
 
 async function initializeServices() {
   try {
@@ -402,6 +404,20 @@ async function startServer() {
       logger.error(`[Keep-Alive] Self-ping error: ${err.message}`);
     });
   }, 14 * 60 * 1000); // Every 14 minutes
+
+  // Daily cleanup of expired trash items
+  setInterval(async () => {
+    try {
+      if (db && db.mongoDb) {
+        const result = await db.mongoDb.collection('trash').deleteMany({ expiresAt: { $lt: new Date() } });
+        if (result.deletedCount > 0) {
+          logger.info(`[Trash Cleanup] Removed ${result.deletedCount} expired items.`);
+        }
+      }
+    } catch (err) {
+      logger.error(`[Trash Cleanup Error]: ${err.message}`);
+    }
+  }, 24 * 60 * 60 * 1000); // Every 24 hours
 
   // Graceful Shutdown
   process.on("SIGTERM", () => gracefulShutdown(server));

@@ -57,7 +57,7 @@ exports.delete_id_3 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("cashEntries").doc(id).get();
   if (!doc.exists) return error(res, "Cash entry not found", 404);
-  await db.collection("cashEntries").doc(id).delete();
+  await db.collection("cashEntries").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Cash entry deleted successfully");
 };

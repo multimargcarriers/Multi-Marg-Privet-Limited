@@ -279,7 +279,7 @@ exports.post_generate_5 = async (req, res) => {
       if (billData.items) {
         // If this old pending bill has an item that is currently being merged
         if (billData.items.some(item => lrsBeingMerged.has(item.lrNo))) {
-          deletePromises.push(db.collection("bills").doc(billDoc.id).delete());
+          deletePromises.push(db.collection("bills").doc(billDoc.id).delete(req.user));
         }
       }
     });
@@ -425,7 +425,7 @@ exports.delete_id_8 = async (req, res) => {
     }
   }
 
-  await db.collection("bills").doc(id).delete();
+  await db.collection("bills").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   await delCache("bookings");
   return success(res, "Bill deleted successfully");

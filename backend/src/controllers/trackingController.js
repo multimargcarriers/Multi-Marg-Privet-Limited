@@ -70,7 +70,7 @@ exports.delete_id_4 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("tracking").doc(id).get();
   if (!doc.exists) return error(res, "Tracking entry not found", 404);
-  await db.collection("tracking").doc(id).delete();
+  await db.collection("tracking").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Tracking entry deleted successfully");
 };

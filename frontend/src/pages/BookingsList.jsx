@@ -60,7 +60,8 @@ const BookingsList = () => {
       title: "Clear ALL Bookings",
       message: "WARNING: This will permanently delete ALL bookings and their associated LR details from the database. Are you absolutely sure you want to proceed?",
       confirmText: "Yes, Delete Everything",
-      cancelText: "Cancel"
+      cancelText: "Cancel",
+      requireInput: "confirm"
     });
     if (!isConfirmed) return;
     
@@ -93,7 +94,7 @@ const BookingsList = () => {
   }, [filtered.length, totalPages, currentPage]);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '2rem' }}>
+    <div style={{ width: "100%", margin: '0 auto', paddingBottom: '2rem' }}>
       <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: '#1e293b' }}>Grouped Bookings (LR)</h3>

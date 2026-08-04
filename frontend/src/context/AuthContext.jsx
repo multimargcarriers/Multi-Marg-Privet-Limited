@@ -1,13 +1,19 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from './ToastContext';
 
 export const AuthContext = createContext();
+
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,7 +79,7 @@ export const AuthProvider = ({ children }) => {
       if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
       if (user && token) {
         logoutTimerId.current = setTimeout(() => {
-          alert("Session expired due to inactivity.");
+          addToast("Session expired due to inactivity.", "warning");
           logout();
         }, IDLE_TIMEOUT_MS);
       }

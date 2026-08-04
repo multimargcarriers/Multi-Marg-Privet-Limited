@@ -57,7 +57,7 @@ exports.delete_id_3 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("purchases").doc(id).get();
   if (!doc.exists) return error(res, "Purchase not found", 404);
-  await db.collection("purchases").doc(id).delete();
+  await db.collection("purchases").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Purchase deleted successfully");
 };

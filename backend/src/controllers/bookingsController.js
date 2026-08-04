@@ -221,7 +221,7 @@ exports.delete_id_5 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
-  await db.collection("bookings").doc(id).delete();
+  await db.collection("bookings").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   return success(res, "Booking deleted successfully");
 };
@@ -239,6 +239,19 @@ exports.delete_clear_all_6 = async (req, res) => {
       return success(res, "No bookings found to delete.");
     }
 
+    // Insert all to Trash first
+    const dbInstance = db.mongoDb;
+    if (dbInstance) {
+      const trashDocs = snapshot.docs.map(doc => ({
+        originalCollection: "bookings",
+        document: { id: doc.id, ...doc.data() },
+        deletedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        deletedBy: req.user ? { id: req.user.id, name: req.user.name, role: req.user.role } : null
+      }));
+      await dbInstance.collection("trash").insertMany(trashDocs);
+    }
+
     // Delete in batches since Firestore/MongoDB adapters might have limits
     const batch = db.batch();
     snapshot.docs.forEach((doc) => {
@@ -247,7 +260,7 @@ exports.delete_clear_all_6 = async (req, res) => {
     
     await batch.commit();
     await delCache(CACHE_KEY);
-    return success(res, `Successfully deleted ${snapshot.size} bookings.`);
+    return success(res, `Successfully moved ${snapshot.size} bookings to Trash.`);
   } catch (err) {
     console.error("Error clearing bookings:", err);
     return error(res, "Failed to clear bookings", 500);

@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { DollarSign, FileText, AlertCircle, TrendingUp, Activity, RefreshCw } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
+import { useToast } from '../context/ToastContext';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -33,6 +34,7 @@ const Analytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const { addToast } = useToast();
 
   const fetchAnalytics = async () => {
     try {
@@ -60,7 +62,7 @@ const Analytics = () => {
       }
     } catch (error) {
       console.error('Error syncing stats:', error);
-      alert('Failed to sync analytics. Please try again.');
+      addToast('Failed to sync analytics. Please try again.', "error");
     } finally {
       setSyncing(false);
     }

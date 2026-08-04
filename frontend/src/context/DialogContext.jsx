@@ -14,11 +14,12 @@ export const DialogProvider = ({ children }) => {
     message: '',
     confirmText: 'Confirm',
     cancelText: 'Cancel',
+    requireInput: null,
     onConfirm: null,
     onCancel: null,
   });
 
-  const confirm = useCallback(({ title, message, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
+  const confirm = useCallback(({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', requireInput = null }) => {
     return new Promise((resolve) => {
       setDialogState({
         isOpen: true,
@@ -26,6 +27,7 @@ export const DialogProvider = ({ children }) => {
         message,
         confirmText,
         cancelText,
+        requireInput,
         onConfirm: () => {
           setDialogState((prev) => ({ ...prev, isOpen: false }));
           resolve(true);
@@ -47,6 +49,7 @@ export const DialogProvider = ({ children }) => {
         message={dialogState.message}
         confirmText={dialogState.confirmText}
         cancelText={dialogState.cancelText}
+        requireInput={dialogState.requireInput}
         onConfirm={dialogState.onConfirm}
         onCancel={dialogState.onCancel}
       />
