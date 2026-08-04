@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, FileText, Loader2, MapPin } from "lucide-react";
+import { CheckCircle, FileText, Loader2, MapPin, FileCheck } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
+import PodEntryModal from "../components/pod/PodEntryModal";
+import { AnimatePresence } from "framer-motion";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -15,6 +17,8 @@ const CreateBooking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
+
+  const [podModalOpen, setPodModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     client: "",
@@ -273,10 +277,34 @@ const CreateBooking = () => {
 
   return (
     <div style={{ width: "100%", margin: "0 auto" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
+      <div style={{ marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+        <h3 style={{ fontSize: "1.8rem", marginBottom: 0, color: "#111827" }}>
           {isEditMode ? "Edit Booking" : "Add Booking"}
         </h3>
+
+        {isEditMode && (
+          <button
+            type="button"
+            onClick={() => setPodModalOpen(true)}
+            style={{
+              background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+              color: "white",
+              border: "none",
+              padding: "0.6rem 1.25rem",
+              borderRadius: "10px",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              boxShadow: "0 4px 10px rgba(2, 132, 199, 0.25)",
+              fontSize: "0.9rem"
+            }}
+          >
+            <FileCheck size={18} />
+            Attach / Manage POD Document
+          </button>
+        )}
       </div>
 
       {success && (
@@ -304,6 +332,26 @@ const CreateBooking = () => {
               been {isEditMode ? "updated" : "created"}.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setPodModalOpen(true)}
+            style={{
+              marginLeft: "auto",
+              background: "#15803d",
+              color: "white",
+              border: "none",
+              padding: "0.55rem 1.1rem",
+              borderRadius: "8px",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            <FileCheck size={16} /> Attach POD Now
+          </button>
         </div>
       )}
 
@@ -578,6 +626,28 @@ const CreateBooking = () => {
           </button>
         </div>
       </form>
+
+      {/* POD UPLOAD MODAL STUDIO */}
+      <AnimatePresence>
+        {podModalOpen && (
+          <PodEntryModal
+            isOpen={podModalOpen}
+            onClose={() => setPodModalOpen(false)}
+            booking={{
+              id: id || success?.id,
+              awb: success?.lrNumber || success?.id || formData.awb || id,
+              client: formData.client,
+              consignor: formData.consignor,
+              consignee: formData.consignee,
+              origin: formData.origin,
+              destination: formData.destination
+            }}
+            onSuccess={() => {
+              // modal closed on success
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

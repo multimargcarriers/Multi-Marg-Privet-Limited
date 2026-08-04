@@ -75,22 +75,29 @@ const MISReports = () => {
     const headers = ["Awb No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part Number", "Box", "Quantity", "Chargeable Weight", "Status"];
     const csvContent = [
       headers.join(","),
-      ...data.map(row => [
-        row.lrNumber || "",
-        row.bookingDate ? formatDate(row.bookingDate) : "",
-        `"${row.consignor || ""}"`,
-        `"${row.consignee || ""}"`,
-        row.origin || "",
-        row.destination || "",
-        row.mode || "",
-        row.invoiceNo || "",
-        row.invoiceDate ? formatDate(row.invoiceDate) : "",
-        row.partNumber || "",
-        row.noOfPackages || "",
-        row.actualWeight || "",
-        row.chargedWeight || "",
-        row.status || "SHIPMENT BOOKED"
-      ].join(","))
+      ...data.map(row => {
+        const awb = row.awb || row.consignment || row.lrNumber || row.lrNo || row.lr_number || row.awbNo || (row.id ? String(row.id).slice(-6) : "");
+        const rawDate = row.date || row.dispatch_date || row.bookingDate || row.booking_date || row.createdAt || row.created_at;
+        const dateStr = rawDate ? (/^\d{2}-\d{2}-\d{4}$/.test(String(rawDate)) ? String(rawDate) : formatDate(rawDate)) : "";
+        const boxCount = row.box || row.boxes || row.noOfPackages || row.packages || row.qty || "";
+        const chgWt = row.charge_wt || row.chargeable_weight || row.chargedWeight || row.chargeableWeight || row.weight || row.actual_wt || "0";
+        return [
+          `"${awb}"`,
+          `"${dateStr}"`,
+          `"${row.consignor || ""}"`,
+          `"${row.consignee || ""}"`,
+          row.origin || "",
+          row.destination || "",
+          row.mode || "",
+          `"${row.invoiceNo || row.invoice || ""}"`,
+          `"${row.invoiceDate ? formatDate(row.invoiceDate) : ""}"`,
+          `"${row.partNumber || row.partNo || ""}"`,
+          boxCount,
+          row.actualWeight || row.quantity || "",
+          chgWt,
+          row.status || "SHIPMENT BOOKED"
+        ].join(",");
+      })
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -168,24 +175,31 @@ const MISReports = () => {
           pagination={true}
           headers={["AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice(s)", "Invoice Date(s)", "Part Number(s)", "Box", "Quantity", "Chargeable Weight", "Status"]}
           data={data}
-          renderRow={(item, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", color: "#4b5563" }}>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.lrNumber || item.awbNo || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.date ? (item.date.includes('-') && item.date.length === 10 && item.date.startsWith('20') ? formatDate(item.date) : item.date) : item.bookingDate ? formatDate(item.bookingDate) : "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.origin || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.destination || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.mode || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceNo || item.invoice || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceDate || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.partNumber || item.partNo || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.noOfPackages || item.packages || item.box || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.actualWeight || item.quantity || "-"}</td>
-              <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.chargedWeight || item.chargeableWeight || "0"}</td>
-              <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.status || "SHIPMENT BOOKED"}</td>
-            </tr>
-          )}
+          renderRow={(item, index) => {
+            const awb = item.awb || item.consignment || item.lrNumber || item.lrNo || item.lr_number || item.awbNo || (item.id ? String(item.id).slice(-6) : "-");
+            const rawDate = item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.createdAt || item.created_at;
+            const dateStr = rawDate ? (/^\d{2}-\d{2}-\d{4}$/.test(String(rawDate)) ? String(rawDate) : formatDate(rawDate)) : "-";
+            const boxCount = item.box || item.boxes || item.noOfPackages || item.packages || item.qty || "-";
+            const chgWt = item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || "0";
+            return (
+              <tr key={index} style={{ borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", color: "#4b5563" }}>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap", fontWeight: "600", color: "#1e3a8a" }}>{awb}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{dateStr}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.origin || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.destination || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.mode || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceNo || item.invoice || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceDate || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.partNumber || item.partNo || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{boxCount}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.actualWeight || item.quantity || "-"}</td>
+                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{chgWt}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.status || "SHIPMENT BOOKED"}</td>
+              </tr>
+            );
+          }}
         />
       </div>
 

@@ -91,7 +91,7 @@ const AllBills = () => {
         data={filtered}
         renderRow={(item, index) => (
           <tr key={item.id || index}>
-            <td className="font-semibold">#{item.billNo || item.id?.slice(-6) || index + 1}</td>
+            <td className="font-semibold">{item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client || item.billedTo || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.amount || item.total || 0).toFixed(2)}</span></td>
             <td>{formatDate(item.createdAt)}</td>

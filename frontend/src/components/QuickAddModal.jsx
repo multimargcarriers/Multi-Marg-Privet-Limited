@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { X } from "lucide-react";
 import { useToast } from "../context/ToastContext";
@@ -79,7 +80,7 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName, editingItem
     setFormData({ ...formData, [name]: value });
   };
 
-  return (
+  return createPortal((
     <div style={{
       position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
       background: "rgba(15, 23, 42, 0.6)", 
@@ -285,7 +286,7 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName, editingItem
         </form>
       </div>
     </div>
-  );
+  ), document.body);
 };
 
 export default QuickAddModal;

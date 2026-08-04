@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requireInput, onConfirm, onCancel }) => {
   const [show, setShow] = useState(false);
@@ -18,7 +19,7 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
 
   const isConfirmDisabled = requireInput && inputValue.trim() !== requireInput;
 
-  return (
+  return createPortal((
     <div
       style={{
         position: 'fixed',
@@ -140,7 +141,7 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 };
 
 export default ConfirmDialog;

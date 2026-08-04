@@ -266,7 +266,7 @@ const UpdateBill = () => {
                     }}
                     onClick={() => handleSelect(item)}
                   >
-                    <td style={{ padding: "0.75rem", fontWeight: "700", color: "#0C4A6E" }}>#{item.billNo || item.id?.slice(-6)}</td>
+                    <td style={{ padding: "0.75rem", fontWeight: "700", color: "#0C4A6E" }}>{item.billNo || item.id?.slice(-6)}</td>
                     <td style={{ padding: "0.75rem" }}>{item.client}</td>
                     <td style={{ padding: "0.75rem", textAlign: "right", fontWeight: "700" }}>₹{parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
                   </tr>

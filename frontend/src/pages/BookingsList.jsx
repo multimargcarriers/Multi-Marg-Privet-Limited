@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -8,23 +8,50 @@ import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import CsvImportExport from "../components/CsvImportExport";
+import PodEntryModal from "../components/pod/PodEntryModal";
+import { AnimatePresence } from "framer-motion";
 
 const BookingsList = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const canAccessPod = isSuperAdmin || user?.role === 'Admin' || user?.permissions?.includes('pod') || true;
 
   const [bookings, setBookings] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   
+  // POD modal state & lookup map
+  const [podModalOpen, setPodModalOpen] = useState(false);
+  const [selectedBookingForPod, setSelectedBookingForPod] = useState(null);
+  const [podMap, setPodMap] = useState({});
+
   // Local Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(50);
 
   const navigate = useNavigate();
 
-  useEffect(() => { fetchBookings(); }, []);
+  useEffect(() => { 
+    fetchBookings(); 
+    fetchPodEntries(); 
+  }, []);
+
+  const fetchPodEntries = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/pod`);
+      if (res.data.success && Array.isArray(res.data.data)) {
+        const map = {};
+        res.data.data.forEach(item => {
+          if (item.lrNo) map[String(item.lrNo).trim()] = item;
+          if (item.bookingId) map[item.bookingId] = item;
+        });
+        setPodMap(map);
+      }
+    } catch (err) {
+      console.error("Fetch PODs error in BookingsList:", err);
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -185,17 +212,44 @@ const BookingsList = () => {
                   <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Booking AWB</div>
                      <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155' }}>
-                       #{item.awb || item.lrNo || item.id?.slice(-6)}
+                       {item.awb || item.lrNo || item.id?.slice(-6)}
                      </div>
                   </div>
 
                   {/* Actions Bar */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1', flexWrap: 'wrap' }}>
                     <button onClick={() => navigate(`/bookings/edit/${item.id}`)} style={{ background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", padding: '4px', borderRadius: '4px' }} title="Edit"><Edit size={16} /></button>
                     <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} style={{ background: "transparent", border: "none", color: "#8b5cf6", cursor: "pointer", padding: '4px', borderRadius: '4px' }} title="View Bills"><Eye size={16} /></button>
                     <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: '4px', borderRadius: '4px' }} title="Print"><Printer size={16} /></button>
                     {isSuperAdmin && (
                       <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: '4px', borderRadius: '4px' }} title="Delete"><Trash2 size={16} /></button>
+                    )}
+
+                    {canAccessPod && (
+                      <button 
+                        onClick={() => {
+                          setSelectedBookingForPod(item);
+                          setPodModalOpen(true);
+                        }} 
+                        style={{ 
+                          background: podMap[item.awb || item.lrNo || item.id] ? "#ecfdf5" : "#e0f2fe", 
+                          border: podMap[item.awb || item.lrNo || item.id] ? "1px solid #a7f3d0" : "1px solid #bae6fd", 
+                          color: podMap[item.awb || item.lrNo || item.id] ? "#10b981" : "#0284c7", 
+                          cursor: "pointer", 
+                          padding: "4px 8px", 
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                          marginLeft: "auto"
+                        }} 
+                        title={podMap[item.awb || item.lrNo || item.id] ? "POD Verified — Click to View/Update" : "Upload Proof of Delivery (POD)"}
+                      >
+                        <FileCheck size={14} />
+                        {podMap[item.awb || item.lrNo || item.id] ? "POD ✓" : "+ POD"}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -307,6 +361,25 @@ const BookingsList = () => {
           </div>
         </div>
       )}
+
+      {/* POD UPLOAD MODAL STUDIO */}
+      <AnimatePresence>
+        {podModalOpen && (
+          <PodEntryModal
+            isOpen={podModalOpen}
+            onClose={() => {
+              setPodModalOpen(false);
+              setSelectedBookingForPod(null);
+            }}
+            booking={selectedBookingForPod}
+            existingPod={selectedBookingForPod ? podMap[selectedBookingForPod.awb || selectedBookingForPod.lrNo || selectedBookingForPod.id] : null}
+            onSuccess={() => {
+              fetchBookings();
+              fetchPodEntries();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

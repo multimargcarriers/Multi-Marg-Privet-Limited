@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, Package, Users, Truck, FileText, X, Compass, Zap, Plus } from 'lucide-react';
 import axios from 'axios';
@@ -135,7 +136,7 @@ const CommandPalette = ({ isOpen, setIsOpen }) => {
 
   const displayResults = query.trim().length === 0 ? QUICK_ACTIONS : results;
 
-  return (
+  return createPortal((
     <div 
       style={{
         position: 'fixed',
@@ -294,7 +295,7 @@ const CommandPalette = ({ isOpen, setIsOpen }) => {
         `}
       </style>
     </div>
-  );
+  ), document.body);
 };
 
 export default CommandPalette;

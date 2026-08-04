@@ -66,7 +66,8 @@ async function uploadFile(filePath, options = {}) {
   const resourceType = options.resourceType || "auto";
 
   try {
-    if (!fs.existsSync(filePath)) {
+    const isDataOrRemote = typeof filePath === "string" && (filePath.startsWith("data:") || filePath.startsWith("http://") || filePath.startsWith("https://"));
+    if (!isDataOrRemote && !fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }
 
@@ -79,14 +80,16 @@ async function uploadFile(filePath, options = {}) {
       overwrite: false,
     });
 
-    // Clean up local file after successful upload
-    try {
-      fs.unlinkSync(filePath);
-    } catch (cleanupErr) {
-      console.warn(
-        "[Cloudinary] Could not delete local file:",
-        cleanupErr.message,
-      );
+    // Clean up local file after successful upload if it was a local file
+    if (!isDataOrRemote) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (cleanupErr) {
+        console.warn(
+          "[Cloudinary] Could not delete local file:",
+          cleanupErr.message,
+        );
+      }
     }
 
     return {
