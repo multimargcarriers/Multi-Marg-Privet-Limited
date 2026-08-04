@@ -224,7 +224,7 @@ const Vendors = () => {
       {/* Title & Add Button */}
       <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Vendors Master</h3>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="top-actions-container">
           <CsvImportExport moduleName="vendors" onImportSuccess={fetchVendors} />
           {isSuperAdmin && vendors.length > 0 && (
             <button 

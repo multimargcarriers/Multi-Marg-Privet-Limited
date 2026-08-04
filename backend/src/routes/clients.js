@@ -9,7 +9,7 @@ const { body, validationResult } = require("express-validator");
 const { getRoot_1, postRoot_2, put_id_3, delete_id_4, deleteAll } = require('../controllers/clientsController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["masters","clients"]));
+router.use(requirePermission(["masters","clients","trips","all"]));
 
 
 const CACHE_KEY = "clients";
@@ -24,11 +24,7 @@ router.get(
 router.post(
   "/",
   [
-    body("name").notEmpty().withMessage("Client name is required"),
-    body("gst").notEmpty().withMessage("GST is required"),
-    body("address").notEmpty().withMessage("Address is required"),
-    body("contact").notEmpty().withMessage("Contact person is required"),
-    body("email").notEmpty().withMessage("Email is required")
+    body("name").notEmpty().withMessage("Client name is required")
   ],
   asyncHandler(postRoot_2)
 );

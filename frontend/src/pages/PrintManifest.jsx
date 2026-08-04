@@ -145,8 +145,24 @@ const PrintManifest = () => {
         <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <input type="text" value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Sign Name" style={{ padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.85rem", width: "160px", outline: "none" }} />
+        <div className="top-actions-container">
+          <input 
+            type="text" 
+            value={signName} 
+            onChange={(e) => setSignName(e.target.value)} 
+            disabled={user?.role !== 'Admin' && user?.role !== 'SuperAdmin'}
+            placeholder="Sign Name" 
+            style={{ 
+              padding: "8px 12px", 
+              border: "1px solid #cbd5e1", 
+              borderRadius: "6px", 
+              fontSize: "0.85rem", 
+              width: "160px", 
+              outline: "none",
+              background: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "#ffffff" : "#f1f5f9",
+              cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
+            }} 
+          />
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
             <Download size={18} className="mr-2" /> Download PDF Manifest
           </button>
@@ -281,10 +297,17 @@ const PrintManifest = () => {
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "10px 1.5rem", height: "80px" }}>
-                  <div style={{ textAlign: "center", width: "200px" }}>
-                    <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.8rem", color: "#0f172a", height: "40px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "5px" }}>
-                      {signName}
-                    </div>
+                  <div style={{ textAlign: "center", width: "250px" }}>
+                    {(user?.role === 'Admin' || user?.role === 'SuperAdmin') ? (
+                      <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.8rem", color: "#0f172a", height: "40px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "5px" }}>
+                        {signName}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "0.85rem", color: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "40px", marginBottom: "5px", fontWeight: "600" }}>
+                        <span>Digitally signed by</span>
+                        <span>Multimarg Private Limited</span>
+                      </div>
+                    )}
                     <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.75rem", fontWeight: "600", color: "#475569" }}>
                       AUTHORIZED SIGNATURE
                     </div>

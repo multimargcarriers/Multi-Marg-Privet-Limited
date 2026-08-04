@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
+import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, User } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, User } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -81,7 +83,7 @@ const VendorMIS = () => {
   }, 0);
 
   const handleExportCSV = () => {
-    let csv = "Vendor Name,Handover To,Date,From,To,Vehicle No,Particular,Mode,Amount,Others,Status,Total Amount,Approval Status,Created Date\n";
+    let csv = "Vendor name,Handover to,Date,From,To,Veh no,Particular,Mode,Amount,Others,Status,Total amount,Approval status,Created at\n";
     filteredEntries.forEach(item => {
       if (item.details && item.details.length > 0) {
         item.details.forEach((d, dIdx) => {
@@ -105,6 +107,89 @@ const VendorMIS = () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleSampleCSV = () => {
+    const csv = "Vendor name,Handover to,Date,From,To,Veh no,Particular,Mode,Amount,Others,Status,Total amount,Approval status,Created at\nABC Logistics,John Doe,2026-08-01,Delhi,Mumbai,DL1A1234,Transport,Road,15000,500,Pending,15500,Approved,2026-08-01\n";
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `Vendor_MIS_Sample.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleImportCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const data = results.data;
+        if (data.length === 0) {
+          addToast("CSV is empty", "error");
+          return;
+        }
+
+        const vendorsMap = {};
+
+        data.forEach(row => {
+          // Fallback vendor name if empty
+          const vendorName = row['Vendor name'] || `Unknown Vendor ${Math.floor(Math.random() * 1000)}`;
+          if (!vendorsMap[vendorName]) {
+            vendorsMap[vendorName] = {
+              vendorName: vendorName,
+              createdAt: row['Created at'] ? formatDate(row['Created at']) : formatDate(new Date()),
+              details: []
+            };
+          }
+
+          if (row['Date'] || row['Veh no']) {
+            vendorsMap[vendorName].details.push({
+              handoverTo: row['Handover to'] || '',
+              date: formatDate(row['Date'] || new Date()),
+              from: row['From'] || '',
+              to: row['To'] || '',
+              vehicleNo: row['Veh no'] || '',
+              particular: row['Particular'] || '',
+              mode: row['Mode'] || 'Road',
+              amount: row['Amount'] || '0',
+              others: row['Others'] || '0',
+              status: row['Status'] || (isAdminOrSuperAdmin ? 'Approved' : 'Pending')
+            });
+          }
+        });
+
+        const vendorsToImport = Object.values(vendorsMap);
+        let successCount = 0;
+
+        for (let vendor of vendorsToImport) {
+          try {
+            vendor.totalAmount = vendor.details.reduce((sum, d) => sum + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
+            await axios.post(`${API}/vendor-mis`, vendor, { headers: { Authorization: `Bearer ${token}` } });
+            successCount++;
+          } catch (error) {
+            console.error("Failed to import vendor entry:", error);
+          }
+        }
+
+        addToast(`Imported ${successCount} entries successfully!`, "success");
+        axios.get(`${API}/vendor-mis`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(res => { if (res.data.success) setVendorMisEntries(res.data.data); })
+          .catch(err => console.error(err));
+      },
+      error: (error) => {
+        addToast("Error parsing CSV: " + error.message, "error");
+      }
+    });
+    e.target.value = null;
   };
 
   useEffect(() => {
@@ -139,13 +224,22 @@ const VendorMIS = () => {
       <div className="no-print">
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
          <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vendor Vehicle MIS</h3>
-         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-           <div style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+         <div className="top-actions-container">
+           <div className="date-filter-group" style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
              <Filter size={16} color="#64748b" />
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={startDate} onChange={e => setStartDate(e.target.value)} />
              <span style={{ color: "#94a3b8" }}>-</span>
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
            </div>
+           
+           <input type="file" accept=".csv" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImportCSV} />
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => fileInputRef.current.click()}>
+             <Upload size={16} style={{ marginRight: 6 }} /> Import CSV
+           </button>
+           
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleSampleCSV}>
+             <FileText size={16} style={{ marginRight: 6 }} /> Sample CSV
+           </button>
            
            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
              <Download size={16} style={{ marginRight: 6 }} /> Export CSV
@@ -175,8 +269,8 @@ const VendorMIS = () => {
          </div>
       </div>
       
-       <div className="no-print" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-         <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+       <div className="no-print search-freight-container">
+         <div className="search-wrapper">
            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
            <input 
              type="text" 
@@ -187,7 +281,7 @@ const VendorMIS = () => {
              onChange={e => setSearchQuery(e.target.value)} 
            />
          </div>
-         <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#047857', padding: '0 1.5rem', borderRadius: '8px', height: '45px', display: 'flex', alignItems: 'center', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+         <div className="freight-box">
            Total Amount: &nbsp;<RupeeIcon size={14} /> {totalReceivable.toFixed(2)}
          </div>
        </div>
@@ -557,7 +651,7 @@ const VendorMIS = () => {
       </div>
 
       {/* Communication & Remarks Modal */}
-      {activeRemarksModal && (
+      {activeRemarksModal && createPortal(
         <div style={{
           position: "fixed",
           top: 0,
@@ -844,7 +938,7 @@ const VendorMIS = () => {
             )}
           </div>
         </div>
-      )}
+      , document.body)}
 
       <div className="print-only">
         {printHeader === "PRIME" ? (

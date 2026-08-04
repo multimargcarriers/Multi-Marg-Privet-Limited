@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SkeletonBox } from './SkeletonLoader';
 
-const Table = ({ headers, data, renderRow, loading = false, pagination = false, defaultEntries = 10, footerRow = null }) => {
+const Table = ({ headers, data, renderRow, loading = false, pagination = false, defaultEntries = 10, footerRow = null, minWidth = "1050px" }) => {
   const [showLoader, setShowLoader] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(defaultEntries);
@@ -73,7 +73,7 @@ const Table = ({ headers, data, renderRow, loading = false, pagination = false, 
         </div>
       )}
       <div className="table-container" style={{ border: "1px solid #f1f5f9", borderRadius: "8px", overflowX: "auto" }}>
-        <table className="table" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table className="table" style={{ width: "100%", minWidth, borderCollapse: "collapse" }}>
           <thead style={{ backgroundColor: "#f8fafc" }}>
             <tr>
               {headers.map((header, index) => (

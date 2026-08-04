@@ -203,8 +203,8 @@ export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
         const visibleChildren = item.children.filter(child => {
           if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
           
-          if (user?.role === 'Vendor') {
-            if (child.permission === 'trips' && (hasPermission('tripmis') || hasPermission('vendormis'))) return true;
+          if (user?.role === 'Vendor' || user?.role === 'Client') {
+            if (child.permission === 'trips' && (hasPermission('tripmis') || hasPermission('trips') || hasPermission('vendormis'))) return true;
             return child.permission && hasPermission(child.permission);
           }
 

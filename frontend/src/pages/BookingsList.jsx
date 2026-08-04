@@ -99,7 +99,7 @@ const BookingsList = () => {
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: '#1e293b' }}>Grouped Bookings (LR)</h3>
           <p className="text-muted">View bookings alongside their nested LR details in a grouped format.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="top-actions-container">
           <div style={{ display: 'flex', backgroundColor: '#fff', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem 1rem', gap: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step 1: Bookings</span>

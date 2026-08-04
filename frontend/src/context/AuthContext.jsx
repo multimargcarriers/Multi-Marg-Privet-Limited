@@ -107,6 +107,8 @@ export const AuthProvider = ({ children }) => {
     
     if (hasDashboard) {
       navigate('/dashboard');
+    } else if (userData.role === 'Client' || userData.role === 'Vendor') {
+      navigate('/trips');
     } else {
       navigate('/profile');
     }
@@ -152,10 +154,10 @@ export const AuthProvider = ({ children }) => {
       return true;
     }
     
-    // Implicit parent permissions for Vendors
-    if (user.role === 'Vendor') {
+    // Implicit parent permissions for Vendors & Clients
+    if (user.role === 'Vendor' || user.role === 'Client') {
       if (moduleName === 'trips' && 
-          (user.permissions?.includes('tripmis') || user.permissions?.includes('vendormis'))) {
+          (user.permissions?.includes('tripmis') || user.permissions?.includes('vendormis') || user.permissions?.includes('trips'))) {
         return true;
       }
     }

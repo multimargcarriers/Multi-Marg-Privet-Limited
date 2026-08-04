@@ -225,8 +225,8 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
           </button>
         </div>
 
-        {/* Notifications */}
-        {hasSidebar && (
+        {/* Notifications (Admin & Super Admin ONLY) */}
+        {hasSidebar && (user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email?.includes('admin@')) && (
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}

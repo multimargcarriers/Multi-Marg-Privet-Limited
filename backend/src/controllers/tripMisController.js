@@ -2,24 +2,40 @@ const { db } = require("../config/database");
 const { success, created, error } = require("../utils/response");
 const { getNextSequence } = require("../utils/sequenceGenerator");
 
+const matchClientUser = (data, user) => {
+  if (!user) return false;
+  const clientVal = (data.clientName || data.client || data.client_name || '').toLowerCase().trim();
+  const userName = (user.name || '').toLowerCase().trim();
+  const userEmail = (user.email || '').toLowerCase().trim();
+  const nameMatch = clientVal && userName && (
+    clientVal === userName ||
+    clientVal.includes(userName) ||
+    userName.includes(clientVal)
+  );
+  const emailMatch = data.clientEmail && userEmail && data.clientEmail.toLowerCase().trim() === userEmail;
+  return Boolean(nameMatch || emailMatch);
+};
+
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   
   let query = db.collection("trip_mis").orderBy("createdAt", "desc");
-  
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
-
-  // If user is not an Admin, they can only see their own trips
-  if (!isAdmin) {
+  if (!isAdmin && !isClient) {
     query = db.collection("trip_mis").where("createdBy", "==", user.id).orderBy("createdAt", "desc");
   }
   
   const snapshot = await query.get();
   const records = [];
-  snapshot.forEach(doc => records.push({
-    id: doc.id,
-    ...doc.data()
-  }));
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (isClient) {
+      if (matchClientUser(data, user)) records.push({ id: doc.id, ...data });
+    } else {
+      records.push({ id: doc.id, ...data });
+    }
+  });
   
   return success(res, "Trip MIS fetched successfully", records);
 };
@@ -64,6 +80,16 @@ exports.put_id_3 = async (req, res) => {
   const existingData = doc.data();
   
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
+
+  if (isClient) {
+    const updateData = {};
+    if (req.body.approvalStatus) {
+      updateData.approvalStatus = req.body.approvalStatus;
+    }
+    await db.collection("trip_mis").doc(id).update(updateData);
+    return success(res, "Trip MIS approval status updated successfully", { id, ...existingData, ...updateData });
+  }
 
   // Non-admins cannot update approvalStatus
   if (!isAdmin && req.body.approvalStatus && req.body.approvalStatus !== existingData.approvalStatus) {
@@ -96,7 +122,9 @@ exports.delete_id_4 = async (req, res) => {
   
   const existingData = doc.data();
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
-
+  if (user && (user.role === 'Client' || user.role?.toLowerCase() === 'client')) {
+    return error(res, "Clients are not authorized to delete entries.", 403);
+  }
   if (!isAdmin && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to delete this entry.", 403);
   }
@@ -121,12 +149,11 @@ exports.addRemark_5 = async (req, res) => {
 
   const existingData = doc.data();
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
+  const isClientMatch = isClient && matchClientUser(existingData, user);
 
-  if (!isAdmin && existingData.createdBy !== user.id) {
+  if (!isAdmin && !isClientMatch && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to comment on this entry.", 403);
-  }
-  if (!isAdmin && existingData.approvalStatus === 'Approved') {
-    return error(res, "Remarks are closed because this entry is Approved.", 403);
   }
 
   const newRemark = {

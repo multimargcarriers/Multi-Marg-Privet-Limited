@@ -92,6 +92,9 @@ const IAM = () => {
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clientsList, setClientsList] = useState([]);
+  const [vendorsList, setVendorsList] = useState([]);
+  const [isCustomName, setIsCustomName] = useState(false);
   
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
@@ -100,7 +103,20 @@ const IAM = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchClientsAndVendors();
   }, []);
+
+  const fetchClientsAndVendors = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const cRes = await axios.get(`${apiUrl}/api/clients`, { headers: { Authorization: `Bearer ${token}` } });
+      if (cRes.data.success) setClientsList(cRes.data.data || []);
+      const vRes = await axios.get(`${apiUrl}/api/vendors`, { headers: { Authorization: `Bearer ${token}` } });
+      if (vRes.data.success) setVendorsList(vRes.data.data || []);
+    } catch (err) {
+      console.error("Error fetching clients/vendors in IAM:", err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -182,8 +198,17 @@ const IAM = () => {
   const openModal = (user = null) => {
     if (user) {
       setFormData({ employeeId: '', ...user, password: '' });
+      if ((user.role === 'Client' || user.role === 'Vendor') && user.name) {
+        const inList = user.role === 'Client' 
+          ? clientsList.some(c => (c.name || c.clientName) === user.name)
+          : vendorsList.some(v => (v.name || v.vendorName) === user.name);
+        setIsCustomName(!inList);
+      } else {
+        setIsCustomName(false);
+      }
     } else {
       setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MMPL-${Math.floor(1000 + Math.random() * 9000)}` });
+      setIsCustomName(false);
     }
     setIsAdding(true);
   };
@@ -203,7 +228,7 @@ const IAM = () => {
             onClick={() => openModal()}
             style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
           >
-            + Add Admin
+            + Add User
           </button>
         )}
       </div>
@@ -223,16 +248,87 @@ const IAM = () => {
               <form onSubmit={handleSubmit}>
                 <div className="grid-2-col">
                   <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Name<span style={{ color: "#ef4444" }}>*</span></label>
-                    <input 
-                      type="text" 
-                      value={formData.name} 
-                      onChange={e => setFormData({...formData, name: e.target.value})} 
-                      required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
+                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Role<span style={{ color: "#ef4444" }}>*</span></label>
+                    <select 
+                      value={formData.role} 
+                      onChange={e => {
+                        const newRole = e.target.value;
+                        setFormData({...formData, role: newRole, name: (newRole === 'Client' || newRole === 'Vendor') ? '' : formData.name});
+                        setIsCustomName(false);
+                      }}
+                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
                       onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                    />
+                    >
+                      <option value="Vendor">Vendor</option>
+                      <option value="Client">Client</option>
+                      <option value="Employee">Employee</option>
+                      <option value="Admin">Admin</option>
+                      <option value="SuperAdmin">Super Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600", margin: 0 }}>
+                        {formData.role === 'Client' ? 'Client Account' : formData.role === 'Vendor' ? 'Vendor Account' : 'Name'}<span style={{ color: "#ef4444" }}>*</span>
+                      </label>
+                      {(formData.role === 'Client' || formData.role === 'Vendor') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomName(!isCustomName);
+                            setFormData({ ...formData, name: '' });
+                          }}
+                          style={{ background: "transparent", border: "none", color: "#4F46E5", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }}
+                        >
+                          {isCustomName ? "← Select from List" : "+ Enter Manual Name"}
+                        </button>
+                      )}
+                    </div>
+                    {(formData.role === 'Client' || formData.role === 'Vendor') && !isCustomName ? (
+                      <select 
+                        value={formData.name || ''} 
+                        onChange={e => {
+                          if (e.target.value === "__CUSTOM__") {
+                            setIsCustomName(true);
+                            setFormData({ ...formData, name: '' });
+                          } else {
+                            setFormData({...formData, name: e.target.value});
+                          }
+                        }} 
+                        required 
+                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
+                        onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                        onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                      >
+                        <option value="">-- Select {formData.role} Name --</option>
+                        {formData.role === 'Client' ? (
+                          clientsList.map((cl, i) => (
+                            <option key={cl.id || i} value={cl.name || cl.clientName}>
+                              {cl.name || cl.clientName} {cl.gst ? `(${cl.gst})` : ''}
+                            </option>
+                          ))
+                        ) : (
+                          vendorsList.map((v, i) => (
+                            <option key={v.id || i} value={v.name || v.vendorName}>
+                              {v.name || v.vendorName}
+                            </option>
+                          ))
+                        )}
+                        <option value="__CUSTOM__" style={{ fontWeight: "700", color: "#4F46E5" }}>+ Enter Manual Name...</option>
+                      </select>
+                    ) : (
+                      <input 
+                        type="text" 
+                        value={formData.name} 
+                        onChange={e => setFormData({...formData, name: e.target.value})} 
+                        required 
+                        placeholder={isCustomName ? `Enter ${formData.role} name manually...` : "Enter Name..."}
+                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
+                        onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
+                        onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                      />
+                    )}
                   </div>
                   <div>
                     <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Employee ID<span style={{ color: "#ef4444" }}>*</span></label>
@@ -274,21 +370,6 @@ const IAM = () => {
                     </div>
                   )}
                   
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Role<span style={{ color: "#ef4444" }}>*</span></label>
-                    <select 
-                      value={formData.role} 
-                      onChange={e => setFormData({...formData, role: e.target.value})}
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                    >
-                      <option value="Vendor">Vendor</option>
-                      <option value="Admin">Admin</option>
-                      <option value="SuperAdmin">Super Admin</option>
-                    </select>
-                  </div>
-
                   {formData.role !== 'SuperAdmin' && (
                     <div style={{ gridColumn: "1 / -1" }}>
                       <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Module & Page Permissions</label>
