@@ -228,8 +228,15 @@ const BookingsList = () => {
                     {canAccessPod && (
                       <button 
                         onClick={() => {
-                          setSelectedBookingForPod(item);
-                          setPodModalOpen(true);
+                          const existingPod = podMap[item.awb || item.lrNo || item.id];
+                          if (existingPod) {
+                            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                            let fileUrl = existingPod.podUrl || existingPod.cloudinaryUrl || `${apiUrl}/api/uploads/pod/${existingPod.fileName || existingPod.filename}`;
+                            navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                          } else {
+                            setSelectedBookingForPod(item);
+                            setPodModalOpen(true);
+                          }
                         }} 
                         style={{ 
                           background: podMap[item.awb || item.lrNo || item.id] ? "#ecfdf5" : "#e0f2fe", 
@@ -245,10 +252,10 @@ const BookingsList = () => {
                           fontSize: "0.75rem",
                           marginLeft: "auto"
                         }} 
-                        title={podMap[item.awb || item.lrNo || item.id] ? "POD Verified — Click to View/Update" : "Upload Proof of Delivery (POD)"}
+                        title={podMap[item.awb || item.lrNo || item.id] ? "POD Verified — Click to View" : "Upload Proof of Delivery (POD)"}
                       >
-                        <FileCheck size={14} />
-                        {podMap[item.awb || item.lrNo || item.id] ? "POD ✓" : "+ POD"}
+                        {podMap[item.awb || item.lrNo || item.id] ? <Eye size={14} /> : <FileCheck size={14} />}
+                        {podMap[item.awb || item.lrNo || item.id] ? "VIEW POD" : "+ POD"}
                       </button>
                     )}
                   </div>

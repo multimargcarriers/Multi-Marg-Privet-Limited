@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import Table from "../components/Table";
 import { 
   Upload, 
@@ -35,6 +36,7 @@ import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 const POD = () => {
   const { user } = useContext(AuthContext);
   const { confirm, alert: alertDialog } = useDialog();
+  const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
 
   // Data states
@@ -1068,8 +1070,7 @@ const POD = () => {
                 {/* Proof Document Link / Preview */}
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <button
-                    type="button"
-                    onClick={() => setPreviewImage(fileUrl)}
+                    onClick={() => navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`)}
                     style={{
                       background: "#f0f9ff",
                       border: "1px solid #bae6fd",
@@ -1145,106 +1146,6 @@ const POD = () => {
         />
       </div>
 
-      {/* IMAGE / PDF PREVIEW MODAL */}
-      <AnimatePresence>
-        {previewImage && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.75)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              padding: "20px"
-            }}
-            onClick={() => setPreviewImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "1.5rem",
-                maxWidth: "800px",
-                width: "100%",
-                maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
-                position: "relative",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <h4 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0f172a" }}>
-                  Proof of Delivery (POD) Preview
-                </h4>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <a
-                    href={previewImage}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      background: "#f1f5f9",
-                      color: "#0284c7",
-                      padding: "0.4rem 0.75rem",
-                      borderRadius: "6px",
-                      textDecoration: "none",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px"
-                    }}
-                  >
-                    <ExternalLink size={14} /> Open Full Size
-                  </a>
-                  <button
-                    onClick={() => setPreviewImage(null)}
-                    style={{
-                      background: "#f1f5f9",
-                      border: "none",
-                      borderRadius: "6px",
-                      width: "32px",
-                      height: "32px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      color: "#64748b"
-                    }}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ flex: 1, overflow: "auto", textAlign: "center", background: "#f8fafc", borderRadius: "8px", padding: "10px" }}>
-                {String(previewImage).toLowerCase().endsWith(".pdf") ? (
-                  <iframe
-                    src={previewImage}
-                    style={{ width: "100%", height: "65vh", border: "none" }}
-                    title="POD PDF Preview"
-                  />
-                ) : (
-                  <img
-                    src={previewImage}
-                    alt="Proof of Delivery"
-                    style={{ maxWidth: "100%", maxHeight: "65vh", objectFit: "contain", borderRadius: "6px" }}
-                  />
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* PREMIUM POD IMAGE STUDIO MODAL (CAMERA & SCANNER EDITOR) */}
       <PODImageStudioModal

@@ -33,18 +33,11 @@ const PODImageStudioModal = ({
   const [imageSrc, setImageSrc] = useState(initialImageSrc);
   const [cameraError, setCameraError] = useState(null);
   const [facingMode, setFacingMode] = useState("environment"); // 'environment' (back) | 'user' (front)
-
-  // Editor enhancement states
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
-  const [brightness, setBrightness] = useState(0); // -100 to 100
-  const [contrast, setContrast] = useState(0); // -100 to 100
-  const [filterPreset, setFilterPreset] = useState("normal"); // 'normal' | 'magic' | 'scanner_bw'
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
-  const previewCanvasRef = useRef(null);
 
   // Initialize or cleanup when modal opens/closes
   useEffect(() => {
@@ -52,9 +45,6 @@ const PODImageStudioModal = ({
       setMode(initialMode);
       setImageSrc(initialImageSrc);
       setRotation(0);
-      setBrightness(0);
-      setContrast(0);
-      setFilterPreset("normal");
 
       if (initialMode === "camera") {
         startCamera(facingMode);
@@ -74,12 +64,6 @@ const PODImageStudioModal = ({
     }
   }, [facingMode]);
 
-  // Update preview canvas whenever editing controls change
-  useEffect(() => {
-    if (isOpen && mode === "editor" && imageSrc) {
-      renderEditedCanvas();
-    }
-  }, [isOpen, mode, imageSrc, rotation, brightness, contrast, filterPreset]);
 
   // Start video stream
   const startCamera = async (facing = "environment") => {
@@ -137,89 +121,38 @@ const PODImageStudioModal = ({
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
   };
 
-  // Render edited image onto canvas with filters, rotation, brightness, and contrast
-  const renderEditedCanvas = () => {
-    if (!imageSrc || !previewCanvasRef.current) return;
-    const canvas = previewCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => {
-      // Handle rotation swapping width/height
-      const isRotated90or270 = rotation === 90 || rotation === 270;
-      canvas.width = isRotated90or270 ? img.height : img.width;
-      canvas.height = isRotated90or270 ? img.width : img.height;
-
-      ctx.save();
-      // Translate to center for rotation
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.drawImage(img, -img.width / 2, -img.height / 2);
-      ctx.restore();
-
-      // Apply pixel-level filter enhancements (Document Magic / B&W Scanner / Brightness / Contrast)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // Calculate contrast factor: (259 * (C + 255)) / (255 * (259 - C))
-      const c = contrast;
-      const factor = (259 * (c + 255)) / (255 * (259 - c));
-      const b = brightness;
-
-      for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let bl = data[i + 2];
-
-        // Apply Preset filters first
-        if (filterPreset === "magic") {
-          // Document Magic: sharpen contrast and lift whites for text readability
-          r = Math.min(255, Math.max(0, (r - 128) * 1.35 + 128 + 15));
-          g = Math.min(255, Math.max(0, (g - 128) * 1.35 + 128 + 15));
-          bl = Math.min(255, Math.max(0, (bl - 128) * 1.35 + 128 + 15));
-        } else if (filterPreset === "scanner_bw") {
-          // Grayscale Scanner: high contrast black and white document look
-          const luma = 0.299 * r + 0.587 * g + 0.114 * bl;
-          const val = luma > 140 ? 255 : luma < 90 ? 0 : (luma - 90) * (255 / 50);
-          r = g = bl = Math.min(255, Math.max(0, val));
-        }
-
-        // Apply custom brightness slider
-        r += b;
-        g += b;
-        bl += b;
-
-        // Apply custom contrast slider
-        r = factor * (r - 128) + 128;
-        g = factor * (g - 128) + 128;
-        bl = factor * (bl - 128) + 128;
-
-        data[i] = Math.min(255, Math.max(0, r));
-        data[i + 1] = Math.min(255, Math.max(0, g));
-        data[i + 2] = Math.min(255, Math.max(0, bl));
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-    };
-
-    img.src = imageSrc;
-  };
-
-  // Export edited canvas and save
+  // Save captured image
   const handleApplySave = () => {
-    if (!previewCanvasRef.current) return;
-    setIsProcessing(true);
+    if (!imageSrc) return;
     try {
-      const editedDataUrl = previewCanvasRef.current.toDataURL("image/jpeg", 0.92);
       const timestamp = new Date().toISOString().slice(0, 10);
       const defaultFilename = `POD_Capture_${timestamp}.jpg`;
-      onSave(editedDataUrl, defaultFilename);
-      onClose();
+      
+      if (rotation !== 0) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const isRotated90or270 = rotation === 90 || rotation === 270;
+          canvas.width = isRotated90or270 ? img.height : img.width;
+          canvas.height = isRotated90or270 ? img.width : img.height;
+          
+          const ctx = canvas.getContext("2d");
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((rotation * Math.PI) / 180);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          
+          const editedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+          onSave(editedDataUrl, defaultFilename);
+          onClose();
+        };
+        img.src = imageSrc;
+      } else {
+        onSave(imageSrc, defaultFilename);
+        onClose();
+      }
     } catch (err) {
       console.error("Save edited image error:", err);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -234,8 +167,8 @@ const PODImageStudioModal = ({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(15, 23, 42, 0.85)",
-          backdropFilter: "blur(8px)",
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          backdropFilter: "blur(12px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -245,133 +178,75 @@ const PODImageStudioModal = ({
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
           style={{
-            background: "#1e293b",
-            borderRadius: "20px",
+            background: "#0f172a",
+            borderRadius: "24px",
             width: "100%",
-            maxWidth: "880px",
-            maxHeight: "92vh",
+            maxWidth: "600px",
+            maxHeight: "95vh",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-            border: "1px solid #334155",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
+            border: "1px solid #1e293b",
             color: "white"
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* STUDIO HEADER */}
+          {/* HEADER */}
           <div
             style={{
-              padding: "1.25rem 1.75rem",
-              background: "linear-gradient(90deg, #0f172a 0%, #1e293b 100%)",
-              borderBottom: "1px solid #334155",
+              padding: "1rem 1.5rem",
+              background: "rgba(15, 23, 42, 0.95)",
+              borderBottom: "1px solid #1e293b",
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center"
+              alignItems: "center",
+              zIndex: 10
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{ background: "#0284c7", padding: "8px", borderRadius: "10px", display: "flex" }}>
-                <Camera size={22} color="white" />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
-                  {mode === "camera" ? "POD Live Camera Scanner" : "POD Document Scanner & Editor"}
-                </h3>
-                <p style={{ margin: "2px 0 0 0", fontSize: "0.85rem", color: "#94a3b8" }}>
-                  {mode === "camera"
-                    ? "Capture a physical signed LR receipt or proof of delivery document"
-                    : "Crop, rotate, and enhance document contrast for clear sign-off readability"}
-                </p>
-              </div>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600, letterSpacing: "0.02em" }}>
+                {mode === "camera" ? "Scan Document" : "Review Document"}
+              </h3>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {mode === "editor" && (
-                <button
-                  onClick={() => {
-                    setMode("camera");
-                    startCamera(facingMode);
-                  }}
-                  style={{
-                    background: "#334155",
-                    color: "white",
-                    border: "none",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "8px",
-                    fontWeight: 600,
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <Camera size={16} /> Retake Photo
-                </button>
-              )}
-              <button
-                onClick={onClose}
-                style={{
-                  background: "rgba(255,255,255,0.1)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "36px",
-                  height: "36px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#94a3b8",
-                  cursor: "pointer"
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "none",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#94a3b8",
+                cursor: "pointer",
+                transition: "background 0.2s"
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)"}
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          {/* STUDIO BODY CONTENT */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem", display: "flex", flexDirection: "column" }}>
+          {/* BODY */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", backgroundColor: "#000" }}>
             {mode === "camera" ? (
-              /* MODE 1: LIVE WEB RTC CAMERA VIEWFINDER */
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%" }}>
                 {cameraError ? (
-                  <div
-                    style={{
-                      padding: "3rem 2rem",
-                      textAlign: "center",
-                      background: "#334155",
-                      borderRadius: "16px",
-                      maxWidth: "480px",
-                      margin: "auto"
-                    }}
-                  >
+                  <div style={{ padding: "3rem", textAlign: "center", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                     <AlertCircle size={48} color="#f59e0b" style={{ margin: "0 auto 16px auto" }} />
-                    <h4 style={{ margin: "0 0 8px 0", fontSize: "1.15rem" }}>Camera Access Required</h4>
-                    <p style={{ margin: "0 0 1.5rem 0", color: "#cbd5e1", fontSize: "0.9rem", lineHeight: 1.5 }}>
-                      {cameraError}
-                    </p>
-                    <button
-                      onClick={onClose}
-                      style={{
-                        background: "#0284c7",
-                        color: "white",
-                        border: "none",
-                        padding: "0.6rem 1.5rem",
-                        borderRadius: "8px",
-                        fontWeight: 600,
-                        cursor: "pointer"
-                      }}
-                    >
-                      Close & Choose File from Device
-                    </button>
+                    <h4 style={{ margin: "0 0 8px 0", fontSize: "1.15rem" }}>Camera Error</h4>
+                    <p style={{ margin: "0 0 1.5rem 0", color: "#cbd5e1", fontSize: "0.9rem" }}>{cameraError}</p>
                   </div>
                 ) : (
-                  <div style={{ position: "relative", width: "100%", maxWidth: "640px", borderRadius: "16px", overflow: "hidden", background: "#000", border: "2px solid #475569" }}>
+                  <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                     <video
                       ref={videoRef}
                       autoPlay
@@ -379,340 +254,220 @@ const PODImageStudioModal = ({
                       muted
                       style={{
                         width: "100%",
-                        height: "auto",
-                        maxHeight: "60vh",
-                        display: "block",
+                        height: "100%",
+                        objectFit: "cover",
                         transform: facingMode === "user" ? "scaleX(-1)" : "none"
                       }}
                     />
 
-                    {/* Scanner Alignment Frame Overlay */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "12%",
-                        left: "12%",
-                        right: "12%",
-                        bottom: "12%",
-                        border: "2px dashed rgba(56, 189, 248, 0.7)",
-                        borderRadius: "12px",
-                        pointerEvents: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                      }}
-                    >
-                      <span style={{ background: "rgba(0,0,0,0.6)", padding: "4px 12px", borderRadius: "20px", fontSize: "0.75rem", color: "#38bdf8", fontWeight: 600 }}>
-                        Align Document Receipt Inside Box
-                      </span>
+                    {/* Viewfinder Overlay */}
+                    <div style={{
+                      position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none"
+                    }}>
+                      <div style={{ width: "80%", height: "70%", position: "relative" }}>
+                        {/* Corners */}
+                        <div style={{ position: "absolute", top: 0, left: 0, width: "30px", height: "30px", borderTop: "3px solid #fff", borderLeft: "3px solid #fff", borderRadius: "4px 0 0 0" }} />
+                        <div style={{ position: "absolute", top: 0, right: 0, width: "30px", height: "30px", borderTop: "3px solid #fff", borderRight: "3px solid #fff", borderRadius: "0 4px 0 0" }} />
+                        <div style={{ position: "absolute", bottom: 0, left: 0, width: "30px", height: "30px", borderBottom: "3px solid #fff", borderLeft: "3px solid #fff", borderRadius: "0 0 0 4px" }} />
+                        <div style={{ position: "absolute", bottom: 0, right: 0, width: "30px", height: "30px", borderBottom: "3px solid #fff", borderRight: "3px solid #fff", borderRadius: "0 0 4px 0" }} />
+                        <div style={{ position: "absolute", bottom: "-35px", left: "0", right: "0", textAlign: "center" }}>
+                          <span style={{ background: "rgba(0,0,0,0.6)", padding: "4px 12px", borderRadius: "12px", fontSize: "0.75rem", color: "white", fontWeight: 500, letterSpacing: "0.05em" }}>
+                            Align Document
+                          </span>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Camera Switch button overlay */}
-                    <button
-                      type="button"
-                      onClick={handleToggleCamera}
-                      style={{
-                        position: "absolute",
-                        top: "16px",
-                        right: "16px",
-                        background: "rgba(0, 0, 0, 0.65)",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        color: "white",
-                        padding: "8px 14px",
-                        borderRadius: "20px",
-                        fontSize: "0.8rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}
-                    >
-                      <RefreshCw size={14} /> Flip Camera
-                    </button>
                   </div>
                 )}
 
-                {/* Shutter Capture Controls */}
+                {/* Camera Controls Footer */}
                 {!cameraError && (
-                  <div style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                    <button
-                      type="button"
-                      onClick={handleCapturePhoto}
-                      style={{
-                        background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                        color: "white",
-                        border: "4px solid #38bdf8",
-                        width: "72px",
-                        height: "72px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 15px rgba(2, 132, 199, 0.5)",
-                        transition: "transform 0.15s"
-                      }}
-                      onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
-                      onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                      title="Capture Document Photo"
-                    >
-                      <Camera size={32} />
-                    </button>
+                  <div style={{
+                    padding: "1.5rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "#0f172a"
+                  }}>
+                    {/* Empty div for flex spacing */}
+                    <div style={{ flex: 1 }} />
+                    
+                    {/* Shutter Button */}
+                    <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+                      <button
+                        type="button"
+                        onClick={handleCapturePhoto}
+                        style={{
+                          width: "70px",
+                          height: "70px",
+                          borderRadius: "50%",
+                          background: "white",
+                          border: "4px solid #334155",
+                          outline: "2px solid white",
+                          outlineOffset: "2px",
+                          cursor: "pointer",
+                          transition: "transform 0.1s",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                        onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.95)"}
+                        onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+                        title="Capture Photo"
+                      />
+                    </div>
+
+                    {/* Flip Camera */}
+                    <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        onClick={handleToggleCamera}
+                        style={{
+                          background: "rgba(255,255,255,0.1)",
+                          border: "none",
+                          color: "white",
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          transition: "background 0.2s"
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"}
+                      >
+                        <RefreshCw size={20} />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
-              /* MODE 2: IMAGE EDITOR & DOCUMENT SCANNER ENHANCEMENTS */
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "1.5rem", flex: 1 }}>
-                {/* Canvas Viewport */}
-                <div
-                  style={{
-                    background: "#090d16",
-                    borderRadius: "16px",
-                    border: "1px solid #334155",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "1rem",
-                    minHeight: "380px",
-                    overflow: "auto"
-                  }}
-                >
-                  <canvas
-                    ref={previewCanvasRef}
+              <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                {/* Image Preview Container */}
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "1rem" }}>
+                  <img
+                    src={imageSrc}
+                    alt="Captured POD"
                     style={{
-                      maxWidth: "100%",
-                      maxHeight: "55vh",
+                      maxWidth: rotation % 180 === 0 ? "100%" : "auto",
+                      maxHeight: rotation % 180 === 0 ? "100%" : "auto",
                       objectFit: "contain",
-                      boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                      borderRadius: "6px"
+                      borderRadius: "8px",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                      transform: `rotate(${rotation}deg)`,
+                      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   />
                 </div>
-
-                {/* Editor Sidebar Controls */}
-                <div
-                  style={{
-                    background: "#0f172a",
-                    borderRadius: "16px",
-                    padding: "1.25rem",
-                    border: "1px solid #334155",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1.25rem"
-                  }}
-                >
-                  <div>
-                    <h5 style={{ margin: "0 0 0.75rem 0", fontSize: "0.9rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      1. Scanner Filter Presets
-                    </h5>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                      {[
-                        { id: "normal", label: "Original / Normal", icon: ImageIcon },
-                        { id: "magic", label: "Document Magic Enhance", icon: Wand2 },
-                        { id: "scanner_bw", label: "B&W Document Scan", icon: FileCheck }
-                      ].map((preset) => {
-                        const Icon = preset.icon;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => setFilterPreset(preset.id)}
-                            style={{
-                              background: filterPreset === preset.id ? "#0284c7" : "#1e293b",
-                              color: "white",
-                              border: `1px solid ${filterPreset === preset.id ? "#38bdf8" : "#334155"}`,
-                              padding: "0.6rem 0.85rem",
-                              borderRadius: "8px",
-                              fontWeight: 600,
-                              fontSize: "0.85rem",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              textAlign: "left"
-                            }}
-                          >
-                            <Icon size={16} />
-                            {preset.label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                
+                {/* Editor Controls Footer */}
+                <div style={{ background: "#0f172a", padding: "1.25rem 1.5rem" }}>
+                  
+                  {/* Rotation Controls */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
+                      style={{
+                        background: "#1e293b",
+                        border: "1px solid #334155",
+                        color: "white",
+                        padding: "0.6rem 1rem",
+                        borderRadius: "10px",
+                        fontSize: "0.85rem",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = "#334155"}
+                      onMouseOut={(e) => e.currentTarget.style.background = "#1e293b"}
+                    >
+                      <RotateCcw size={16} /> Rotate Left
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                      style={{
+                        background: "#1e293b",
+                        border: "1px solid #334155",
+                        color: "white",
+                        padding: "0.6rem 1rem",
+                        borderRadius: "10px",
+                        fontSize: "0.85rem",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = "#334155"}
+                      onMouseOut={(e) => e.currentTarget.style.background = "#1e293b"}
+                    >
+                      <RotateCw size={16} /> Rotate Right
+                    </button>
                   </div>
 
-                  {/* Rotate Controls */}
-                  <div>
-                    <h5 style={{ margin: "0 0 0.75rem 0", fontSize: "0.9rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      2. Rotate Document
-                    </h5>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <button
-                        type="button"
-                        onClick={() => setRotation((prev) => (prev - 90 + 360) % 360)}
-                        style={{
-                          flex: 1,
-                          background: "#1e293b",
-                          border: "1px solid #334155",
-                          color: "white",
-                          padding: "0.6rem",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px"
-                        }}
-                      >
-                        <RotateCcw size={16} /> Left -90°
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                        style={{
-                          flex: 1,
-                          background: "#1e293b",
-                          border: "1px solid #334155",
-                          color: "white",
-                          padding: "0.6rem",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px"
-                        }}
-                      >
-                        <RotateCw size={16} /> Right +90°
-                      </button>
-                    </div>
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("camera");
+                        startCamera(facingMode);
+                      }}
+                      style={{
+                        flex: 1,
+                        background: "transparent",
+                        color: "white",
+                        border: "1px solid #334155",
+                        padding: "0.85rem",
+                        borderRadius: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "background 0.2s"
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                      onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                    >
+                      Retake
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApplySave}
+                      style={{
+                        flex: 2,
+                        background: "#0ea5e9", // A vibrant professional blue
+                        color: "white",
+                        border: "none",
+                        padding: "0.85rem",
+                        borderRadius: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        boxShadow: "0 4px 12px rgba(14, 165, 233, 0.3)",
+                        transition: "background 0.2s"
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = "#0284c7"}
+                      onMouseOut={(e) => e.currentTarget.style.background = "#0ea5e9"}
+                    >
+                      <Check size={18} />
+                      Use Document
+                    </button>
                   </div>
-
-                  {/* Brightness & Contrast Sliders */}
-                  <div>
-                    <h5 style={{ margin: "0 0 0.75rem 0", fontSize: "0.9rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      3. Brightness & Contrast
-                    </h5>
-
-                    <div style={{ marginBottom: "0.85rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#cbd5e1", marginBottom: "4px" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Sun size={12} /> Brightness</span>
-                        <b>{brightness}</b>
-                      </div>
-                      <input
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={brightness}
-                        onChange={(e) => setBrightness(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "#38bdf8", cursor: "pointer" }}
-                      />
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#cbd5e1", marginBottom: "4px" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Contrast size={12} /> Contrast</span>
-                        <b>{contrast}</b>
-                      </div>
-                      <input
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={contrast}
-                        onChange={(e) => setContrast(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "#38bdf8", cursor: "pointer" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Reset Adjustments */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRotation(0);
-                      setBrightness(0);
-                      setContrast(0);
-                      setFilterPreset("normal");
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: "1px dashed #475569",
-                      color: "#94a3b8",
-                      padding: "0.5rem",
-                      borderRadius: "8px",
-                      fontSize: "0.8rem",
-                      cursor: "pointer",
-                      marginTop: "auto"
-                    }}
-                  >
-                    Reset All Filters
-                  </button>
                 </div>
               </div>
             )}
           </div>
-
-          {/* STUDIO FOOTER ACTIONS */}
-          {mode === "editor" && (
-            <div
-              style={{
-                padding: "1.25rem 1.75rem",
-                background: "#0f172a",
-                borderTop: "1px solid #334155",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }}
-            >
-              <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
-                Filter: <b>{filterPreset.toUpperCase()}</b> | Rotation: <b>{rotation}°</b>
-              </span>
-
-              <div style={{ display: "flex", gap: "1rem" }}>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  style={{
-                    background: "#334155",
-                    color: "white",
-                    border: "none",
-                    padding: "0.65rem 1.5rem",
-                    borderRadius: "8px",
-                    fontWeight: 600,
-                    cursor: "pointer"
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApplySave}
-                  disabled={isProcessing}
-                  style={{
-                    background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                    color: "white",
-                    border: "none",
-                    padding: "0.65rem 2rem",
-                    borderRadius: "8px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    boxShadow: "0 4px 12px rgba(2, 132, 199, 0.4)"
-                  }}
-                >
-                  <Check size={18} />
-                  {isProcessing ? "Processing..." : "Apply & Use Edited POD Document"}
-                </button>
-              </div>
-            </div>
-          )}
         </motion.div>
       </div>
     </AnimatePresence>

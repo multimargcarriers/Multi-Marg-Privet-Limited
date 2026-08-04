@@ -33,6 +33,7 @@ import MiscBill from "./pages/MiscBill";
 import Profile from './pages/Profile';
 import EmployeeActivity from './pages/EmployeeActivity';
 import POD from "./pages/POD";
+import PodViewer from "./pages/PodViewer";
 import Purchase from "./pages/Purchase";
 import Rates from "./pages/Rates";
 import Trips from "./pages/Trips";
@@ -109,6 +110,7 @@ function App() {
               <Route path="/print-trip-list" element={<PrintTripList />} />
               <Route path="/print-single-trip/:index" element={<PrintSingleTrip />} />
               <Route path="/pod" element={<POD />} />
+              <Route path="/pod/view" element={<PodViewer />} />
               <Route path="/tracking" element={<Tracking />} />
             </Route>
 
