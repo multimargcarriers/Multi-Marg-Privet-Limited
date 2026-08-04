@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Search, Edit, Trash2 } from "lucide-react";
+import { Search, Edit, Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
 import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
+import RupeeIcon from "../../components/RupeeIcon";
+
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CashsheetReports = () => {
   const [data, setData] = useState([]);
@@ -18,7 +21,7 @@ const CashsheetReports = () => {
   const fetchCash = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cash`);
+      const res = await axios.get(`${API}/cash`);
       if (res.data.success) {
         let entries = res.data.data || [];
         setAllData(entries);
@@ -31,7 +34,8 @@ const CashsheetReports = () => {
     }
   };
 
-  const handleSearchFilter = () => {
+  const handleSearchFilter = (e) => {
+    if (e) e.preventDefault();
     applyFilters(allData, filters, searchQuery);
   };
 
@@ -64,7 +68,7 @@ const CashsheetReports = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this cash entry?")) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/cash/${id}`);
+      await axios.delete(`${API}/cash/${id}`);
       fetchCash();
     } catch (err) {
       console.error("Delete error", err);
@@ -72,124 +76,181 @@ const CashsheetReports = () => {
   };
 
   // Calculations
-  const totalCashIn = data.reduce((sum, item) => (item.type === "in" || item.type === "income") ? sum + parseFloat(item.amount || 0) : sum, 0);
-  const totalCashOut = data.reduce((sum, item) => (item.type === "out" || item.type === "expense") ? sum + parseFloat(item.amount || 0) : sum, 0);
+  const stats = useMemo(() => {
+    const totalCashIn = data.reduce((sum, item) => (item.type === "in" || item.type === "income") ? sum + parseFloat(item.amount || 0) : sum, 0);
+    const totalCashOut = data.reduce((sum, item) => (item.type === "out" || item.type === "expense") ? sum + parseFloat(item.amount || 0) : sum, 0);
+    const netBalance = totalCashIn - totalCashOut;
+    return { totalCashIn, totalCashOut, netBalance };
+  }, [data]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
-      {/* Title */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h3 style={{ fontSize: "1.6rem", color: "#64748b", margin: 0, fontWeight: "500" }}>Cash Sheet Report</h3>
-      </div>
-
-      {/* Date Filters */}
-      <div style={{ display: "flex", gap: "2rem", marginBottom: "1.5rem" }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase" }}>From Date</label>
-          <div style={{ position: "relative" }}>
-            <input 
-              type="date" min="1947-01-01" max="2200-12-31" 
-              value={filters.fr} 
-              onChange={(e) => setFilters({ ...filters, fr: e.target.value })} 
-              style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-            />
+      {/* HEADER BAR */}
+      <div 
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          marginBottom: "1.5rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ background: "#ecfdf5", padding: "8px", borderRadius: "10px", display: "flex" }}>
+            <FileSpreadsheet size={22} style={{ color: "#10b981" }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
+              Cash Sheet Report
+            </h3>
+            <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+              Analyze cash flow, income, and expenses over time
+            </span>
           </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase" }}>To Date</label>
-          <div style={{ position: "relative" }}>
-            <input 
-              type="date" min="1947-01-01" max="2200-12-31" 
-              value={filters.to} 
-              onChange={(e) => setFilters({ ...filters, to: e.target.value })} 
-              style={{ width: "100%", padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "4px", color: "#475569" }}
-            />
-          </div>
-        </div>
-      </div>
-      
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
-        <button 
-          onClick={handleSearchFilter}
-          style={{ backgroundColor: "#6366f1", color: "white", border: "none", padding: "0.5rem 2rem", borderRadius: "4px", fontWeight: "500", cursor: "pointer", textTransform: "uppercase", fontSize: "0.9rem" }}
-        >
-          Search
-        </button>
       </div>
 
-      {/* Table Section */}
-      <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px" }}>
-        {/* Table Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", borderBottom: "1px solid #e2e8f0" }}>
-          <div style={{ backgroundColor: "#6366f1", color: "white", padding: "0.4rem 1rem", fontSize: "0.85rem", fontWeight: "600", borderRadius: "2px" }}>
-            CASH SHEET REPORT
+      {/* SEARCH FORM */}
+      <form onSubmit={handleSearchFilter} style={{
+          backgroundColor: "white",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+          marginBottom: "1.5rem",
+          overflow: "hidden"
+      }}>
+        <div style={{ background: "linear-gradient(90deg, #10b981 0%, #059669 50%, #047857 100%)", height: "4px", width: "100%" }} />
+        <div style={{ padding: "1.5rem 1.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>From Date</label>
+              <input 
+                type="date" min="1947-01-01" max="2200-12-31" 
+                value={filters.fr} 
+                onChange={(e) => setFilters({ ...filters, fr: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>To Date</label>
+              <input 
+                type="date" min="1947-01-01" max="2200-12-31" 
+                value={filters.to} 
+                onChange={(e) => setFilters({ ...filters, to: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button 
+                type="submit" 
+                style={{
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  color: "white",
+                  border: "none",
+                  padding: "0.65rem 2rem",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)",
+                  height: "41px",
+                  width: "100%",
+                  justifyContent: "center"
+                }}
+              >
+                <Search size={16} /> FILTER
+              </button>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <label style={{ fontSize: "0.85rem", color: "#64748b" }}>Search Box:</label>
+        </div>
+      </form>
+
+      {/* STATS CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Cash In</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#16a34a", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.totalCashIn.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "12px" }}><IndianRupee size={24} color="#16a34a" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Cash Out</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.totalCashOut.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px" }}><IndianRupee size={24} color="#ef4444" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Net Balance</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: stats.netBalance >= 0 ? "#0f172a" : "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.netBalance.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}><PieChart size={24} color="#64748b" /></div>
+        </div>
+      </div>
+
+      {/* TABLE */}
+      <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", borderBottom: "1px solid #e2e8f0", background: "#f8fafc" }}>
+          <div style={{ fontWeight: 700, color: "#0f172a" }}>CASH ENTRIES</div>
+          <div style={{ position: "relative", width: "250px" }}>
+            <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
             <input 
               type="text" 
+              placeholder="Search entries..."
               value={searchQuery}
               onChange={handleSearchBoxChange}
-              style={{ border: "1px solid #cbd5e1", padding: "0.25rem 0.5rem", borderRadius: "2px", width: "200px" }}
+              style={{ padding: "0.45rem 0.45rem 0.45rem 2rem", borderRadius: "6px", border: "1px solid #cbd5e1", width: "100%", fontSize: "0.85rem", outline: "none" }}
             />
           </div>
         </div>
 
-        {/* Table */}
-        <div style={{ overflowX: "auto" }}>
-          <Table
-            loading={loading}
-            pagination={true}
-            headers={["#", "Date", "Particulars", "Vouchers", "Cash In", "Cash Out", "Delete"]}
-            data={data}
-            footerRow={
-              !loading && data.length > 0 && (
-                <tr style={{ backgroundColor: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-                  <td colSpan="4" style={{ padding: "12px", borderRight: "1px solid #e2e8f0" }}></td>
-                  <td style={{ padding: "12px", fontSize: "0.9rem", fontWeight: "600", color: "#334155", borderRight: "1px solid #e2e8f0" }}>
-                    {totalCashIn > 0 ? totalCashIn.toFixed(2) : "0"}
-                  </td>
-                  <td style={{ padding: "12px", fontSize: "0.9rem", fontWeight: "600", color: "#334155", borderRight: "1px solid #e2e8f0" }}>
-                    {totalCashOut > 0 ? totalCashOut.toFixed(2) : "0"}
-                  </td>
-                  <td></td>
-                </tr>
-              )
-            }
-            renderRow={(item, idx) => (
-              <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                  {idx + 1}
-                </td>
-                <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                  {item.date ? formatDate(item.date) : "-"}
-                </td>
-                <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>
-                  {item.remarks || "-"}
-                </td>
-                <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0" }}>
-                  <button style={{ backgroundColor: "#6366f1", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}>
-                    <Edit size={16} />
-                  </button>
-                </td>
-                <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                  {(item.type === "in" || item.type === "income") ? parseFloat(item.amount || 0).toFixed(2) : ""}
-                </td>
-                <td style={{ padding: "12px", fontSize: "0.9rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
-                  {(item.type === "out" || item.type === "expense") ? parseFloat(item.amount || 0).toFixed(2) : ""}
-                </td>
-                <td style={{ padding: "12px" }}>
-                  <button 
-                    onClick={() => handleDelete(item.id)}
-                    style={{ backgroundColor: "#ef4444", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            )}
-          />
-        </div>
+        <Table
+          loading={loading}
+          pagination={true}
+          headers={["#", "Date", "Particulars", "Cash In", "Cash Out", "Delete"]}
+          data={data}
+          renderRow={(item, idx) => (
+            <tr key={item.id || idx} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
+              <td style={{ padding: "1rem", fontWeight: 600, color: "#64748b" }}>{idx + 1}</td>
+              <td style={{ padding: "1rem", color: "#475569" }}>{item.date ? formatDate(item.date) : "-"}</td>
+              <td style={{ padding: "1rem", color: "#0f172a", textTransform: "uppercase", fontWeight: 500 }}>{item.remarks || "-"}</td>
+              <td style={{ padding: "1rem", color: "#16a34a", fontWeight: 600 }}>
+                {(item.type === "in" || item.type === "income") ? parseFloat(item.amount || 0).toFixed(2) : ""}
+              </td>
+              <td style={{ padding: "1rem", color: "#ef4444", fontWeight: 600 }}>
+                {(item.type === "out" || item.type === "expense") ? parseFloat(item.amount || 0).toFixed(2) : ""}
+              </td>
+              <td style={{ padding: "1rem" }}>
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }}
+                  title="Delete Entry"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </td>
+            </tr>
+          )}
+        />
       </div>
     </div>
   );

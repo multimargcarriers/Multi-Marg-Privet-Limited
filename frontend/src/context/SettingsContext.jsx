@@ -54,6 +54,9 @@ export const SettingsProvider = ({ children }) => {
       accounts: true,
       reports: true,
       uploads: true
+    },
+    system: {
+      maintenanceMode: false
     }
   });
   

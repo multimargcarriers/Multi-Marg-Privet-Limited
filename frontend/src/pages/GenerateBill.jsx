@@ -2,7 +2,7 @@ import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FileText, Search, Download, Send, CheckCircle, Loader2 } from "lucide-react";
+import { FileText, Search, Download, Send, CheckCircle, Loader2, Calculator } from "lucide-react";
 import SearchableSelect from "../components/SearchableSelect";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
@@ -256,7 +256,7 @@ const GenerateBill = () => {
         bookingsData: selectedBookingsData,
         invoiceNo: `${filters.invoicePrefix}${filters.invoiceNo}`,
         invoiceDate: filters.invoiceDate,
-        gst: filters.gst === 'Yes'
+        gst: filters.gst
       });
       setResult(res.data);
       setSelected([]);
@@ -279,11 +279,34 @@ const GenerateBill = () => {
   });
 
   return (
-    <div>
-      <div className="header-flex">
-        <div>
-          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>Generate Invoices</h3>
-          <p className="text-muted">Select bookings and generate invoices/bills.</p>
+    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+      <div 
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          marginBottom: "1.25rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "10px", display: "flex" }}>
+            <Calculator size={22} style={{ color: "#3b82f6" }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
+              Generate Invoices
+            </h3>
+            <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+              Select pending bookings and automatically generate client invoices
+            </span>
+          </div>
         </div>
       </div>
 
@@ -298,74 +321,105 @@ const GenerateBill = () => {
       )}
 
       {/* SEARCH FORM */}
-      <form onSubmit={handleSearch} className="glass-panel" style={{ padding: "2rem", marginBottom: "2rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Invoice Prefix<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <select className="form-control" name="invoicePrefix" value={filters.invoicePrefix} onChange={handleChange}>
-              <option value="MCPL/26-27/">MCPL/26-27/</option>
-              <option value="MCPL/25-26/">MCPL/25-26/</option>
-            </select>
+      <form onSubmit={handleSearch} style={{
+          backgroundColor: "white",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+          marginBottom: "1.5rem",
+          overflow: "hidden"
+      }}>
+        <div style={{ background: "linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)", height: "4px", width: "100%" }} />
+        <div style={{ padding: "1.5rem 1.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Invoice Prefix *</label>
+              <select name="invoicePrefix" value={filters.invoicePrefix} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
+                <option value="MCPL/26-27/">MCPL/26-27/</option>
+                <option value="MCPL/25-26/">MCPL/25-26/</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Invoice No *</label>
+              <input type="text" name="invoiceNo" value={filters.invoiceNo} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Invoice Date *</label>
+              <input type="date" min="1947-01-01" max="2200-12-31" name="invoiceDate" value={filters.invoiceDate} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }} />
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Invoice No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="text" className="form-control" name="invoiceNo" value={filters.invoiceNo} onChange={handleChange} />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Invoice Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="invoiceDate" value={filters.invoiceDate} onChange={handleChange} />
-          </div>
-        </div>
 
-        <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-          <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Client<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-          <CreatableDropdown 
-            options={clients} 
-            value={filters.client} 
-            onChange={(val) => setFilters({ ...filters, client: val })} 
-            onCreate={(name) => handleCreateNew("client", name)}
-            placeholder="-- Please select the Client --" 
-          />
-        </div>
+          <div style={{ marginBottom: "1.5rem" }}>
+            <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client *</label>
+            <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
+              <CreatableDropdown 
+                options={clients} 
+                value={filters.client} 
+                onChange={(val) => setFilters({ ...filters, client: val })} 
+                onCreate={(name) => handleCreateNew("client", name)}
+                placeholder="-- Please select the Client --" 
+              />
+            </div>
+          </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.5fr", gap: "1.5rem", marginBottom: "2rem" }}>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <select className="form-control" name="mode" value={filters.mode} onChange={handleChange}>
-              <option value="">-- Please select the Mode --</option>
-              <option value="Road">Road</option>
-              <option value="Rail">Rail</option>
-              <option value="Air">Air</option>
-              <option value="Sea">Sea</option>
-            </select>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.5fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Mode</label>
+              <select name="mode" value={filters.mode} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
+                <option value="">-- All Modes --</option>
+                <option value="Road">Road</option>
+                <option value="Rail">Rail</option>
+                <option value="Air">Air</option>
+                <option value="Sea">Sea</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>From Date</label>
+              <input type="date" min="1947-01-01" max="2200-12-31" name="fromDate" value={filters.fromDate} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>To Date</label>
+              <input type="date" min="1947-01-01" max="2200-12-31" name="toDate" value={filters.toDate} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>GST Slab *</label>
+              <select name="gst" value={filters.gst} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
+                <option value="">-- Select GST Slab --</option>
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18">18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>From Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="fromDate" value={filters.fromDate} onChange={handleChange} />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>To Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="toDate" value={filters.toDate} onChange={handleChange} />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>GST<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <select className="form-control" name="gst" value={filters.gst} onChange={handleChange}>
-              <option value="">Please select if GST is applicable or not</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-          </div>
-        </div>
 
-        <div style={{ display: "flex", justifyContent: "center", marginTop: "1rem" }}>
-          <button type="submit" className="btn btn-primary" style={{ padding: "0.5rem 3rem", height: "45px" }}>
-            SEARCH
-          </button>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button 
+              type="submit" 
+              style={{
+                background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                color: "white",
+                border: "none",
+                padding: "0.65rem 2rem",
+                borderRadius: "8px",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.25)",
+              }}
+            >
+              <Search size={16} /> SEARCH BOOKINGS
+            </button>
+          </div>
         </div>
       </form>
 
       {/* TABLE */}
-      <div className="glass-panel" style={{ padding: 0, overflow: "hidden" }}>
+      <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         {loading ? (
           <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}><Loader2 className="spinner" size={32} /></div>
         ) : (
@@ -446,15 +500,30 @@ const GenerateBill = () => {
         )}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
         <button 
           type="button" 
           onClick={handleGenerate} 
           disabled={selected.length === 0 || generating} 
-          className="btn btn-primary" 
-          style={{ padding: "0.75rem 3rem", fontSize: "1rem", fontWeight: "bold" }}
+          style={{
+            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            color: "white",
+            border: "none",
+            padding: "0.85rem 2.5rem",
+            borderRadius: "10px",
+            fontWeight: 700,
+            fontSize: "1rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)",
+            opacity: selected.length === 0 || generating ? 0.5 : 1
+          }}
         >
-          {generating ? "GENERATING..." : "GENERATE & PRINT"}
+          <FileText size={18} />
+          {generating ? "GENERATING..." : "GENERATE INVOICE"}
         </button>
       </div>
 

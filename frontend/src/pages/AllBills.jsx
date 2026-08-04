@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
+import { useSocketSync } from "../hooks/useSocketSync";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 
@@ -28,6 +29,8 @@ const AllBills = () => {
       if (res.data.success) setBills(res.data.data || []);
     } catch (err) { console.error("Fetch bills error", err); }
   };
+
+  useSocketSync("bills", fetchBills);
 
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({

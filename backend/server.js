@@ -24,6 +24,7 @@ const { logger } = require("./src/config/logger");
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
 const { initAnalyticsCron } = require("./src/jobs/analyticsJob");
 const { initCloudinaryCleanupCron } = require("./src/jobs/cloudinaryCleanupJob");
+const socketUtil = require("./src/utils/socket");
 
 // Import services (initialized on demand)
 let redisClient = null;
@@ -379,6 +380,9 @@ async function startServer() {
   initCloudinaryCleanupCron();
 
   const server = app.listen(PORT, () => {
+    // Initialize Socket.IO
+    socketUtil.init(server);
+
     logger.info(`========================================`);
     logger.info(`  Multimarg Carriers Transport System`);
     logger.info(`  Environment: ${NODE_ENV}`);

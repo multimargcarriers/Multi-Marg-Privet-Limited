@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Table from "../../components/Table";
 import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
-import { Search, Download } from "lucide-react";
+import { Search, Download, FileSpreadsheet, Activity, Package, Layers } from "lucide-react";
 import { formatDate } from "../../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -45,7 +45,8 @@ const MISReports = () => {
     } catch (err) { console.error("Fetch clients error", err); }
   };
 
-  const fetchMIS = async () => {
+  const fetchMIS = async (e) => {
+    if (e) e.preventDefault();
     setLoading(true);
     try {
       const res = await axios.get(`${API}/bookings`);
@@ -70,7 +71,6 @@ const MISReports = () => {
   };
 
   const handleExport = () => {
-    // Simple CSV export logic
     if (data.length === 0) return;
     const headers = ["Awb No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part Number", "Box", "Quantity", "Chargeable Weight", "Status"];
     const csvContent = [
@@ -111,69 +111,174 @@ const MISReports = () => {
     document.body.removeChild(link);
   };
 
+  const stats = useMemo(() => {
+    const totalBookings = data.length;
+    const totalBoxes = data.reduce((sum, item) => sum + parseInt(item.box || item.boxes || item.noOfPackages || item.packages || item.qty || 0, 10), 0);
+    const totalWeight = data.reduce((sum, item) => sum + parseFloat(item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || 0), 0);
+    return { totalBookings, totalBoxes, totalWeight };
+  }, [data]);
+
   return (
-    <div style={{ padding: "0 1rem" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h3 style={{ fontSize: "1.5rem", color: "#6366f1", fontWeight: "600", marginBottom: "0.25rem" }}>Mis Report</h3>
-      </div>
-
-      <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "1rem" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>CLIENT</label>
-            <CreatableDropdown 
-              options={clients} 
-              value={filters.client} 
-              onChange={(c) => setFilters({ ...filters, client: c })} 
-              onCreate={(name) => handleCreateNew("client", name)}
-              placeholder="-- Select Client --" 
-            />
+    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+      {/* HEADER BAR */}
+      <div 
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          marginBottom: "1.5rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ background: "#fdf4ff", padding: "8px", borderRadius: "10px", display: "flex" }}>
+            <FileSpreadsheet size={22} style={{ color: "#d946ef" }} />
           </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>FROM DATE</label>
-              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={filters.fr} onChange={(e) => setFilters({ ...filters, fr: e.target.value })} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase", color: "#6b7280" }}>TO DATE</label>
-              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
-            </div>
+          <div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
+              MIS Report
+            </h3>
+            <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+              Management Information System: Consolidated Booking Data
+            </span>
           </div>
-          
-          <div style={{ display: "flex", justifyContent: "center", marginTop: "0.5rem" }}>
-            <button className="btn btn-primary" style={{ padding: "0.4rem 2rem", background: "#6366f1", border: "none", fontSize: "0.85rem", fontWeight: "600" }} onClick={fetchMIS}>
-              SEARCH
-            </button>
-          </div>
-
         </div>
       </div>
-      
-      <div style={{ marginBottom: "1rem" }}>
-        <button 
-          onClick={handleExport}
-          style={{ 
-            background: "#6366f1", 
-            color: "white", 
-            border: "none", 
-            padding: "0.4rem 1rem", 
-            borderRadius: "4px", 
-            fontSize: "0.75rem", 
-            fontWeight: "600", 
-            cursor: "pointer",
-            textTransform: "uppercase"
-          }}>
-          MIS REPORT
-        </button>
+
+      {/* SEARCH FORM */}
+      <form onSubmit={fetchMIS} style={{
+          backgroundColor: "white",
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+          marginBottom: "1.5rem",
+          overflow: "hidden"
+      }}>
+        <div style={{ background: "linear-gradient(90deg, #d946ef 0%, #c026d3 50%, #a21caf 100%)", height: "4px", width: "100%" }} />
+        <div style={{ padding: "1.5rem 1.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "1.5rem" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client</label>
+              <div style={{ background: "white", borderRadius: "8px", padding: "1px" }}>
+                <CreatableDropdown 
+                  options={clients} 
+                  value={filters.client} 
+                  onChange={(c) => setFilters({ ...filters, client: c })} 
+                  onCreate={(name) => handleCreateNew("client", name)}
+                  placeholder="-- All Clients --" 
+                />
+              </div>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>From Date</label>
+              <input 
+                type="date" min="1947-01-01" max="2200-12-31" 
+                value={filters.fr} 
+                onChange={(e) => setFilters({ ...filters, fr: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>To Date</label>
+              <input 
+                type="date" min="1947-01-01" max="2200-12-31" 
+                value={filters.to} 
+                onChange={(e) => setFilters({ ...filters, to: e.target.value })} 
+                style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
+            <button 
+              type="button" 
+              onClick={handleExport}
+              disabled={data.length === 0}
+              style={{
+                backgroundColor: "#e2e8f0",
+                color: "#475569",
+                border: "none",
+                padding: "0.65rem 1.5rem",
+                borderRadius: "8px",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                cursor: data.length === 0 ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity: data.length === 0 ? 0.5 : 1
+              }}
+            >
+              <Download size={16} /> EXPORT CSV
+            </button>
+            <button 
+              type="submit" 
+              style={{
+                background: "linear-gradient(135deg, #d946ef 0%, #c026d3 100%)",
+                color: "white",
+                border: "none",
+                padding: "0.65rem 2.5rem",
+                borderRadius: "8px",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 12px rgba(217, 70, 239, 0.25)",
+              }}
+            >
+              <Search size={16} /> FILTER REPORT
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* STATS CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Bookings</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               {stats.totalBookings}
+            </div>
+          </div>
+          <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}><Activity size={24} color="#64748b" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Packages/Boxes</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#d946ef", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               {stats.totalBoxes}
+            </div>
+          </div>
+          <div style={{ background: "#fae8ff", padding: "12px", borderRadius: "12px" }}><Package size={24} color="#d946ef" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Chargeable Wt</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#c026d3", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               {stats.totalWeight.toFixed(2)} kg
+            </div>
+          </div>
+          <div style={{ background: "#fdf4ff", padding: "12px", borderRadius: "12px" }}><Layers size={24} color="#c026d3" /></div>
+        </div>
       </div>
-      
-      <div className="glass-panel" style={{ padding: "0.5rem", overflowX: "auto" }}>
+
+      {/* TABLE */}
+      <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
           loading={loading}
           pagination={true}
-          headers={["AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice(s)", "Invoice Date(s)", "Part Number(s)", "Box", "Quantity", "Chargeable Weight", "Status"]}
+          headers={["AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part No", "Box", "Qty", "Chg Wt", "Status"]}
           data={data}
           renderRow={(item, index) => {
             const awb = item.awb || item.consignment || item.lrNumber || item.lrNo || item.lr_number || item.awbNo || (item.id ? String(item.id).slice(-6) : "-");
@@ -182,21 +287,28 @@ const MISReports = () => {
             const boxCount = item.box || item.boxes || item.noOfPackages || item.packages || item.qty || "-";
             const chgWt = item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || "0";
             return (
-              <tr key={index} style={{ borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", color: "#4b5563" }}>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap", fontWeight: "600", color: "#1e3a8a" }}>{awb}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{dateStr}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.origin || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.destination || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.mode || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceNo || item.invoice || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.invoiceDate || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.partNumber || item.partNo || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{boxCount}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "pre-line" }}>{item.actualWeight || item.quantity || "-"}</td>
-                <td style={{ padding: "12px 16px", borderRight: "1px solid #f3f4f6", whiteSpace: "nowrap" }}>{chgWt}</td>
-                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.status || "SHIPMENT BOOKED"}</td>
+              <tr key={index} style={{ borderBottom: "1px solid #f8fafc", fontSize: "0.8rem", color: "#475569" }}>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap", fontWeight: "600", color: "#c026d3" }}>{awb}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{dateStr}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>
+                <td style={{ padding: "12px 16px", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.origin || "-"}</td>
+                <td style={{ padding: "12px 16px", textTransform: "uppercase", whiteSpace: "nowrap" }}>{item.destination || "-"}</td>
+                <td style={{ padding: "12px 16px", textTransform: "uppercase", whiteSpace: "nowrap", fontWeight: 600 }}>{item.mode || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "pre-line" }}>{item.invoiceNo || item.invoice || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "pre-line" }}>{item.invoiceDate || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "pre-line" }}>{item.partNumber || item.partNo || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "pre-line" }}>{boxCount}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "pre-line" }}>{item.actualWeight || item.quantity || "-"}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap", fontWeight: 600 }}>{chgWt}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                  <span style={{
+                    padding: "0.25rem 0.6rem", borderRadius: "12px", fontSize: "0.7rem", fontWeight: "700",
+                    background: "#f1f5f9", color: "#64748b"
+                  }}>
+                    {item.status || "SHIPMENT BOOKED"}
+                  </span>
+                </td>
               </tr>
             );
           }}

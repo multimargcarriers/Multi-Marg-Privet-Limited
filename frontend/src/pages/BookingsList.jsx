@@ -9,7 +9,9 @@ import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import CsvImportExport from "../components/CsvImportExport";
 import PodEntryModal from "../components/pod/PodEntryModal";
+import BoxEntryModal from "../components/box/BoxEntryModal";
 import { AnimatePresence } from "framer-motion";
+import { useSocketSync } from '../hooks/useSocketSync';
 
 const BookingsList = () => {
   const { user } = useContext(AuthContext);
@@ -26,6 +28,11 @@ const BookingsList = () => {
   const [selectedBookingForPod, setSelectedBookingForPod] = useState(null);
   const [podMap, setPodMap] = useState({});
 
+  // Box modal state & lookup map
+  const [boxModalOpen, setBoxModalOpen] = useState(false);
+  const [selectedBookingForBox, setSelectedBookingForBox] = useState(null);
+  const [boxMap, setBoxMap] = useState({});
+
   // Local Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(50);
@@ -35,7 +42,24 @@ const BookingsList = () => {
   useEffect(() => { 
     fetchBookings(); 
     fetchPodEntries(); 
+    fetchBoxEntries();
   }, []);
+
+  const fetchBoxEntries = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/box`);
+      if (res.data.success && Array.isArray(res.data.data)) {
+        const map = {};
+        res.data.data.forEach(item => {
+          if (item.lrNo) map[String(item.lrNo).trim()] = item;
+          if (item.bookingId) map[item.bookingId] = item;
+        });
+        setBoxMap(map);
+      }
+    } catch (err) {
+      console.error("Fetch Boxes error in BookingsList:", err);
+    }
+  };
 
   const fetchPodEntries = async () => {
     try {
@@ -55,7 +79,8 @@ const BookingsList = () => {
 
   const fetchBookings = async () => {
     try {
-      setLoading(true);
+      // Avoid flickering if already loading
+      if (bookings.length === 0) setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings`);
       if (res.data.success) {
         setBookings(res.data.data || []);
@@ -66,6 +91,8 @@ const BookingsList = () => {
       setLoading(false); 
     }
   };
+
+  useSocketSync("bookings", fetchBookings);
 
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
@@ -139,14 +166,21 @@ const BookingsList = () => {
               <CsvImportExport moduleName="lr_details" onImportSuccess={fetchBookings} />
             </div>
           </div>
-          {isSuperAdmin && (
-            <button className="btn" style={{ padding: "0 1.5rem", height: "45px", whiteSpace: "nowrap", background: "#fef2f2", color: "#dc2626", border: "1px solid #f87171" }} onClick={handleClearAll}>
-              <Trash2 size={16} style={{ display: 'inline', marginRight: '6px', marginBottom: '-3px' }} /> Clear All
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', alignItems: 'center', flex: '1 1 auto', width: '100%' }}>
+            {isSuperAdmin && (
+              <button 
+                className="btn"
+                style={{ flex: '3', padding: "0 0.5rem", height: "45px", whiteSpace: "nowrap", background: "#fef2f2", color: "#dc2626", border: "1px solid #f87171", borderRadius: '8px', fontSize: '0.85rem' }} 
+                onClick={handleClearAll}
+                title="Clear All Bookings"
+              >
+                <Trash2 size={14} style={{ display: 'inline', marginRight: '4px', marginBottom: '-2px' }} /> Clear
+              </button>
+            )}
+            <button className="btn btn-primary" style={{ flex: isSuperAdmin ? '7' : '1', padding: "0 1.5rem", height: "45px", whiteSpace: "nowrap", borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)' }} onClick={() => navigate("/bookings/create")}>
+              + New Booking
             </button>
-          )}
-          <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px", whiteSpace: "nowrap", borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)' }} onClick={() => navigate("/bookings/create")}>
-            + New Booking
-          </button>
+          </div>
         </div>
       </div>
 
@@ -201,7 +235,7 @@ const BookingsList = () => {
                     {item.client || item.consignor || "UNKNOWN CLIENT"}
                   </h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', textTransform: 'capitalize' }}>
                       By: {item.clerk_name || "Admin"}
                     </p>
                     <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
@@ -224,40 +258,6 @@ const BookingsList = () => {
                     {isSuperAdmin && (
                       <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: '4px', borderRadius: '4px' }} title="Delete"><Trash2 size={16} /></button>
                     )}
-
-                    {canAccessPod && (
-                      <button 
-                        onClick={() => {
-                          const existingPod = podMap[item.awb || item.lrNo || item.id];
-                          if (existingPod) {
-                            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = existingPod.podUrl || existingPod.cloudinaryUrl || `${apiUrl}/api/uploads/pod/${existingPod.fileName || existingPod.filename}`;
-                            navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
-                          } else {
-                            setSelectedBookingForPod(item);
-                            setPodModalOpen(true);
-                          }
-                        }} 
-                        style={{ 
-                          background: podMap[item.awb || item.lrNo || item.id] ? "#ecfdf5" : "#e0f2fe", 
-                          border: podMap[item.awb || item.lrNo || item.id] ? "1px solid #a7f3d0" : "1px solid #bae6fd", 
-                          color: podMap[item.awb || item.lrNo || item.id] ? "#10b981" : "#0284c7", 
-                          cursor: "pointer", 
-                          padding: "4px 8px", 
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                          marginLeft: "auto"
-                        }} 
-                        title={podMap[item.awb || item.lrNo || item.id] ? "POD Verified — Click to View" : "Upload Proof of Delivery (POD)"}
-                      >
-                        {podMap[item.awb || item.lrNo || item.id] ? <Eye size={14} /> : <FileCheck size={14} />}
-                        {podMap[item.awb || item.lrNo || item.id] ? "VIEW POD" : "+ POD"}
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -278,7 +278,7 @@ const BookingsList = () => {
                         </thead>
                         <tbody>
                           {item.parcels.map((parcel, pIdx) => (
-                            <tr key={pIdx} style={{ transition: 'background-color 0.15s', ':hover': { backgroundColor: '#f8fafc' } }}>
+                            <tr key={pIdx} style={{ transition: 'background-color 0.15s', ':hover': { backgroundColor: '#f8fafc' }, textTransform: 'uppercase' }}>
                               <td style={{ padding: '0.85rem 0.75rem', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{parcel.invdate || '-'}</td>
                               <td style={{ padding: '0.85rem 0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 600, color: '#334155' }}>{parcel.invoice || '-'}</td>
                               <td style={{ padding: '0.85rem 0.75rem', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{parcel.part || '-'}</td>
@@ -301,15 +301,82 @@ const BookingsList = () => {
                   )}
                   
                   {/* Trip Summary footer inside right block */}
-                  <div style={{ marginTop: 'auto', padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '2rem', fontSize: '0.8rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <div style={{ marginTop: 'auto', padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '2rem', fontSize: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>ROUTE:</span>
-                       <span style={{ color: '#334155' }}>{item.origin || "-"} &rarr; {item.destination || "-"}</span>
+                       <span style={{ color: '#334155', textTransform: 'uppercase' }}>{item.origin || "-"} &rarr; {item.destination || "-"}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>MODE:</span>
-                       <span style={{ color: '#334155' }}>{item.mode || "-"}</span>
+                       <span style={{ color: '#334155', textTransform: 'uppercase' }}>{item.mode || "-"}</span>
                     </div>
+
+                    {canAccessPod && (
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button 
+                          onClick={() => {
+                            const existingBox = boxMap[item.awb || item.lrNo || item.id];
+                            if (existingBox) {
+                              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                              let fileUrl = existingBox.boxUrl || existingBox.cloudinaryUrl || `${apiUrl}/api/uploads/box/${existingBox.fileName || existingBox.filename}`;
+                              navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
+                            } else {
+                              setSelectedBookingForBox(item);
+                              setBoxModalOpen(true);
+                            }
+                          }} 
+                          style={{ 
+                            background: boxMap[item.awb || item.lrNo || item.id] ? "#fef3c7" : "#fefce8", 
+                            border: boxMap[item.awb || item.lrNo || item.id] ? "1px solid #fde68a" : "1px solid #fef08a", 
+                            color: boxMap[item.awb || item.lrNo || item.id] ? "#d97706" : "#ca8a04", 
+                            cursor: "pointer", 
+                            padding: "4px 8px", 
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontWeight: 700,
+                            fontSize: "0.75rem"
+                          }} 
+                          title={boxMap[item.awb || item.lrNo || item.id] ? "Box Upload Verified — Click to View" : "Upload Box / Damage Photo"}
+                        >
+                          {boxMap[item.awb || item.lrNo || item.id] ? <Eye size={14} /> : <PackageOpen size={14} />}
+                          {boxMap[item.awb || item.lrNo || item.id] ? "VIEW BOX" : "+ BOX"}
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            const existingPod = podMap[item.awb || item.lrNo || item.id];
+                            if (existingPod) {
+                              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                              let fileUrl = existingPod.podUrl || existingPod.cloudinaryUrl || `${apiUrl}/api/uploads/pod/${existingPod.fileName || existingPod.filename}`;
+                              navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                            } else {
+                              setSelectedBookingForPod(item);
+                              setPodModalOpen(true);
+                            }
+                          }} 
+                          style={{ 
+                            background: podMap[item.awb || item.lrNo || item.id] ? "#ecfdf5" : "#e0f2fe", 
+                            border: podMap[item.awb || item.lrNo || item.id] ? "1px solid #a7f3d0" : "1px solid #bae6fd", 
+                            color: podMap[item.awb || item.lrNo || item.id] ? "#10b981" : "#0284c7", 
+                            cursor: "pointer", 
+                            padding: "4px 8px", 
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontWeight: 700,
+                            fontSize: "0.75rem"
+                          }} 
+                          title={podMap[item.awb || item.lrNo || item.id] ? "POD Verified — Click to View" : "Upload Proof of Delivery (POD)"}
+                        >
+                          {podMap[item.awb || item.lrNo || item.id] ? <Eye size={14} /> : <FileCheck size={14} />}
+                          {podMap[item.awb || item.lrNo || item.id] ? "VIEW POD" : "+ POD"}
+                        </button>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
                        <span style={{ color: '#64748b', fontWeight: 600 }}>FREIGHT:</span>
                        <span style={{ color: '#10b981', fontWeight: 700 }}><RupeeIcon size={11} /> {parseFloat(item.freight_charge || item.freight || item.frieght || item.weight || 0).toFixed(2)}</span>
@@ -383,6 +450,21 @@ const BookingsList = () => {
             onSuccess={() => {
               fetchBookings();
               fetchPodEntries();
+            }}
+          />
+        )}
+        {boxModalOpen && (
+          <BoxEntryModal
+            isOpen={boxModalOpen}
+            onClose={() => {
+              setBoxModalOpen(false);
+              setSelectedBookingForBox(null);
+            }}
+            booking={selectedBookingForBox}
+            existingBox={selectedBookingForBox ? boxMap[selectedBookingForBox.awb || selectedBookingForBox.lrNo || selectedBookingForBox.id] : null}
+            onSuccess={() => {
+              fetchBookings();
+              fetchBoxEntries();
             }}
           />
         )}

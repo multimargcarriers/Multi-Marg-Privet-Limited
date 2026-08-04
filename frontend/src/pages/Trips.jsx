@@ -14,6 +14,7 @@ import SearchableSelect from "../components/SearchableSelect";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
+import { useSocketSync } from "../hooks/useSocketSync";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -100,21 +101,23 @@ const Trips = () => {
 
   const fetchData = async () => {
     try {
-      const [clientsRes, vendorsRes, citiesRes] = await Promise.all([
+      if (trips.length === 0) setLoading(true);
+      const [clientsRes, vendorsRes, citiesRes, tripsRes] = await Promise.all([
         axios.get(`${API}/clients`),
         axios.get(`${API}/vendors`),
-        axios.get(`${API}/cities`)
+        axios.get(`${API}/cities`),
+        axios.get(`${API}/trips`)
       ]);
       
-      const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
-      setTrips(localTrips);
-      
+      if (tripsRes.data.success) setTrips(tripsRes.data.data || []);
       if (clientsRes.data.success) setClients(clientsRes.data.data || []);
       if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
       if (citiesRes.data.success) setCities(citiesRes.data.data || []);
     } catch (err) { console.error("Fetch data error", err); }
     finally { setLoading(false); }
   };
+
+  useSocketSync("trips", fetchData);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -123,27 +126,19 @@ const Trips = () => {
 
     // Calculate total amount
     const totalAmount = form.materialDetails.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    const tripData = { ...form, totalAmount };
+    const tripData = { ...form, totalAmount, approvalStatus: 'Pending' };
 
-    const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
-    if (!tripData.tripNo || tripData.tripNo.trim() === '') {
-       tripData.tripNo = `FLIGHT-${localTrips.length + 1}`;
-    }
-
-    const tempId = "temp-" + Date.now();
     try {
-      const newTrip = { ...tripData, id: tempId, approvalStatus: 'Pending' };
-      const updatedTrips = [newTrip, ...localTrips];
-      localStorage.setItem('mockTrips', JSON.stringify(updatedTrips));
-      
-      setTrips(updatedTrips);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        setShowForm(false);
-        setForm(initialFormState);
-        localStorage.removeItem('manifestFormDraft');
-      }, 2000);
+      const res = await axios.post(`${API}/trips`, tripData);
+      if (res.data.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          setShowForm(false);
+          setForm(initialFormState);
+          localStorage.removeItem('manifestFormDraft');
+        }, 2000);
+      }
     } catch (err) {
       console.error("Save trip error", err);
     } finally {
@@ -155,10 +150,11 @@ const Trips = () => {
     const isConfirmed = await confirm({ title: "Delete Trip", message: "Are you sure you want to delete this trip?", confirmText: "Delete", cancelText: "Cancel" });
     if (!isConfirmed) return;
     
-    const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
-    const updatedTrips = localTrips.filter(t => t.id !== id);
-    localStorage.setItem('mockTrips', JSON.stringify(updatedTrips));
-    setTrips(updatedTrips);
+    try {
+      await axios.delete(`${API}/trips/${id}`);
+    } catch (err) {
+      console.error("Delete trip error", err);
+    }
   };
 
   const handlePreviewManifest = (id) => {

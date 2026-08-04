@@ -254,6 +254,40 @@ const Settings = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
         
+        {/* System Maintenance Section */}
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #ef4444', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px', color: '#ef4444' }}><AlertCircle size={24} /></div>
+            <h4 style={{ margin: 0, fontSize: '1.2rem', color: '#7f1d1d', fontWeight: 800 }}>System Maintenance</h4>
+          </div>
+          <p style={{ color: '#991b1b', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+            Enabling Maintenance Mode will immediately log out all users and prevent anyone (except Super Admins) from accessing the application. Use this only when performing critical upgrades.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fef2f2', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+            <div>
+              <strong style={{ display: 'block', color: '#7f1d1d', fontSize: '1.05rem', marginBottom: '0.2rem' }}>Enable Maintenance Mode</strong>
+              <span style={{ color: '#991b1b', fontSize: '0.85rem' }}>Status: {globalSettings?.system?.maintenanceMode ? 'ACTIVE' : 'INACTIVE'}</span>
+            </div>
+            <button 
+              onClick={() => handleToggle('system', 'maintenanceMode')}
+              style={{
+                background: globalSettings?.system?.maintenanceMode ? '#ef4444' : '#10b981',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 2rem',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '1rem',
+                cursor: updatingToggles ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                transition: 'background 0.3s ease'
+              }}
+            >
+              {globalSettings?.system?.maintenanceMode ? 'TURN OFF MAINTENANCE' : 'ENABLE MAINTENANCE'}
+            </button>
+          </div>
+        </div>
+
         {/* Company Profile Section */}
         {globalSettings?.company && (
           <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>

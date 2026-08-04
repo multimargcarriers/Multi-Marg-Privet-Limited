@@ -7,6 +7,7 @@ const PodViewer = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const imageUrl = queryParams.get("url");
+  const title = queryParams.get("title") || "Proof of Delivery Viewer";
 
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -57,7 +58,7 @@ const PodViewer = () => {
             <ArrowLeft size={20} />
             <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Back</span>
           </button>
-          <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>Proof of Delivery Viewer</h2>
+          <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>{title}</h2>
         </div>
         
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -112,7 +113,7 @@ const PodViewer = () => {
       }}>
         <img
           src={imageUrl}
-          alt="POD Document"
+          alt={title}
           style={{
             transform: `scale(${zoom}) rotate(${rotation}deg)`,
             transition: "transform 0.2s ease",

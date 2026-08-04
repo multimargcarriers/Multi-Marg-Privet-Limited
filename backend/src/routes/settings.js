@@ -190,6 +190,9 @@ const defaultSettings = {
     accounts: true,
     reports: true,
     uploads: true
+  },
+  system: {
+    maintenanceMode: false
   }
 };
 
@@ -208,6 +211,10 @@ router.get("/config", async (req, res) => {
       await collection.insertOne(newSettings);
       return success(res, "Global configuration fetched", newSettings);
     }
+    
+    // Ensure new sections exist in older documents
+    if (!settings.system) settings.system = { ...defaultSettings.system };
+    if (!settings.integrations) settings.integrations = { ...defaultSettings.integrations };
     
     return success(res, "Global configuration fetched", settings);
   } catch (err) {

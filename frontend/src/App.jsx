@@ -52,6 +52,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { DialogProvider } from "./context/DialogContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import MaintenanceGuard from "./components/MaintenanceGuard";
 import "./index.css";
 
 // Prevent mouse wheel from changing number input values globally
@@ -74,16 +75,16 @@ function App() {
 
           {/* Protected Routes */}
           <Route element={<DashboardLayout />}>
-            <Route element={<ProtectedRoute />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
               <Route path="/profile" element={<Profile />} />
               <Route path="/trash" element={<Trash />} />
             </Route>
-            <Route element={<ProtectedRoute requiredPermission="dashboard" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="dashboard" /></MaintenanceGuard>}>
               <Route path="/dashboard" element={<Dashboard />} />
             </Route>
 
             {/* IAM - SuperAdmin Only */}
-            <Route element={<ProtectedRoute requiredPermission="superadmin" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="superadmin" /></MaintenanceGuard>}>
               <Route path="/iam" element={<IAM />} />
               <Route path="/employee-activity" element={<EmployeeActivity />} />
               <Route path="/logs" element={<SystemLogs />} />
@@ -91,7 +92,7 @@ function App() {
             </Route>
 
             {/* Masters */}
-            <Route element={<ProtectedRoute requiredPermission="masters" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="masters" /></MaintenanceGuard>}>
               <Route path="/clients" element={<Clients />} />
               <Route path="/vendors" element={<Vendors />} />
               <Route path="/branches" element={<Branches />} />
@@ -101,7 +102,7 @@ function App() {
             </Route>
 
             {/* Operations */}
-            <Route element={<ProtectedRoute requiredPermission="operations" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="operations" /></MaintenanceGuard>}>
               <Route path="/bookings" element={<BookingsList />} />
               <Route path="/bookings/create" element={<CreateBooking />} />
               <Route path="/bookings/edit/:id" element={<CreateBooking />} />
@@ -115,12 +116,12 @@ function App() {
             </Route>
 
             {/* Trips - Has its own permission requirement because vendors need it without operations */}
-            <Route element={<ProtectedRoute requiredPermission="trips" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="trips" /></MaintenanceGuard>}>
               <Route path="/trips" element={<Trips />} />
             </Route>
 
             {/* Billing */}
-            <Route element={<ProtectedRoute requiredPermission="billing" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="billing" /></MaintenanceGuard>}>
               <Route path="/bills" element={<Bills />} />
               <Route path="/bills/all" element={<AllBills />} />
               <Route path="/bills/view1/:id" element={<BillView1 />} />
@@ -132,14 +133,14 @@ function App() {
             </Route>
 
             {/* Accounts */}
-            <Route element={<ProtectedRoute requiredPermission="accounts" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="accounts" /></MaintenanceGuard>}>
               <Route path="/cash-sheet" element={<CashSheet />} />
               <Route path="/purchases" element={<Purchase />} />
             </Route>
 
             
             {/* Reports */}
-            <Route element={<ProtectedRoute requiredPermission="reports" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="reports" /></MaintenanceGuard>}>
               <Route path="/reports/analytics" element={<Analytics />} />
               <Route path="/reports/gst" element={<GST />} />
               <Route path="/reports/mis" element={<MISReports />} />
@@ -151,7 +152,7 @@ function App() {
             </Route>
 
             {/* Uploads */}
-            <Route element={<ProtectedRoute requiredPermission="uploads" />}>
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="uploads" /></MaintenanceGuard>}>
               <Route path="/upload-box" element={<UploadBox />} />
               <Route path="/upload-vouchers" element={<UploadVouchers />} />
             </Route>

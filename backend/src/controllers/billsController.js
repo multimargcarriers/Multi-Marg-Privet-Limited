@@ -1,3 +1,4 @@
+const { emitDataUpdated } = require("../utils/socket");
 const { db } = require("../config/database");
 const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
@@ -93,13 +94,14 @@ exports.post_id_upload_pdf_4 = async (req, res) => {
     pdfUrl: uploadResult.url
   });
   await delCache(CACHE_KEY);
-  return success(res, "PDF uploaded successfully", { url: uploadResult.url });
+  emitDataUpdated("bills");
+    return success(res, "PDF uploaded successfully", { url: uploadResult.url });
 };
 
 exports.post_generate_5 = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
-  const { bookingIds, bookingsData, invoiceNo, invoiceDate, gst: applyGst } = req.body;
+  const { bookingIds, bookingsData, invoiceNo, invoiceDate, gst } = req.body;
   
   if (!bookingIds || bookingIds.length === 0) {
     return error(res, "No bookings selected", 400);
@@ -199,12 +201,12 @@ exports.post_generate_5 = async (req, res) => {
   const clientAddress = clientMaster?.address || firstBooking.consignee_address || firstBooking.consignor_address || firstBooking.clientAddress || "SIDCUL PANTNAGAR";
 
   
-  const gstRate = applyGst ? 18 : 0;
+  const gstRate = parseFloat(gst) || 0;
   const taxable = totalFreight + totalAwb + totalPickup + totalDelivery + totalPackaging + totalHandling;
   const gstAmt = taxable * gstRate / 100;
   
   let cgst = 0, sgst = 0, igst = 0;
-  if (applyGst) {
+  if (gstRate > 0) {
     if (clientStateCode === "05" || !clientStateCode) {
       cgst = gstAmt / 2;
       sgst = gstAmt / 2;
@@ -293,7 +295,8 @@ exports.post_generate_5 = async (req, res) => {
   await delCache(CACHE_KEY);
   await delCache("bookings");
   
-  return success(res, "Bills generated successfully", {
+  emitDataUpdated("bills");
+    return success(res, "Bills generated successfully", {
     billNo: bill.billNo,
     bills: [bill],
     count: 1
@@ -342,6 +345,8 @@ exports.post_misc_6 = async (req, res) => {
   };
   await db.collection("bills").doc(bill.id).set(bill);
   await delCache(CACHE_KEY);
+  emitDataUpdated("bills");
+  emitDataUpdated("bills");
   return created(res, "Miscellaneous bill created successfully", bill);
 };
 
@@ -391,7 +396,8 @@ exports.put_id_7 = async (req, res) => {
 
   await db.collection("bills").doc(id).update(updatedData);
   await delCache(CACHE_KEY);
-  return success(res, "Bill updated successfully", {
+  emitDataUpdated("bills");
+    return success(res, "Bill updated successfully", {
     id,
     ...updatedData
   });
@@ -428,5 +434,6 @@ exports.delete_id_8 = async (req, res) => {
   await db.collection("bills").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
   await delCache("bookings");
-  return success(res, "Bill deleted successfully");
+  emitDataUpdated("bills");
+    return success(res, "Bill deleted successfully");
 };

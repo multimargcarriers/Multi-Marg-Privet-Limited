@@ -1,40 +1,132 @@
-import RupeeIcon from '../components/RupeeIcon';
-import { formatDate } from '../utils/formatters';
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
 import axios from "axios";
-import { CheckCircle, Loader2, ShoppingCart, Trash2 } from "lucide-react";
-import CreatableDropdown from "../components/CreatableDropdown";
-import QuickAddModal from "../components/QuickAddModal";
+import { useNavigate } from "react-router-dom";
 import Table from "../components/Table";
+import { 
+  Plus, 
+  FileText, 
+  CheckCircle, 
+  Trash2, 
+  Eye, 
+  X,
+  Calendar, 
+  RefreshCw,
+  ExternalLink,
+  Camera,
+  Image as ImageIcon,
+  ShoppingCart,
+  Receipt,
+  FileSpreadsheet,
+  DollarSign
+} from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useSocketSync } from "../hooks/useSocketSync";
+import { motion, AnimatePresence } from "framer-motion";
+import { formatDate } from '../utils/formatters';
+import PODImageStudioModal from "../components/pod/PODImageStudioModal";
+import RupeeIcon from '../components/RupeeIcon';
+import CreatableDropdown from "../components/CreatableDropdown";
+import QuickAddModal from "../components/QuickAddModal";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Purchase = () => {
   const { user } = useContext(AuthContext);
-  const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const { confirm, alert: alertDialog } = useDialog();
+  const navigate = useNavigate();
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
 
-  const [formData, setFormData] = useState({
-    vendor: "",
-    billNo: "",
-    date: "",
-    taxable: "",
-    gst: "",
-    total: "",
-    file: null
-  });
-  
+  // Data states
   const [purchases, setPurchases] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Modal / Add Form states
+  const [isAdding, setIsAdding] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // { name, type, dataUrl }
+  
+  // QuickAdd Modal State for Vendors
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
   const [modalInitialName, setModalInitialName] = useState("");
+
+  // Form State
+  const [formData, setFormData] = useState({
+    vendor: "",
+    billNo: "",
+    date: new Date().toISOString().slice(0, 10),
+    taxable: "",
+    gstSlab: "0",
+    gst: "",
+    total: ""
+  });
+
+  // Box Image Studio Modal state
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [studioMode, setStudioMode] = useState("camera"); // 'camera' | 'editor'
+  const [studioInitialSrc, setStudioInitialSrc] = useState(null);
+
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    if (purchases.length === 0) setLoading(true);
+    try {
+      const [vendorsRes, purchasesRes] = await Promise.all([
+        axios.get(`${API}/vendors`),
+        axios.get(`${API}/purchases`)
+      ]);
+      if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
+      if (purchasesRes.data.success) setPurchases(purchasesRes.data.data || []);
+    } catch (err) { 
+      console.error("Fetch purchase data error", err); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
+
+  useSocketSync("purchases", fetchData);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
+  // Effect to auto-calculate GST and Total
+  useEffect(() => {
+    const taxableVal = parseFloat(formData.taxable) || 0;
+    
+    if (formData.gstSlab !== "custom") {
+      const slabPercentage = parseFloat(formData.gstSlab) || 0;
+      const calculatedGst = (taxableVal * slabPercentage) / 100;
+      const totalVal = taxableVal + calculatedGst;
+      
+      setFormData(prev => ({
+        ...prev,
+        gst: calculatedGst ? calculatedGst.toFixed(2) : "",
+        total: totalVal ? totalVal.toFixed(2) : ""
+      }));
+    } else {
+      // If custom, just calculate total based on whatever GST user manually typed
+      const manualGst = parseFloat(formData.gst) || 0;
+      const totalVal = taxableVal + manualGst;
+      setFormData(prev => ({
+        ...prev,
+        total: totalVal ? totalVal.toFixed(2) : ""
+      }));
+    }
+  }, [formData.taxable, formData.gstSlab, formData.gst]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleCreateNew = (type, name) => {
     setModalType(type);
@@ -48,39 +140,58 @@ const Purchase = () => {
       setFormData({ ...formData, vendor: data.name || data.vendor });
     }
   };
-  
-  useEffect(() => {
-    fetchData();
-  }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [vendorsRes, purchasesRes] = await Promise.all([
-        axios.get(`${API}/vendors`),
-        axios.get(`${API}/purchases`)
-      ]);
-      if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
-      if (purchasesRes.data.success) setPurchases(purchasesRes.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch data", err);
-    } finally {
-      setLoading(false);
+  const fileToDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      const dataUrl = await fileToDataURL(file);
+      setSelectedFile({
+        name: file.name,
+        type: "pdf",
+        dataUrl
+      });
+    } else {
+      const dataUrl = await fileToDataURL(file);
+      setStudioInitialSrc(dataUrl);
+      setStudioMode("editor");
+      setStudioOpen(true);
     }
+    e.target.value = null;
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleOpenCamera = () => {
+    setStudioInitialSrc(null);
+    setStudioMode("camera");
+    setStudioOpen(true);
   };
-  
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, file: e.target.files[0] });
+
+  const handleStudioSave = (editedDataUrl, filename) => {
+    setSelectedFile({
+      name: filename || `PurchaseBill_${Date.now()}.jpg`,
+      type: "image",
+      dataUrl: editedDataUrl
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setSuccess(false);
+    if (!formData.vendor || !formData.billNo || !formData.date) {
+      alertDialog({ title: "Incomplete Details", message: "Please enter vendor, bill number, and date." });
+      return;
+    }
+
+    setUploading(true);
     try {
       const payload = {
         vendor: formData.vendor?.name || formData.vendor,
@@ -89,41 +200,47 @@ const Purchase = () => {
         taxable: parseFloat(formData.taxable) || 0,
         gst: parseFloat(formData.gst) || 0,
         total: parseFloat(formData.total) || 0,
+        fileName: selectedFile ? selectedFile.name : null,
+        fileData: selectedFile ? selectedFile.dataUrl : null,
       };
-      
-      const response = await axios.post(`${API}/purchases`, payload);
-      if (response.data.success) {
-        setSuccess(true);
+
+      const res = await axios.post(`${API}/purchases`, payload);
+      if (res.data.success) {
+        await fetchData();
+        // Reset form
         setFormData({
           vendor: "",
           billNo: "",
-          date: "",
+          date: new Date().toISOString().slice(0, 10),
           taxable: "",
+          gstSlab: "0",
           gst: "",
-          total: "",
-          file: null
+          total: ""
         });
-        fetchData();
-        setTimeout(() => setSuccess(false), 3000);
+        setSelectedFile(null);
+        setIsAdding(false);
+      } else {
+        alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
       }
-    } catch (error) {
-      console.error("Error creating purchase entry", error);
+    } catch (err) {
+      console.error("Save purchase entry error", err);
+      alertDialog({ title: "Error", message: "An error occurred while saving." });
     } finally {
-      setIsSubmitting(false);
+      setUploading(false);
     }
   };
 
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
       title: "Delete Purchase",
-      message: "Are you sure you want to delete this purchase bill? This action cannot be undone.",
+      message: "Are you sure you want to delete this purchase bill? This will also remove any attached bill image.",
       confirmText: "Delete",
       cancelText: "Cancel"
     });
     if (!isConfirmed) return;
     
+    setPurchases(prev => prev.filter(p => p.id !== id));
     try {
-      setPurchases(prev => prev.filter(p => p.id !== id));
       await axios.delete(`${API}/purchases/${id}`);
     } catch (err) {
       console.error("Delete purchase error", err);
@@ -131,192 +248,598 @@ const Purchase = () => {
     }
   };
 
+  const stats = useMemo(() => {
+    const totalPurchases = purchases.length;
+    const totalAmount = purchases.reduce((s, e) => s + parseFloat(e.total || 0), 0);
+    const totalGst = purchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
+    return { totalPurchases, totalAmount, totalGst };
+  }, [purchases]);
+
   return (
-    <div style={{ width: "100%", margin: "0 auto" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-          Purchase Bills
-        </h3>
+    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+      {/* HEADER BAR */}
+      <div 
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "1rem 1.5rem",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          marginBottom: isAdding ? "0.35rem" : "1.25rem",
+          transition: "margin-bottom 0.2s ease",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem"
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ background: "#f5f3ff", padding: "8px", borderRadius: "10px", display: "flex" }}>
+            <ShoppingCart size={22} style={{ color: "#8b5cf6" }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
+              Purchases
+            </h3>
+            <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+              Manage vendor bills and purchase records
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#475569",
+              padding: "0.45rem 0.85rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+              fontSize: "0.8rem"
+            }}
+          >
+            <RefreshCw size={14} className={refreshing ? "spin-animation" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+
+          {!isAdding && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              style={{
+                background: "#8b5cf6",
+                color: "white",
+                border: "none",
+                padding: "0.45rem 1rem",
+                borderRadius: "8px",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 2px 6px rgba(139, 92, 246, 0.2)",
+                fontSize: "0.825rem"
+              }}
+            >
+              <Plus size={15} />
+              New Purchase
+            </button>
+          )}
+        </div>
       </div>
 
-      {success && (
-        <div
-          className="glass-panel"
-          style={{
-            padding: "1.5rem",
-            marginBottom: "2rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            background: "rgba(34, 197, 94, 0.1)",
-            border: "1px solid rgba(34, 197, 94, 0.2)",
-          }}
-        >
-          <CheckCircle size={32} color="#16a34a" />
-          <div>
-            <h5 style={{ color: "#16a34a", marginBottom: "0.25rem", margin: 0 }}>
-              Purchase Bill Added Successfully!
-            </h5>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "3rem" }}>
-        <div className="grid-2-col">
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Vendor Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <CreatableDropdown 
-              options={vendors} 
-              value={formData.vendor} 
-              onChange={(val) => setFormData({ ...formData, vendor: val })} 
-              onCreate={(name) => handleCreateNew("vendor", name)}
-              placeholder="-- Please select the Vendor --" 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Vendor Bill No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="text" 
-              className="form-control" 
-              name="billNo" 
-              placeholder="Enter the Bill No" 
-              value={formData.billNo} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
-
-        <div className="grid-2-col">
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="date" min="1947-01-01" max="2200-12-31" 
-              className="form-control" 
-              name="date" 
-              value={formData.date} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Taxable Value<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="number" 
-              step="0.01"
-              className="form-control" 
-              name="taxable" 
-              placeholder="Enter the Taxable Value" 
-              value={formData.taxable} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
-        
-        <div className="grid-2-col">
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Gst<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="number" 
-              step="0.01"
-              className="form-control" 
-              name="gst" 
-              placeholder="Enter the Gst" 
-              value={formData.gst} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Total<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="number" 
-              step="0.01"
-              className="form-control" 
-              name="total" 
-              placeholder="Enter the Total amount" 
-              value={formData.total} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-        </div>
-
-        <div className="form-group" style={{ marginBottom: "2.5rem", display: "flex", alignItems: "center", gap: "1rem" }}>
-          <label className="form-label" style={{ fontWeight: "500", color: "#374151", margin: 0 }}>
-            Upload Bill<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-          </label>
-          <input 
-            type="file" 
-            name="file" 
-            onChange={handleFileChange} 
-            style={{ fontSize: "0.9rem" }}
-          />
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-            style={{ padding: "0.5rem 2rem", height: "45px" }}
+      {/* NEW ENTRY WORKFLOW */}
+      <AnimatePresence>
+        {isAdding && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            style={{ overflow: "hidden", width: "100%" }}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={18} className="spinner" /> Updating...
-              </>
-            ) : (
-              <>UPDATE PURCHASE SHEET</>
-            )}
-          </button>
-        </div>
-      </form>
+            <div 
+              style={{
+                backgroundColor: "white",
+                borderRadius: "16px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 20px 35px -10px rgba(0, 0, 0, 0.08)",
+                marginBottom: "1rem",
+                width: "100%",
+                overflow: "hidden"
+              }}
+            >
+              <div style={{ background: "linear-gradient(90deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)", height: "4px", width: "100%" }} />
+              <div 
+                style={{
+                  padding: "1.25rem 1.75rem",
+                  borderBottom: "1px solid #f1f5f9",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  background: "#fafcfd"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+                  <div style={{ background: "#ede9fe", padding: "10px", borderRadius: "12px", color: "#8b5cf6", display: "flex" }}>
+                    <Receipt size={22} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700", color: "#0f172a" }}>
+                      Record Purchase Bill
+                    </h4>
+                    <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 500 }}>
+                      Log a new vendor bill and attach the receipt document
+                    </span>
+                  </div>
+                </div>
 
-      <div className="glass-panel" style={{ padding: "2rem" }}>
-        <h4 style={{ marginTop: 0, marginBottom: "1.5rem", color: "#111827", fontSize: "1.2rem" }}>Recent Purchase Bills</h4>
+                <button
+                  type="button"
+                  onClick={() => setIsAdding(false)}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    borderRadius: "8px",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#64748b"
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <div 
+                  style={{
+                    padding: "1.75rem",
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                    gap: "1.75rem",
+                    alignItems: "start"
+                  }}
+                >
+                  {/* COL 1: Details */}
+                  <div style={{ background: "#f8fafc", padding: "1.25rem", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                    <h5 style={{ margin: "0 0 1rem 0", fontSize: "0.9rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                      1. Vendor & Bill Details
+                    </h5>
+                    
+                    <div style={{ marginBottom: "1rem" }}>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Vendor Name *</label>
+                      <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
+                         <CreatableDropdown 
+                            options={vendors} 
+                            value={formData.vendor} 
+                            onChange={(val) => setFormData({ ...formData, vendor: val })} 
+                            onCreate={(name) => handleCreateNew("vendor", name)}
+                            placeholder="-- Select or type new Vendor --" 
+                          />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Bill / Invoice No *</label>
+                        <input
+                          type="text"
+                          name="billNo"
+                          value={formData.billNo}
+                          onChange={handleChange}
+                          placeholder="e.g. INV-1029"
+                          required
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Bill Date *</label>
+                        <input
+                          type="date"
+                          name="date"
+                          value={formData.date}
+                          onChange={handleChange}
+                          required
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Taxable Amount (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="taxable"
+                          value={formData.taxable}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>GST Slab</label>
+                        <select
+                          name="gstSlab"
+                          value={formData.gstSlab}
+                          onChange={handleChange}
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}
+                        >
+                          <option value="0">0%</option>
+                          <option value="5">5%</option>
+                          <option value="12">12%</option>
+                          <option value="18">18%</option>
+                          <option value="28">28%</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>GST Amount (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="gst"
+                          value={formData.gst}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          disabled={formData.gstSlab !== "custom"}
+                          style={{ 
+                            width: "100%", 
+                            padding: "0.65rem", 
+                            borderRadius: "8px", 
+                            border: "1px solid #cbd5e1", 
+                            outline: "none", 
+                            boxSizing: "border-box",
+                            backgroundColor: formData.gstSlab !== "custom" ? "#f1f5f9" : "white",
+                            color: formData.gstSlab !== "custom" ? "#64748b" : "black"
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Total Amount (₹) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="total"
+                          value={formData.total}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          required
+                          readOnly
+                          style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid #8b5cf6", outline: "none", boxSizing: "border-box", fontWeight: 700, backgroundColor: "#f5f3ff", color: "#6d28d9" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COL 2: Voucher Document */}
+                  <div style={{ background: "#f8fafc", padding: "1.25rem", borderRadius: "14px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+                    <h5 style={{ margin: "0 0 1rem 0", fontSize: "0.9rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                      2. Attach Bill / Invoice Document
+                    </h5>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      style={{ display: "none" }}
+                    />
+
+                    {!selectedFile ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem", flex: 1 }}>
+                        <button
+                          type="button"
+                          onClick={handleOpenCamera}
+                          style={{
+                            background: "white",
+                            color: "#8b5cf6",
+                            border: "1.5px solid #ddd6fe",
+                            padding: "1.25rem 0.75rem",
+                            borderRadius: "12px",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "all 0.15s",
+                            boxShadow: "0 2px 6px rgba(139, 92, 246, 0.08)"
+                          }}
+                        >
+                          <div style={{ background: "#ede9fe", padding: "10px", borderRadius: "50%", color: "#8b5cf6", display: "flex" }}>
+                            <Camera size={22} />
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>Scan Bill</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            background: "white",
+                            color: "#334155",
+                            border: "1.5px dashed #cbd5e1",
+                            padding: "1.25rem 0.75rem",
+                            borderRadius: "12px",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "all 0.15s"
+                          }}
+                        >
+                          <div style={{ background: "#f1f5f9", padding: "10px", borderRadius: "50%", color: "#64748b", display: "flex" }}>
+                            <ImageIcon size={22} />
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>Browse Files</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                        <div style={{ background: "white", borderRadius: "10px", padding: "1rem", border: "1.5px solid #8b5cf6", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+                            {selectedFile.type === "pdf" ? (
+                              <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "8px", color: "#dc2626" }}>
+                                <FileText size={24} />
+                              </div>
+                            ) : (
+                              <img
+                                src={selectedFile.dataUrl}
+                                alt="Preview"
+                                style={{ width: "56px", height: "56px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                              />
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", maxWidth: "160px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selectedFile.name}</div>
+                              <div style={{ fontSize: "0.75rem", color: "#8b5cf6", fontWeight: 600, marginTop: "2px" }}>✓ Ready to upload</div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                            {selectedFile.type !== "pdf" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStudioInitialSrc(selectedFile.dataUrl);
+                                  setStudioMode("editor");
+                                  setStudioOpen(true);
+                                }}
+                                style={{
+                                  background: "#f5f3ff",
+                                  border: "1px solid #8b5cf6",
+                                  color: "#6d28d9",
+                                  padding: "4px 10px",
+                                  borderRadius: "6px",
+                                  fontWeight: 600,
+                                  fontSize: "0.75rem",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedFile(null)}
+                              style={{
+                                background: "#fef2f2",
+                                border: "1px solid #fca5a5",
+                                color: "#dc2626",
+                                padding: "4px 10px",
+                                borderRadius: "6px",
+                                fontWeight: 600,
+                                fontSize: "0.75rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
+                      <button
+                        type="submit"
+                        disabled={uploading || !formData.vendor || !formData.billNo}
+                        style={{
+                          width: "100%",
+                          background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+                          color: "white",
+                          border: "none",
+                          padding: "0.85rem 1rem",
+                          borderRadius: "10px",
+                          fontWeight: 700,
+                          fontSize: "0.95rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          boxShadow: "0 4px 12px rgba(139, 92, 246, 0.25)",
+                          opacity: uploading || !formData.vendor || !formData.billNo ? 0.5 : 1
+                        }}
+                      >
+                        <Plus size={18} />
+                        {uploading ? "Saving Purchase..." : "Record Purchase"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* STATS CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Purchases</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               {stats.totalPurchases}
+            </div>
+          </div>
+          <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}><FileSpreadsheet size={24} color="#64748b" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Value</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#8b5cf6", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.totalAmount.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#f5f3ff", padding: "12px", borderRadius: "12px" }}><ShoppingCart size={24} color="#8b5cf6" /></div>
+        </div>
+
+        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total GST Paid</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f59e0b", marginTop: "4px", display: "flex", alignItems: "center" }}>
+               <RupeeIcon size={24} /> {stats.totalGst.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: "#fffbeb", padding: "12px", borderRadius: "12px" }}><Receipt size={24} color="#f59e0b" /></div>
+        </div>
+      </div>
+
+      {/* TABLE */}
+      <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          loading={loading}
-          headers={["Vendor Name", "Vendor Bill No", "Date", "Taxable Value", "Gst", "Total", "Actions"]}
+          headers={["Date", "Vendor", "Bill No", "Taxable", "GST", "Total", "Bill Image", "Actions"]}
           data={purchases}
-          renderRow={(item, index) => (
-            <tr key={item.id || index}>
-              <td className="font-semibold"><ShoppingCart size={16} style={{ marginRight: 8, verticalAlign: "middle", color: "var(--primary-color)" }} />{item.vendor}</td>
-              <td>{item.billNo || "-"}</td>
-              <td>{item.date ? formatDate(item.date) : "-"}</td>
-              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || 0).toFixed(2)}</span></td>
-              <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.gst || 0).toFixed(2)}</span></td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || 0).toFixed(2)}</span></td>
-              <td>
-                {isSuperAdmin && (
-                  <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="Delete">
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </td>
-            </tr>
-          )}
+          loading={loading}
+          pagination={true}
+          renderRow={(item, index) => {
+            const fileUrl = item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API}/uploads/${item.fileName}` : null);
+
+            return (
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
+                <td style={{ padding: "1rem", color: "#475569" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Calendar size={14} /> {item.date ? formatDate(item.date) : "-"}
+                  </div>
+                </td>
+                
+                <td style={{ padding: "1rem", fontWeight: 600, color: "#334155" }}>
+                  {item.vendor}
+                </td>
+
+                <td style={{ padding: "1rem", color: "#0f172a" }}>
+                  {item.billNo || "-"}
+                </td>
+
+                <td style={{ padding: "1rem", color: "#475569" }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <RupeeIcon size={14} /> {parseFloat(item.taxable || 0).toFixed(2)}
+                  </div>
+                </td>
+                
+                <td style={{ padding: "1rem", color: "#f59e0b" }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <RupeeIcon size={14} /> {parseFloat(item.gst || 0).toFixed(2)}
+                  </div>
+                </td>
+
+                <td style={{ padding: "1rem", fontWeight: 700, color: "#8b5cf6" }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}
+                  </div>
+                </td>
+
+                <td style={{ padding: "1rem" }}>
+                  {fileUrl ? (
+                    <button
+                      onClick={() => navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Purchase%20Bill%20Viewer`)}
+                      style={{
+                        background: "#f5f3ff",
+                        border: "1px solid #ddd6fe",
+                        color: "#6d28d9",
+                        padding: "0.4rem 0.85rem",
+                        borderRadius: "6px",
+                        fontWeight: 600,
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      <Eye size={14} />
+                      View Bill
+                    </button>
+                  ) : (
+                    <span style={{ color: "#94a3b8", fontSize: "0.8rem", fontStyle: "italic" }}>No document</span>
+                  )}
+                </td>
+
+                <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    {fileUrl && (
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#475569", padding: "4px", display: "inline-flex", textDecoration: "none" }}
+                        title="Open in new tab"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
+                    {isSuperAdmin && (
+                      <button 
+                        onClick={() => handleDelete(item.id)}
+                        style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}
+                        title="Delete Entry"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          }}
         />
       </div>
-
+      
+      {/* QUICK ADD MODAL for Vendor Dropdown */}
       <QuickAddModal 
         isOpen={modalOpen} 
         onClose={() => setModalOpen(false)}
         onSave={handleModalSave}
         type={modalType}
         initialName={modalInitialName}
+      />
+
+      {/* STUDIO MODAL */}
+      <PODImageStudioModal
+        isOpen={studioOpen}
+        onClose={() => setStudioOpen(false)}
+        initialMode={studioMode}
+        initialImageSrc={studioInitialSrc}
+        onSave={handleStudioSave}
       />
     </div>
   );

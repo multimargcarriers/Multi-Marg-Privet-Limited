@@ -1,31 +1,14 @@
-const {
-  db
-} = require("../config/database");
-const {
-  v4: uuidv4
-} = require("uuid");
-const {
-  success,
-  created,
-  error
-} = require("../utils/response");
-const {
-  asyncHandler
-} = require("../middleware/errorHandler");
-const {
-  getOrSet,
-  delCache
-} = require("../config/redis");
-const {
-  body,
-  validationResult
-} = require("express-validator");
-const {
-  uploadFile
-} = require("../config/cloudinary");
+const { db } = require("../config/database");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
+const fs = require("fs");
+const { success, created, error } = require("../utils/response");
+const { asyncHandler } = require("../middleware/errorHandler");
+const { getOrSet, delCache } = require("../config/redis");
+const { body, validationResult } = require("express-validator");
+const { uploadFile } = require("../config/cloudinary");
 
 const CACHE_KEY = "boxEntries";
-
 
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
@@ -43,23 +26,55 @@ exports.getRoot_1 = async (req, res) => {
 exports.postRoot_2 = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
-  const entry = req.body;
-  entry.uploadedAt = new Date().toISOString();
+  const {
+    lrNo,
+    fileName,
+    fileData,
+    boxType,
+    bookingId,
+    consignor,
+    consignee,
+    origin,
+    destination,
+    client,
+    remarks
+  } = req.body;
+
+  const entry = {
+    lrNo: lrNo || "UNKNOWN",
+    fileName: fileName || "uploaded_file",
+    boxType: boxType || "UNKNOWN", // "VERIFIED" vs "UNKNOWN"
+    bookingId: bookingId || null,
+    consignor: consignor || "-",
+    consignee: consignee || "-",
+    origin: origin || "-",
+    destination: destination || "-",
+    client: client || "-",
+    remarks: remarks || "",
+    uploadedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  };
 
   // Upload to Cloudinary if file data is provided
-  if (entry.fileData) {
+  if (fileData) {
     try {
-      const uploadResult = await uploadFile(entry.fileData, {
+      const uploadResult = await uploadFile(fileData, {
         folder: "multimarg/box",
-        resource_type: "auto"
+        resourceType: "auto"
       });
-      entry.cloudinaryUrl = uploadResult.url;
-      entry.cloudinaryPublicId = uploadResult.publicId;
-      delete entry.fileData;
+      if (uploadResult && uploadResult.url) {
+        entry.cloudinaryUrl = uploadResult.url;
+        entry.cloudinaryPublicId = uploadResult.publicId;
+        entry.boxUrl = uploadResult.url;
+      } else {
+        entry.fileData = fileData;
+      }
     } catch (uploadErr) {
-      // Fallback: keep local fileData
+      console.error("[BOX Cloudinary Error]", uploadErr.message);
+      entry.fileData = fileData;
     }
   }
+
   const docRef = await db.collection("box").add(entry);
   await delCache(CACHE_KEY);
   return created(res, "Box entry created successfully", {
@@ -68,3 +83,23 @@ exports.postRoot_2 = async (req, res) => {
   });
 };
 
+exports.deleteRoot_3 = async (req, res) => {
+  const { id } = req.params;
+  const docRef = db.collection("box").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    return error(res, "Box entry not found", 404);
+  }
+  const data = doc.data();
+  if (data.cloudinaryPublicId || data.cloudinaryUrl) {
+    try {
+      const { deleteFromCloudinary } = require("../utils/cloudinaryCleaner");
+      await deleteFromCloudinary(data.cloudinaryPublicId || data.cloudinaryUrl);
+    } catch (e) {
+      console.warn("Failed to delete Box image from Cloudinary:", e.message);
+    }
+  }
+  await docRef.delete();
+  await delCache(CACHE_KEY);
+  return success(res, "Box entry deleted successfully");
+};

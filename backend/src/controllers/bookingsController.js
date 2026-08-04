@@ -1,3 +1,4 @@
+const { emitDataUpdated } = require("../utils/socket");
 const {
   db
 } = require("../config/database");
@@ -164,6 +165,7 @@ exports.postRoot_1 = async (req, res) => {
   // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
+  emitDataUpdated("bookings");
   return created(res, "Booking created successfully", {
     id: docRef.id,
     ...booking
@@ -209,7 +211,8 @@ exports.put_id_4 = async (req, res) => {
   // await generateOrUpdateBillForBooking(updatedBooking, false); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
-  return success(res, "Booking updated successfully", {
+  emitDataUpdated("bookings");
+    return success(res, "Booking updated successfully", {
     id,
     ...req.body
   });
@@ -223,7 +226,8 @@ exports.delete_id_5 = async (req, res) => {
   if (!doc.exists) return error(res, "Booking not found", 404);
   await db.collection("bookings").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
-  return success(res, "Booking deleted successfully");
+  emitDataUpdated("bookings");
+    return success(res, "Booking deleted successfully");
 };
 
 exports.delete_clear_all_6 = async (req, res) => {
@@ -236,7 +240,8 @@ exports.delete_clear_all_6 = async (req, res) => {
   try {
     const snapshot = await db.collection("bookings").get();
     if (snapshot.empty) {
-      return success(res, "No bookings found to delete.");
+      emitDataUpdated("bookings");
+    return success(res, "No bookings found to delete.");
     }
 
     // Insert all to Trash first

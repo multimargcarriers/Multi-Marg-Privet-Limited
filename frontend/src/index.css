@@ -160,8 +160,17 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar.closed { width: var(--sidebar-collapsed-width); }
 .main-content.sidebar-open { margin-left: var(--sidebar-width); }
 .main-content.sidebar-closed { margin-left: var(--sidebar-collapsed-width); }
-.main-content.no-sidebar { margin-left: 0; width: 100%; }
+.main-content.no-sidebar { margin-left: 0; }
 .main-content.no-right-sidebar { margin-right: 0; }
+
+.main-content.sidebar-open { width: calc(100% - var(--sidebar-width) - var(--sidebar-collapsed-width)); }
+.main-content.sidebar-open.no-right-sidebar { width: calc(100% - var(--sidebar-width)); }
+
+.main-content.sidebar-closed { width: calc(100% - var(--sidebar-collapsed-width) - var(--sidebar-collapsed-width)); }
+.main-content.sidebar-closed.no-right-sidebar { width: calc(100% - var(--sidebar-collapsed-width)); }
+
+.main-content.no-sidebar { width: calc(100% - var(--sidebar-collapsed-width)); }
+.main-content.no-sidebar.no-right-sidebar { width: 100%; }
 
 /* Right Sidebar Overrides */
 .right-sidebar {
@@ -488,11 +497,17 @@ textarea.form-control {
 
 .main-content.sidebar-open {
   margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width) - var(--sidebar-collapsed-width));
+}
+.main-content.sidebar-open.no-right-sidebar {
   width: calc(100% - var(--sidebar-width));
 }
 
 .main-content.sidebar-closed {
   margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width) - var(--sidebar-collapsed-width));
+}
+.main-content.sidebar-closed.no-right-sidebar {
   width: calc(100% - var(--sidebar-collapsed-width));
 }
 
