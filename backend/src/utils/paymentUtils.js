@@ -5,70 +5,70 @@ const { runAnalyticsAggregation } = require("../jobs/analyticsJob");
 const recalculatePartyPayments = async (partyType, partyName) => {
     if (!partyType || !partyName) return;
 
+    const regex = new RegExp(`^${partyName}$`, "i");
+
     if (partyType === 'Client') {
-        const cashSnapshot = await db.collection("cashEntries")
-            .where("partyType", "==", "Client")
-            .where("partyName", "==", partyName)
-            .get();
+        const cashDocs = await db.mongoDb.collection("cashEntries").find({
+            partyType: "Client",
+            partyName: { $regex: regex }
+        }).toArray();
+
         let totalPaid = 0;
-        cashSnapshot.forEach(doc => {
-            const data = doc.data();
-            const amt = Number(data.amount) || 0;
-            if (data.type === "in") totalPaid += amt;
-            else if (data.type === "out") totalPaid -= amt;
+        cashDocs.forEach(doc => {
+            const amt = Number(doc.amount) || 0;
+            if (doc.type === "in") totalPaid += amt;
+            else if (doc.type === "out") totalPaid -= amt;
         });
 
-        const billsSnapshot = await db.collection("bills")
-            .where("client", "==", partyName)
-            .get();
-        let bills = [];
-        billsSnapshot.forEach(doc => bills.push({ id: doc.id, ref: doc.ref, data: doc.data() }));
-        bills.sort((a, b) => new Date(a.data.createdAt || 0) - new Date(b.data.createdAt || 0));
+        const billsDocs = await db.mongoDb.collection("bills").find({
+            client: { $regex: regex }
+        }).toArray();
+        
+        billsDocs.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
         let remaining = totalPaid;
-        for (const bill of bills) {
-            const billTotal = Number(bill.data.total || bill.data.amount) || 0;
+        for (const bill of billsDocs) {
+            const billTotal = Number(bill.total || bill.amount) || 0;
             const applied = Math.min(billTotal, remaining);
             remaining -= applied;
             
             const newStatus = applied >= billTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
             
-            if (bill.data.paidAmount !== applied || bill.data.status !== newStatus) {
-                await bill.ref.update({ paidAmount: applied, status: newStatus });
+            if (bill.paidAmount !== applied || bill.status !== newStatus) {
+                await db.collection("bills").doc(bill.id || bill._id.toString()).update({ paidAmount: applied, status: newStatus });
             }
         }
         await delCache("bills");
-    } 
+    }
     else if (partyType === 'Vendor') {
-        const cashSnapshot = await db.collection("cashEntries")
-            .where("partyType", "==", "Vendor")
-            .where("partyName", "==", partyName)
-            .get();
+        const cashDocs = await db.mongoDb.collection("cashEntries").find({
+            partyType: "Vendor",
+            partyName: { $regex: regex }
+        }).toArray();
+
         let totalPaid = 0;
-        cashSnapshot.forEach(doc => {
-            const data = doc.data();
-            const amt = Number(data.amount) || 0;
-            if (data.type === "out") totalPaid += amt;
-            else if (data.type === "in") totalPaid -= amt;
+        cashDocs.forEach(doc => {
+            const amt = Number(doc.amount) || 0;
+            if (doc.type === "out") totalPaid += amt;
+            else if (doc.type === "in") totalPaid -= amt;
         });
 
-        const purchasesSnapshot = await db.collection("purchases")
-            .where("vendor", "==", partyName)
-            .get();
-        let purchases = [];
-        purchasesSnapshot.forEach(doc => purchases.push({ id: doc.id, ref: doc.ref, data: doc.data() }));
-        purchases.sort((a, b) => new Date(a.data.createdAt || 0) - new Date(b.data.createdAt || 0));
+        const purchasesDocs = await db.mongoDb.collection("purchases").find({
+            vendor: { $regex: regex }
+        }).toArray();
+        
+        purchasesDocs.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
         let remaining = totalPaid;
-        for (const purchase of purchases) {
-            const purchaseTotal = Number(purchase.data.total) || 0;
+        for (const purchase of purchasesDocs) {
+            const purchaseTotal = Number(purchase.total) || 0;
             const applied = Math.min(purchaseTotal, remaining);
             remaining -= applied;
             
             const newStatus = applied >= purchaseTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
             
-            if (purchase.data.paidAmount !== applied || purchase.data.status !== newStatus) {
-                await purchase.ref.update({ paidAmount: applied, status: newStatus });
+            if (purchase.paidAmount !== applied || purchase.status !== newStatus) {
+                await db.collection("purchases").doc(purchase.id || purchase._id.toString()).update({ paidAmount: applied, status: newStatus });
             }
         }
         await delCache("purchases");
