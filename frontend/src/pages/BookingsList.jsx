@@ -264,27 +264,27 @@ const BookingsList = () => {
 
                 {/* ── LR Details Table (scrollable) ── */}
                 {hasParcels ? (
-                  <div className="booking-table-scroll">
-                    <table className="booking-lr-table">
+                  <div className="booking-table-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <table className="booking-lr-table" style={{ width: '100%', whiteSpace: 'nowrap' }}>
                       <thead>
                         <tr>
-                          <th>INV DATE</th>
-                          <th>INVOICE</th>
-                          <th>PART</th>
-                          <th>EWAY</th>
-                          <th>QTY</th>
-                          <th style={{ textAlign: 'right' }}>VALUE (₹)</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INV DATE</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INVOICE</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>PART</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>EWAY</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>QTY</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>VALUE (₹)</th>
                         </tr>
                       </thead>
                       <tbody>
                         {displayParcels.map((parcel, pIdx) => (
                           <tr key={pIdx}>
-                            <td>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
-                            <td style={{ fontWeight: 600, color: '#334155' }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
-                            <td>{parcel.part || parcel.partNumber || '-'}</td>
-                            <td style={{ color: '#0ea5e9' }}>{parcel.eway || parcel.ewayBill || '-'}</td>
-                            <td>{parcel.quantity || '-'}</td>
-                            <td style={{ color: '#10b981', fontWeight: 600, textAlign: 'right' }}>
+                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
+                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.part || parcel.partNumber || '-'}</td>
+                            <td style={{ padding: '0.75rem 1rem', color: '#0ea5e9', whiteSpace: 'nowrap' }}>{parcel.eway || parcel.ewayBill || '-'}</td>
+                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.quantity || '-'}</td>
+                            <td style={{ padding: '0.75rem 1rem', color: '#10b981', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
                               {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
                             </td>
                           </tr>
