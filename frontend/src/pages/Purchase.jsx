@@ -17,13 +17,13 @@ import {
   ShoppingCart,
   Receipt,
   FileSpreadsheet,
-  DollarSign
+  DollarSign, Search, Filter
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatAmount } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
@@ -40,6 +40,13 @@ const Purchase = () => {
   // Data states
   const [purchases, setPurchases] = useState([]);
   const [vendors, setVendors] = useState([]);
+  
+  // Filter States
+  const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -335,14 +342,47 @@ const Purchase = () => {
     }
   };
 
+  
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter(item => {
+      // Search
+      const searchLower = search.toLowerCase();
+      const matchesSearch = 
+        (item.vendor || "").toLowerCase().includes(searchLower) ||
+        (item.billNo || "").toLowerCase().includes(searchLower) ||
+        (item.remarks || "").toLowerCase().includes(searchLower);
+      
+      // Date Range
+      const itemDate = new Date(item.date || item.createdAt);
+      const matchesFrom = fromDate ? itemDate >= new Date(fromDate) : true;
+      // ToDate should include the whole day
+      const toDateObj = toDate ? new Date(toDate) : null;
+      if (toDateObj) toDateObj.setHours(23, 59, 59, 999);
+      const matchesTo = toDateObj ? itemDate <= toDateObj : true;
+
+      // Status
+      const totalAmount = parseFloat(item.total || 0);
+      const paidAmount = parseFloat(item.paidAmount || 0);
+      const isPaid = paidAmount >= totalAmount && totalAmount > 0;
+      const isPartial = paidAmount > 0 && paidAmount < totalAmount;
+      const isPending = paidAmount === 0 || !item.paidAmount;
+
+      let matchesStatus = true;
+      if (statusFilter === "Paid") matchesStatus = isPaid;
+      if (statusFilter === "Pending") matchesStatus = isPending || isPartial;
+
+      return matchesSearch && matchesFrom && matchesTo && matchesStatus;
+    });
+  }, [purchases, search, fromDate, toDate, statusFilter]);
+
   const stats = useMemo(() => {
-    const totalPurchases = purchases.length;
-    const totalAmount = purchases.reduce((s, e) => s + parseFloat(e.total || 0), 0);
-    const totalGst = purchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
-    const totalPaid = purchases.reduce((s, e) => s + parseFloat(e.paidAmount || 0), 0);
+    const totalPurchases = filteredPurchases.length;
+    const totalAmount = filteredPurchases.reduce((s, e) => s + parseFloat(e.total || 0), 0);
+    const totalGst = filteredPurchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
+    const totalPaid = filteredPurchases.reduce((s, e) => s + parseFloat(e.paidAmount || 0), 0);
     const outstanding = totalAmount - totalPaid;
     return { totalPurchases, totalAmount, totalGst, outstanding };
-  }, [purchases]);
+  }, [filteredPurchases]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
@@ -820,7 +860,7 @@ const Purchase = () => {
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Value</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#8b5cf6", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalAmount.toFixed(2)}
+               <RupeeIcon size={24} /> {formatAmount(stats.totalAmount)}
             </div>
           </div>
           <div style={{ background: "#f5f3ff", padding: "12px", borderRadius: "12px" }}><ShoppingCart size={24} color="#8b5cf6" /></div>
@@ -830,7 +870,7 @@ const Purchase = () => {
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total GST Paid</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f59e0b", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalGst.toFixed(2)}
+               <RupeeIcon size={24} /> {formatAmount(stats.totalGst)}
             </div>
           </div>
           <div style={{ background: "#fffbeb", padding: "12px", borderRadius: "12px" }}><Receipt size={24} color="#f59e0b" /></div>
@@ -840,18 +880,86 @@ const Purchase = () => {
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Outstanding</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.outstanding.toFixed(2)}
+               <RupeeIcon size={24} /> {formatAmount(stats.outstanding)}
             </div>
           </div>
           <div style={{ background: "#fef2f2", padding: "12px", borderRadius: "12px" }}><DollarSign size={24} color="#ef4444" /></div>
         </div>
       </div>
 
+      
+      {/* FILTER BAR */}
+      <div className="glass-panel" style={{ padding: "1rem 1.5rem", marginBottom: "1.5rem", borderRadius: "12px", display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between", background: "white", border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", flex: 1 }}>
+          
+          {/* Search Box */}
+          <div style={{ position: "relative", minWidth: "250px", flex: 1 }}>
+            <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>
+              <Search size={18} />
+            </div>
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Search Vendor, Bill No..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              style={{ paddingLeft: "2.5rem", width: "100%", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+            />
+          </div>
+
+          {/* Date Range */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#f8fafc", padding: "0.25rem 0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#64748b", marginLeft: "4px" }}>Date:</span>
+            <input 
+              type="date" 
+              className="form-control" 
+              value={fromDate} 
+              onChange={(e) => setFromDate(e.target.value)} 
+              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none" }}
+            />
+            <span style={{ color: "#94a3b8" }}>-</span>
+            <input 
+              type="date" 
+              className="form-control" 
+              value={toDate} 
+              onChange={(e) => setToDate(e.target.value)} 
+              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none" }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#f8fafc", padding: "0.25rem 0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+            <Filter size={16} color="#64748b" style={{ marginLeft: "4px" }} />
+            <select 
+              className="form-control" 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)} 
+              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none", cursor: "pointer" }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending / Unpaid</option>
+              <option value="Paid">Fully Paid</option>
+            </select>
+          </div>
+
+        </div>
+
+        {/* Clear Filters Button */}
+        {(search || fromDate || toDate || statusFilter !== "All") && (
+          <button 
+            onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setStatusFilter("All"); }}
+            style={{ padding: "0.5rem 1rem", background: "#fff1f2", color: "#e11d48", border: "1px solid #fecdd3", borderRadius: "8px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <X size={14} /> Clear Filters
+          </button>
+        )}
+      </div>
+
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
           headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status", "Bill Image", "Actions"]}
-          data={purchases}
+          data={filteredPurchases}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
@@ -876,29 +984,29 @@ const Purchase = () => {
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "2px" }}>
                     <span style={{ fontSize: "0.9rem", color: "#0f172a" }}>
-                       <RupeeIcon size={12}/>{parseFloat(item.taxable || 0).toFixed(2)}
+                       <RupeeIcon size={12}/>{formatAmount(item.taxable)}
                     </span>
                     <span style={{ fontSize: "0.75rem", color: "#f59e0b", fontWeight: 600 }}>
-                       + <RupeeIcon size={10}/>{parseFloat(item.gst || 0).toFixed(2)} GST
+                       + <RupeeIcon size={10}/>{formatAmount(item.gst)} GST
                     </span>
                   </div>
                 </td>
 
                 <td style={{ padding: "1rem", fontWeight: 700, color: "#8b5cf6" }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(item.total)}
                   </div>
                 </td>
 
                 <td style={{ padding: "1rem", color: "#10b981", fontWeight: 600 }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.paidAmount || 0).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(item.paidAmount)}
                   </div>
                 </td>
 
                 <td style={{ padding: "1rem", color: "#ef4444", fontWeight: 700 }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0)).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0)))}
                   </div>
                 </td>
 

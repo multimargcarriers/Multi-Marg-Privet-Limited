@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Table from "../components/Table";
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatAmount } from '../utils/formatters';
 import RupeeIcon from '../components/RupeeIcon';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -23,6 +23,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 const MiscBill = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   
   const [isAdding, setIsAdding] = useState(false);
@@ -466,7 +467,7 @@ const MiscBill = () => {
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Billed Value</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f59e0b", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalAmount.toFixed(2)}
+               <RupeeIcon size={24} /> {formatAmount(stats.totalAmount)}
             </div>
           </div>
           <div style={{ background: "#fffbeb", padding: "12px", borderRadius: "12px" }}><IndianRupee size={24} color="#f59e0b" /></div>
@@ -476,7 +477,7 @@ const MiscBill = () => {
           <div>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total GST Collected</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#16a34a", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalGst.toFixed(2)}
+               <RupeeIcon size={24} /> {formatAmount(stats.totalGst)}
             </div>
           </div>
           <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "12px" }}><Receipt size={24} color="#16a34a" /></div>
@@ -503,17 +504,17 @@ const MiscBill = () => {
                 <td style={{ padding: "1rem", color: "#475569", maxWidth: "200px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.description}</td>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.amount || 0).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(item.amount)}
                   </div>
                 </td>
                 <td style={{ padding: "1rem", color: "#16a34a" }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.gstAmount || 0).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(item.gstAmount)}
                   </div>
                 </td>
                 <td style={{ padding: "1rem", fontWeight: 700, color: "#0f172a" }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {parseFloat(item.total || 0).toFixed(2)}
+                    <RupeeIcon size={14} /> {formatAmount(item.total)}
                   </div>
                 </td>
               </tr>

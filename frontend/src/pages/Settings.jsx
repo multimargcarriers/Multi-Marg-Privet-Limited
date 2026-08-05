@@ -286,6 +286,19 @@ const Settings = () => {
               {globalSettings?.system?.maintenanceMode ? 'TURN OFF MAINTENANCE' : 'ENABLE MAINTENANCE'}
             </button>
           </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '1rem' }}>
+            <div>
+              <strong style={{ display: 'block', color: '#0f172a', fontSize: '1.05rem', marginBottom: '0.2rem' }}>Clear System Cache</strong>
+              <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Flushes local memory and Redis data to ensure real-time DB synchronization.</span>
+            </div>
+            <button 
+              onClick={handleClearCache} 
+              style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '0.75rem 2rem', borderRadius: '8px', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', transition: 'background 0.3s ease' }}
+            >
+              <RefreshCw size={18} /> CLEAR ALL CACHE
+            </button>
+          </div>
         </div>
 
         {/* Company Profile Section */}
@@ -690,9 +703,6 @@ const Settings = () => {
                     <div style={{ backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px', color: '#ef4444' }}><MemoryStick size={24} /></div>
                     <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Redis Cache</h4>
                   </div>
-                  <button onClick={handleClearCache} style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <RefreshCw size={14} /> Clear Cache
-                  </button>
                 </div>
                 
                 <div style={{ marginBottom: '1rem' }}>

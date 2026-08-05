@@ -1480,3 +1480,116 @@ html, body {
     margin: 0.5rem !important;
   }
 }
+
+
+/* ========================================================= */
+/* PREMIUM GLOBAL RESPONSIVE OVERRIDES                       */
+/* ========================================================= */
+
+@media screen and (max-width: 1024px) {
+  /* Tables on tablets - enable momentum scrolling and hide overflow */
+  .table-container, .table-responsive {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 8px !important;
+  }
+  
+  .table th, .table td {
+    white-space: nowrap !important;
+  }
+
+  /* Grid layout overrides for tablet */
+  .page-content div[style*="display: grid"],
+  .page-content div[style*="display:grid"] {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* Fix specific filter panels (Dashboard top bars, AllBills, CashSheet, Purchase) */
+  /* Make the outer containers stack gracefully */
+  .glass-panel[style*="display: flex"],
+  .glass-panel[style*="display:flex"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  /* Target the direct child flex containers (the ones holding the actual filters) */
+  .glass-panel > div[style*="display: flex"],
+  .glass-panel > div[style*="display:flex"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  /* But the innermost wrappers (for icons+inputs, and date from+to) must stay horizontal! */
+  .glass-panel > div > div[style*="display: flex"],
+  .glass-panel > div > div[style*="display:flex"] {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+  
+  /* Prevent Inputs/Selects from stretching vertically like giant textareas */
+  .glass-panel input, .glass-panel select {
+    height: 42px !important;
+    min-height: 42px !important;
+    box-sizing: border-box;
+  }
+  
+  /* For the Date Filter specifically: reduce the width of the dates so they fit on one line */
+  .glass-panel input[type="date"] {
+    width: 45% !important; /* Forces them to share the line */
+    font-size: 14px !important;
+  }
+
+  /* Grid layout overrides for mobile */
+  .page-content div[style*="display: grid"],
+  .page-content div[style*="display:grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Typographic scaling for mobile */
+  h1, h2, h3 {
+    font-size: clamp(1.2rem, 4vw, 1.8rem) !important;
+  }
+
+  /* Shrink cell padding on mobile for max data density */
+  .table th, .table td {
+    padding: 0.6rem 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  /* Modal / Dialog widths */
+  .modal-container, 
+  [role="dialog"] {
+    width: 95vw !important;
+    min-width: 90vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    padding: 1.25rem !important;
+    margin: 0.5rem auto !important;
+  }
+  
+  /* Mobile inputs typography and spacing - DO NOT FORCE PADDING OR IT BREAKS ICONS */
+  input.form-control, select.form-control, textarea.form-control,
+  input[type="text"], input[type="number"] {
+    font-size: 16px !important; /* Prevents iOS Safari from auto-zooming */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  /* Deep mobile optimizations */
+  .table th, .table td {
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .stat-card {
+    padding: 1rem !important;
+  }
+}

@@ -36,10 +36,27 @@ export const formatPhoneNumber = (value) => {
  */
 export const formatDate = (dateValue) => {
   if (!dateValue) return "-";
+  
   // Handle Firestore timestamps (seconds)
-  if (dateValue && dateValue.seconds) {
+  if (typeof dateValue === 'object' && dateValue.seconds) {
     dateValue = dateValue.seconds * 1000;
   }
+
+  // Handle strings
+  if (typeof dateValue === 'string') {
+    // Check if it's already a DD-MM-YYYY or DD/MM/YYYY format string
+    const matchDDMMYYYY = /^(\d{2})[-/](\d{2})[-/](\d{4})/.exec(dateValue.split("T")[0]);
+    if (matchDDMMYYYY) {
+      return `${matchDDMMYYYY[1]}-${matchDDMMYYYY[2]}-${matchDDMMYYYY[3]}`;
+    }
+    
+    // Check if it's YYYY-MM-DD
+    const matchYYYYMMDD = /^(\d{4})[-/](\d{2})[-/](\d{2})/.exec(dateValue.split("T")[0]);
+    if (matchYYYYMMDD) {
+      return `${matchYYYYMMDD[3]}-${matchYYYYMMDD[2]}-${matchYYYYMMDD[1]}`;
+    }
+  }
+  
   const date = new Date(dateValue);
   if (isNaN(date.getTime())) return "-";
   
@@ -47,4 +64,11 @@ export const formatDate = (dateValue) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
+};
+
+export const formatAmount = (value) => {
+  if (value === undefined || value === null || value === "") return "-";
+  const num = parseFloat(value);
+  if (isNaN(num)) return "-";
+  return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };

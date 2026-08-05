@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
-const { body, validationResult } = require("express-validator");const { getRoot_1, postRoot_2, delete_id_3, put_id_4 } = require('../controllers/purchasesController');
+const { body, validationResult } = require("express-validator");const { getRoot_1, postRoot_2, delete_id_3, put_id_4, postImport } = require('../controllers/purchasesController');
 
 const { requirePermission } = require("../middleware/rbac");
 router.use(requirePermission(["accounts","purchases"]));
@@ -79,6 +79,11 @@ router.delete(
 router.put(
   "/:id",
   asyncHandler(put_id_4)
+);
+
+router.post(
+  "/import",
+  asyncHandler(postImport)
 );
 
 module.exports = router;

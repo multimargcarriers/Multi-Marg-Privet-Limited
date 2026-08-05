@@ -4,7 +4,7 @@ const os = require("os");
 
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
-const { getClient, getStatus: getRedisStatus } = require("../config/redis");
+const { getClient, getStatus: getRedisStatus, clearAllCache } = require("../config/redis");
 const { uploadBase64, uploadCompanyStamp, deleteFile } = require("../config/cloudinary");
 const { cleanupOrphanCloudinaryFiles } = require("../services/cloudinaryCleanupService");
 const cloudinary = require("cloudinary").v2;
@@ -317,13 +317,8 @@ router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage")
 // POST clear cache
 router.post("/clear-cache", requireSuperAdmin, async (req, res) => {
   try {
-    const redisClient = getClient();
-    if (redisClient) {
-      await redisClient.flushDb();
-      return success(res, "Cache cleared successfully");
-    } else {
-      return error(res, { message: "Redis client not connected", statusCode: 503 });
-    }
+    await clearAllCache();
+    return success(res, "System cache cleared successfully");
   } catch (err) {
     console.error("Error clearing cache", err);
     return error(res, err);

@@ -207,6 +207,21 @@ async function closeRedis() {
   }
 }
 
+async function clearAllCache() {
+  memoryCache.clear();
+  memoryCacheExpiry.clear();
+  invalidationTimestamps.clear();
+
+  if (client && isConnected) {
+    try {
+      await client.flushDb();
+      console.log("[Redis] Flushed DB");
+    } catch (error) {
+      console.warn("[Redis] Error flushing DB:", error.message);
+    }
+  }
+}
+
 module.exports = {
   initRedis,
   getCache,
@@ -216,5 +231,6 @@ module.exports = {
   getOrSet,
   getStatus,
   closeRedis,
+  clearAllCache,
   getClient: () => client,
 };

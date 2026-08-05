@@ -147,3 +147,51 @@ exports.delete_id_3 = async (req, res) => {
   emitDataUpdated("purchases");
     return success(res, "Purchase deleted successfully");
 };
+
+exports.postImport = async (req, res) => {
+  try {
+    const { entries } = req.body;
+    if (!entries || !Array.isArray(entries)) {
+      return error(res, 'Invalid or missing entries array', 400);
+    }
+    
+    const batch = db.batch();
+    const uniqueVendors = new Set();
+    
+    for (const row of entries) {
+      const id = uuidv4();
+      const docRef = db.collection('purchases').doc(id);
+      
+      const purchaseData = {
+        id,
+        vendor: (row.vendor || '').toString().trim(),
+        billNo: (row.bill || '').toString().trim(),
+        date: row.date || new Date().toISOString(),
+        taxable: parseFloat(row.subtotal) || 0,
+        gst: parseFloat(row.gst) || 0,
+        total: parseFloat(row.total) || 0,
+        paidAmount: 0,
+        status: "Unpaid",
+        createdAt: new Date().toISOString()
+      };
+      
+      batch.set(docRef, purchaseData);
+      if (purchaseData.vendor) {
+        uniqueVendors.add(purchaseData.vendor);
+      }
+    }
+    
+    await batch.commit();
+    
+    for (const vendorName of uniqueVendors) {
+      await recalculatePartyPayments('Vendor', vendorName);
+    }
+    
+    await delCache(CACHE_KEY);
+    emitDataUpdated("purchases");
+    return success(res, 'Import successful', { count: entries.length });
+  } catch (err) {
+    console.error('[Purchases] Import Error:', err);
+    return error(res, 'Failed to import purchases');
+  }
+};

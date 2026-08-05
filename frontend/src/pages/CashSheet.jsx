@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
+import { useSocketSync } from "../hooks/useSocketSync";
+import Papa from "papaparse";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Table from "../components/Table";
@@ -16,12 +18,15 @@ import {
   Camera,
   Image as ImageIcon,
   Banknote,
+  Search,
+  Filter,
   TrendingUp,
   TrendingDown,
   Wallet
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
@@ -33,7 +38,8 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const CashSheet = () => {
   const { user } = useContext(AuthContext);
-  const { confirm, alert: alertDialog } = useDialog();
+  const { confirm } = useDialog();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
 
@@ -46,6 +52,98 @@ const CashSheet = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
+
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterPartyType, setFilterPartyType] = useState("All");
+  const [filterType, setFilterType] = useState("All");
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter(e => {
+      // 1. Party Type Filter
+      if (filterPartyType !== "All" && e.partyType?.toLowerCase() !== filterPartyType.toLowerCase()) return false;
+      
+      // 2. Transaction Type Filter
+      if (filterType === "Cash In" && e.type !== "in") return false;
+      if (filterType === "Cash Out" && e.type !== "out") return false;
+      
+      // 3. Search Query Filter
+      if (filterSearch) {
+        const query = filterSearch.toLowerCase();
+        const partyNameMatch = e.partyName?.toLowerCase().includes(query);
+        const remarksMatch = e.remarks?.toLowerCase().includes(query);
+        const amountMatch = e.amount?.toString().includes(query);
+        if (!partyNameMatch && !remarksMatch && !amountMatch) return false;
+      }
+      
+      return true;
+    });
+  }, [entries, filterSearch, filterPartyType, filterType]);
+
+  const csvInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const res = await axios.post(`${API}/cash/import`, { entries: results.data });
+          addToast(`Successfully imported ${res.data.data.count} entries!`, "success");
+          fetchData();
+        } catch (err) {
+          console.error("Import error", err);
+          addToast("Failed to import entries", "error");
+        } finally {
+          setImporting(false);
+          if (csvInputRef.current) csvInputRef.current.value = "";
+        }
+      },
+      error: (err) => {
+        console.error("CSV Parse Error", err);
+        addToast("Failed to parse CSV file", "error");
+        setImporting(false);
+        if (csvInputRef.current) csvInputRef.current.value = "";
+      }
+    });
+  };
+
+  const csvVendorInputRef = useRef(null);
+  const [importingVendor, setImportingVendor] = useState(false);
+
+  const handleVendorImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImportingVendor(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const res = await axios.post(`${API}/cash/import/vendor`, { entries: results.data });
+          addToast(`Successfully imported ${res.data.data.count} vendor entries!`, "success");
+          fetchData();
+        } catch (err) {
+          console.error("Vendor Import error", err);
+          addToast("Failed to import vendor entries", "error");
+        } finally {
+          setImportingVendor(false);
+          if (csvVendorInputRef.current) csvVendorInputRef.current.value = "";
+        }
+      },
+      error: (err) => {
+        console.error("CSV Parse Error", err);
+        addToast("Failed to parse CSV file", "error");
+        setImportingVendor(false);
+        if (csvVendorInputRef.current) csvVendorInputRef.current.value = "";
+      }
+    });
+  };
 
   // QuickAdd Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,23 +176,51 @@ const CashSheet = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
-      const [cashRes, clientRes, vendorRes, empRes] = await Promise.all([
+      const [cashRes, clientRes, vendorRes] = await Promise.all([
         axios.get(`${API}/cash`),
         axios.get(`${API}/clients`).catch(() => ({ data: { data: [] } })),
-        axios.get(`${API}/vendors`).catch(() => ({ data: { data: [] } })),
-        axios.get(`${API}/employees`).catch(() => ({ data: { data: [] } }))
+        axios.get(`${API}/vendors`).catch(() => ({ data: { data: [] } }))
       ]);
       if (cashRes.data.success) setEntries(cashRes.data.data || []);
       setClients(clientRes.data.data || []);
       setVendors(vendorRes.data.data || []);
-      setEmployees(empRes.data.data || []);
+      setEmployees([]); // Employee route doesn't exist yet, avoiding 404 error
     } catch (err) { 
       console.error("Fetch cash error", err); 
     } finally {
       setLoading(false);
+    }
+  }
+  
+  useSocketSync("cashEntries", fetchData);
+
+  const [clearingFiltered, setClearingFiltered] = useState(false);
+  const handleClearFiltered = async () => {
+    if (filteredEntries.length === 0) return;
+    
+    const isConfirmed = await confirm({
+      title: "Clear Filtered Entries",
+      message: `Are you sure you want to permanently delete the ${filteredEntries.length} currently visible entries? This action cannot be undone.`,
+      confirmText: "Delete All",
+      cancelText: "Cancel"
+    });
+    
+    if (!isConfirmed) return;
+    
+    setClearingFiltered(true);
+    try {
+      const ids = filteredEntries.map(e => e.id || e._id);
+      const res = await axios.post(`${API}/cash/bulk-delete`, { ids });
+      addToast(res.data.message || `Successfully deleted ${ids.length} entries!`, "success");
+      fetchData();
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+      addToast(err.response?.data?.message || "Failed to delete entries", "error");
+    } finally {
+      setClearingFiltered(false);
     }
   };
 
@@ -178,11 +304,11 @@ const CashSheet = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      alertDialog({ title: "Invalid Amount", message: "Please enter a valid positive amount." });
+      addToast("Please enter a valid positive amount.", "error");
       return;
     }
     if (!formData.partyName) {
-      alertDialog({ title: "Name Required", message: "Please enter or select a name for this transaction." });
+      addToast("Please enter or select a name for this transaction.", "error");
       return;
     }
 
@@ -209,7 +335,7 @@ const CashSheet = () => {
           setEditMode(false);
           setEditId(null);
         } else {
-          alertDialog({ title: "Error", message: res.data.message || "Failed to update entry." });
+          addToast(res.data.message || "Failed to update entry.", "error");
         }
       } else {
         const res = await axios.post(`${API}/cash`, payload);
@@ -219,12 +345,12 @@ const CashSheet = () => {
           setSelectedFile(null);
           setIsAdding(false);
         } else {
-          alertDialog({ title: "Error", message: res.data.message || "Failed to save entry." });
+          addToast(res.data.message || "Failed to save entry.", "error");
         }
       }
     } catch (err) {
       console.error("Save cash entry error", err);
-      alertDialog({ title: "Error", message: "An error occurred while saving." });
+      addToast("An error occurred while saving.", "error");
     } finally {
       setUploading(false);
     }
@@ -273,11 +399,11 @@ const CashSheet = () => {
   };
 
   const stats = useMemo(() => {
-    const totalIncome = entries.filter(e => e.type === "in" || e.type === "income").reduce((s, e) => s + parseFloat(e.amount || 0), 0);
-    const totalExpense = entries.filter(e => e.type === "out" || e.type === "expense").reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+    const totalIncome = filteredEntries.filter(e => e.type === "in" || e.type === "income").reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+    const totalExpense = filteredEntries.filter(e => e.type === "out" || e.type === "expense").reduce((s, e) => s + parseFloat(e.amount || 0), 0);
     const netBalance = totalIncome - totalExpense;
     return { totalIncome, totalExpense, netBalance };
-  }, [entries]);
+  }, [filteredEntries]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
@@ -313,6 +439,61 @@ const CashSheet = () => {
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={csvInputRef} 
+            style={{ display: "none" }} 
+            onChange={handleImport} 
+          />
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            disabled={importing}
+            style={{
+              background: "#3b82f6",
+              border: "none",
+              color: "white",
+              padding: "0.45rem 0.85rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+              fontSize: "0.8rem"
+            }}
+          >
+            <FileText size={14} />
+            {importing ? "Importing..." : "Import CSV"}
+          </button>
+          <input 
+            type="file" 
+            accept=".csv" 
+            ref={csvVendorInputRef} 
+            style={{ display: "none" }} 
+            onChange={handleVendorImport} 
+          />
+          <button
+            onClick={() => csvVendorInputRef.current?.click()}
+            disabled={importingVendor}
+            style={{
+              background: "#10b981",
+              border: "none",
+              color: "white",
+              padding: "0.45rem 0.85rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+              fontSize: "0.8rem"
+            }}
+          >
+            <FileText size={14} />
+            {importingVendor ? "Importing..." : "Import Vendor CSV"}
+          </button>
+          
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -333,6 +514,29 @@ const CashSheet = () => {
             <RefreshCw size={14} className={refreshing ? "spin-animation" : ""} />
             {refreshing ? "Refreshing..." : "Refresh"}
           </button>
+          
+          {filteredEntries.length > 0 && (
+            <button
+              onClick={handleClearFiltered}
+              disabled={clearingFiltered}
+              style={{
+                background: "#fef2f2",
+                border: "1px solid #fca5a5",
+                color: "#ef4444",
+                padding: "0.45rem 0.85rem",
+                borderRadius: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: 600,
+                fontSize: "0.8rem"
+              }}
+            >
+              <Trash2 size={14} />
+              {clearingFiltered ? "Deleting..." : `Delete (${filteredEntries.length})`}
+            </button>
+          )}
 
           {!isAdding && (
             <button 
@@ -757,6 +961,59 @@ const CashSheet = () => {
         )}
       </AnimatePresence>
 
+      {/* FILTERS BAR */}
+      <div style={{
+        background: "white",
+        padding: "1rem",
+        borderRadius: "12px",
+        border: "1px solid #e2e8f0",
+        marginBottom: "1.25rem",
+        display: "flex",
+        gap: "1rem",
+        flexWrap: "wrap",
+        alignItems: "center"
+      }}>
+        <div style={{ flex: "1 1 250px", display: "flex", alignItems: "center", background: "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+          <Search size={16} color="#64748b" style={{ marginRight: "8px" }} />
+          <input 
+            type="text" 
+            placeholder="Search by name, remarks, amount..." 
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            style={{ border: "none", background: "transparent", outline: "none", width: "100%", fontSize: "0.9rem" }}
+          />
+        </div>
+        
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", flex: "1 1 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Filter size={14} color="#64748b" />
+            <select 
+              value={filterPartyType} 
+              onChange={(e) => setFilterPartyType(e.target.value)}
+              style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.85rem", background: "white", outline: "none" }}
+            >
+              <option value="All">All Parties</option>
+              <option value="Client">Client</option>
+              <option value="Vendor">Vendor</option>
+              <option value="Employee">Employee</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <select 
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.85rem", background: "white", outline: "none" }}
+            >
+              <option value="All">All Types</option>
+              <option value="Cash In">Cash In</option>
+              <option value="Cash Out">Cash Out</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* STATS CARDS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -794,7 +1051,7 @@ const CashSheet = () => {
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
           headers={["Date", "Type", "Amount", "Party", "Remarks", "Voucher", "Actions"]}
-          data={entries}
+          data={filteredEntries}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {

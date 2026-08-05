@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { formatDate, formatAmount } from '../utils/formatters';
 
 const Bills = () => {
   const { user } = useContext(AuthContext);
@@ -59,14 +60,18 @@ const Bills = () => {
         }}
       >
         <div>
-          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>
+          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "10px" }}>
             Bills / Invoices
+            <span style={{ fontSize: "1rem", background: "#f1f5f9", color: "#475569", padding: "2px 10px", borderRadius: "12px", border: "1px solid #cbd5e1" }}>
+              {bills.length} entries
+            </span>
           </h3>
           <p className="text-muted">View generated bills and invoices.</p>
         </div>
       </div>
 
       <Table
+        pagination={true}
         loading={loading}
         headers={["Bill No", "Date", "Client", "Amount (?)", "Status", "Actions"]}
         data={bills}
@@ -74,9 +79,9 @@ const Bills = () => {
           <tr key={b.id || i}>
             <td>{b.id}</td>
             <td>{b.client || "-"}</td>
-            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{b.amount || "-"}</span></td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{formatAmount(b.amount)}</span></td>
             <td>
-              {b.createdAt ? new Date(b.createdAt).toLocaleString() : "-"}
+              {formatDate(b.invoice_date || b.date || b.createdAt)}
             </td>
             <td>
               <button

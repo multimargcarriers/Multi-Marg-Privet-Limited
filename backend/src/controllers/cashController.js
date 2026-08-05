@@ -6,6 +6,7 @@ const { getOrSet, delCache } = require("../config/redis");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");
 const { runAnalyticsAggregation } = require("../jobs/analyticsJob");
+const { emitDataUpdated } = require("../utils/socket");
 
 const CACHE_KEY = "cashEntries";
 
@@ -58,6 +59,7 @@ exports.postRoot_2 = async (req, res) => {
   await recalculatePartyPayments(entry.partyType, entry.partyName);
 
   await delCache(CACHE_KEY);
+  emitDataUpdated("cashEntries");
   return created(res, "Cash entry created successfully", {
     id: docRef.id,
     ...entry
@@ -73,8 +75,8 @@ exports.delete_id_3 = async (req, res) => {
   const data = doc.data();
   if (data.cloudinaryPublicId || data.cloudinaryUrl) {
     try {
-      const { deleteFromCloudinary } = require("../utils/cloudinaryCleaner");
-      await deleteFromCloudinary(data.cloudinaryPublicId || data.cloudinaryUrl);
+      const { deleteFile } = require("../config/cloudinary");
+      await deleteFile(data.cloudinaryPublicId || data.cloudinaryUrl);
     } catch (e) {
       console.warn("Failed to delete Cash voucher from Cloudinary:", e.message);
     }
@@ -82,6 +84,7 @@ exports.delete_id_3 = async (req, res) => {
 
   await docRef.delete(req.user);
   await delCache(CACHE_KEY);
+  emitDataUpdated("cashEntries");
   await recalculatePartyPayments(data.partyType, data.partyName);
   return success(res, "Cash entry deleted successfully");
 };
@@ -131,6 +134,7 @@ exports.put_id_4 = async (req, res) => {
 
     await docRef.update(updateData);
     await delCache(CACHE_KEY);
+    emitDataUpdated("cashEntries");
     runAnalyticsAggregation().catch(e => console.error("Auto analytics sync failed", e));
     
     
@@ -144,6 +148,144 @@ exports.put_id_4 = async (req, res) => {
     }
     await recalculatePartyPayments(newPartyType, newPartyName);
     return success(res, "Cash entry updated successfully");
-  };
+};
 
-  
+exports.postImport = async (req, res) => {
+  try {
+    const { entries } = req.body;
+    if (!entries || !Array.isArray(entries)) {
+      return error(res, 'Invalid or missing entries array', 400);
+    }
+    
+    const batch = db.batch();
+    const uniqueClients = new Set();
+    
+    for (const row of entries) {
+      const id = uuidv4();
+      const docRef = db.collection('cashEntries').doc(id);
+      
+      const entryData = {
+        id,
+        amount: parseFloat(row.amount) || 0,
+        date: row.date,
+        type: 'in',
+        partyType: 'Client',
+        partyName: (row.client || '').toString().trim(),
+        remarks: `Particulars: ${row.particulars || ''} | Bank: ${row.bankname || ''}`,
+        createdAt: new Date()
+      };
+      
+      batch.set(docRef, entryData);
+      if (entryData.partyName) {
+        uniqueClients.add(entryData.partyName);
+      }
+    }
+    
+    await batch.commit();
+    
+    for (const clientName of uniqueClients) {
+      await recalculatePartyPayments('Client', clientName);
+    }
+    
+    await delCache(CACHE_KEY);
+    emitDataUpdated("cashEntries");
+    return success(res, 'Import successful', { count: entries.length });
+  } catch (err) {
+    console.error('[Cash] Import Error:', err);
+    return error(res, 'Failed to import cash entries');
+  }
+};
+
+exports.postImportVendor = async (req, res) => {
+  try {
+    const { entries } = req.body;
+    if (!entries || !Array.isArray(entries)) {
+      return error(res, 'Invalid or missing entries array', 400);
+    }
+    
+    const batch = db.batch();
+    const uniqueVendors = new Set();
+    
+    for (const row of entries) {
+      const id = uuidv4();
+      const docRef = db.collection('cashEntries').doc(id);
+      
+      const entryData = {
+        id,
+        amount: parseFloat(row.amount) || 0,
+        date: row.date || new Date().toISOString(),
+        type: 'out',
+        partyType: 'Vendor',
+        partyName: (row.vendor || '').toString().trim(),
+        remarks: (row.remarks || '').toString().trim(),
+        createdAt: new Date()
+      };
+      
+      batch.set(docRef, entryData);
+      if (entryData.partyName) {
+        uniqueVendors.add(entryData.partyName);
+      }
+    }
+    
+    await batch.commit();
+    
+    for (const vendorName of uniqueVendors) {
+      await recalculatePartyPayments('Vendor', vendorName);
+    }
+    
+    await delCache(CACHE_KEY);
+    emitDataUpdated("cashEntries");
+    return success(res, 'Vendor import successful', { count: entries.length });
+  } catch (err) {
+    console.error('[Cash] Vendor Import Error:', err);
+    return error(res, 'Failed to import vendor cash entries');
+  }
+};
+
+exports.bulkDelete = async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return error(res, "No IDs provided for bulk deletion", 400);
+  }
+
+  const batch = db.batch();
+  const partiesToRecalculate = new Set();
+  const { deleteFile } = require("../config/cloudinary");
+
+  for (const id of ids) {
+    const docRef = db.collection("cashEntries").doc(id);
+    const doc = await docRef.get();
+    
+    if (doc.exists) {
+      const data = doc.data();
+      
+      // Attempt Cloudinary cleanup
+      if (data.cloudinaryPublicId || data.cloudinaryUrl) {
+        try {
+          await deleteFile(data.cloudinaryPublicId || data.cloudinaryUrl);
+        } catch (e) {
+          console.warn("Bulk Delete: Failed to delete voucher from Cloudinary:", e.message);
+        }
+      }
+
+      // Track parties for recalculation
+      if (data.partyType && data.partyName) {
+        partiesToRecalculate.add(JSON.stringify({ partyType: data.partyType, partyName: data.partyName }));
+      }
+      
+      batch.delete(docRef);
+    }
+  }
+
+  await batch.commit();
+  await delCache(CACHE_KEY);
+  emitDataUpdated("cashEntries");
+
+  // Recalculate balances
+  for (const itemStr of partiesToRecalculate) {
+    const { partyType, partyName } = JSON.parse(itemStr);
+    await recalculatePartyPayments(partyType, partyName);
+  }
+
+  return success(res, `Successfully deleted ${ids.length} entries`);
+};

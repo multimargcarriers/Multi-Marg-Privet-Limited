@@ -259,36 +259,38 @@ exports.post_google_login = async (req, res) => {
 
   // --- ADD GEO-IP TRACKING & LOGGING FOR GOOGLE LOGIN ---
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-  let location = "Localhost";
   const cleanIp = ip.split(',')[0].trim();
-
-  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
-    try {
-      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
-      const geoData = await geoRes.json();
-      if (geoData.status === 'success') {
-        location = `${geoData.city}, ${geoData.country}`;
-      } else {
+  
+  (async () => {
+    let location = "Localhost";
+    if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+      try {
+        const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+        const geoData = await geoRes.json();
+        if (geoData.status === 'success') {
+          location = `${geoData.city}, ${geoData.country}`;
+        } else {
+          location = "Unknown Location";
+        }
+      } catch (err) {
+        console.error("GeoIP Fetch Error:", err);
         location = "Unknown Location";
       }
-    } catch (err) {
-      console.error("GeoIP Fetch Error:", err);
-      location = "Unknown Location";
     }
-  }
-
-  try {
-    await db.collection("userActivities").add({
-      userId: user.id,
-      type: 'login',
-      title: 'Successful Google sign-in',
-      date: new Date().toISOString(),
-      location,
-      ip: cleanIp
-    });
-  } catch (err) {
-    console.error("Error logging user activity (Google login):", err);
-  }
+  
+    try {
+      await db.collection("userActivities").add({
+        userId: user.id,
+        type: 'login',
+        title: 'Successful Google sign-in',
+        date: new Date().toISOString(),
+        location,
+        ip: cleanIp
+      });
+    } catch (err) {
+      console.error("Error logging user activity (Google login):", err);
+    }
+  })();
 
   return success(res, { message: "Google login successful", data: { token, user } });
 };
@@ -409,36 +411,38 @@ exports.post_login_1 = async (req, res) => {
 
   // --- ADD GEO-IP TRACKING & LOGGING ---
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-  let location = "Localhost";
   const cleanIp = ip.split(',')[0].trim();
-
-  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
-    try {
-      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
-      const geoData = await geoRes.json();
-      if (geoData.status === 'success') {
-        location = `${geoData.city}, ${geoData.country}`;
-      } else {
+  
+  (async () => {
+    let location = "Localhost";
+    if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+      try {
+        const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+        const geoData = await geoRes.json();
+        if (geoData.status === 'success') {
+          location = `${geoData.city}, ${geoData.country}`;
+        } else {
+          location = "Unknown Location";
+        }
+      } catch (err) {
+        console.error("GeoIP Fetch Error:", err);
         location = "Unknown Location";
       }
-    } catch (err) {
-      console.error("GeoIP Fetch Error:", err);
-      location = "Unknown Location";
     }
-  }
-
-  try {
-    await db.collection("userActivities").add({
-      userId: userData.id,
-      type: 'login',
-      title: 'Successful sign-in',
-      date: new Date().toISOString(),
-      location,
-      ip: cleanIp
-    });
-  } catch (err) {
-    console.error("Error logging user activity:", err);
-  }
+  
+    try {
+      await db.collection("userActivities").add({
+        userId: userData.id,
+        type: 'login',
+        title: 'Successful sign-in',
+        date: new Date().toISOString(),
+        location,
+        ip: cleanIp
+      });
+    } catch (err) {
+      console.error("Error logging user activity:", err);
+    }
+  })();
   // -------------------------------------
 
   const token = generateToken(userData);
@@ -769,36 +773,38 @@ exports.reset_password = async (req, res) => {
 exports.post_logout = async (req, res) => {
   const userId = req.user.id;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-  let location = "Localhost";
   const cleanIp = ip.split(',')[0].trim();
-
-  if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
-    try {
-      const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
-      const geoData = await geoRes.json();
-      if (geoData.status === 'success') {
-        location = `${geoData.city}, ${geoData.country}`;
-      } else {
+  
+  (async () => {
+    let location = "Localhost";
+    if (cleanIp !== '::1' && cleanIp !== '127.0.0.1' && !cleanIp.startsWith('192.168.') && !cleanIp.startsWith('10.')) {
+      try {
+        const geoRes = await fetch(`http://ip-api.com/json/${cleanIp}`);
+        const geoData = await geoRes.json();
+        if (geoData.status === 'success') {
+          location = `${geoData.city}, ${geoData.country}`;
+        } else {
+          location = "Unknown Location";
+        }
+      } catch (err) {
+        console.error("GeoIP Fetch Error:", err);
         location = "Unknown Location";
       }
-    } catch (err) {
-      console.error("GeoIP Fetch Error:", err);
-      location = "Unknown Location";
     }
-  }
-
-  try {
-    await db.collection("userActivities").add({
-      userId,
-      type: 'logout',
-      title: 'Signed out',
-      date: new Date().toISOString(),
-      location,
-      ip: cleanIp
-    });
-  } catch (err) {
-    console.error("Error logging user logout activity:", err);
-  }
+  
+    try {
+      await db.collection("userActivities").add({
+        userId,
+        type: 'logout',
+        title: 'Signed out',
+        date: new Date().toISOString(),
+        location,
+        ip: cleanIp
+      });
+    } catch (err) {
+      console.error("Error logging user logout activity:", err);
+    }
+  })();
 
   return success(res, { message: "Logged out successfully" });
 };

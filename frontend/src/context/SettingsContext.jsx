@@ -15,7 +15,11 @@ export const SettingsProvider = ({ children }) => {
     const cached = localStorage.getItem('globalSettings');
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        if (parsed.integrations && parsed.integrations.enableBulkDelete === undefined) {
+          parsed.integrations.enableBulkDelete = false;
+        }
+        return parsed;
       } catch (e) {
         console.error("Failed to parse cached globalSettings");
       }
@@ -53,7 +57,8 @@ export const SettingsProvider = ({ children }) => {
     },
     integrations: {
       redis: true,
-      cloudinary: true
+      cloudinary: true,
+        enableBulkDelete: false
     },
     modules: {
       masters: true,

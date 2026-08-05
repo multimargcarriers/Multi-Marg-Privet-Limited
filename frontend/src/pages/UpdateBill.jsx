@@ -10,6 +10,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const UpdateBill = () => {
   const [bills, setBills] = useState([]);
+  const [clients, setClients] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedBill, setSelectedBill] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -39,7 +40,11 @@ const UpdateBill = () => {
 
   const fetchBills = async () => {
     try {
-      const res = await axios.get(`${API}/bills`);
+      const [res, clientsRes] = await Promise.all([
+        axios.get(`${API}/bills`),
+        axios.get(`${API}/clients`)
+      ]);
+      if (clientsRes.data.success) setClients(clientsRes.data.data || []);
       if (res.data.success) {
         const fetchedBills = res.data.data || [];
         setBills(fetchedBills);
@@ -101,8 +106,8 @@ const UpdateBill = () => {
       billNo: bill.invoice || bill.billNo || "",
       createdAt: dateFormatted,
       client: bill.client || "",
-      clientAddress: bill.clientAddress || "PLOT NO 15, SECTOR -10, SIDCUL PANTNAGAR -263153",
-      gstin: bill.gstin || "05AAACB9378F1ZM",
+      clientAddress: bill.clientAddress || "",
+      gstin: bill.gstin || "",
       stateCode: bill.stateCode || "05",
       mode: bill.mode || "Road",
       sacCode: bill.sacCode || "996511",
@@ -341,7 +346,21 @@ const UpdateBill = () => {
                 </div>
                 <div>
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Client Name</label>
-                  <input className="form-control" value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} required />
+                  <div style={{ width: "100%", background: "white", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                      <CreatableDropdown
+                        options={clients}
+                        value={form.client}
+                        onChange={(val) => {
+                          const cName = val?.name || val?.client || val;
+                          let newAddress = form.clientAddress;
+                          let newGstin = form.gstin;
+                          if (val?.address) newAddress = val.address;
+                          if (val?.gst) newGstin = val.gst;
+                          setForm({ ...form, client: cName, clientAddress: newAddress, gstin: newGstin });
+                        }}
+                        onCreate={(name) => setForm({ ...form, client: name })}
+                      />
+                    </div>
                 </div>
                 <div>
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Client GSTIN</label>
