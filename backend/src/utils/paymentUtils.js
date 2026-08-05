@@ -9,10 +9,14 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         const cashSnapshot = await db.collection("cashEntries")
             .where("partyType", "==", "Client")
             .where("partyName", "==", partyName)
-            .where("type", "==", "in")
             .get();
         let totalPaid = 0;
-        cashSnapshot.forEach(doc => totalPaid += (Number(doc.data().amount) || 0));
+        cashSnapshot.forEach(doc => {
+            const data = doc.data();
+            const amt = Number(data.amount) || 0;
+            if (data.type === "in") totalPaid += amt;
+            else if (data.type === "out") totalPaid -= amt;
+        });
 
         const billsSnapshot = await db.collection("bills")
             .where("client", "==", partyName)
@@ -39,10 +43,14 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         const cashSnapshot = await db.collection("cashEntries")
             .where("partyType", "==", "Vendor")
             .where("partyName", "==", partyName)
-            .where("type", "==", "out")
             .get();
         let totalPaid = 0;
-        cashSnapshot.forEach(doc => totalPaid += (Number(doc.data().amount) || 0));
+        cashSnapshot.forEach(doc => {
+            const data = doc.data();
+            const amt = Number(data.amount) || 0;
+            if (data.type === "out") totalPaid += amt;
+            else if (data.type === "in") totalPaid -= amt;
+        });
 
         const purchasesSnapshot = await db.collection("purchases")
             .where("vendor", "==", partyName)
