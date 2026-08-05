@@ -18,14 +18,27 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const normalizeUserData = (userData) => {
+    if (!userData) return userData;
+    const cleaned = { ...userData };
+    if (cleaned.photo && typeof cleaned.photo === 'string' && cleaned.photo.toLowerCase().includes('res.cloudinary.com')) {
+      cleaned.photo = cleaned.photo.toLowerCase();
+    }
+    if (cleaned.banner && typeof cleaned.banner === 'string' && cleaned.banner.toLowerCase().includes('res.cloudinary.com')) {
+      cleaned.banner = cleaned.banner.toLowerCase();
+    }
+    return cleaned;
+  };
+
   const fetchMe = async (currentToken) => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/me`, {
         headers: { Authorization: `Bearer ${currentToken}` }
       });
       if (res.data.success) {
-        setUser(res.data.data);
-        localStorage.setItem('user', JSON.stringify(res.data.data));
+        const cleanUser = normalizeUserData(res.data.data);
+        setUser(cleanUser);
+        localStorage.setItem('user', JSON.stringify(cleanUser));
       }
     } catch (e) {
       console.error("Failed to fetch fresh user data from DB:", e);
@@ -47,7 +60,11 @@ export const AuthProvider = ({ children }) => {
       setToken(storedToken);
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser);
+          const cleanUser = normalizeUserData(parsed);
+          setUser(cleanUser);
+          localStorage.setItem('user', JSON.stringify(cleanUser));
+          setLoading(false); // Resolve loading instantly since we have cached data!
         } catch (e) {
           console.error("Failed to parse user info");
         }
@@ -145,9 +162,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (userData, userToken) => {
-    setUser(userData);
+    const cleanUser = normalizeUserData(userData);
+    setUser(cleanUser);
     if (userToken) setToken(userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(cleanUser));
     if (userToken) localStorage.setItem('token', userToken);
   };
 

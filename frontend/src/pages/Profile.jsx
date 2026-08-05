@@ -1,4 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare, ShieldCheck, Monitor, History, Image as ImageIcon, X, IdCard, Download } from 'lucide-react';
@@ -35,8 +36,8 @@ const Profile = () => {
         });
         if (res.data?.success) {
           setDefaultAssets({
-            avatars: res.data.data.DEFAULT_AVATARS || [],
-            banners: res.data.data.DEFAULT_BANNERS || []
+            avatars: (res.data.data.DEFAULT_AVATARS || []).map(u => typeof u === 'string' && u.toLowerCase().includes('res.cloudinary.com') ? u.toLowerCase() : u),
+            banners: (res.data.data.DEFAULT_BANNERS || []).map(u => typeof u === 'string' && u.toLowerCase().includes('res.cloudinary.com') ? u.toLowerCase() : u)
           });
         }
       } catch (err) {
@@ -73,18 +74,40 @@ const Profile = () => {
   const fileInputRef = useRef(null);
   const bannerInputRef = useRef(null);
 
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setEmployeeId(user.employeeId || '');
+      setNewId(user.id || '');
+      const userPhoto = user.photo || user.avatar || user.picture || null;
+      if (userPhoto) setPhotoPreview(userPhoto);
+      if (user.banner || user.bannerUrl) setBannerPreview(user.banner || user.bannerUrl);
+    }
+  }, [user]);
+
   const getAvatarUrl = () => {
-    if (photoPreview) {
-      if (photoPreview.startsWith('http') || photoPreview.startsWith('blob')) return photoPreview;
-      return `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${photoPreview}`;
+    let src = photoPreview || user?.photo || user?.avatar || user?.picture;
+    if (src) {
+      if (typeof src === 'string' && src.includes('res.cloudinary.com')) {
+        src = src.toLowerCase();
+      } else if (typeof src === 'string' && src.startsWith('/uploads/')) {
+        src = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
+      }
+      return src;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0078D4&color=fff&size=150`;
   };
 
   const getBannerUrl = () => {
-    if (bannerPreview) {
-      if (bannerPreview.startsWith('http') || bannerPreview.startsWith('blob')) return bannerPreview;
-      return `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${bannerPreview}`;
+    let src = bannerPreview || user?.banner || user?.bannerUrl;
+    if (src) {
+      if (typeof src === 'string' && src.includes('res.cloudinary.com')) {
+        src = src.toLowerCase();
+      } else if (typeof src === 'string' && src.startsWith('/uploads/')) {
+        src = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
+      }
+      return src;
     }
     return null;
   };
@@ -114,7 +137,9 @@ const Profile = () => {
 
         if (response.data?.success) {
           addToast("Avatar uploaded and updated successfully!", "success");
-          updateUser(response.data.data.user, response.data.data.token);
+          const updatedUser = response.data.data.user;
+          if (updatedUser?.photo) setPhotoPreview(updatedUser.photo);
+          updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update avatar", "error");
         }
@@ -148,7 +173,9 @@ const Profile = () => {
 
         if (response.data?.success) {
           addToast("Banner uploaded and updated successfully!", "success");
-          updateUser(response.data.data.user, response.data.data.token);
+          const updatedUser = response.data.data.user;
+          if (updatedUser?.banner) setBannerPreview(updatedUser.banner);
+          updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update banner", "error");
         }
@@ -175,7 +202,6 @@ const Profile = () => {
     }
     setShowGallery(false);
     
-    // Auto-save the selected asset for a professional workflow
     try {
       setIsLoading(true);
       const formData = new FormData();
@@ -190,7 +216,10 @@ const Profile = () => {
 
       if (response.data?.success) {
         addToast(`${galleryType === 'photo' ? 'Avatar' : 'Banner'} updated successfully!`, "success");
-        updateUser(response.data.data.user, response.data.data.token);
+        const updatedUser = response.data.data.user;
+        if (galleryType === 'photo' && updatedUser?.photo) setPhotoPreview(updatedUser.photo);
+        if (galleryType === 'banner' && updatedUser?.banner) setBannerPreview(updatedUser.banner);
+        updateUser(updatedUser, response.data.data.token);
       } else {
         addToast(response.data?.message || "Failed to update asset", "error");
       }
@@ -209,7 +238,7 @@ const Profile = () => {
       const formData = new FormData();
       if (name !== user.name) formData.append('name', name);
       if (email !== user.email) formData.append('email', email);
-      if (employeeId !== user.employeeId) formData.append('employeeId', employeeId.toUpperCase());
+      if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
       if (newId !== user.id) formData.append('newId', newId);
       if (password) formData.append('password', password);
       if (photo) {
@@ -342,7 +371,17 @@ const Profile = () => {
           {/* Identity Card */}
           <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
-              <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <img 
+                src={getAvatarUrl()} 
+                alt="Profile" 
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+                onError={(e) => {
+                  if (!e.currentTarget.src.includes('data:image')) {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+                  }
+                }}
+              />
               <button 
                 onClick={() => openGallery('photo')}
                 style={{ position: 'absolute', bottom: 0, right: 0, width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
@@ -612,7 +651,18 @@ const Profile = () => {
                   {/* Photo Container */}
                   <div style={{ padding: '2rem 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-start' }}>
                     <div style={{ width: '120px', height: '120px', border: '3px solid #000', background: '#f5f5f5', overflow: 'hidden' }}>
-                      <img src={getAvatarUrl()} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1) grayscale(0.2)' }} crossOrigin="anonymous" />
+                      <img 
+                        src={getAvatarUrl()} 
+                        alt="Profile" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1) grayscale(0.2)' }} 
+                        crossOrigin="anonymous" 
+                        onError={(e) => {
+                          if (!e.currentTarget.src.includes('data:image')) {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+                          }
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -762,14 +812,15 @@ const Profile = () => {
       `}} />
 
       {/* Asset Gallery Modal */}
-      {showGallery && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ background: 'var(--surface-color)', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-dark)', fontWeight: 600 }}>Choose a Professional {galleryType === 'photo' ? 'Avatar' : 'Banner'}</h2>
-              <button onClick={() => setShowGallery(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={24} /></button>
+      {showGallery && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '90vh', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 700 }}>Choose a Professional {galleryType === 'photo' ? 'Avatar' : 'Banner'}</h2>
+              <button onClick={() => setShowGallery(false)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}><X size={24} /></button>
             </div>
-            <div style={{ padding: '2rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: galleryType === 'photo' ? 'repeat(auto-fill, minmax(140px, 1fr))' : '1fr 1fr', gap: '1.5rem' }}>
+            <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: 'calc(90vh - 70px)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: galleryType === 'photo' ? 'repeat(auto-fit, minmax(80px, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', justifyItems: 'center' }}>
               
               {/* Custom Upload Option */}
               <div 
@@ -777,35 +828,38 @@ const Profile = () => {
                 style={{ 
                   cursor: 'pointer', 
                   borderRadius: galleryType === 'photo' ? '50%' : '8px',
-                  border: '2px dashed var(--border-color)',
+                  border: '2px dashed #cbd5e1',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  width: '100%',
                   aspectRatio: galleryType === 'photo' ? '1/1' : '21/9',
-                  background: 'rgba(0,0,0,0.02)',
-                  color: 'var(--text-muted)',
+                  background: '#f8fafc',
+                  color: '#64748b',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0078D4'; e.currentTarget.style.color = '#0078D4'; e.currentTarget.style.background = 'rgba(0,120,212,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0078D4'; e.currentTarget.style.color = '#0078D4'; e.currentTarget.style.background = '#f0f9ff'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = '#f8fafc'; }}
               >
-                <Camera size={galleryType === 'photo' ? 32 : 48} style={{ marginBottom: '0.5rem' }} />
-                <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>Upload Custom</span>
+                <Camera size={galleryType === 'photo' ? 32 : 40} style={{ marginBottom: '0.5rem' }} />
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Custom</span>
               </div>
 
               {galleryType === 'photo' ? defaultAssets.avatars.map((url, idx) => (
-                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', aspectRatio: '1/1', border: '4px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', width: '100%', aspectRatio: '1/1', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
                   <img src={url} alt={`Avatar ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )) : defaultAssets.banners.map((url, idx) => (
-                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', aspectRatio: '21/9', border: '4px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', width: '100%', aspectRatio: '21/9', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
                   <img src={url} alt={`Banner ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               ))}
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

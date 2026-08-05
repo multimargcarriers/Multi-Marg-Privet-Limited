@@ -306,9 +306,14 @@ exports.get_me = async (req, res) => {
 };
 
 exports.get_default_assets = async (req, res) => {
+  const cleanAvatars = (defaultAssets.DEFAULT_AVATARS || []).map(u => typeof u === 'string' && u.includes('res.cloudinary.com') ? u.toLowerCase() : u);
+  const cleanBanners = (defaultAssets.DEFAULT_BANNERS || []).map(u => typeof u === 'string' && u.includes('res.cloudinary.com') ? u.toLowerCase() : u);
   return success(res, {
     message: "Default assets fetched successfully",
-    data: defaultAssets
+    data: {
+      DEFAULT_AVATARS: cleanAvatars,
+      DEFAULT_BANNERS: cleanBanners
+    }
   });
 };
 
@@ -465,7 +470,7 @@ exports.put_profile_2 = async (req, res) => {
         const uploadResult = await uploadFile(req.files.photo[0].path, {
           folder: "avatars"
         });
-        if (uploadResult.success) {
+        if (uploadResult && uploadResult.success) {
           photoUrl = uploadResult.url;
         } else {
           photoUrl = `/uploads/avatars/${req.files.photo[0].filename}`;
@@ -481,14 +486,14 @@ exports.put_profile_2 = async (req, res) => {
         const uploadResult = await uploadFile(req.files.banner[0].path, {
           folder: "banners"
         });
-        if (uploadResult.success) {
+        if (uploadResult && uploadResult.success) {
           bannerUrl = uploadResult.url;
         } else {
-          bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
+          bannerUrl = `/uploads/avatars/${req.files.banner[0].filename}`;
         }
       } catch (error) {
         console.error("Cloudinary banner upload failed:", error);
-        bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
+        bannerUrl = `/uploads/avatars/${req.files.banner[0].filename}`;
       }
     }
   }
@@ -511,8 +516,8 @@ exports.put_profile_2 = async (req, res) => {
     });
     if (taken) return error(res, { message: "Employee ID already exists. Please contact the administrator at info@multimargcarriers.co.in.", statusCode: 400 });
   }
-  if (photoUrl) updates.photo = photoUrl;
-  if (bannerUrl) updates.banner = bannerUrl;
+  if (photoUrl) updates.photo = typeof photoUrl === 'string' && photoUrl.includes('res.cloudinary.com') ? photoUrl.toLowerCase() : photoUrl;
+  if (bannerUrl) updates.banner = typeof bannerUrl === 'string' && bannerUrl.includes('res.cloudinary.com') ? bannerUrl.toLowerCase() : bannerUrl;
   if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
     return error(res, {
       message: "No fields to update",
@@ -532,13 +537,17 @@ exports.put_profile_2 = async (req, res) => {
     });
   }
 
-  // Delete old photo or banner from Cloudinary if replacing
+  // Delete old photo or banner safely if replacing
   const oldData = doc.data() || {};
-  if (photoUrl && oldData.photo && oldData.photo !== photoUrl) {
-    await deleteFile(oldData.photo, "image");
-  }
-  if (bannerUrl && oldData.banner && oldData.banner !== bannerUrl) {
-    await deleteFile(oldData.banner, "image");
+  try {
+    if (photoUrl && oldData.photo && oldData.photo !== photoUrl) {
+      await deleteFile(oldData.photo, "image");
+    }
+    if (bannerUrl && oldData.banner && oldData.banner !== bannerUrl) {
+      await deleteFile(oldData.banner, "image");
+    }
+  } catch (delErr) {
+    console.warn("Non-fatal error deleting old profile asset:", delErr?.message);
   }
 
   if (newId && newId !== userId) {

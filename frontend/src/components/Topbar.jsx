@@ -20,6 +20,19 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
   const userName = user?.name || 'User';
   const userRole = (user?.role === 'Admin' || !user?.role) ? 'Employee' : user.role;
 
+  const getUserAvatarUrl = () => {
+    let src = user?.photo || user?.avatar || user?.picture;
+    if (src) {
+      if (typeof src === 'string' && src.includes('res.cloudinary.com')) {
+        src = src.toLowerCase();
+      } else if (typeof src === 'string' && src.startsWith('/uploads/')) {
+        src = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
+      }
+      return src;
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`;
+  };
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -299,7 +312,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
               <p style={{ margin: '0', fontSize: '0.75rem', color: '#9ba7b6' }}>{userRole}</p>
             </div>
             <img 
-              src={user?.photo && (user.photo.startsWith('http') || user.photo.startsWith('blob')) ? user.photo : (user?.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`)} 
+              src={getUserAvatarUrl()} 
               alt="User" 
               className="avatar" 
               style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} 
@@ -316,7 +329,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
             }}>
               <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <img 
-                  src={user?.photo && (user.photo.startsWith('http') || user.photo.startsWith('blob')) ? user.photo : (user?.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`)} 
+                  src={getUserAvatarUrl()} 
                   alt="User" 
                   style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
                 />

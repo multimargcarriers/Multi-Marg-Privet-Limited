@@ -7,14 +7,22 @@ module.exports = {
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830838/default_avatars/jjjy4sldwahnvov6lsyh.jpg`,
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830839/default_avatars/k4kf7gpgw313cyjjzwkh.jpg`,
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830840/default_avatars/co54jfqkhgu7ajwmcjaj.jpg`,
-    `https://res.cloudinary.com/${cloudName}/image/upload/v1785830841/default_avatars/e6v4iechcnvhigsczkyy.jpg`
+    `https://res.cloudinary.com/${cloudName}/image/upload/v1785830841/default_avatars/e6v4iechcnvhigsczkyy.jpg`,
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80"
   ],
   DEFAULT_BANNERS: [
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830841/default_banners/getor4hyq0u5gbeinzij.jpg`,
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830842/default_banners/gpo42rcudkhlsqbrsj08.jpg`,
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830843/default_banners/x1jprcaoeb2f0knkj0nz.jpg`,
     `https://res.cloudinary.com/${cloudName}/image/upload/v1785830844/default_banners/grkveda1mrys7zh4a0ij.jpg`,
-    `https://res.cloudinary.com/${cloudName}/image/upload/v1785830845/default_banners/tamogk47hpxhjwbcqm9c.jpg`
+    `https://res.cloudinary.com/${cloudName}/image/upload/v1785830845/default_banners/tamogk47hpxhjwbcqm9c.jpg`,
+    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80"
   ]
 };
 

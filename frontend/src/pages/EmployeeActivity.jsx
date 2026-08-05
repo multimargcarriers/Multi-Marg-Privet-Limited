@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import axios from 'axios';
@@ -701,7 +702,7 @@ const EmployeeActivity = () => {
       )}
 
       {/* Security Threat Intelligence Modal */}
-      {isModalOpen && selectedAttempt && (
+      {isModalOpen && selectedAttempt && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsModalOpen(false)}>
           <div style={{ background: '#ffffff', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
             
@@ -722,7 +723,7 @@ const EmployeeActivity = () => {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', background: '#f8fafc' }}>
+            <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', background: '#f8fafc' }}>
               
               {/* Identity Block */}
               <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -874,7 +875,8 @@ const EmployeeActivity = () => {
             </div>
             
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

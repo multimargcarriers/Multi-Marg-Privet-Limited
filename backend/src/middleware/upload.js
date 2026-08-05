@@ -42,13 +42,12 @@ const ALLOWED_MIMES = Object.values(ALLOWED_TYPES).flat();
 function createStorage(subDir = "general") {
   const destDir = path.join(UPLOAD_DIR, subDir);
 
-  // Ensure directory exists
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
-
   return multer.diskStorage({
     destination: (req, file, cb) => {
+      // Ensure directory exists dynamically before each upload
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
       cb(null, destDir);
     },
     filename: (req, file, cb) => {

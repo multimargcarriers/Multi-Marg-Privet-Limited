@@ -11,7 +11,16 @@ export const useSettings = () => {
 export const SettingsProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
   
-  const [globalSettings, setGlobalSettings] = useState({
+  const [globalSettings, setGlobalSettings] = useState(() => {
+    const cached = localStorage.getItem('globalSettings');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        console.error("Failed to parse cached globalSettings");
+      }
+    }
+    return {
     company: {
       name: "Multi Marg Carriers",
       gstin: "",
@@ -58,9 +67,10 @@ export const SettingsProvider = ({ children }) => {
     system: {
       maintenanceMode: false
     }
+    };
   });
   
-  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [loadingSettings, setLoadingSettings] = useState(!localStorage.getItem('globalSettings'));
 
   const fetchSettings = async () => {
     try {
@@ -78,6 +88,7 @@ export const SettingsProvider = ({ children }) => {
       
       if (response.data.success && response.data.data) {
         setGlobalSettings(response.data.data);
+        localStorage.setItem('globalSettings', JSON.stringify(response.data.data));
       }
     } catch (err) {
       console.error('Failed to fetch global settings:', err);

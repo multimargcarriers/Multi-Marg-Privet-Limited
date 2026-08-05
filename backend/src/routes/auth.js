@@ -3,6 +3,7 @@ const router = express.Router();
 const { asyncHandler } = require("../middleware/errorHandler");
 const { authenticateToken } = require("../middleware/auth");
 const { body } = require("express-validator");
+const { createUploadMiddleware, handleMulterError } = require("../middleware/upload");
 const { 
   post_login_1, 
   post_google_login, 
@@ -18,6 +19,15 @@ const {
   delete_failed_google_login,
   post_force_logout
 } = require('../controllers/authController');
+
+const profileUpload = createUploadMiddleware("avatars", {
+  maxFileSize: 10 * 1024 * 1024,
+  maxFiles: 2,
+  strictTypes: true,
+}).fields([
+  { name: "photo", maxCount: 1 },
+  { name: "banner", maxCount: 1 },
+]);
 
 router.post(
   "/login",
@@ -60,6 +70,12 @@ router.get(
 router.put(
   "/profile",
   authenticateToken,
+  (req, res, next) => {
+    profileUpload(req, res, (err) => {
+      if (err) return handleMulterError(err, req, res, next);
+      next();
+    });
+  },
   asyncHandler(put_profile_2)
 );
 
