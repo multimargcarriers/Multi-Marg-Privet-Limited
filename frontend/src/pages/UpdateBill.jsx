@@ -57,8 +57,25 @@ const UpdateBill = () => {
     setSelectedBill(bill);
     const dateFormatted = bill.createdAt ? new Date(bill.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     
-    // Default items array if bill was simple
-    const initialItems = (bill.items && bill.items.length > 0) ? bill.items : [
+    // Map items to UI keys
+    const mappedItems = bill.items && bill.items.length > 0 ? bill.items.map(bItem => ({
+      si: bItem.si,
+      lrNo: bItem.lrNo || bItem.awb || "204777",
+      lrDt: bItem.lrDt || bItem.awb_date || "30-05-2026",
+      ref: bItem.ref || bItem.refNo || "-",
+      org: bItem.org || bItem.origin || "DELHI",
+      dest: bItem.dest || bItem.destination || "PANTNAGAR",
+      pkg: bItem.pkg || bItem.box || "02",
+      wt: bItem.wt || bItem.weight || "550",
+      rate: bItem.rate || "0",
+      frg: bItem.frg || bItem.frieght || "0",
+      lr: bItem.lr || bItem.awb_charge || "0",
+      pick: bItem.pick || bItem.pickup || "0",
+      del: bItem.del || bItem.delivery || "0",
+      spl: bItem.spl || bItem.special_delivery || "0",
+      oth: bItem.oth || bItem.other_charge || "0",
+      total: bItem.total || "0.00"
+    })) : [
       {
         si: 1,
         lrNo: bill.lrNo || "204777",
@@ -80,7 +97,8 @@ const UpdateBill = () => {
     ];
 
     setForm({
-      billNo: bill.billNo || "",
+      invoice: bill.invoice || bill.billNo || "",
+      billNo: bill.invoice || bill.billNo || "",
       createdAt: dateFormatted,
       client: bill.client || "",
       clientAddress: bill.clientAddress || "PLOT NO 15, SECTOR -10, SIDCUL PANTNAGAR -263153",
@@ -90,7 +108,7 @@ const UpdateBill = () => {
       sacCode: bill.sacCode || "996511",
       status: bill.status || "pending",
       gst: bill.gst !== undefined ? bill.gst : 5,
-      items: initialItems,
+      items: mappedItems,
       invoiceDetails: (bill.invoiceDetails && bill.invoiceDetails.length > 0) ? bill.invoiceDetails : [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
     });
   };
@@ -186,19 +204,37 @@ const UpdateBill = () => {
     if (!selectedBill) return;
     setSaving(true);
 
-    const payload = {
-      ...form,
-      taxable: calculatedTaxable,
-      subtotal: calculatedTaxable,
-      cgst: calculatedCgst,
-      sgst: calculatedSgst,
-      igst: calculatedIgst,
-      total: calculatedTotal,
-      totalPayable: calculatedTotal,
-      amount: calculatedTotal
-    };
-
     try {
+      // Map UI keys to DB keys
+      const finalItems = form.items.map(it => ({
+        ...it,
+        awb: it.lrNo,
+        awb_date: it.lrDt,
+        origin: it.org,
+        destination: it.dest,
+        box: it.pkg,
+        weight: it.wt,
+        frieght: it.frg,
+        awb_charge: it.lr,
+        pickup: it.pick,
+        delivery: it.del,
+        special_delivery: it.spl,
+        other_charge: it.oth
+      }));
+
+      const payload = {
+        ...form,
+        items: finalItems,
+        taxable: calculatedTaxable,
+        subtotal: calculatedTaxable,
+        cgst: calculatedCgst,
+        sgst: calculatedSgst,
+        igst: calculatedIgst,
+        total: calculatedTotal,
+        totalPayable: calculatedTotal,
+        amount: calculatedTotal
+      };
+
       await axios.put(`${API}/bills/${selectedBill.id}`, payload);
       addToast("Invoice updated successfully!", "success");
       setSelectedBill(null);
@@ -212,7 +248,7 @@ const UpdateBill = () => {
   };
 
   const filtered = bills.filter(b =>
-    !search || (b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
+    !search || (b.invoice || b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
     (b.client || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -266,7 +302,7 @@ const UpdateBill = () => {
                     }}
                     onClick={() => handleSelect(item)}
                   >
-                    <td style={{ padding: "0.75rem", fontWeight: "700", color: "#0C4A6E" }}>{item.billNo || item.id?.slice(-6)}</td>
+                    <td style={{ padding: "0.75rem", fontWeight: "700", color: "#0C4A6E" }}>{item.invoice || item.billNo || item.id?.slice(-6)}</td>
                     <td style={{ padding: "0.75rem" }}>{item.client}</td>
                     <td style={{ padding: "0.75rem", textAlign: "right", fontWeight: "700" }}>₹{parseFloat(item.total || item.amount || 0).toFixed(2)}</td>
                   </tr>
@@ -281,7 +317,7 @@ const UpdateBill = () => {
           <div className="glass-panel" style={{ padding: "1.75rem", background: "#ffffff" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "2px solid #0C4A6E", paddingBottom: "0.75rem" }}>
               <h4 style={{ margin: 0, fontSize: "1.25rem", color: "#0C4A6E", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <Edit3 size={20} /> Editing Invoice: {form.billNo}
+                <Edit3 size={20} /> Editing Invoice: {form.invoice || form.billNo}
               </h4>
               <button 
                 type="button" 
@@ -297,7 +333,7 @@ const UpdateBill = () => {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1.5rem", background: "#F8FAFC", padding: "1rem", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
                 <div>
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Invoice Number</label>
-                  <input className="form-control" value={form.billNo} onChange={(e) => setForm({ ...form, billNo: e.target.value })} required />
+                  <input className="form-control" value={form.invoice || form.billNo} onChange={(e) => setForm({ ...form, invoice: e.target.value, billNo: e.target.value })} required />
                 </div>
                 <div>
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Invoice Date</label>

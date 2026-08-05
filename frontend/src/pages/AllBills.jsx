@@ -2,8 +2,9 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 
-import { Eye, FileText, Search, Download, Trash2, Edit3 } from "lucide-react";
+import { Eye, FileText, Search, Download, Trash2, Edit3, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Papa from "papaparse";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
@@ -64,9 +65,71 @@ const AllBills = () => {
   };
 
   const filtered = bills.filter(b =>
-    !search || (b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
+    !search || (b.invoice || b.billNo || "").toLowerCase().includes(search.toLowerCase()) ||
     (b.client || b.billedTo || "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleImportCSV = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/import`, { items: results.data });
+          if (res.data.success) {
+            addToast(res.data.message || "Bills imported successfully", "success");
+            fetchBills();
+          }
+        } catch (error) {
+          console.error("Import error", error);
+          addToast("Failed to import bills", "error");
+        }
+      },
+      error: (error) => {
+        console.error("CSV parse error", error);
+        addToast("Error parsing CSV file", "error");
+      }
+    });
+    event.target.value = null; // reset
+  };
+
+  const downloadSampleCSV = () => {
+    const sampleHeaders = "invoice,invoice_date,client,origin,destination,mode,awb,awb_date,box,weight,rate,frieght,awb_charge,pickup,delivery,special_delivery,other_charge,gst\n";
+    const blob = new Blob([sampleHeaders], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bills_sample.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToCSV = () => {
+    if (filtered.length === 0) {
+      addToast("No data to export", "warning");
+      return;
+    }
+    const exportData = filtered.map(b => ({
+      "Bill No": b.invoice || b.billNo,
+      "Client": b.client || b.billedTo,
+      "Total Amt": parseFloat(b.amount || b.total || 0).toFixed(2),
+      "Received": parseFloat(b.paidAmount || 0).toFixed(2),
+      "Pending": (parseFloat(b.amount || b.total || 0) - parseFloat(b.paidAmount || 0)).toFixed(2),
+      "Date": formatDate(b.createdAt),
+      "Status": b.status
+    }));
+    const csv = Papa.unparse(exportData);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bills_export.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div>
@@ -76,6 +139,16 @@ const AllBills = () => {
           <p className="text-muted">View and manage all generated invoices and bills.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" style={{ padding: "0 1.5rem", height: "45px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600 }} onClick={downloadSampleCSV}>
+            <Download size={18} /> Sample
+          </button>
+          <label className="btn btn-secondary" style={{ padding: "0 1.5rem", height: "45px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600 }}>
+            <Upload size={18} /> Import
+            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
+          </label>
+          <button className="btn btn-secondary" style={{ padding: "0 1.5rem", height: "45px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600 }} onClick={exportToCSV}>
+            <Download size={18} /> Export
+          </button>
           <button className="btn btn-secondary" style={{ padding: "0 1.5rem", height: "45px", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600 }} onClick={() => navigate("/bills/misc")}>
             <FileText size={18} /> New Misc Bill
           </button>
@@ -104,7 +177,7 @@ const AllBills = () => {
           
           return (
           <tr key={item.id || index}>
-            <td className="font-semibold">{item.billNo || item.id?.slice(-6) || index + 1}</td>
+            <td className="font-semibold">{item.invoice || item.billNo || item.id?.slice(-6) || index + 1}</td>
             <td>{item.client || item.billedTo || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#3b82f6", fontWeight: "700" }}><RupeeIcon size={14} />&nbsp;{totalAmt.toFixed(2)}</span></td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#10b981", fontWeight: "600" }}><RupeeIcon size={14} />&nbsp;{receivedAmt.toFixed(2)}</span></td>
@@ -132,9 +205,9 @@ const AllBills = () => {
             </td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                <button onClick={() => window.open(`/bills/view1/${item.id}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
-                <button onClick={() => navigate(`/bills/update?id=${item.id}`)} style={{ background: "transparent", border: "none", color: "#2563eb", cursor: "pointer", display: 'flex' }}><Edit3 size={18} /></button>
-                <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${item.id}/pdf`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Download size={18} /></button>
+                <button onClick={() => window.open(`/bills/view1/${encodeURIComponent(encodeURIComponent(item.id))}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", display: 'flex' }}><Eye size={18} /></button>
+                <button onClick={() => navigate(`/bills/update?id=${encodeURIComponent(item.id)}`)} style={{ background: "transparent", border: "none", color: "#2563eb", cursor: "pointer", display: 'flex' }}><Edit3 size={18} /></button>
+                <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(encodeURIComponent(item.id))}/pdf`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: 'flex' }}><Download size={18} /></button>
                 {isSuperAdmin && (
                   <button onClick={() => handleDelete(item.id)} style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", display: 'flex' }}><Trash2 size={18} /></button>
                 )}

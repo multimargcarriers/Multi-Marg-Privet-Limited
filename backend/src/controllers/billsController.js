@@ -25,7 +25,8 @@ exports.getRoot_1 = async (req, res) => {
 };
 
 exports.get_id_2 = async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  id = decodeURIComponent(id);
   const doc = await db.collection("bills").doc(id).get();
   if (!doc.exists) return error(res, "Bill not found", 404);
   return success(res, "Bill fetched successfully", {
@@ -35,7 +36,8 @@ exports.get_id_2 = async (req, res) => {
 };
 
 exports.get_id_pdf_3 = async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  id = decodeURIComponent(id);
   let bill;
   const doc = await db.collection("bills").doc(id).get();
   if (doc.exists) bill = { id: doc.id, ...doc.data() };
@@ -73,7 +75,8 @@ exports.get_id_pdf_3 = async (req, res) => {
 };
 
 exports.post_id_upload_pdf_4 = async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  id = decodeURIComponent(id);
   let bill;
   const doc = await db.collection("bills").doc(id).get();
   if (doc.exists) bill = { id: doc.id, ...doc.data() };
@@ -154,21 +157,22 @@ exports.post_generate_5 = async (req, res) => {
 
       aggregatedItems.push({
         si: i + 1,
-        lrNo: lrNumber,
-        lrDt: lrDateFormatted,
+        awb: lrNumber,
+        awb_date: lrDateFormatted,
         ref: refNumber,
-        org: originCity,
-        dest: destCity,
-        pkg: pkgQty,
-        wt: wtVal,
+        origin: originCity,
+        destination: destCity,
+        box: pkgQty,
+        weight: wtVal,
         rate: rateVal,
-        frg: freight,
-        lr: awb,
-        pick: pickup,
-        del: delivery,
-        spl: packaging + handling,
-        oth: 0,
-        total: itemTaxable.toFixed(2)
+        frieght: freight,
+        awb_charge: awb,
+        pickup: pickup,
+        delivery: delivery,
+        special_delivery: packaging + handling,
+        other_charge: 0,
+        total: itemTaxable.toFixed(2),
+        gst: gst > 0 ? "YES" : "NO"
       });
 
       if (booking.invoiceDetails && booking.invoiceDetails.length > 0) {
@@ -359,7 +363,8 @@ exports.post_misc_6 = async (req, res) => {
 };
 
 exports.put_id_7 = async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  id = decodeURIComponent(id);
   const doc = await db.collection("bills").doc(id).get();
   if (!doc.exists) return error(res, "Bill not found", 404);
 
@@ -420,27 +425,29 @@ exports.put_id_7 = async (req, res) => {
 };
 
 exports.delete_id_8 = async (req, res) => {
-  const { id } = req.params;
+  let { id } = req.params;
+  id = decodeURIComponent(id);
   const doc = await db.collection("bills").doc(id).get();
   if (!doc.exists) return error(res, "Bill not found", 404);
 
   const billData = doc.data();
   if (billData.items && Array.isArray(billData.items)) {
     for (const item of billData.items) {
-      if (item.lrNo) {
+      const lrNo = item.awb || item.lrNo;
+      if (lrNo) {
         // Query by awb
-        const byAwb = await db.collection("bookings").where("awb", "==", item.lrNo).get();
+        const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
         byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
 
         // Query by id field just in case
-        const byIdField = await db.collection("bookings").where("id", "==", item.lrNo).get();
+        const byIdField = await db.collection("bookings").where("id", "==", lrNo).get();
         byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
 
         // Check if lrNo is the document ID directly
         try {
-          const directDoc = await db.collection("bookings").doc(item.lrNo).get();
+          const directDoc = await db.collection("bookings").doc(lrNo).get();
           if (directDoc.exists) {
-            await db.collection("bookings").doc(item.lrNo).update({ status: "Booked" });
+            await db.collection("bookings").doc(lrNo).update({ status: "Booked" });
           }
         } catch(e) {}
       }
@@ -456,3 +463,165 @@ exports.delete_id_8 = async (req, res) => {
   emitDataUpdated("bills");
     return success(res, "Bill deleted successfully");
 };
+
+exports.post_import_9 = async (req, res) => {
+  const { items } = req.body;
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return error(res, "No items provided for import", 400);
+  }
+
+  let importedCount = 0;
+  
+  // Save each row as a completely separate bill
+  for (const row of items) {
+    const invoice = row.invoice || "UNKNOWN";
+    const awb = row.awb || "";
+    
+    // Check if a bill for this specific AWB already exists to prevent duplicates
+    let existingId = null;
+    if (awb) {
+      const existingSnap = await db.collection("bills").where("lrNo", "==", awb).get();
+      if (!existingSnap.empty) {
+        existingId = existingSnap.docs[0].id;
+      }
+    }
+
+    const itemObj = {
+      pid: row.pid || uuidv4(),
+      invoice: invoice,
+      invoice_date: row.invoice_date || "",
+      client: row.client || "",
+      origin: row.origin || "",
+      destination: row.destination || "",
+      mode: row.mode || "ROAD",
+      awb: awb,
+      awb_date: row.awb_date || "",
+      box: row.box || "1",
+      weight: row.weight || "0",
+      rate: row.rate || "0",
+      frieght: row.frieght || "0",
+      awb_charge: row.awb_charge || "0",
+      pickup: row.pickup || "0",
+      delivery: row.delivery || "0",
+      special_delivery: row.special_delivery || "0",
+      other_charge: row.other_charge || "0",
+      gst: row.gst || "NO"
+    };
+
+    const frg = parseFloat(itemObj.frieght || 0);
+    const awb_chg = parseFloat(itemObj.awb_charge || 0);
+    const pick = parseFloat(itemObj.pickup || 0);
+    const del = parseFloat(itemObj.delivery || 0);
+    const spl = parseFloat(itemObj.special_delivery || 0);
+    const oth = parseFloat(itemObj.other_charge || 0);
+    
+    const totalTaxable = (frg + awb_chg + pick + del + spl + oth);
+    
+    let hasGst = false;
+    if (itemObj.gst === "YES" || itemObj.gst === "Yes" || itemObj.gst === "yes") {
+      hasGst = true;
+    }
+
+    const gstRate = hasGst ? 18 : 0;
+    const gstAmt = totalTaxable * (gstRate / 100);
+    const total = totalTaxable + gstAmt;
+
+    let clientMaster = null;
+    try {
+      if (itemObj.client) {
+        const clientsSnap = await db.collection("clients").where("name", "==", itemObj.client).get();
+        if (!clientsSnap.empty) {
+          clientMaster = clientsSnap.docs[0].data();
+        }
+      }
+    } catch (e) {}
+    
+    const gstin = clientMaster?.gst || "";
+    const clientStateCode = gstin ? gstin.substring(0, 2) : "05";
+    const clientAddress = clientMaster?.address || "";
+    
+    let cgst = 0, sgst = 0, igst = 0;
+    if (gstRate > 0) {
+      if (clientStateCode === "05" || !clientStateCode) {
+        cgst = gstAmt / 2;
+        sgst = gstAmt / 2;
+      } else {
+        igst = gstAmt;
+      }
+    }
+
+    let sacCode = "996511";
+    if (itemObj.mode.toLowerCase() === "train") {
+        sacCode = "996512";
+    } else if (itemObj.mode.toLowerCase() === "air") {
+        sacCode = "996531";
+    }
+
+    const billData = {
+      id: existingId || uuidv4(),
+      billNo: invoice,
+      invoice: invoice,
+      invoice_date: itemObj.invoice_date || new Date().toISOString().split('T')[0],
+      client: itemObj.client,
+      lrNo: awb,
+      lrDate: itemObj.awb_date,
+      refNo: awb,
+      origin: itemObj.origin,
+      destination: itemObj.destination,
+      packages: itemObj.box,
+      weight: itemObj.weight,
+      rate: itemObj.rate,
+      freight: frg,
+      lrCharge: awb_chg,
+      pickupCharge: pick,
+      deliveryCharge: del,
+      specialCharge: spl,
+      otherCharge: oth,
+      items: [itemObj],
+      taxable: totalTaxable,
+      subtotal: totalTaxable,
+      gst: gstRate,
+      cgst,
+      sgst,
+      igst,
+      gstin,
+      stateCode: clientStateCode,
+      clientAddress,
+      sacCode,
+      amount: total,
+      totalPayable: total,
+      total: total,
+      mode: itemObj.mode,
+      status: "pending",
+      paidAmount: 0,
+      createdAt: itemObj.invoice_date ? new Date(itemObj.invoice_date).toISOString() : new Date().toISOString()
+    };
+
+    await db.collection("bills").doc(billData.id).set(billData, { merge: true });
+    if (awb) {
+      try {
+        const bookingsSnap = await db.collection("bookings").where("lrNumber", "==", awb).get();
+        if (!bookingsSnap.empty) {
+          const bookingDoc = bookingsSnap.docs[0];
+          await db.collection("bookings").doc(bookingDoc.id).update({ status: "Booked" });
+        } else {
+          // Check by awb field
+          const awbSnap = await db.collection("bookings").where("awb", "==", awb).get();
+          if (!awbSnap.empty) {
+            const bookingDoc = awbSnap.docs[0];
+            await db.collection("bookings").doc(bookingDoc.id).update({ status: "Booked" });
+          }
+        }
+      } catch(e) {}
+    }
+    if (billData.client) {
+      await recalculatePartyPayments('Client', billData.client);
+    }
+    importedCount++;
+  }
+
+  await delCache(CACHE_KEY);
+  emitDataUpdated("bills");
+  return success(res, `Successfully imported ${importedCount} bills`);
+};
+

@@ -1,4 +1,5 @@
 const { emitDataUpdated } = require("../utils/socket");
+const { filterByAccess } = require("../utils/security");
 const {
   db
 } = require("../config/database");
@@ -159,6 +160,7 @@ exports.postRoot_1 = async (req, res) => {
   if (!booking.clerk_name) {
     booking.clerk_name = req.user?.name || "Admin";
   }
+  booking.createdBy_id = req.user?.id || null;
   const docRef = await db.collection("bookings").add(booking);
   
   const createdBooking = { id: docRef.id, ...booking };
@@ -184,7 +186,11 @@ exports.getRoot_2 = async (req, res) => {
     });
     return bookings;
   }, 300);
-  return success(res, "Bookings fetched successfully", data);
+  
+  // Apply Row-Level Security
+  const filteredData = filterByAccess(data, req.user, "bookings");
+  
+  return success(res, "Bookings fetched successfully", filteredData);
 };
 
 exports.get_id_3 = async (req, res) => {

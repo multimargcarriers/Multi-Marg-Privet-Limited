@@ -15,7 +15,7 @@ import { useSocketSync } from '../hooks/useSocketSync';
 import { SettingsContext } from "../context/SettingsContext";
 
 const BookingsList = () => {
-  const { user } = useContext(AuthContext);
+  const { user, hasPermission } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -183,9 +183,11 @@ const BookingsList = () => {
                 <Trash2 size={14} style={{ display: 'inline', marginRight: '4px', marginBottom: '-2px' }} /> Clear
               </button>
             )}
-            <button className="btn btn-primary btn-new-booking" onClick={() => navigate("/bookings/create")}>
-              + New Booking
-            </button>
+            {(hasPermission("create_booking") || isSuperAdmin) && (
+              <button className="btn btn-primary btn-new-booking" onClick={() => navigate("/bookings/create")}>
+                + New Booking
+              </button>
+            )}
           </div>
         </div>
       </div>

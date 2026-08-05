@@ -1,12 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2 } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
+import Table from "../components/Table";
+import { AuthContext } from "../context/AuthContext";
+import { useDialog } from "../context/DialogContext";
+import "../index.css"; 
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Tracking = () => {
+  const { user, hasPermission } = useContext(AuthContext);
+  const { confirm, alert } = useDialog();
+  const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
+
+  const [allUpdates, setAllUpdates] = useState([]);
+
   const [formData, setFormData] = useState({
     awb: "",
     date: "",
@@ -14,9 +24,21 @@ const Tracking = () => {
     status: "",
     remarks: ""
   });
+  
+  const [searchAwb, setSearchAwb] = useState("");
+  const [trackingHistory, setTrackingHistory] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [locations, setLocations] = useState([]);
+  const [bookingsList, setBookingsList] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showFormDropdown, setShowFormDropdown] = useState(false);
+  
+  const [selectedSearchBooking, setSelectedSearchBooking] = useState(null);
+  const [selectedFormBooking, setSelectedFormBooking] = useState(null);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -36,7 +58,6 @@ const Tracking = () => {
   };
   
   useEffect(() => {
-    // Fetch cities for the location dropdown
     const fetchCities = async () => {
       try {
         const res = await axios.get(`${API}/cities`);
@@ -47,11 +68,115 @@ const Tracking = () => {
         console.error("Failed to fetch cities", err);
       }
     };
+    
+    const fetchBookings = async () => {
+      try {
+        const res = await axios.get(`${API}/bookings`);
+        if (res.data.success) {
+          setBookingsList(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch bookings", err);
+      }
+    };
+
+    const fetchAllTrackings = async () => {
+      try {
+        const res = await axios.get(`${API}/tracking`);
+        if (res.data.success) {
+          setAllUpdates(res.data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch trackings", err);
+      }
+    };
+    
     fetchCities();
+    fetchBookings();
+    fetchAllTrackings();
   }, []);
+
+  // Instant Search Effect (Debounced)
+  useEffect(() => {
+    if (!searchAwb.trim()) {
+      setHasSearched(false);
+      setTrackingHistory([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      // Only fetch if dropdown is closed (meaning they are done selecting/typing)
+      if (!showSearchDropdown) {
+         fetchTrackingHistory(searchAwb.trim());
+      }
+    }, 400); 
+    
+    return () => clearTimeout(timer);
+  }, [searchAwb, showSearchDropdown]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === "awb") {
+      setShowFormDropdown(true);
+    }
+  };
+
+  const getBookingAwb = (b) => {
+    return String(b.awb || b.consignment || b.awbNo || b.lrNumber || b.lrNo || b.lr_number || (b.id ? String(b.id).substring(0, 8).toUpperCase() : ""));
+  };
+
+  const fetchTrackingHistory = async (awbToSearch) => {
+    if (!awbToSearch) return;
+    setIsSearching(true);
+    try {
+      const match = bookingsList.find(b => getBookingAwb(b) === awbToSearch);
+      const fullId = match ? match.id : null;
+
+      const response = await axios.get(`${API}/tracking/${awbToSearch}`);
+      let data = response.data.success ? response.data.data : [];
+
+      if (fullId && fullId !== awbToSearch) {
+          try {
+              const res2 = await axios.get(`${API}/tracking/${fullId}`);
+              if (res2.data.success) {
+                  const merged = [...data, ...res2.data.data];
+                  merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+                  const unique = [];
+                  const ids = new Set();
+                  for(let item of merged) {
+                      if(!ids.has(item.id)) {
+                          ids.add(item.id);
+                          unique.push(item);
+                      }
+                  }
+                  data = unique;
+              }
+          } catch(err) {
+              console.error("Error fetching for full ID", err);
+          }
+      }
+
+      setTrackingHistory(data);
+      setHasSearched(true);
+      // Pre-fill form AWB if searching
+      setFormData(prev => ({ ...prev, awb: awbToSearch }));
+    } catch (error) {
+      console.error("Error fetching tracking history", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setShowSearchDropdown(false);
+    
+    // Clear selected booking if they just typed a random AWB manually that isn't matched
+    if (!selectedSearchBooking || getBookingAwb(selectedSearchBooking) !== searchAwb) {
+       const match = bookingsList.find(b => getBookingAwb(b) === searchAwb);
+       setSelectedSearchBooking(match || null);
+    }
+    
+    fetchTrackingHistory(searchAwb);
   };
 
   const handleSubmit = async (e) => {
@@ -62,13 +187,25 @@ const Tracking = () => {
       const response = await axios.post(`${API}/tracking`, formData);
       if (response.data.success) {
         setSuccess(true);
+        const awbUpdated = formData.awb;
+        
         setFormData({
-          awb: "",
+          awb: awbUpdated,
           date: "",
           location: "",
           status: "",
           remarks: ""
         });
+        
+        if (hasSearched && searchAwb === awbUpdated) {
+           fetchTrackingHistory(awbUpdated);
+        }
+
+        if (isAdmin) {
+           const refresh = await axios.get(`${API}/tracking`);
+           if (refresh.data.success) setAllUpdates(refresh.data.data || []);
+        }
+
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (error) {
@@ -78,133 +215,505 @@ const Tracking = () => {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Picked Up": return <Package size={20} />;
+      case "In Transit": return <Truck size={20} />;
+      case "Out for Delivery": return <MapPin size={20} />;
+      case "Delivered": return <CheckCircle size={20} />;
+      case "Returned": return <XCircle size={20} />;
+      default: return <Clock size={20} />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Picked Up": return "#3b82f6"; 
+      case "In Transit": return "#f59e0b"; 
+      case "Out for Delivery": return "#8b5cf6"; 
+      case "Delivered": return "#10b981"; 
+      case "Returned": return "#ef4444"; 
+      default: return "#6b7280"; 
+    }
+  };
+
+  // Autocomplete filtering logic
+  const getFilteredBookings = (input) => {
+    if (!input || !input.trim()) return [];
+    const query = input.toLowerCase();
+    return bookingsList.filter(b => {
+      const lrStr = String(b.lrNo || b.biltyNo || b.id || "").toLowerCase();
+      const clientStr = String(b.client || b.clientName || "").toLowerCase();
+      const originStr = String(b.origin || "").toLowerCase();
+      const destStr = String(b.destination || "").toLowerCase();
+      return lrStr.includes(query) || clientStr.includes(query) || originStr.includes(query) || destStr.includes(query);
+    }).slice(0, 10);
+  };
+
+  const searchFilteredLRs = getFilteredBookings(searchAwb);
+  const formFilteredLRs = getFilteredBookings(formData.awb);
+
+
+  const handleDelete = async (id) => {
+    const isConfirmed = await confirm("Are you sure you want to delete this tracking update?");
+    if (isConfirmed) {
+      try {
+        const response = await axios.delete(`${API}/tracking/${id}`);
+        if (response.data.success) {
+          setAllUpdates(prev => prev.filter(item => item.id !== id));
+          if (hasSearched) fetchTrackingHistory(searchAwb);
+          alert("Tracking update deleted successfully!");
+        }
+      } catch (error) {
+        console.error("Error deleting tracking", error);
+        alert("Failed to delete tracking update.");
+      }
+    }
+  };
+
+  const AutocompleteDropdown = ({ filteredList, onSelect }) => (
+    <div
+      style={{
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        right: 0,
+        background: "white",
+        border: "1px solid #cbd5e1",
+        borderRadius: "10px",
+        marginTop: "6px",
+        maxHeight: "260px",
+        overflowY: "auto",
+        zIndex: 50,
+        boxShadow: "0 15px 25px rgba(0,0,0,0.12)"
+      }}
+    >
+      {filteredList.map((booking) => {
+        const awb = getBookingAwb(booking);
+        return (
+          <div
+            key={booking.id}
+            onClick={() => onSelect(awb, booking)}
+            style={{
+              padding: "0.75rem 1rem",
+              borderBottom: "1px solid #f1f5f9",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f0f9ff")}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "white")}
+          >
+            <div>
+              <div style={{ fontWeight: 700, color: "#0369a1", fontSize: "0.9rem" }}>{awb}</div>
+              <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "2px" }}>
+                {booking.origin} → {booking.destination} • <b>{booking.client || booking.clientName || "-"}</b>
+              </div>
+            </div>
+            <span style={{ background: "#e0f2fe", color: "#0284c7", padding: "4px 8px", borderRadius: "6px", fontWeight: 700, fontSize: "0.75rem" }}>Select</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div style={{ width: "100%", margin: "0 auto" }}>
-      <div style={{ marginBottom: "2rem" }}>
-        <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-          Tracking
-        </h3>
+    <div style={{ width: "100%", margin: "0 auto", paddingBottom: "2rem" }}>
+      
+      <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+        <div>
+          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827", fontWeight: "700" }}>
+            Shipment Tracking
+          </h3>
+          <p style={{ color: "#6b7280", margin: 0, fontSize: "0.95rem" }}>
+            Track your shipments and post real-time updates professionally.
+          </p>
+        </div>
       </div>
 
-      {success && (
-        <div
-          className="glass-panel"
-          style={{
-            padding: "1.5rem",
-            marginBottom: "2rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            background: "rgba(34, 197, 94, 0.1)",
-            border: "1px solid rgba(34, 197, 94, 0.2)",
-          }}
-        >
-          <CheckCircle size={32} color="#16a34a" />
-          <div>
-            <h5 style={{ color: "#16a34a", marginBottom: "0.25rem", margin: 0 }}>
-              Status Updated Successfully!
-            </h5>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "2rem", alignItems: "start" }}>
+        
+        {/* LEFT COLUMN: TRACKING VIEWER */}
+        <div className="glass-panel" style={{ padding: "0", overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", minHeight: "500px" }}>
+          
+          <div style={{ padding: "1.5rem", background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
+            <h4 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Search size={18} color="#6366f1" /> Track Shipment
+            </h4>
+                <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", position: "relative" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Enter AWB or LR No..." 
+                  value={searchAwb}
+                  onChange={(e) => { 
+                    setSearchAwb(e.target.value); 
+                    setShowSearchDropdown(true); 
+                    setSelectedSearchBooking(null);
+                  }}
+                  onFocus={() => setShowSearchDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                  style={{ width: "100%", border: "1px solid #d1d5db", borderRadius: "8px", padding: "0.6rem 1rem", fontSize: "0.95rem", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}
+                  autoComplete="off"
+                />
+                {showSearchDropdown && searchAwb.trim().length > 0 && searchFilteredLRs.length > 0 && (
+                  <AutocompleteDropdown 
+                    filteredList={searchFilteredLRs} 
+                    onSelect={(awb, booking) => { 
+                      setSearchAwb(awb); 
+                      setShowSearchDropdown(false); 
+                      setSelectedSearchBooking(booking);
+                      fetchTrackingHistory(awb); 
+                    }} 
+                  />
+                )}
+              </div>
+              <button 
+                type="submit" 
+                className="btn"
+                style={{ 
+                  background: "linear-gradient(135deg, #6366f1, #4f46e5)", 
+                  color: "white", 
+                  padding: "0 1.2rem", 
+                  borderRadius: "8px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "transform 0.1s ease, box-shadow 0.2s ease",
+                  boxShadow: "0 4px 6px rgba(99, 102, 241, 0.25)"
+                }}
+                disabled={isSearching || !searchAwb.trim()}
+              >
+                {isSearching ? <Loader2 size={18} className="spinner" /> : "Track"}
+              </button>
+            </form>
+          </div>
+
+          <div style={{ padding: "1.5rem", flex: 1, background: "#ffffff", overflowY: "auto" }}>
+            
+            {!hasSearched ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center", padding: "2rem" }}>
+                 <div style={{ background: "#f3f4f6", padding: "1.5rem", borderRadius: "50%", marginBottom: "1rem" }}>
+                    <Search size={40} color="#d1d5db" />
+                 </div>
+                 <h5 style={{ fontWeight: "600", color: "#6b7280", margin: "0 0 0.5rem 0" }}>Enter an AWB / LR No. to Start</h5>
+                 <p style={{ margin: 0, fontSize: "0.9rem" }}>Search for a shipment to view its complete journey and timeline.</p>
+              </div>
+            ) : trackingHistory.length === 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center", padding: "2rem" }}>
+                 <div style={{ background: "#fef2f2", padding: "1.5rem", borderRadius: "50%", marginBottom: "1rem" }}>
+                    <AlertCircle size={40} color="#f87171" />
+                 </div>
+                 <h5 style={{ fontWeight: "600", color: "#6b7280", margin: "0 0 0.5rem 0" }}>No Tracking Data Found</h5>
+                 <p style={{ margin: 0, fontSize: "0.9rem" }}>There is no tracking history recorded for <strong>{searchAwb}</strong>.</p>
+              </div>
+            ) : (
+              <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+                
+                {/* SHIPMENT DETAILS CARD (Auto-populated from LR) */}
+                {selectedSearchBooking && (
+                  <div style={{
+                    background: "linear-gradient(to right, #f8fafc, #f1f5f9)",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    marginBottom: "2rem",
+                    marginLeft: "-1.5rem",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                  }}>
+                    <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <Package size={18} color="#0284c7" /> Shipment Overview
+                    </h5>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.9rem" }}>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Route</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin || "-"} &rarr; {selectedSearchBooking.destination || "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.client || selectedSearchBooking.clientName || "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
+                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor || "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
+                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee || "-"}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Vertical Line */}
+                <div style={{ 
+                  position: "absolute", 
+                  left: "26px", 
+                  top: selectedSearchBooking ? "140px" : "10px", 
+                  bottom: "10px", 
+                  width: "2px", 
+                  background: "#e5e7eb", 
+                  zIndex: 0 
+                }}></div>
+
+                {trackingHistory.map((entry, index) => {
+                  const isLatest = index === 0; 
+                  const color = getStatusColor(entry.status);
+
+                  return (
+                    <div key={entry.id} style={{ position: "relative", zIndex: 1, marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem", display: "flex", gap: "1.5rem" }}>
+                      
+                      <div style={{ 
+                        width: "44px", 
+                        height: "44px", 
+                        borderRadius: "50%", 
+                        background: "white", 
+                        border: `2px solid ${color}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: color,
+                        flexShrink: 0,
+                        marginLeft: "-11px",
+                        boxShadow: isLatest ? `0 0 0 4px ${color}20` : "none"
+                      }}>
+                        {getStatusIcon(entry.status)}
+                      </div>
+
+                      <div style={{ flex: 1, padding: "1rem 1.2rem", background: isLatest ? "#f8fafc" : "#ffffff", border: isLatest ? "1px solid #e2e8f0" : "1px solid transparent", borderRadius: "12px", boxShadow: isLatest ? "0 4px 6px rgba(0,0,0,0.02)" : "none" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                          <span style={{ fontWeight: "700", color: color, fontSize: "1.05rem" }}>{entry.status}</span>
+                          <span style={{ fontSize: "0.85rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "20px", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                            <Clock size={12} />
+                            {entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : "N/A"}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#4b5563", fontSize: "0.95rem" }}>
+                          <MapPin size={15} color="#9ca3af" />
+                          <span style={{ fontWeight: "500" }}>{entry.location || "Location not provided"}</span>
+                        </div>
+                        {entry.remarks && (
+                          <div style={{ fontSize: "0.9rem", color: "#6b7280", background: "#f9fafb", padding: "0.75rem", borderRadius: "8px", borderLeft: "3px solid #d1d5db", fontStyle: "italic" }}>
+                            "{entry.remarks}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "2.5rem" }}>
-        <div className="grid-2-col">
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Awb No<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="text" 
-              className="form-control" 
-              name="awb" 
-              placeholder="Enter the AWB No." 
-              value={formData.awb} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <input 
-              type="date" min="1947-01-01" max="2200-12-31" 
-              className="form-control" 
-              name="date" 
-              value={formData.date} 
-              onChange={handleChange} 
-              required 
-            />
-          </div>
+        {/* RIGHT COLUMN: UPDATE STATUS FORM */}
+        {(hasPermission('update_tracking') || isAdmin) && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", height: "100%" }}>
+          
+          {success && (
+            <div className="glass-panel" style={{ padding: "1rem 1.5rem", display: "flex", alignItems: "center", gap: "1rem", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.2)" }}>
+              <CheckCircle size={24} color="#16a34a" />
+              <h5 style={{ color: "#16a34a", margin: 0, fontWeight: "600", fontSize: "1rem" }}>
+                Status Updated Successfully!
+              </h5>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            
+            <div style={{ padding: "1.5rem", background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
+              <h4 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#374151", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <PlusCircle size={20} color="#6366f1" /> Add Status Update
+              </h4>
+              <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.85rem" }}>
+                Fill out the details below to log a new checkpoint.
+              </p>
+            </div>
+
+            <div style={{ padding: "1.5rem 2rem", flex: 1, background: "white", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+              
+              <div className="form-group" style={{ marginBottom: 0, position: "relative" }}>
+                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                  AWB / LR No.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                </label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  name="awb" 
+                  placeholder="e.g. AWB123456789 or LR987654" 
+                  value={formData.awb} 
+                  onChange={(e) => {
+                    handleChange(e);
+                    setSelectedFormBooking(null);
+                  }}
+                  onFocus={() => setShowFormDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowFormDropdown(false), 200)}
+                  required 
+                  autoComplete="off"
+                  style={{ background: "#f8fafc", border: "1px solid #cbd5e1", width: "100%" }}
+                />
+                {showFormDropdown && formData.awb.trim().length > 0 && formFilteredLRs.length > 0 && (
+                  <AutocompleteDropdown 
+                    filteredList={formFilteredLRs} 
+                    onSelect={(awb, booking) => { 
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        awb,
+                        // Auto-fill location with origin if empty
+                        location: prev.location || booking.origin || ""
+                      })); 
+                      setSelectedFormBooking(booking);
+                      setShowFormDropdown(false); 
+                    }} 
+                  />
+                )}
+
+                {/* MINI LR CONTEXT CARD */}
+                {selectedFormBooking && (
+                  <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", fontSize: "0.85rem", color: "#0369a1" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                      <span style={{ fontWeight: 600 }}>Route:</span>
+                      <span>{selectedFormBooking.origin || "-"} &rarr; {selectedFormBooking.destination || "-"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 600 }}>Client:</span>
+                      <span>{selectedFormBooking.client || selectedFormBooking.clientName || "-"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                  Status<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                </label>
+                <select 
+                  className="form-control" 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={handleChange} 
+                  required
+                  style={{ cursor: "pointer", border: "1px solid #cbd5e1", fontWeight: formData.status ? "600" : "normal", color: formData.status ? getStatusColor(formData.status) : "inherit" }}
+                >
+                  <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
+                  <option value="Picked Up" style={{ color: "#000" }}>Picked Up</option>
+                  <option value="In Transit" style={{ color: "#000" }}>In Transit</option>
+                  <option value="Out for Delivery" style={{ color: "#000" }}>Out for Delivery</option>
+                  <option value="Delivered" style={{ color: "#000" }}>Delivered</option>
+                  <option value="Returned" style={{ color: "#000" }}>Returned</option>
+                </select>
+              </div>
+
+              <div className="grid-2-col" style={{ gap: "1rem" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                    Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                  </label>
+                  <input 
+                    type="date" min="1947-01-01" max="2200-12-31" 
+                    className="form-control" 
+                    name="date" 
+                    value={formData.date} 
+                    onChange={handleChange} 
+                    required 
+                    style={{ border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+                
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                    Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                  </label>
+                  <div style={{ position: "relative", zIndex: 10 }}>
+                    <CreatableDropdown 
+                      options={locations} 
+                      value={formData.location} 
+                      onChange={(loc) => setFormData({ ...formData, location: loc })} 
+                      onCreate={(name) => handleCreateNew("city", name)}
+                      placeholder="-- Select City --" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                  Remarks<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                </label>
+                <textarea 
+                  className="form-control" 
+                  name="remarks" 
+                  placeholder="Enter detailed remarks about this status update..." 
+                  value={formData.remarks} 
+                  onChange={handleChange} 
+                  required 
+                  rows="3"
+                  style={{ border: "1px solid #cbd5e1", resize: "vertical", minHeight: "80px" }}
+                />
+              </div>
+
+            </div>
+
+            <div style={{ padding: "1.5rem 2rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting}
+                style={{ 
+                  padding: "0.6rem 2.5rem", 
+                  fontSize: "1.05rem", 
+                  fontWeight: "700",
+                  letterSpacing: "0.5px",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.06)",
+                  transition: "all 0.2s"
+                }}
+              >
+                {isSubmitting ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Loader2 size={18} className="spinner" /> Saving...</span>
+                ) : (
+                  "Post Update"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
+        )}
+      </div>
 
-        <div className="grid-2-col">
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <CreatableDropdown 
-              options={locations} 
-              value={formData.location} 
-              onChange={(loc) => setFormData({ ...formData, location: loc })} 
-              onCreate={(name) => handleCreateNew("city", name)}
-              placeholder="-- Please select the Location --" 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-              Status<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-            </label>
-            <select 
-              className="form-control" 
-              name="status" 
-              value={formData.status} 
-              onChange={handleChange} 
-              required
-            >
-              <option value="">-- Please select the Status --</option>
-              <option value="Picked Up">Picked Up</option>
-              <option value="In Transit">In Transit</option>
-              <option value="Out for Delivery">Out for Delivery</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Returned">Returned</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-group" style={{ marginBottom: "2rem" }}>
-          <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-            Remarks<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-          </label>
-          <input 
-            type="text" 
-            className="form-control" 
-            name="remarks" 
-            placeholder="Enter the Remarks if any...." 
-            value={formData.remarks} 
-            onChange={handleChange} 
-            required 
+      {isAdmin && (
+        <div className="glass-panel" style={{ marginTop: "2rem", padding: "1.5rem" }}>
+          <h4 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#1e293b", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <AlertCircle size={20} color="#f59e0b" />
+            All System Tracking Updates (Admin Only)
+          </h4>
+          <Table 
+            headers={["AWB / LR No", "Date", "Status", "Location", "Remarks", "Actions"]} 
+            data={allUpdates} 
+            pagination={true}
+            defaultEntries={25}
+            renderRow={(row, index) => (
+              <tr key={row.id || index}>
+                <td style={{ fontWeight: 600, color: "#4f46e5" }}>{row.awb}</td>
+                <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
+                <td><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
+                <td>{row.location}</td>
+                <td>{row.remarks}</td>
+                <td>
+                  <button onClick={() => handleDelete(row.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }} title="Delete Update">
+                    <Trash2 size={18} />
+                  </button>
+                </td>
+              </tr>
+            )}
           />
         </div>
-
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-            style={{ padding: "0.5rem 2rem", height: "45px" }}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={18} className="spinner" /> Updating...
-              </>
-            ) : (
-              <>UPDATE STATUS</>
-            )}
-          </button>
-        </div>
-      </form>
+      )}
 
       <QuickAddModal 
         isOpen={modalOpen} 

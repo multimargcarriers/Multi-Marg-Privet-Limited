@@ -41,7 +41,7 @@ const Bills = () => {
     
     setBills(prev => prev.filter(b => b.id !== id));
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(id)}`);
     } catch (err) {
       console.error("Delete bill error", err);
       fetchBills();

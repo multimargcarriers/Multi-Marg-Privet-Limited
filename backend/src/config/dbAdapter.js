@@ -133,10 +133,22 @@ class DocumentReference {
     this.id = id;
   }
 
+  _buildIdQuery() {
+    const { ObjectId } = require('mongodb');
+    const queries = [{ id: this.id }];
+    
+    if (this.id && typeof this.id === 'string' && this.id.length === 24 && ObjectId.isValid(this.id)) {
+      queries.push({ _id: new ObjectId(this.id) });
+    }
+    queries.push({ _id: this.id }); // Fallback for string _id
+    
+    return { $or: queries };
+  }
+
   async get() {
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
-      const doc = await this.mongoDb.collection(this.colName).findOne({ $or: [{ _id: this.id }, { id: this.id }] });
+      const doc = await this.mongoDb.collection(this.colName).findOne(this._buildIdQuery());
       if (doc) {
         const data = { ...doc };
         data.id = this.id;
@@ -160,20 +172,22 @@ class DocumentReference {
   }
 
   async set(data, options = {}) {
-    const docData = { ...data, id: this.id, _id: this.id };
-    
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
+      const updateData = { ...data };
+      if (!updateData.id) updateData.id = this.id;
+      
       if (options.merge) {
         await this.mongoDb.collection(this.colName).updateOne(
-          { $or: [{ _id: this.id }, { id: this.id }] },
-          { $set: data }, // We don't overwrite _id on update
+          this._buildIdQuery(),
+          { $set: updateData },
           { upsert: true }
         );
       } else {
+        // replace
         await this.mongoDb.collection(this.colName).replaceOne(
-          { $or: [{ _id: this.id }, { id: this.id }] },
-          docData,
+          this._buildIdQuery(),
+          updateData,
           { upsert: true }
         );
       }
@@ -187,7 +201,7 @@ class DocumentReference {
     try {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
       await this.mongoDb.collection(this.colName).updateOne(
-        { $or: [{ _id: this.id }, { id: this.id }] },
+        this._buildIdQuery(),
         { $set: data }
       );
     } catch (error) {
@@ -201,7 +215,7 @@ class DocumentReference {
       if (!this.mongoDb) throw new Error("MongoDB not connected");
 
       // Backup to trash before deleting
-      const doc = await this.mongoDb.collection(this.colName).findOne({ $or: [{ _id: this.id }, { id: this.id }] });
+      const doc = await this.mongoDb.collection(this.colName).findOne(this._buildIdQuery());
       if (doc && this.colName !== 'trash' && this.colName !== 'systemLogs') {
         await this.mongoDb.collection('trash').insertOne({
           originalCollection: this.colName,
@@ -212,7 +226,7 @@ class DocumentReference {
         });
       }
 
-      await this.mongoDb.collection(this.colName).deleteOne({ $or: [{ _id: this.id }, { id: this.id }] });
+      await this.mongoDb.collection(this.colName).deleteOne(this._buildIdQuery());
     } catch (error) {
       console.error(`[MongoDB] Error on doc delete for ${this.colName}/${this.id}:`, error.message);
       throw error;

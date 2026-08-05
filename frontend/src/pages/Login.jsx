@@ -3,7 +3,10 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
+
 const Login = () => {
+  const navigate = useNavigate();
   // View states: 'login', 'forgot', 'otp', 'reset'
   const [view, setView] = useState('login');
   
@@ -50,7 +53,22 @@ const Login = () => {
     return () => clearInterval(interval);
   }, [resendTimer, view]);
   
-  const { login } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
+  
+  useEffect(() => {
+    if (user) {
+      const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimargcarriers.co.in';
+      const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
+      
+      if (hasDashboard) {
+        navigate('/dashboard');
+      } else if (user.role === 'Client' || user.role === 'Vendor') {
+        navigate('/trips');
+      } else {
+        navigate('/profile');
+      }
+    }
+  }, [user, navigate]);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 

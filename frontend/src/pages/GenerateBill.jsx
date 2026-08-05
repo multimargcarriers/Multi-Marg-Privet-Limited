@@ -74,13 +74,28 @@ const GenerateBill = () => {
       if (bookingsRes.data.success) {
         let pendingLrNos = new Set();
         if (billsRes.data && billsRes.data.data) {
+          let maxNum = 0;
           billsRes.data.data.forEach(bill => {
             if (bill.status === "pending" || bill.status === "Pending") {
               if (bill.items) {
                 bill.items.forEach(item => pendingLrNos.add(item.lrNo));
               }
             }
+            
+            // Calculate max invoice number
+            const inv = bill.billNo || bill.invoice || "";
+            const prefix = filters.invoicePrefix || "MCPL/26-27/";
+            if (inv.startsWith(prefix)) {
+              const numStr = inv.substring(prefix.length);
+              const num = parseInt(numStr, 10);
+              if (!isNaN(num) && num > maxNum) {
+                maxNum = num;
+              }
+            }
           });
+          
+          const nextInvNo = String(maxNum + 1).padStart(4, '0');
+          setFilters(prev => ({ ...prev, invoiceNo: nextInvNo }));
         }
 
         const unbilled = (bookingsRes.data.data || []).filter(b => {
@@ -260,7 +275,7 @@ const GenerateBill = () => {
         invoiceDate: filters.invoiceDate,
         gst: filters.gst
       });
-      addToast(`Invoice ${res.data?.billNo || res.data?.data?.billNo || 'Generated'} Successfully!`, "success");
+      addToast(`Invoice ${res.data?.invoice || res.data?.billNo || res.data?.data?.invoice || res.data?.data?.billNo || 'Generated'} Successfully!`, "success");
       navigate("/bills/all");
     } catch (err) { 
       console.error("Generate bill error", err); 
@@ -334,7 +349,7 @@ const GenerateBill = () => {
           <CheckCircle size={32} color="#16a34a" />
           <div>
             <h5 style={{ color: "#16a34a", marginBottom: "0.25rem", margin: 0 }}>Invoice Generated Successfully!</h5>
-            <p style={{ margin: 0, fontSize: "0.9rem", color: "#15803d" }}>Invoice No: <strong>{result.billNo || result.data?.billNo}</strong></p>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: "#15803d" }}>Invoice No: <strong>{result.invoice || result.billNo || result.data?.invoice || result.data?.billNo}</strong></p>
           </div>
         </div>
       )}

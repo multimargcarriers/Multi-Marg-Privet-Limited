@@ -51,7 +51,7 @@ export const menuItems = [
         permission: "bookings"
       },
       { name: "Trip Management", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
-      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "tracking" },
+      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "track_shipment" },
       { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
       {
         name: "Upload Box",

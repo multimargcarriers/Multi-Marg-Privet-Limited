@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { Printer, Cloud, Download, CheckSquare, Square, Building2, ShieldCheck } from "lucide-react";
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
@@ -68,7 +68,9 @@ const numberToWordsIndian = (num) => {
 };
 
 const BillView1 = () => {
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const searchParams = new URLSearchParams(useLocation().search);
+  const id = paramId || searchParams.get("id");
   const { globalSettings } = useContext(SettingsContext);
   const { addToast } = useToast();
   const [bill, setBill] = useState(null);
@@ -111,7 +113,7 @@ const BillView1 = () => {
   useEffect(() => {
     const fetchBill = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(id)}`);
         if (res.data.success) setBill(res.data.data);
       } catch (err) {
         console.error("Error fetching bill", err);
@@ -123,7 +125,7 @@ const BillView1 = () => {
   const handleUploadCloudinary = async () => {
     setUploading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}/upload-pdf`);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(id)}/upload-pdf`);
       if (res.data.success) {
         addToast("PDF saved to Cloudinary successfully!", "success");
         setBill({ ...bill, pdfUrl: res.data.data.url });
@@ -476,10 +478,10 @@ const BillView1 = () => {
             {/* Invoice Meta Grid */}
             <div style={{ flex: "1", padding: "0.75rem 0.85rem", background: "#F1F5F9", display: "grid", gridTemplateColumns: "100px 1fr", rowGap: "0.45rem", fontSize: "0.85rem" }}>
               <div style={{ fontWeight: "800", color: "#334155" }}>Invoice No:</div>
-              <div style={{ fontWeight: "800", color: "#0C4A6E" }}>{billData.billNo || billData.invoiceNo || "MCPL/26-27/0159"}</div>
+              <div style={{ fontWeight: "800", color: "#0C4A6E" }}>{billData.invoice || billData.billNo || billData.invoiceNo || "MCPL/26-27/0159"}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Date:</div>
-              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.date ? new Date(billData.date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.lrDate ? String(billData.lrDate).replace(/\//g, "-") : "30-07-2026")}</div>
+              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.invoice_date ? new Date(billData.invoice_date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.date ? new Date(billData.date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.lrDate ? String(billData.lrDate).replace(/\//g, "-") : "30-07-2026"))}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Mode:</div>
               <div style={{ fontWeight: "700", color: "#0F172A", textTransform: "uppercase" }}>{billData.mode || "Road"}</div>
@@ -522,21 +524,21 @@ const BillView1 = () => {
               {itemsList.map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || idx + 1}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo || item.awb}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt || item.awb_date}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.ref}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.org}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.dest}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pkg}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.wt}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.org || item.origin}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.dest || item.destination}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pkg || item.box}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.wt || item.weight}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.rate}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.frg}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lr}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pick}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.del}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.spl}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.oth}</td>
-                  <td style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.total}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.frg || item.frieght}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lr || item.awb_charge}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pick || item.pickup}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.del || item.delivery}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.spl || item.special_delivery}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.oth || item.other_charge}</td>
+                  <td style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
