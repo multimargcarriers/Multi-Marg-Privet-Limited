@@ -29,7 +29,7 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         let remaining = totalPaid;
         for (const bill of billsDocs) {
             const billTotal = Number(bill.total || bill.amount) || 0;
-            const applied = Math.min(billTotal, remaining);
+            const applied = remaining > 0 ? Math.min(billTotal, remaining) : 0;
             remaining -= applied;
             
             const newStatus = applied >= billTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
@@ -39,6 +39,12 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             }
         }
         await delCache("bills");
+        try {
+            const { emitDataUpdated } = require("./socket");
+            emitDataUpdated("bills");
+        } catch (err) {
+            console.error("Socket emit failed for bills", err);
+        }
     }
     else if (partyType === 'Vendor') {
         const cashDocs = await db.mongoDb.collection("cashEntries").find({
@@ -62,7 +68,7 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         let remaining = totalPaid;
         for (const purchase of purchasesDocs) {
             const purchaseTotal = Number(purchase.total) || 0;
-            const applied = Math.min(purchaseTotal, remaining);
+            const applied = remaining > 0 ? Math.min(purchaseTotal, remaining) : 0;
             remaining -= applied;
             
             const newStatus = applied >= purchaseTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
@@ -72,6 +78,12 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             }
         }
         await delCache("purchases");
+        try {
+            const { emitDataUpdated } = require("./socket");
+            emitDataUpdated("purchases");
+        } catch (err) {
+            console.error("Socket emit failed for purchases", err);
+        }
     }
     
     try {
