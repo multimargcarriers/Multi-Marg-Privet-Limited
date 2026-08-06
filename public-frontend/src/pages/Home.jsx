@@ -1,20 +1,116 @@
-import React, { useState } from 'react';
-import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation, ArrowRight, Users, HelpCircle, UserPlus, Phone, FileText, Briefcase, TrendingUp, CheckCircle, Monitor, CarFront, BriefcaseMedical, Factory } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation, ArrowRight, Users, HelpCircle, UserPlus, Phone, FileText, Briefcase, TrendingUp, CheckCircle, Monitor, CarFront, BriefcaseMedical, Factory, X, Mail } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState('track');
   const [homeTrackingNumber, setHomeTrackingNumber] = useState('');
   const navigate = useNavigate();
 
+  // Branch Locator State
+  const [branches, setBranches] = useState([]);
+  const [branchSearch, setBranchSearch] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+
+  // Pincode Status State
+  const [pincodeInput, setPincodeInput] = useState('');
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [pincodeResult, setPincodeResult] = useState(null);
+  const [isPincodeModalOpen, setIsPincodeModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Fetch all active branches when component mounts
+    const fetchBranches = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await axios.get(`${apiUrl}/api/public/branch`);
+        if (res.data.success) {
+          setBranches(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to load branches", err);
+      }
+    };
+    fetchBranches();
+  }, []);
+
   const handleHomeTrack = (e) => {
     e.preventDefault();
     if (homeTrackingNumber.trim()) {
       navigate(`/track?awb=${encodeURIComponent(homeTrackingNumber.trim())}`);
     }
+  };
+
+  const handleBranchSearch = (e) => {
+    e.preventDefault();
+    const match = branches.find(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase()));
+    if (match) {
+      setSelectedBranch(match);
+      setIsBranchModalOpen(true);
+    } else {
+      alert("No branch found matching your search. Please try another city or branch name.");
+    }
+  };
+
+  const handlePincodeSubmit = async (e) => {
+    e.preventDefault();
+    if (!pincodeInput || pincodeInput.length !== 6) return;
+    setIsPincodeLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.get(`${apiUrl}/api/public/pincode/${pincodeInput}`);
+      if (res.data.success) {
+        setPincodeResult(res.data.data);
+        setIsPincodeModalOpen(true);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Error verifying pincode. Please try again.");
+    } finally {
+      setIsPincodeLoading(false);
+    }
+  };
+
+  const openBranchFromPincode = (branch) => {
+    setIsPincodeModalOpen(false);
+    setSelectedBranch(branch);
+    setIsBranchModalOpen(true);
+  };
+
+  // Fixed centered Modal component using React Portal
+  const CenteredModal = ({ isOpen, onClose, children }) => {
+    if (!isOpen) return null;
+    return createPortal(
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 99999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+      }}>
+        <AnimatePresence>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            style={{
+              background: 'white', borderRadius: '12px', padding: '2rem',
+              width: '100%', maxWidth: '500px', position: 'relative',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}
+          >
+            <button onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <X size={24} color="#6b7280" />
+            </button>
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </div>,
+      document.body
+    );
   };
 
   return (
@@ -129,27 +225,38 @@ const Home = () => {
                 </form>
               )}
               {activeTab === 'branch' && (
-                <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                   <select style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}>
-                    <option>Select State</option>
-                    <option>Maharashtra</option>
-                    <option>Delhi</option>
-                    <option>Uttarakhand</option>
-                  </select>
-                  <select style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}>
-                    <option>Select City</option>
-                  </select>
+                <form onSubmit={handleBranchSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                   <input 
+                    type="text" 
+                    placeholder="Enter City or Branch Name..."
+                    value={branchSearch}
+                    onChange={(e) => setBranchSearch(e.target.value)}
+                    style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
+                    required
+                  />
+                  <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f9fafb', borderRadius: '4px', border: '1px solid var(--border-color)', display: branchSearch.length > 1 && !isBranchModalOpen ? 'block' : 'none' }}>
+                    {branches.filter(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase())).map(b => (
+                      <div key={b.id} onClick={() => { setSelectedBranch(b); setIsBranchModalOpen(true); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderBottom: '1px solid #e5e7eb' }}>
+                        <strong>{b.branch}</strong> - <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{b.address.substring(0,30)}...</span>
+                      </div>
+                    ))}
+                  </div>
                   <button type="submit" className="btn btn-blue" style={{ marginTop: '0.5rem', padding: '1rem' }}>Find Branch</button>
                 </form>
               )}
               {activeTab === 'pincode' && (
-                 <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 <form onSubmit={handlePincodeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <input 
                     type="text" 
                     placeholder="Enter 6-digit Pincode"
+                    value={pincodeInput}
+                    onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, '').substring(0, 6))}
                     style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
+                    required
                   />
-                  <button type="submit" className="btn btn-blue" style={{ marginTop: '0.5rem', padding: '1rem' }}>Check Availability</button>
+                  <button type="submit" disabled={isPincodeLoading} className="btn btn-blue" style={{ marginTop: '0.5rem', padding: '1rem', opacity: isPincodeLoading ? 0.7 : 1 }}>
+                    {isPincodeLoading ? 'Checking...' : 'Check Availability'}
+                  </button>
                 </form>
               )}
             </div>
@@ -440,6 +547,76 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Branch Locator Modal */}
+      <CenteredModal isOpen={isBranchModalOpen} onClose={() => setIsBranchModalOpen(false)}>
+        {selectedBranch && (
+          <div style={{ textAlign: 'center' }}>
+            <MapPin size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{selectedBranch.branch} Branch</h3>
+            <div style={{ background: 'var(--bg-light-grey)', padding: '1rem', borderRadius: '8px', margin: '1.5rem 0', textAlign: 'left' }}>
+              <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
+                <MapPin size={18} color="var(--primary-red)" style={{ flexShrink: 0, marginTop: '3px' }}/>
+                <span style={{ fontSize: '0.95rem' }}>{selectedBranch.address}</span>
+              </p>
+              <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
+                <Users size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
+                <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>{selectedBranch.name || 'Branch Manager'}</span>
+              </p>
+              <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
+                <Phone size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
+                <span style={{ fontSize: '0.95rem' }}>{selectedBranch.phno}</span>
+              </p>
+              {selectedBranch.email && (
+                <p style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-dark)' }}>
+                  <Mail size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
+                  <span style={{ fontSize: '0.95rem' }}>{selectedBranch.email}</span>
+                </p>
+              )}
+            </div>
+            <a href={`tel:${selectedBranch.phno}`} className="btn btn-red" style={{ width: '100%', display: 'block', padding: '0.8rem' }}>
+              Call Branch Now
+            </a>
+          </div>
+        )}
+      </CenteredModal>
+
+      {/* Pincode Serviceability Modal */}
+      <CenteredModal isOpen={isPincodeModalOpen} onClose={() => setIsPincodeModalOpen(false)}>
+        {pincodeResult && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+              <CheckCircle size={40} color="#16a34a" />
+            </div>
+            <h3 style={{ fontSize: '1.4rem', color: 'var(--primary-blue)', marginBottom: '1rem' }}>
+              {pincodeResult.message}
+            </h3>
+            
+            <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: '1.6' }}>
+              Thank you for considering Multimarg Carriers. We are committed to providing seamless and secure delivery services to your location.
+            </p>
+
+            {pincodeResult.nearestBranch && (
+              <button 
+                onClick={() => openBranchFromPincode(pincodeResult.nearestBranch)}
+                className="btn btn-blue" 
+                style={{ width: '100%', padding: '1rem', marginBottom: '1rem' }}
+              >
+                View Nearest Branch
+              </button>
+            )}
+
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '1rem' }}>
+              <p style={{ fontSize: '0.9rem', color: '#4b5563', marginBottom: '0.5rem', fontWeight: '500' }}>For direct inquiries:</p>
+              <p style={{ fontSize: '1rem', color: 'var(--primary-red)', fontWeight: '600', marginBottom: '0.25rem' }}>
+                <Phone size={14} style={{ display: 'inline', marginRight: '5px' }}/> +91-9876543210
+              </p>
+              <p style={{ fontSize: '0.95rem', color: 'var(--primary-blue)', fontWeight: '500' }}>
+                <Mail size={14} style={{ display: 'inline', marginRight: '5px' }}/> info@multimargcarriers.co.in
+              </p>
+            </div>
+          </div>
+        )}
+      </CenteredModal>
     </div>
   );
 };
