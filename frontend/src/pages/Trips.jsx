@@ -69,7 +69,7 @@ const Trips = () => {
   };
 
   const initialFormState = {
-    tripNo: "", mode: "", date: "", awbNo: "", cdNo: "",
+    tripNo: "", mode: "", type: "", bookingType: "Normal", date: "", awbNo: "", cdNo: "",
     vendor: "", origin: "", destination: "",
     materialDetails: [{ clientName: "", lrNo: "", consignor: "", consignee: "", box: "", weight: "", chWeight: "", origin: "", destination: "", rate: "", freight: "", gst: "", amount: "" }],
     specialInstruction: ""
@@ -245,10 +245,13 @@ const Trips = () => {
 
       {showForm && (
         <form onSubmit={handleSave} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip / Internal Ref No</label>
-              <input type="text" className="form-control" placeholder="Auto-generated (e.g. TRP-1001)" value={form.tripNo} disabled />
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
+                {form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : form.mode === 'Flight' ? 'Flight No' : 'Trip No'}
+                <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+              </label>
+              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : form.mode === 'Flight' ? 'Flight No' : 'Trip No'}`} value={form.tripNo} onChange={e => setForm({ ...form, tripNo: formatAllCaps(e.target.value) })} required />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
@@ -257,6 +260,40 @@ const Trips = () => {
                 <option value="Train">Train</option>
                 <option value="Flight">Flight</option>
                 <option value="Road">Road</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Type<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+              <input type="text" list="type-options" className="form-control" placeholder="Select or Type" value={form.type || ""} onChange={e => setForm({ ...form, type: formatAllCaps(e.target.value) })} required />
+              <datalist id="type-options">
+                {form.mode === 'Flight' && (
+                  <>
+                    <option value="GCR FLIGHT" />
+                    <option value="PRIME FLIGHT" />
+                    <option value="EXPRESS MODE" />
+                  </>
+                )}
+                {form.mode === 'Train' && (
+                  <>
+                    <option value="EXPRESS" />
+                    <option value="SUPERFAST" />
+                    <option value="PASSENGER" />
+                  </>
+                )}
+                {form.mode === 'Road' && (
+                  <>
+                    <option value="FTL" />
+                    <option value="PTL" />
+                    <option value="EXPRESS" />
+                  </>
+                )}
+              </datalist>
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Booking Type<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+              <select className="form-control" value={form.bookingType || "Normal"} onChange={e => setForm({ ...form, bookingType: e.target.value })} required>
+                <option value="Normal">Normal</option>
+                <option value="Special">Special</option>
               </select>
             </div>
             <div className="form-group">
@@ -269,10 +306,8 @@ const Trips = () => {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-                {form.mode === 'Train' ? 'Train / RR Number' : form.mode === 'Road' ? 'Vehicle / Truck Number' : 'Flight / AWB Number'}
-              </label>
-              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : 'Flight / AWB No'}`} value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>AWB No</label>
+              <input type="text" className="form-control" placeholder="Enter AWB No" value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
@@ -449,12 +484,14 @@ const Trips = () => {
       {view === "manifest" && (
         <Table
           loading={loading}
-          headers={["Trip No", "Mode", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
+          headers={["Trip No", "Mode", "Type", "Booking", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
           data={trips}
           renderRow={(item, index) => (
             <tr key={item.id || index}>
               <td className="font-semibold">{item.tripNo || "-"}</td>
               <td style={{ textTransform: 'uppercase' }}>{item.mode || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.type || "-"}</td>
+              <td style={{ textTransform: 'uppercase' }}>{item.bookingType || "NORMAL"}</td>
               <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
               <td style={{ textTransform: 'uppercase' }}>{item.vendor || "-"}</td>
               <td style={{ textTransform: 'uppercase' }}>{item.origin || "-"}</td>
