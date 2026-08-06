@@ -156,6 +156,12 @@ export const menuItems = [
     permission: "superadmin"
   },
   {
+    name: "Quote Requests",
+    path: "/quotes",
+    icon: <FileText size={20} />,
+    permission: "superadmin"
+  },
+  {
     name: "Trash",
     path: "/trash",
     icon: <Trash2 size={20} />

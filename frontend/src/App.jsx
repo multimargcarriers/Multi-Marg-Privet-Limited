@@ -47,6 +47,7 @@ import IAM from "./pages/IAM";
 import SystemLogs from "./pages/SystemLogs";
 import Tracking from "./pages/Tracking";
 import Settings from "./pages/Settings";
+import Quotes from "./pages/Quotes";
 import Trash from "./pages/Trash";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -91,6 +92,7 @@ function App() {
               <Route path="/employee-activity" element={<EmployeeActivity />} />
               <Route path="/logs" element={<SystemLogs />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/quotes" element={<Quotes />} />
             </Route>
 
             {/* Masters */}

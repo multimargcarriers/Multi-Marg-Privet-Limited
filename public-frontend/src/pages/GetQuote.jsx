@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calculator, User, Mail, Phone, MapPin, 
   Package, Scale, Ruler, Truck, Clock, CheckCircle2, ChevronRight, Plane,
-  ShieldCheck, BadgePercent, Headset
+  ShieldCheck, BadgePercent, Headset, Check
 } from 'lucide-react';
 import './GetQuote.css';
 import { useToast } from '../context/ToastContext';
 import RupeeIcon from '../components/RupeeIcon';
+import axios from 'axios';
+
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 const GetQuote = () => {
   const [formData, setFormData] = useState({
@@ -26,10 +29,19 @@ const GetQuote = () => {
 
   const [quoteResult, setQuoteResult] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [hasProceeded, setHasProceeded] = useState(false);
+  const [quoteId, setQuoteId] = useState(null);
   const { addToast } = useToast();
 
-  const handleProceed = () => {
-    addToast("Thank you for choosing Multimarg Carriers! Our team will contact you shortly with the formal quote.", "success", 6000);
+  const handleProceed = async () => {
+    if (!quoteId) return;
+    try {
+      await axios.patch(`${API}/public/quote/${quoteId}/proceed`);
+      setHasProceeded(true);
+      addToast("Thank you for choosing Multimarg Carriers! Our team will contact you shortly with the formal quote.", "success", 6000);
+    } catch (err) {
+      addToast("Something went wrong. Please try again.", "error");
+    }
   };
 
   const handleInputChange = (e) => {
@@ -37,48 +49,49 @@ const GetQuote = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const calculateQuote = (e) => {
+  const calculateQuote = async (e) => {
     e.preventDefault();
     setIsCalculating(true);
-    
-    // Mock calculation logic for demonstration
-    setTimeout(() => {
-      const weightNum = parseFloat(formData.weight) || 10;
-      const originLen = formData.origin.length || 5;
-      const destLen = formData.destination.length || 5;
-      
-      // Rough mock math
-      const baseRate = 500;
-      const distanceFactor = Math.abs(originLen - destLen) * 50 + 200;
-      const weightFactor = weightNum * 15;
-      
-      let modeMultiplier = 1;
-      let daysMultiplier = 1;
-      
-      if (formData.transportMode.includes('Air')) {
-        modeMultiplier = 3.5;
-        daysMultiplier = 0.3; // faster
-      } else if (formData.transportMode.includes('Express')) {
-        modeMultiplier = 1.5;
-        daysMultiplier = 0.6;
-      } else if (formData.transportMode.includes('Train')) {
-        modeMultiplier = 0.8;
-        daysMultiplier = 1.4; // slower but cheaper
-      }
+    setQuoteResult(null);
+    setHasProceeded(false);
+    setQuoteId(null);
 
-      const estimatedAmount = Math.round((baseRate + distanceFactor + weightFactor) * modeMultiplier);
-      
-      // Mock days
-      const estimatedDays = Math.max(1, Math.min(15, Math.round(((distanceFactor / 100) + (weightNum / 50)) * daysMultiplier)));
-
-      setQuoteResult({
-        amount: estimatedAmount,
-        days: estimatedDays,
-        origin: formData.origin || 'Origin',
-        destination: formData.destination || 'Destination'
+    try {
+      const res = await axios.post(`${API}/public/quote`, {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        originPincode: formData.origin,
+        destinationPincode: formData.destination,
+        itemType: formData.itemType,
+        transportMode: formData.transportMode,
+        weight: formData.weight,
+        length: formData.length,
+        breadth: formData.breadth,
+        height: formData.height
       });
+
+      if (res.data.success) {
+        const d = res.data.data;
+        setQuoteId(d.id);
+        setQuoteResult({
+          quoteRef: d.quoteRef,
+          amount: d.estimatedAmount,
+          days: d.estimatedDays,
+          origin: `${d.originDistrict}, ${d.originState}`,
+          destination: `${d.destinationDistrict}, ${d.destinationState}`,
+          distanceKm: d.distanceKm,
+          chargeableWeight: d.chargeableWeight,
+          transportMode: d.transportMode,
+          itemType: d.itemType
+        });
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to calculate quote. Please check your pincodes and try again.";
+      addToast(msg, "error", 5000);
+    } finally {
       setIsCalculating(false);
-    }, 1200); // 1.2s delay for professional calculation effect
+    }
   };
 
   return (
@@ -204,17 +217,17 @@ const GetQuote = () => {
                 <h3 className="form-section-title"><Truck size={24} /> Transport Details</h3>
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Pickup Location (Origin)</label>
+                    <label>Pickup Pincode (Origin)</label>
                     <div className="input-with-icon">
                       <MapPin />
-                      <input type="text" name="origin" value={formData.origin} onChange={handleInputChange} className="form-input" placeholder="City or Pincode" required />
+                      <input type="text" name="origin" value={formData.origin} onChange={handleInputChange} className="form-input" placeholder="e.g. 110001" required maxLength={6} pattern="\d{6}" title="Enter a valid 6-digit Indian pincode" />
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Drop Location (Destination)</label>
+                    <label>Drop Pincode (Destination)</label>
                     <div className="input-with-icon">
                       <MapPin style={{ color: 'var(--primary-red)' }} />
-                      <input type="text" name="destination" value={formData.destination} onChange={handleInputChange} className="form-input" placeholder="City or Pincode" required />
+                      <input type="text" name="destination" value={formData.destination} onChange={handleInputChange} className="form-input" placeholder="e.g. 400001" required maxLength={6} pattern="\d{6}" title="Enter a valid 6-digit Indian pincode" />
                     </div>
                   </div>
                   <div className="form-group">
@@ -299,7 +312,7 @@ const GetQuote = () => {
                       <Calculator size={48} color="var(--primary-blue)" />
                     </motion.div>
                     <h3 style={{ color: 'var(--primary-blue)' }}>Processing Routes...</h3>
-                    <p style={{ color: 'var(--text-light)' }}>Analyzing distances and dimensions.</p>
+                    <p style={{ color: 'var(--text-light)' }}>Analyzing distances, dimensions & transport modes.</p>
                   </div>
                 ) : (
                   <div className="result-content ticket-style">
@@ -311,7 +324,7 @@ const GetQuote = () => {
                       <span>Estimate Ready</span>
                     </div>
                   </div>
-                  <p className="ticket-id">QUOTE-#{Math.floor(Math.random() * 90000) + 10000}</p>
+                  <p className="ticket-id">{quoteResult.quoteRef}</p>
                 </div>
 
                 <div className="ticket-body">
@@ -345,7 +358,21 @@ const GetQuote = () => {
                       <div className="detail-icon"><Package size={18} /></div>
                       <div>
                         <span className="detail-title">Shipment Type</span>
-                        <strong className="detail-val">{formData.itemType || 'Standard'}</strong>
+                        <strong className="detail-val">{quoteResult.itemType || 'Standard'}</strong>
+                      </div>
+                    </div>
+                    <div className="detail-item">
+                      <div className="detail-icon"><MapPin size={18} /></div>
+                      <div>
+                        <span className="detail-title">Distance</span>
+                        <strong className="detail-val">~{quoteResult.distanceKm} km</strong>
+                      </div>
+                    </div>
+                    <div className="detail-item">
+                      <div className="detail-icon"><Scale size={18} /></div>
+                      <div>
+                        <span className="detail-title">Chargeable Wt.</span>
+                        <strong className="detail-val">{quoteResult.chargeableWeight} kg</strong>
                       </div>
                     </div>
                   </div>
@@ -363,9 +390,23 @@ const GetQuote = () => {
                 </div>
 
                 <div className="ticket-footer">
-                  <button className="proceed-btn" onClick={handleProceed}>
-                    Proceed with this Quote <ChevronRight size={20} />
-                  </button>
+                  {hasProceeded ? (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', padding: '1rem 0' }}
+                    >
+                      <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={32} color="white" strokeWidth={3} />
+                      </div>
+                      <p style={{ fontWeight: '700', color: '#059669', fontSize: '1.05rem', textAlign: 'center' }}>Quote Submitted Successfully!</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', textAlign: 'center' }}>Our team will contact you shortly.</p>
+                    </motion.div>
+                  ) : (
+                    <button className="proceed-btn" onClick={handleProceed}>
+                      Proceed with this Quote <ChevronRight size={20} />
+                    </button>
+                  )}
                 </div>
                   </div>
                 )}
