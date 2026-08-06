@@ -569,7 +569,7 @@ const Home = () => {
               {selectedBranch.email && (
                 <p style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-dark)' }}>
                   <Mail size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                  <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{selectedBranch.email}</span>
+                  <span style={{ fontSize: '0.95rem', textTransform: 'lowercase' }}>{selectedBranch.email}</span>
                 </p>
               )}
             </div>
