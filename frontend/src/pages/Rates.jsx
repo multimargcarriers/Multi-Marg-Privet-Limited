@@ -223,17 +223,18 @@ const Rates = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+    <div className="page-content">
       {/* Title & Add Button */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Rates Master</h3>
-        <div className="top-actions-container">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ fontSize: "1.8rem", color: "var(--primary-color)", margin: 0, fontWeight: "700", letterSpacing: "-0.5px" }}>Rates Master</h3>
+        <div className="top-actions-container" style={{ display: "flex", gap: "1rem" }}>
           <CsvImportExport moduleName="rates" onImportSuccess={fetchRates} />
           {user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' ? (
             rates.length > 0 && (
               <button 
                 onClick={handleDeleteAll}
-                style={{ backgroundColor: "#ef4444", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(239, 68, 68, 0.2)" }}
+                className="btn btn-danger"
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
               >
                 Delete All
               </button>
@@ -242,9 +243,10 @@ const Rates = () => {
           {!isAdding && !editing && (
             <button 
               onClick={() => setIsAdding(true)}
-              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+              className="btn btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "var(--shadow-md)" }}
             >
-              + Add New
+              + Add New Rate
             </button>
           )}
         </div>
@@ -254,16 +256,18 @@ const Rates = () => {
       <AnimatePresence>
         {(isAdding || editing) && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            style={{ overflow: "hidden" }}
+            initial={{ height: 0, opacity: 0, y: -20 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            style={{ overflow: "hidden", marginBottom: "2rem" }}
           >
-            <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
-              <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit Rate Details" : "Add New Rate"}</h4>
+            <div className="glass-panel" style={{ padding: "2.5rem" }}>
+              <h4 style={{ margin: "0 0 2rem 0", fontSize: "1.4rem", color: "var(--text-dark)", borderBottom: "2px solid var(--border-color)", paddingBottom: "1rem" }}>
+                {editing ? "Edit Rate Details" : "Add New Rate"}
+              </h4>
               <form onSubmit={handleSave}>
-            <div className="grid-2-col">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ gridColumn: "span 2" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client<span style={{ color: "#ef4444" }}>*</span></label>
                 <div style={{ boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", borderRadius: "6px" }}>
@@ -317,7 +321,7 @@ const Rates = () => {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "2rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Air Rate<span style={{ color: "#ef4444" }}>*</span></label>
                 <input type="number" step="any" value={form.airRate} onChange={(e) => setForm({ ...form, airRate: e.target.value })} required style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }} onFocus={(e) => e.target.style.borderColor = "#4F46E5"} onBlur={(e) => e.target.style.borderColor = "#cbd5e1"} />
@@ -371,21 +375,17 @@ const Rates = () => {
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-color)" }}>
               <button 
                 type="button"
                 onClick={() => { setEditing(null); setIsAdding(false); setForm(initialFormState); }}
-                style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
-                onMouseOver={(e) => { e.target.style.backgroundColor = "#f1f5f9"; e.target.style.color = "#0f172a"; }}
-                onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#64748b"; }}
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
               <button 
                 type="submit"
-                style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-                onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
-                onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
+                className="btn btn-primary"
               >
                 {editing ? "Save Changes" : "Save Rate"}
               </button>
@@ -397,7 +397,7 @@ const Rates = () => {
       </AnimatePresence>
 
       {/* Table Section */}
-      <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "10px" }}>
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
         
         {/* Toolbar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px" }}>
@@ -502,29 +502,33 @@ const Rates = () => {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
+                    <td style={{ padding: "16px 12px", borderRight: "1px solid var(--border-color)", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
-                          style={{ backgroundColor: "#6366f1", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
+                          className="btn btn-primary"
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          title="Edit"
                         >
                           <Edit size={16} />
                         </button>
                       </div>
                     </td>
-                    <td style={{ padding: "12px", textAlign: "center" }}>
+                    <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         {isSuperAdmin ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
-                            style={{ backgroundColor: "#ef4444", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
+                            className="btn btn-danger"
+                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                            title="Delete"
                           >
                             <Trash2 size={16} />
                           </button>
                         ) : (
                           <button 
                             disabled
-                            style={{ backgroundColor: "#fca5a5", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed" }}
+                            style={{ backgroundColor: "#fca5a5", border: "none", width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed" }}
                           >
                             <Trash2 size={16} />
                           </button>

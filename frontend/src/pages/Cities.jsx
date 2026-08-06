@@ -129,18 +129,19 @@ const Cities = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+    <div className="page-content">
       {/* Title & Add Button */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600" }}>Cities Master</h3>
-        <div className="top-actions-container">
+      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ fontSize: "1.8rem", color: "var(--primary-color)", margin: 0, fontWeight: "700", letterSpacing: "-0.5px" }}>Cities Master</h3>
+        <div className="top-actions-container" style={{ display: "flex", gap: "1rem" }}>
           <CsvImportExport moduleName="cities" onImportSuccess={fetchCities} />
           {!isAdding && !editing && (
             <button 
               onClick={() => setIsAdding(true)}
-              style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
+              className="btn btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "var(--shadow-md)" }}
             >
-              + Add New
+              + Add New City
             </button>
           )}
         </div>
@@ -150,23 +151,18 @@ const Cities = () => {
       <AnimatePresence>
         {(isAdding || editing) && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            style={{ overflow: "hidden" }}
+            initial={{ height: 0, opacity: 0, y: -20 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            style={{ overflow: "hidden", marginBottom: "2rem" }}
           >
-            <div style={{
-              backgroundColor: "white",
-              borderRadius: "12px",
-              padding: "2rem",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              marginBottom: "2rem",
-              border: "1px solid #e2e8f0"
-            }}>
-              <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{editing ? "Edit City Details" : "Add New City"}</h4>
+            <div className="glass-panel" style={{ padding: "2.5rem" }}>
+              <h4 style={{ margin: "0 0 2rem 0", fontSize: "1.4rem", color: "var(--text-dark)", borderBottom: "2px solid var(--border-color)", paddingBottom: "1rem" }}>
+                {editing ? "Edit City Details" : "Add New City"}
+              </h4>
               <form onSubmit={handleSave}>
-                <div className="grid-2-col">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>City Name<span style={{ color: "#ef4444" }}>*</span></label>
                     <input 
@@ -189,19 +185,17 @@ const Cities = () => {
                   </div>
                 </div>
                 
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-color)" }}>
                   <button 
                     type="button"
                     onClick={() => { setEditing(null); setIsAdding(false); setForm(initialFormState); }}
-                    style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
+                    className="btn btn-secondary"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
-                    onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
+                    className="btn btn-primary"
                   >
                     {editing ? "Save Changes" : "Save City"}
                   </button>
@@ -213,7 +207,7 @@ const Cities = () => {
       </AnimatePresence>
 
       {/* TABLE SECTION */}
-      <div style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "10px" }}>
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
         
         {/* Toolbar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px" }}>
@@ -270,29 +264,33 @@ const Cities = () => {
                         </span>
                       ) : "-"}
                     </td>
-                    <td style={{ padding: "12px", borderRight: "1px solid #e2e8f0", textAlign: "center" }}>
+                    <td style={{ padding: "16px 12px", borderRight: "1px solid var(--border-color)", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
-                          style={{ backgroundColor: "#6366f1", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
+                          className="btn btn-primary"
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          title="Edit"
                         >
                           <Edit size={16} />
                         </button>
                       </div>
                     </td>
-                    <td style={{ padding: "12px", textAlign: "center" }}>
+                    <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         {isSuperAdmin ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
-                            style={{ backgroundColor: "#ef4444", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "pointer" }}
+                            className="btn btn-danger"
+                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                            title="Delete"
                           >
                             <Trash2 size={16} />
                           </button>
                         ) : (
                           <button 
                             disabled
-                            style={{ backgroundColor: "#fca5a5", border: "none", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed" }}
+                            style={{ backgroundColor: "#fca5a5", border: "none", width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed" }}
                           >
                             <Trash2 size={16} />
                           </button>
