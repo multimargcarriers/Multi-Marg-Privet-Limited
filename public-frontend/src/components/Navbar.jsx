@@ -29,7 +29,7 @@ const Navbar = () => {
       // Toggle on and set 10 second timeout
       setClickedDropdown(name);
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
-      
+
       clickTimeoutRef.current = setTimeout(() => {
         setClickedDropdown(null);
       }, 10000);
@@ -41,8 +41,8 @@ const Navbar = () => {
     { name: 'Services', path: '/services' },
     { name: 'Industries', path: '/industries' },
     { name: 'Track Shipment', path: '/track' },
-    { 
-      name: 'Company', 
+    {
+      name: 'Company',
       isDropdown: true,
       items: [
         { name: 'About Us', path: '/about' },
@@ -54,20 +54,20 @@ const Navbar = () => {
   ];
 
   return (
-    <header style={{ 
-      position: 'fixed', 
-      top: 0, 
-      width: '100%', 
-      zIndex: 1000, 
+    <header style={{
+      position: 'fixed',
+      top: 0,
+      width: '100%',
+      zIndex: 1000,
       transition: 'all 0.3s ease',
       backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'white',
       backdropFilter: scrolled ? 'blur(10px)' : 'none',
       boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
       borderBottom: scrolled ? 'none' : '1px solid var(--border-color)'
     }}>
-      
+
       <div className="container" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', paddingTop: scrolled ? '0.5rem' : '1rem', paddingBottom: scrolled ? '0.5rem' : '1rem', transition: 'padding 0.3s ease', gap: '3rem' }}>
-        
+
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101, textDecoration: 'none' }}>
           <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '40px' : '50px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
@@ -82,12 +82,12 @@ const Navbar = () => {
         <nav style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flex: 1 }} className="desktop-nav">
           {navLinks.map((link) => (
             link.isDropdown ? (
-              <div 
-                key={link.name} 
-                className={`dropdown-container ${clickedDropdown === link.name ? 'clicked-open' : ''}`} 
+              <div
+                key={link.name}
+                className={`dropdown-container ${clickedDropdown === link.name ? 'clicked-open' : ''}`}
                 style={{ position: 'relative' }}
               >
-                <div 
+                <div
                   style={{
                     fontSize: '0.95rem',
                     fontWeight: '500',
@@ -155,8 +155,8 @@ const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <Link 
-                key={link.name} 
+              <Link
+                key={link.name}
                 to={link.path}
                 style={{
                   fontSize: '0.95rem',
@@ -178,11 +178,11 @@ const Navbar = () => {
               </Link>
             )
           ))}
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
               <PhoneCall size={18} />
-              <span>+91-9876543210</span>
+              <span>+91 5944-324033</span>
             </div>
             <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
               Login
@@ -191,7 +191,7 @@ const Navbar = () => {
         </nav>
 
         {/* Mobile Toggle */}
-        <button 
+        <button
           className="mobile-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', zIndex: 101, marginLeft: 'auto' }}
@@ -225,7 +225,7 @@ const Navbar = () => {
                   {link.name}
                 </div>
                 {link.items.map(subItem => (
-                  <Link 
+                  <Link
                     key={subItem.name}
                     to={subItem.path}
                     onClick={() => setMobileMenuOpen(false)}
@@ -242,8 +242,8 @@ const Navbar = () => {
                 ))}
               </div>
             ) : (
-              <Link 
-                key={link.name} 
+              <Link
+                key={link.name}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
                 style={{
@@ -261,7 +261,7 @@ const Navbar = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
               <PhoneCall size={18} />
-              <span>+91 5944-324033</span>
+              <span>+05944-324033</span>
             </div>
             <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Contact Us
@@ -272,7 +272,7 @@ const Navbar = () => {
           </div>
         </div>
       )}
-      
+
       <style>{`
         @media (min-width: 1024px) { 
           .mobile-toggle, .mobile-menu { display: none !important; } 
