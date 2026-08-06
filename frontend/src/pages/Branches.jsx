@@ -266,7 +266,6 @@ const Branches = () => {
                       onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                     />
                   </div>
-                  </div>
                 </div>
 
                 <div style={{ marginBottom: "1.5rem", marginTop: "1.5rem" }}>
