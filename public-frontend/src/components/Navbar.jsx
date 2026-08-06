@@ -261,7 +261,7 @@ const Navbar = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
               <PhoneCall size={18} />
-              <span>+05944-324033</span>
+              <span>+91 5944-324033</span>
             </div>
             <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Contact Us

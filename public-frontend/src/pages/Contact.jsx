@@ -69,7 +69,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem', color: 'var(--text-main)' }}>Phone</h3>
-                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6 }}>+05944-324033</p>
+                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6 }}>+91 5944-324033</p>
                   </div>
                 </div>
 

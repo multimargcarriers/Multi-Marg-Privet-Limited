@@ -224,7 +224,7 @@ exports.get_manifest_id_4 = async (req, res) => {
 <div class="header">
   <h1>MULTIMARG CARRIERS PVT. LTD.</h1>
   <p>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND</p>
-  <p>Contact:05944-324033 | info@multimargcarriers.co.in</p>
+  <p>Contact:+91 5944-324033 | info@multimargcarriers.co.in</p>
   <p>GST No:05AANCM3054E1ZN</p>
 </div>
 
@@ -342,7 +342,7 @@ exports.get_manifest_id_pdf_5 = async (req, res) => {
 <div class="header">
   <h1>MULTIMARG CARRIERS PVT. LTD.</h1>
   <p>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND</p>
-  <p>Contact:05944-324033 | info@multimargcarriers.co.in</p>
+  <p>Contact:+91 5944-324033 | info@multimargcarriers.co.in</p>
   <p>GST No:05AANCM3054E1ZN</p>
 </div>
 
