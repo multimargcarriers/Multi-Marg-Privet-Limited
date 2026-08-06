@@ -56,7 +56,7 @@ const TrackShipment = () => {
           booking: res.data.booking
         });
       } else {
-        setErrorMessage(`No tracking data found for "${trimmed}". Please check your LR number and try again.`);
+        setErrorMessage(`No tracking data found for "${trimmed}". Please check your AWB / LR number and try again.`);
       }
     } catch (err) {
       console.error('Tracking error:', err);
@@ -112,7 +112,7 @@ const TrackShipment = () => {
           >
             <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 3rem)', marginBottom: '1rem', fontWeight: 800 }}>Track Your Shipment</h1>
             <p style={{ fontSize: 'clamp(0.95rem, 2.5vw, 1.2rem)', opacity: 0.9, lineHeight: 1.6, marginBottom: '2.5rem' }}>
-              Enter your complete LR Number to get real-time status updates.
+              Enter your complete AWB / LR Number to get real-time status updates.
             </p>
 
             <form onSubmit={handleTrack} style={{ 
@@ -128,7 +128,7 @@ const TrackShipment = () => {
             }}>
               <input 
                 type="text" 
-                placeholder="Enter LR No." 
+                placeholder="Enter AWB / LR No." 
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 style={{ 
@@ -187,7 +187,7 @@ const TrackShipment = () => {
               >
                 <Search size={64} style={{ opacity: 0.15, margin: '0 auto 1.5rem', display: 'block' }} />
                 <h3 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Enter your tracking number above</h3>
-                <p style={{ opacity: 0.7, fontSize: '0.95rem' }}>You must enter the full LR number to search.</p>
+                <p style={{ opacity: 0.7, fontSize: '0.95rem' }}>You must enter the full AWB / LR number to search.</p>
               </motion.div>
             )}
 
