@@ -182,7 +182,7 @@ const Navbar = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
               <PhoneCall size={18} />
-              <span>+05944-324033</span>
+              <span>+91-9876543210</span>
             </div>
             <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
               Login
