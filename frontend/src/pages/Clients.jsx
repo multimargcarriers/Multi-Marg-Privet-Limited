@@ -321,7 +321,6 @@ const Clients = () => {
                   onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
                 />
               </div>
-              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-color)" }}>

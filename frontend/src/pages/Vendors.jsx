@@ -397,9 +397,6 @@ const Vendors = () => {
               </div>
             </div>
 
-              </div>
-            </div>
-
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2.5rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-color)" }}>
               <button 
                 type="button"
