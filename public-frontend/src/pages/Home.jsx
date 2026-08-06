@@ -236,7 +236,7 @@ const Home = () => {
                   />
                   <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f9fafb', borderRadius: '4px', border: '1px solid var(--border-color)', display: branchSearch.length > 1 && !isBranchModalOpen ? 'block' : 'none' }}>
                     {branches.filter(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase())).map(b => (
-                      <div key={b.id} onClick={() => { setSelectedBranch(b); setIsBranchModalOpen(true); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderBottom: '1px solid #e5e7eb' }}>
+                      <div key={b.id} onClick={() => { setSelectedBranch(b); setIsBranchModalOpen(true); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>
                         <strong>{b.branch}</strong> - <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{b.address.substring(0,30)}...</span>
                       </div>
                     ))}
