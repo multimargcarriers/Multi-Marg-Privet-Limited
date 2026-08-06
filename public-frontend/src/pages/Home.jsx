@@ -211,7 +211,6 @@ const Home = () => {
                 <form onSubmit={handleHomeTrack} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <select style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none', background: 'var(--bg-light-grey)' }}>
                     <option>LR Number (Waybill)</option>
-                    <option>Invoice Number</option>
                   </select>
                   <input 
                     type="text" 
@@ -514,7 +513,7 @@ const Home = () => {
               <h4 style={{ color: 'var(--primary-blue)', fontSize: '1.1rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
                 How do I track my shipment?
               </h4>
-              <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: 0 }}>You can track your shipment directly from our homepage using your LR (Waybill) number or Invoice number in the tracking widget.</p>
+              <p style={{ color: 'var(--text-light)', fontSize: '0.95rem', margin: 0 }}>You can track your shipment directly from our homepage using your LR (Waybill) number in the tracking widget.</p>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
               <h4 style={{ color: 'var(--primary-blue)', fontSize: '1.1rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
