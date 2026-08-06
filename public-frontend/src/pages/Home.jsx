@@ -556,20 +556,20 @@ const Home = () => {
             <div style={{ background: 'var(--bg-light-grey)', padding: '1rem', borderRadius: '8px', margin: '1.5rem 0', textAlign: 'left' }}>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <MapPin size={18} color="var(--primary-red)" style={{ flexShrink: 0, marginTop: '3px' }}/>
-                <span style={{ fontSize: '0.95rem' }}>{selectedBranch.address}</span>
+                <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{selectedBranch.address}</span>
               </p>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <Users size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>{selectedBranch.name || 'Branch Manager'}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase' }}>{selectedBranch.name || 'Branch Manager'}</span>
               </p>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <Phone size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                <span style={{ fontSize: '0.95rem' }}>{selectedBranch.phno}</span>
+                <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{selectedBranch.phno}</span>
               </p>
               {selectedBranch.email && (
                 <p style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-dark)' }}>
                   <Mail size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                  <span style={{ fontSize: '0.95rem' }}>{selectedBranch.email}</span>
+                  <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{selectedBranch.email}</span>
                 </p>
               )}
             </div>
