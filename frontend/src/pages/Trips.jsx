@@ -327,24 +327,24 @@ const Trips = () => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>From<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
                 options={cities}
                 value={form.origin}
                 onChange={(city) => setForm({ ...form, origin: city })}
                 onCreate={(name) => handleCreateNew("city", "origin", name)}
-                placeholder="-- Please select From --"
+                placeholder="-- Please select Origin --"
                 format={formatAllCaps}
               />
             </div>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>To<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
                 options={cities}
                 value={form.destination}
                 onChange={(city) => setForm({ ...form, destination: city })}
                 onCreate={(name) => handleCreateNew("city", "destination", name)}
-                placeholder="-- Please select To --"
+                placeholder="-- Please select Destination --"
                 format={formatAllCaps}
               />
             </div>
