@@ -6,18 +6,19 @@ const { body, validationResult } = require("express-validator");
 const { getRoot_1, postRoot_2, put_id_3, delete_id_4, deleteAll } = require('../controllers/vendorsController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["masters","vendors"]));
 
 
 // Get all vendors
 router.get(
   "/",
+  requirePermission(["masters","vendors","vendors_data","all"]),
   asyncHandler(getRoot_1)
 );
 
 // Create new vendor
 router.post(
   "/",
+  requirePermission(["masters","vendors","all"]),
   [
     body("name").notEmpty().withMessage("name is required"),
   ],
@@ -27,6 +28,7 @@ router.post(
 // Update vendor
 router.put(
   "/:id",
+  requirePermission(["masters","vendors","all"]),
   asyncHandler(put_id_3)
 );
 
@@ -39,6 +41,7 @@ router.delete(
 // Delete vendor
 router.delete(
   "/:id",
+  requirePermission(["masters","vendors","all"]),
   asyncHandler(delete_id_4)
 );
 

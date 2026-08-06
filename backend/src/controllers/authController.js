@@ -304,7 +304,11 @@ exports.get_me = async (req, res) => {
   });
   const userData = { id: doc.id, ...doc.data() };
   delete userData.password;
-  return success(res, { data: userData });
+  
+  // Issue a fresh token because permissions/role might have changed
+  const freshToken = generateToken(userData);
+  
+  return success(res, { data: userData, token: freshToken });
 };
 
 exports.get_default_assets = async (req, res) => {
@@ -355,9 +359,9 @@ exports.post_login_1 = async (req, res) => {
     });
   }
 
-  // Enforce IAM Role based access (Admins, Super Admins, and Vendors allowed)
+  // Enforce IAM Role based access (Admins, Super Admins, Vendors, and Employees allowed)
   const role = (userData.role || "SuperAdmin").toLowerCase().replace(/\s+/g, '');
-  if (role !== 'admin' && role !== 'superadmin' && role !== 'vendor') {
+  if (role !== 'admin' && role !== 'superadmin' && role !== 'vendor' && role !== 'employee') {
     return error(res, {
       message: "Access Denied: Your account does not have sufficient IAM permissions to access this portal.",
       statusCode: 403

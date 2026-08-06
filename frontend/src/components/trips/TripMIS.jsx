@@ -289,7 +289,7 @@ const TripMIS = () => {
     <div>
       <div className="no-print">
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
-         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Trip MIS Entries</h3>
+         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vehicle Trip MIS</h3>
          <div className="top-actions-container">
            <div className="date-filter-group" style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
              <Filter size={16} color="#64748b" />
@@ -332,7 +332,7 @@ const TripMIS = () => {
             </button>
             {(!showTripListForm && user?.role !== 'Client') && (
               <button className="btn btn-primary" onClick={() => { setTripListForm(initialTripListForm); setEditingId(null); setEditingStatus(''); setShowTripListForm(true); }}>
-                <Plus size={16} style={{ marginRight: 6 }} /> Add Trip MIS Entry
+                <Plus size={16} style={{ marginRight: 6 }} /> Add Vehicle Trip MIS Entry
               </button>
             )}
          </div>
@@ -398,7 +398,7 @@ const TripMIS = () => {
                     setEditingId(null);
                     setEditingStatus('');
                     setShowTripListForm(false);
-                    addToast("Trip MIS entry updated successfully!", "success");
+                    addToast("Vehicle Trip MIS entry updated successfully!", "success");
                   }
                 } else {
                   const res = await axios.post(`${API}/trip-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
@@ -406,7 +406,7 @@ const TripMIS = () => {
                     setTripListEntries([res.data.data, ...tripListEntries]);
                     setTripListForm({ ...initialTripListForm, parcels: [{ ...initialParcel }] });
                     setShowTripListForm(false);
-                    addToast("Trip MIS entry added successfully!", "success");
+                    addToast("Vehicle Trip MIS entry added successfully!", "success");
                   }
                 }
               } catch(err) {
@@ -588,7 +588,7 @@ const TripMIS = () => {
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
               <button type="button" className="btn" onClick={() => { setShowTripListForm(false); setEditingId(null); setEditingStatus(''); setTripListForm(initialTripListForm); }}>Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Trip MIS Entry" : "Save Trip MIS Entry"}</button>
+              <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Vehicle Trip MIS Entry" : "Save Vehicle Trip MIS Entry"}</button>
             </div>
          </form>
       )}
@@ -604,7 +604,7 @@ const TripMIS = () => {
             "Status", "Remarks", "Actions"
           ]}
           data={filteredEntries}
-          emptyMessage="No trip MIS entries added yet. Click 'Add Trip MIS Entry' to start."
+          emptyMessage="No vehicle trip MIS entries added yet. Click 'Add Vehicle Trip MIS Entry' to start."
           renderRow={(item, idx) => (
             <tr key={idx} style={{ display: typeof printOnlyId !== 'undefined' && printOnlyId && printOnlyId !== item.id ? 'none' : '' }}>
               <td className="font-semibold" style={{ color: "#1e3a8a", whiteSpace: "nowrap" }}>

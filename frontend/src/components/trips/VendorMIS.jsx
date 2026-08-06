@@ -263,7 +263,7 @@ const VendorMIS = () => {
            
            {!showVendorMisForm && (
              <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
-               <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor MIS Entry
+               <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor Vehicle MIS Entry
              </button>
            )}
          </div>

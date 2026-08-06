@@ -29,6 +29,8 @@ const requirePermission = (requiredPermissions) => {
       return next();
     }
 
+    console.warn(`[RBAC Blocked] User ${req.user.email} (Role: ${req.user.role}) lacks permissions. Required one of: ${perms.join(', ')}. User has: ${userPermissions.join(', ')}`);
+
     return error(res, { 
       message: `Forbidden: You do not have the required permissions (${perms.join(' or ')}).`, 
       statusCode: 403 

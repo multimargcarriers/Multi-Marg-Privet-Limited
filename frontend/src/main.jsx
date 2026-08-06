@@ -13,6 +13,78 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+// Add Axios Response Interceptor for handling stale permissions seamlessly
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If the error is 403 (Forbidden) and we haven't already retried this request
+    if (error.response?.status === 403 && !originalRequest._retry && !originalRequest.url.includes('/api/auth/me')) {
+      originalRequest._retry = true;
+      
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = 'Bearer ' + token;
+          return axios(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+      
+      isRefreshing = true;
+      const currentToken = localStorage.getItem('token');
+      
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const refreshRes = await axios.get(`${apiUrl}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${currentToken}` }
+        });
+        
+        if (refreshRes.data?.token) {
+          localStorage.setItem('token', refreshRes.data.token);
+          
+          if (refreshRes.data.data) {
+            localStorage.setItem('user', JSON.stringify(refreshRes.data.data));
+          }
+          
+          axios.defaults.headers.common['Authorization'] = 'Bearer ' + refreshRes.data.token;
+          originalRequest.headers.Authorization = 'Bearer ' + refreshRes.data.token;
+          
+          processQueue(null, refreshRes.data.token);
+          return axios(originalRequest);
+        } else {
+          processQueue(new Error('No token returned'));
+          return Promise.reject(error);
+        }
+      } catch (err) {
+        processQueue(err, null);
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // Utility to recursively format data strings (CAPS, except addresses)
 const isTechnicalKey = (key) => {
   if (!key) return false;

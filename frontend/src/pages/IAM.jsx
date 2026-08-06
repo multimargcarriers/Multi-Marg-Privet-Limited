@@ -16,16 +16,21 @@ const PERMISSIONS_TREE = [
     name: 'Masters Section',
     pages: [
       { id: 'clients', name: 'Clients' },
+      { id: 'clients_data', name: 'Clients (Data Access Only)' },
       { id: 'branches', name: 'Branches' },
+      { id: 'branches_data', name: 'Branches (Data Access Only)' },
       { id: 'cities', name: 'Cities' },
-      { id: 'vendors', name: 'Vendors' }
+      { id: 'cities_data', name: 'Cities (Data Access Only)' },
+      { id: 'vendors', name: 'Vendors' },
+      { id: 'vendors_data', name: 'Vendors (Data Access Only)' }
     ]
   },
   {
     id: 'rates',
     name: 'Rates Section',
     pages: [
-      { id: 'client_rates', name: 'Client Rates' }
+      { id: 'client_rates', name: 'Client Rates' },
+      { id: 'client_rates_data', name: 'Client Rates (Data Access Only)' }
     ]
   },
   {

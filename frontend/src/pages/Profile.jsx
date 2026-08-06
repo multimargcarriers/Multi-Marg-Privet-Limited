@@ -36,8 +36,8 @@ const Profile = () => {
         });
         if (res.data?.success) {
           setDefaultAssets({
-            avatars: (res.data.data.DEFAULT_AVATARS || []).map(u => typeof u === 'string' && u.toLowerCase().includes('res.cloudinary.com') ? u.toLowerCase() : u),
-            banners: (res.data.data.DEFAULT_BANNERS || []).map(u => typeof u === 'string' && u.toLowerCase().includes('res.cloudinary.com') ? u.toLowerCase() : u)
+            avatars: (res.data.data.DEFAULT_AVATARS || []),
+            banners: (res.data.data.DEFAULT_BANNERS || [])
           });
         }
       } catch (err) {

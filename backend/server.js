@@ -71,9 +71,14 @@ app.use(
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", 
-      "https://multimarg.vercel.app", 
-      process.env.FRONTEND_ORIGIN
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+      "https://multimarg.vercel.app",
+      "https://multimargcarriers.co.in",
+      "https://www.multimargcarriers.co.in",
+      process.env.FRONTEND_ORIGIN,
+      process.env.PUBLIC_FRONTEND_ORIGIN
     ].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
@@ -291,6 +296,62 @@ app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // Auth
 app.use("/api/auth", authRoutes);
+
+// ============================================================
+// Public Tracking API (No Auth Required)
+// ============================================================
+app.get("/api/public/tracking/:awb", async (req, res) => {
+  try {
+    const { awb } = req.params;
+    if (!awb || awb.trim().length < 3) {
+      return res.status(400).json({ success: false, message: "Please enter a valid AWB/LR number" });
+    }
+
+    // Fetch tracking entries
+    const snapshot = await db.collection("tracking").where("awb", "==", awb.trim()).orderBy("updatedAt", "desc").get();
+    const entries = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      entries.push({
+        id: doc.id,
+        awb: data.awb,
+        status: data.status,
+        location: data.location,
+        date: data.date,
+        remarks: data.remarks
+        // NOTE: enteredBy, enteredById, enteredByRole are intentionally excluded for privacy
+      });
+    });
+
+    // Fetch booking details for shipment overview
+    let booking = null;
+    const bookingsSnapshot = await db.collection("bookings").get();
+    bookingsSnapshot.forEach(doc => {
+      const b = doc.data();
+      const bAwb = (b.awb || b.consignment || b.lrNo || "").toString().trim();
+      if (bAwb.toLowerCase() === awb.trim().toLowerCase()) {
+        booking = {
+          origin: b.origin || null,
+          destination: b.destination || null,
+          client: b.client || b.clientName || null,
+          consignor: b.consignor || null,
+          consignee: b.consignee || null,
+          date: b.date || b.dispatch_date || null
+        };
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: entries.length > 0 ? "Tracking data found" : "No tracking data found",
+      data: entries,
+      booking: booking
+    });
+  } catch (err) {
+    console.error("Public tracking error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 // ============================================================
 // Global Authentication & Auditing Lockdown

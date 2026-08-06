@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
 
-const ProtectedRoute = ({ requiredPermission }) => {
+const ProtectedRoute = ({ requiredPermission, children }) => {
   const { user, loading, hasPermission } = useContext(AuthContext);
   const { globalSettings, loadingSettings } = useContext(SettingsContext);
 
@@ -28,7 +28,7 @@ const ProtectedRoute = ({ requiredPermission }) => {
     }
   }
 
-  return <Outlet />;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

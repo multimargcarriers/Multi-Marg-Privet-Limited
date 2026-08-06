@@ -189,7 +189,7 @@ const AllBills = () => {
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "10px", color: "#0f172a" }}>
-            All Bills 
+            Sales Bills 
             <span style={{ fontSize: "0.95rem", background: "#f1f5f9", color: "#475569", padding: "4px 12px", borderRadius: "20px", border: "1px solid #cbd5e1", fontWeight: "600", display: "flex", alignItems: "center" }}>
               {filtered.length} entries matching
             </span>

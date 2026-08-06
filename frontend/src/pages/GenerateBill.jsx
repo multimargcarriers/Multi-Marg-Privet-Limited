@@ -72,15 +72,9 @@ const GenerateBill = () => {
       setRates(fetchedRates);
 
       if (bookingsRes.data.success) {
-        let pendingLrNos = new Set();
         if (billsRes.data && billsRes.data.data) {
           let maxNum = 0;
           billsRes.data.data.forEach(bill => {
-            if (bill.status === "pending" || bill.status === "Pending") {
-              if (bill.items) {
-                bill.items.forEach(item => pendingLrNos.add(item.lrNo));
-              }
-            }
             
             // Calculate max invoice number
             const inv = bill.billNo || bill.invoice || "";
@@ -99,9 +93,7 @@ const GenerateBill = () => {
         }
 
         const unbilled = (bookingsRes.data.data || []).filter(b => {
-          const isTrulyUnbilled = b.status !== "Billed";
-          const isPendingInBill = b.status === "Billed" && (pendingLrNos.has(b.awb) || pendingLrNos.has(b.id));
-          return isTrulyUnbilled || isPendingInBill;
+          return b.status !== "Billed";
         }).map(b => {
           const bClient = (b.client || "").toString().trim().toLowerCase();
           const bOrigin = (b.origin || "").toString().trim().toLowerCase();

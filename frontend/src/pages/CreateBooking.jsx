@@ -8,6 +8,7 @@ import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import { AnimatePresence } from "framer-motion";
 
@@ -57,6 +58,9 @@ const CreateBooking = () => {
 
   const { refreshNotifications } = useNotification();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  
+  const canEditAwb = user?.role === 'Admin' || user?.role === 'SuperAdmin';
 
   const handleCreateNew = async (type, field, name) => {
     try {
@@ -91,9 +95,9 @@ const CreateBooking = () => {
     const fetchData = async () => {
       try {
         const [clientsRes, citiesRes, ratesRes] = await Promise.all([
-          axios.get(`${API}/clients`),
-          axios.get(`${API}/cities`),
-          axios.get(`${API}/rates`),
+          axios.get(`${API}/clients`).catch(() => ({ data: { success: false } })),
+          axios.get(`${API}/cities`).catch(() => ({ data: { success: false } })),
+          axios.get(`${API}/rates`).catch(() => ({ data: { success: false } })),
         ]);
         if (clientsRes.data.success) setClients(clientsRes.data.data);
         if (citiesRes.data.success) setCities(citiesRes.data.data);
@@ -109,6 +113,22 @@ const CreateBooking = () => {
             if (b.dispatch_date) {
               b.dispatch_date = b.dispatch_date.split('T')[0];
             }
+            
+            // Auto-fill missing GST for old bookings so they fix themselves when edited
+            const clientsList = clientsRes.data.data || [];
+            if (!b.consignorGst && b.consignor) {
+               const cClient = clientsList.find(c => c.name === b.consignor || c.client === b.consignor);
+               if (cClient) b.consignorGst = cClient.gst;
+            }
+            if (!b.consigneeGst && b.consignee) {
+               const cClient = clientsList.find(c => c.name === b.consignee || c.client === b.consignee);
+               if (cClient) b.consigneeGst = cClient.gst;
+            }
+            if (!b.clientGst && b.client) {
+               const cClient = clientsList.find(c => c.name === b.client || c.client === b.client);
+               if (cClient) b.clientGst = cClient.gst;
+            }
+
             setFormData(b);
           }
         } else {
@@ -375,14 +395,21 @@ const CreateBooking = () => {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Awb No</label>
-            <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={(e) => setFormData({...formData, consignment: formatAllCaps(e.target.value)})} />
+            <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={(e) => setFormData({...formData, consignment: formatAllCaps(e.target.value)})} readOnly={!canEditAwb} style={{ backgroundColor: !canEditAwb ? '#f1f5f9' : 'white' }} />
           </div>
           <div className="form-group">
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Billed To<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
               options={clients} 
               value={formData.client} 
-              onChange={(val) => setFormData({ ...formData, client: val })} 
+              onChange={(val) => {
+                const selectedClient = clients.find(c => c.name === val || c.client === val);
+                setFormData({ 
+                  ...formData, 
+                  client: val, 
+                  clientGst: selectedClient?.gst || ""
+                });
+              }}
               onCreate={(name) => handleCreateNew("client", "client", name)}
               placeholder="-- Please select the Client --" 
               format={formatAllCaps}
@@ -424,7 +451,14 @@ const CreateBooking = () => {
             <CreatableDropdown 
               options={clients} 
               value={formData.consignor} 
-              onChange={(val) => setFormData({ ...formData, consignor: val })} 
+              onChange={(val) => {
+                const selectedClient = clients.find(c => c.name === val || c.client === val);
+                setFormData({ 
+                  ...formData, 
+                  consignor: val, 
+                  consignorGst: selectedClient?.gst || ""
+                });
+              }}
               onCreate={(name) => handleCreateNew("client", "consignor", name)}
               placeholder="-- Please select the Consignor --" 
               format={formatAllCaps}
@@ -435,7 +469,14 @@ const CreateBooking = () => {
             <CreatableDropdown 
               options={clients} 
               value={formData.consignee} 
-              onChange={(val) => setFormData({ ...formData, consignee: val })} 
+              onChange={(val) => {
+                const selectedClient = clients.find(c => c.name === val || c.client === val);
+                setFormData({ 
+                  ...formData, 
+                  consignee: val, 
+                  consigneeGst: selectedClient?.gst || ""
+                });
+              }}
               onCreate={(name) => handleCreateNew("client", "consignee", name)}
               placeholder="-- Please select the Consignee --" 
               format={formatAllCaps}

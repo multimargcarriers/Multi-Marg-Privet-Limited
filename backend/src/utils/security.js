@@ -14,8 +14,12 @@ const filterByAccess = (documents, user, collectionType = "bookings") => {
   return documents.filter(doc => {
     if (collectionType === "bookings") {
       if (role === 'employee') {
-        // Employee sees only bookings they created, matching by auth ID or exact name
-        return doc.createdBy_id === user.id || doc.clerk_name === user.name;
+        const mappedName = String(user.name || "").toLowerCase();
+        return (
+          doc.createdBy_id === user.id ||
+          String(doc.clerk_name || "").toLowerCase() === mappedName ||
+          String(doc.createdBy || "").toLowerCase() === mappedName
+        );
       }
       
       if (role === 'client') {

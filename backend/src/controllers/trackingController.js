@@ -37,37 +37,10 @@ exports.postRoot_3 = async (req, res) => {
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
   const entry = req.body;
   
-  // RLS Check: Ensure user is authorized to update this booking
-  const awbToSearch = entry.awb;
-  let hasAccess = false;
-  const role = (req.user?.role || "").toLowerCase().replace(/\s+/g, '');
-  if (role === 'superadmin' || role === 'admin' || req.user?.email === 'admin@multimargcarriers.co.in') {
-    hasAccess = true;
-  } else if (awbToSearch) {
-    // Find booking matching this awb or id
-    const bookingsSnap = await db.collection("bookings").get();
-    let matchedBooking = null;
-    bookingsSnap.forEach(doc => {
-      const b = { id: doc.id, ...doc.data() };
-      const shortId = b.id ? String(b.id).substring(0, 8).toUpperCase() : "";
-      if (
-        b.awb === awbToSearch || b.consignment === awbToSearch || b.awbNo === awbToSearch ||
-        b.lrNumber === awbToSearch || b.lrNo === awbToSearch || b.lr_number === awbToSearch ||
-        b.id === awbToSearch || shortId === awbToSearch
-      ) {
-        matchedBooking = b;
-      }
-    });
-    
-    if (matchedBooking) {
-      const allowed = filterByAccess([matchedBooking], req.user, "bookings");
-      if (allowed.length > 0) hasAccess = true;
-    }
-  }
-
-  if (!hasAccess) {
-    return error(res, "Forbidden: You are not authorized to update tracking for this shipment.", 403);
-  }
+  // Save who entered the tracking update
+  entry.enteredBy = req.user?.name || req.user?.email || "Unknown";
+  entry.enteredById = req.user?.id || null;
+  entry.enteredByRole = req.user?.role || "Unknown";
 
   entry.date = entry.date || new Date().toISOString();
   entry.updatedAt = new Date().toISOString();
@@ -83,7 +56,31 @@ exports.delete_id_4 = async (req, res) => {
   const { id } = req.params;
   const doc = await db.collection("tracking").doc(id).get();
   if (!doc.exists) return error(res, "Tracking entry not found", 404);
-  await db.collection("tracking").doc(id).delete(req.user);
+  await db.collection("tracking").doc(id).delete();
   await delCache(CACHE_KEY);
   return success(res, "Tracking entry deleted successfully");
 };
+
+exports.put_id_5 = async (req, res) => {
+  const { id } = req.params;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
+  
+  const doc = await db.collection("tracking").doc(id).get();
+  if (!doc.exists) return error(res, "Tracking entry not found", 404);
+  
+  const updates = {
+    ...req.body,
+    updatedAt: new Date().toISOString(),
+    enteredBy: req.user?.name || req.user?.email || "Unknown",
+    enteredById: req.user?.id || null,
+    enteredByRole: req.user?.role || "Unknown"
+  };
+  
+  await db.collection("tracking").doc(id).update(updates);
+  await delCache(CACHE_KEY);
+  
+  return success(res, "Tracking entry updated successfully", { id, ...updates });
+};
+
+

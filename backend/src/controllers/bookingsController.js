@@ -157,6 +157,43 @@ exports.postRoot_1 = async (req, res) => {
   booking.date = new Date().toISOString();
   booking.status = "Booked";
   booking.lrNumber = generateLRNumber();
+  
+  const role = req.user?.role || "";
+  const isAdmin = role === "Admin" || role === "SuperAdmin";
+  
+  if (!isAdmin || !booking.consignment) {
+    try {
+      // Find max AWB to ensure continuity with existing data
+      const allBookings = await db.mongoDb.collection("bookings").find({}, { projection: { consignment: 1, awb: 1, lrNo: 1 } }).toArray();
+      let maxNum = 0;
+      allBookings.forEach(b => {
+        const awbStr = b.awb || b.consignment || b.lrNo || "";
+        const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
+        if (match) {
+          const num = parseInt(match[2], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      
+      const counterDoc = await db.mongoDb.collection("counters").findOneAndUpdate(
+        { _id: "awb_counter" },
+        { $max: { seq: maxNum } }, // Ensure counter is at least maxNum
+        { returnDocument: "after", upsert: true }
+      );
+      
+      const updatedCounter = await db.mongoDb.collection("counters").findOneAndUpdate(
+        { _id: "awb_counter" },
+        { $inc: { seq: 1 } },
+        { returnDocument: "after" }
+      );
+      
+      booking.consignment = `MMC-${updatedCounter.seq}`;
+    } catch (err) {
+      console.error("Error generating sequential AWB:", err);
+      booking.consignment = `MMC-${Date.now().toString().slice(-6)}`; // Fallback
+    }
+  }
+
   if (!booking.clerk_name) {
     booking.clerk_name = req.user?.name || "Admin";
   }
@@ -175,6 +212,8 @@ exports.postRoot_1 = async (req, res) => {
 };
 
 exports.getRoot_2 = async (req, res) => {
+  const isWorldwide = req.query.worldwide === 'true';
+
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("bookings").orderBy("date", "desc").get();
     const bookings = [];
@@ -187,8 +226,26 @@ exports.getRoot_2 = async (req, res) => {
     return bookings;
   }, 300);
   
-  // Apply Row-Level Security
-  const filteredData = filterByAccess(data, req.user, "bookings");
+  let filteredData = data;
+  if (isWorldwide) {
+    filteredData = data.map(b => ({
+      id: b.id,
+      awb: b.awb,
+      consignment: b.consignment,
+      lrNo: b.lrNo,
+      origin: b.origin,
+      destination: b.destination,
+      client: b.client,
+      clientName: b.clientName,
+      consignor: b.consignor,
+      consignee: b.consignee,
+      date: b.date,
+      createdAt: b.createdAt
+    }));
+  } else {
+    // Apply Row-Level Security
+    filteredData = filterByAccess(data, req.user, "bookings");
+  }
   
   return success(res, "Bookings fetched successfully", filteredData);
 };

@@ -409,7 +409,7 @@ const Purchase = () => {
           </div>
           <div>
             <h3 style={{ fontSize: "1.25rem", fontWeight: "700", margin: 0, color: "#0f172a" }}>
-              Purchases
+              Purchase Bills
             </h3>
             <span style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
               Manage vendor bills and purchase records

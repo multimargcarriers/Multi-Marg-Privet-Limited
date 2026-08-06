@@ -39,6 +39,12 @@ export const AuthProvider = ({ children }) => {
         const cleanUser = normalizeUserData(res.data.data);
         setUser(cleanUser);
         localStorage.setItem('user', JSON.stringify(cleanUser));
+        
+        // Update token if the backend provided a fresh one (e.g. updated permissions)
+        if (res.data.token) {
+          setToken(res.data.token);
+          localStorage.setItem('token', res.data.token);
+        }
       }
     } catch (e) {
       console.error("Failed to fetch fresh user data from DB:", e);
@@ -64,13 +70,20 @@ export const AuthProvider = ({ children }) => {
           const cleanUser = normalizeUserData(parsed);
           setUser(cleanUser);
           localStorage.setItem('user', JSON.stringify(cleanUser));
-          setLoading(false); // Resolve loading instantly since we have cached data!
         } catch (e) {
           console.error("Failed to parse user info");
         }
       }
       // Silently sync fresh data from DB in background
       fetchMe(storedToken).finally(() => setLoading(false));
+
+      // Refresh token on window focus to handle IAM changes seamlessly
+      const onFocus = () => {
+        const currentToken = localStorage.getItem('token');
+        if (currentToken) fetchMe(currentToken);
+      };
+      window.addEventListener('focus', onFocus);
+      return () => window.removeEventListener('focus', onFocus);
     } else {
       setLoading(false);
     }

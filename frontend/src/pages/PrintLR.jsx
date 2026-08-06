@@ -40,9 +40,30 @@ const PrintLR = () => {
   useEffect(() => {
     const fetchBooking = async () => {
       try {
-        const res = await axios.get(`${API}/bookings/${id}`);
+        const [res, clientsRes] = await Promise.all([
+          axios.get(`${API}/bookings/${id}`),
+          axios.get(`${API}/clients`).catch(() => ({ data: { success: false, data: [] } }))
+        ]);
+        
         if (res.data.success) {
-          setBooking(res.data.data);
+          const b = res.data.data;
+          // Dynamically fill missing GST for old bookings
+          if (clientsRes.data.success) {
+            const clientsList = clientsRes.data.data || [];
+            if (!b.consignorGst && b.consignor) {
+              const cClient = clientsList.find(c => c.name === b.consignor || c.client === b.consignor);
+              if (cClient) b.consignorGst = cClient.gst;
+            }
+            if (!b.consigneeGst && b.consignee) {
+              const cClient = clientsList.find(c => c.name === b.consignee || c.client === b.consignee);
+              if (cClient) b.consigneeGst = cClient.gst;
+            }
+            if (!b.clientGst && b.client) {
+              const cClient = clientsList.find(c => c.name === b.client || c.client === b.client);
+              if (cClient) b.clientGst = cClient.gst;
+            }
+          }
+          setBooking(b);
         }
       } catch (err) {
         console.error("Failed to fetch booking", err);
@@ -128,7 +149,7 @@ const PrintLR = () => {
     setTimeout(() => {
       const opt = {
         margin:       0,
-        filename:     `Bilty_${booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
+        filename:     `Bilty_${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
         html2canvas:  { 
           scale: 2, 
@@ -338,7 +359,7 @@ const PrintLR = () => {
               <tbody>
                 <tr>
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>AWB NO.</td>
-                  <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem", whiteSpace: "nowrap" }}>{booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
+                  <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem", whiteSpace: "nowrap" }}>{booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
                   <td className="data-cell" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
                   <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>

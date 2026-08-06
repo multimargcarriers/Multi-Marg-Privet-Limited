@@ -1592,4 +1592,239 @@ html, body {
   .stat-card {
     padding: 1rem !important;
   }
+
+  .page-content {
+    padding: 0.5rem !important;
+  }
+}
+
+/* ========================================================= */
+/* TRACKING PAGE — FULL RESPONSIVE OVERRIDES                 */
+/* ========================================================= */
+
+/* Tablet: stack the two-column tracking layout */
+@media screen and (max-width: 1024px) {
+  /* Force the Tracking grid (left viewer + right form) to single column */
+  .page-content div[style*="minmax(350px"] {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* Tracking left panel — remove fixed min-height on mobile */
+  .page-content .glass-panel[style*="minHeight"] {
+    min-height: auto !important;
+  }
+
+  /* Shipment Overview card — stack fields vertically on small screens */
+  .page-content div[style*="gridTemplateColumns: \"1fr 1fr\""],
+  .page-content div[style*='gridTemplateColumns: "1fr 1fr"'] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Timeline entry cards — reduce padding */
+  .page-content div[style*="padding: \"1rem 1.2rem\""] {
+    padding: 0.75rem 0.85rem !important;
+  }
+
+  /* Search form in tracking — keep horizontal but compact */
+  .page-content form[style*="display: flex"] {
+    flex-wrap: nowrap !important;
+  }
+
+  /* Form sections in tracking — stack labels and inputs */
+  .page-content div[style*="gridTemplateColumns: \"1fr 1fr 1fr\""] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Bottom tracking table section */
+  .page-content .glass-panel[style*="marginTop"] {
+    overflow-x: auto !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  /* Extra compact for very small phones */
+  .page-content div[style*="gap: \"2rem\""] {
+    gap: 1rem !important;
+  }
+
+  /* Timeline circles — slightly smaller */
+  .page-content div[style*="width: \"44px\""] {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Reduce font sizes in timeline */
+  .page-content span[style*="fontSize: \"1.05rem\""] {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* ========================================================= */
+/* BOOKING FORM — RESPONSIVE OVERRIDES                       */
+/* ========================================================= */
+
+@media screen and (max-width: 768px) {
+  /* Force booking form grids to single column */
+  .page-content .grid-auto-large {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Booking header with buttons */
+  .booking-header-flex {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .top-actions-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+
+  .booking-csv-manager-card {
+    width: 100% !important;
+    flex-direction: column !important;
+  }
+
+  .booking-action-buttons-row {
+    width: 100% !important;
+    justify-content: stretch !important;
+  }
+
+  .booking-action-buttons-row button,
+  .booking-action-buttons-row a {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+}
+
+/* ========================================================= */
+/* PURCHASE / CASHSHEET / ALL BILLS — RESPONSIVE OVERRIDES   */
+/* ========================================================= */
+
+@media screen and (max-width: 768px) {
+  /* Filter bars with multiple inputs — stack them */
+  .page-content .glass-panel > div[style*="gap"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Stat cards row */
+  .page-content div[style*="gridTemplateColumns: \"repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+
+  .page-content div[style*="gridTemplateColumns: \"repeat(3"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .page-content div[style*="gridTemplateColumns: \"repeat(4"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ========================================================= */
+/* GLOBAL TABLE RESPONSIVE — HORIZONTAL SCROLL               */
+/* ========================================================= */
+
+@media screen and (max-width: 768px) {
+  /* Ensure all tables are scrollable horizontally */
+  .table-container,
+  .table-responsive,
+  div:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100vw !important;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  /* Compact table cells */
+  table th, table td {
+    white-space: nowrap !important;
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ========================================================= */
+/* GLOBAL MODAL / DIALOG — FULL-WIDTH ON MOBILE              */
+/* ========================================================= */
+
+@media screen and (max-width: 640px) {
+  .modal-container,
+  [role="dialog"] > div {
+    width: 98vw !important;
+    max-width: 98vw !important;
+    margin: 0.25rem auto !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ========================================================= */
+/* TOPBAR + SIDEBAR — MOBILE COMPACT                         */
+/* ========================================================= */
+
+@media screen and (max-width: 768px) {
+  /* Ensure topbar items are compact */
+  .topbar {
+    padding: 0 0.75rem !important;
+  }
+
+  .topbar-right {
+    gap: 0.5rem !important;
+  }
+
+  /* Hide text labels in topbar on small screens */
+  .topbar-right span.hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .topbar {
+    padding: 0 0.5rem !important;
+  }
+
+  /* Sidebar overlay when open on very small phones */
+  .sidebar.open {
+    width: 260px !important;
+  }
+}
+
+/* ========================================================= */
+/* GLOBAL SMOOTH SCROLLING + TOUCH IMPROVEMENTS              */
+/* ========================================================= */
+
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device optimizations */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better tap targets for table action buttons */
+  table button {
+    min-height: 36px !important;
+    min-width: 36px !important;
+    padding: 6px !important;
+  }
+
+  /* Smooth scrolling for all scrollable areas */
+  .table-container, .table-responsive, .glass-panel {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
 }

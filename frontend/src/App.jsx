@@ -37,6 +37,8 @@ import PodViewer from "./pages/PodViewer";
 import Purchase from "./pages/Purchase";
 import Rates from "./pages/Rates";
 import Trips from "./pages/Trips";
+import TripMIS from "./components/trips/TripMIS";
+import VendorMIS from "./components/trips/VendorMIS";
 import UpdateBill from "./pages/UpdateBill";
 import UpdateInvoice from "./pages/UpdateInvoice";
 import UploadBox from "./pages/UploadBox";
@@ -92,26 +94,26 @@ function App() {
             </Route>
 
             {/* Masters */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="masters" /></MaintenanceGuard>}>
-              <Route path="/clients" element={<Clients />} />
-              <Route path="/vendors" element={<Vendors />} />
-              <Route path="/branches" element={<Branches />} />
-              <Route path="/cities" element={<Cities />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/clients" element={<ProtectedRoute requiredPermission="clients"><Clients /></ProtectedRoute>} />
+              <Route path="/vendors" element={<ProtectedRoute requiredPermission="vendors"><Vendors /></ProtectedRoute>} />
+              <Route path="/branches" element={<ProtectedRoute requiredPermission="branches"><Branches /></ProtectedRoute>} />
+              <Route path="/cities" element={<ProtectedRoute requiredPermission="cities"><Cities /></ProtectedRoute>} />
               
-              <Route path="/rates" element={<Rates />} />
+              <Route path="/rates" element={<ProtectedRoute requiredPermission="client_rates"><Rates /></ProtectedRoute>} />
             </Route>
 
             {/* Operations */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="operations" /></MaintenanceGuard>}>
-              <Route path="/bookings" element={<BookingsList />} />
-              <Route path="/bookings/create" element={<CreateBooking />} />
-              <Route path="/bookings/edit/:id" element={<CreateBooking />} />
-              <Route path="/print-lr/:id" element={<PrintLR />} />
-              <Route path="/print-manifest/:id" element={<PrintManifest />} />
-              <Route path="/print-trip-list" element={<PrintTripList />} />
-              <Route path="/print-single-trip/:index" element={<PrintSingleTrip />} />
-              <Route path="/pod" element={<POD />} />
-              <Route path="/pod/view" element={<PodViewer />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/bookings" element={<ProtectedRoute requiredPermission="bookings"><BookingsList /></ProtectedRoute>} />
+              <Route path="/bookings/create" element={<ProtectedRoute requiredPermission="create_booking"><CreateBooking /></ProtectedRoute>} />
+              <Route path="/bookings/edit/:id" element={<ProtectedRoute requiredPermission="create_booking"><CreateBooking /></ProtectedRoute>} />
+              <Route path="/print-lr/:id" element={<ProtectedRoute requiredPermission="bookings"><PrintLR /></ProtectedRoute>} />
+              <Route path="/print-manifest/:id" element={<ProtectedRoute requiredPermission="bookings"><PrintManifest /></ProtectedRoute>} />
+              <Route path="/print-trip-list" element={<ProtectedRoute requiredPermission="trips"><PrintTripList /></ProtectedRoute>} />
+              <Route path="/print-single-trip/:index" element={<ProtectedRoute requiredPermission="trips"><PrintSingleTrip /></ProtectedRoute>} />
+              <Route path="/pod" element={<ProtectedRoute requiredPermission="pod"><POD /></ProtectedRoute>} />
+              <Route path="/pod/view" element={<ProtectedRoute requiredPermission="pod"><PodViewer /></ProtectedRoute>} />
               <Route path="/tracking" element={<Tracking />} />
             </Route>
 
@@ -119,42 +121,52 @@ function App() {
             <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="trips" /></MaintenanceGuard>}>
               <Route path="/trips" element={<Trips />} />
             </Route>
+            
+            {/* Trip MIS */}
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="tripmis" /></MaintenanceGuard>}>
+              <Route path="/trip-mis" element={<TripMIS />} />
+            </Route>
+
+            {/* Vendor MIS */}
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="vendormis" /></MaintenanceGuard>}>
+              <Route path="/vendor-mis" element={<VendorMIS />} />
+            </Route>
 
             {/* Billing */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="billing" /></MaintenanceGuard>}>
-              <Route path="/bills" element={<Bills />} />
-              <Route path="/bills/all" element={<AllBills />} />
-              <Route path="/bills/view1/:id" element={<BillView1 />} />
-              <Route path="/bills/view2/:id" element={<BillView2 />} />
-              <Route path="/bills/generate" element={<GenerateBill />} />
-              <Route path="/bills/misc" element={<MiscBill />} />
-              <Route path="/bills/update" element={<UpdateBill />} />
-              <Route path="/invoices/update" element={<UpdateInvoice />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/bills" element={<ProtectedRoute requiredPermission="all_bills"><Bills /></ProtectedRoute>} />
+              <Route path="/bills/all" element={<ProtectedRoute requiredPermission="all_bills"><AllBills /></ProtectedRoute>} />
+              <Route path="/bills/view1/:id" element={<ProtectedRoute requiredPermission="all_bills"><BillView1 /></ProtectedRoute>} />
+              <Route path="/bills/view2/:id" element={<ProtectedRoute requiredPermission="all_bills"><BillView2 /></ProtectedRoute>} />
+              <Route path="/bills/generate" element={<ProtectedRoute requiredPermission="generate_bills"><GenerateBill /></ProtectedRoute>} />
+              <Route path="/bills/misc" element={<ProtectedRoute requiredPermission="misc_bill"><MiscBill /></ProtectedRoute>} />
+              <Route path="/bills/update" element={<ProtectedRoute requiredPermission="update_bill"><UpdateBill /></ProtectedRoute>} />
+              <Route path="/invoices/update" element={<ProtectedRoute requiredPermission="update_bill"><UpdateInvoice /></ProtectedRoute>} />
             </Route>
 
             {/* Accounts */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="accounts" /></MaintenanceGuard>}>
-              <Route path="/cash-sheet" element={<CashSheet />} />
-              <Route path="/purchases" element={<Purchase />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/cash-sheet" element={<ProtectedRoute requiredPermission="cash_sheet"><CashSheet /></ProtectedRoute>} />
+              <Route path="/purchases" element={<ProtectedRoute requiredPermission="purchases"><Purchase /></ProtectedRoute>} />
             </Route>
 
             
             {/* Reports */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="reports" /></MaintenanceGuard>}>
-              <Route path="/reports/analytics" element={<Analytics />} />
-              <Route path="/reports/gst" element={<GST />} />
-              <Route path="/reports/mis" element={<MISReports />} />
-              <Route path="/reports/unbilled" element={<UnbilledReports />} />
-              <Route path="/reports/sales" element={<SalesReports />} />
-              <Route path="/reports/purchases" element={<PurchaseReports />} />
-              <Route path="/reports/cashsheet" element={<CashsheetReports />} />
-              <Route path="/reports/client-trips" element={<ClientTripReports />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/reports/analytics" element={<ProtectedRoute requiredPermission="analytics"><Analytics /></ProtectedRoute>} />
+              <Route path="/reports/gst" element={<ProtectedRoute requiredPermission="gst_reports"><GST /></ProtectedRoute>} />
+              <Route path="/reports/mis" element={<ProtectedRoute requiredPermission="mis_reports"><MISReports /></ProtectedRoute>} />
+              <Route path="/reports/unbilled" element={<ProtectedRoute requiredPermission="unbilled_reports"><UnbilledReports /></ProtectedRoute>} />
+              <Route path="/reports/sales" element={<ProtectedRoute requiredPermission="sales_reports"><SalesReports /></ProtectedRoute>} />
+              <Route path="/reports/purchases" element={<ProtectedRoute requiredPermission="purchase_reports"><PurchaseReports /></ProtectedRoute>} />
+              <Route path="/reports/cashsheet" element={<ProtectedRoute requiredPermission="cashsheet_reports"><CashsheetReports /></ProtectedRoute>} />
+              <Route path="/reports/client-trips" element={<ProtectedRoute requiredPermission="client_trip_reports"><ClientTripReports /></ProtectedRoute>} />
             </Route>
 
             {/* Uploads */}
-            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="uploads" /></MaintenanceGuard>}>
-              <Route path="/upload-box" element={<UploadBox />} />
-              <Route path="/upload-vouchers" element={<UploadVouchers />} />
+            <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
+              <Route path="/upload-box" element={<ProtectedRoute requiredPermission="upload_box"><UploadBox /></ProtectedRoute>} />
+              <Route path="/upload-vouchers" element={<ProtectedRoute requiredPermission="upload_box"><UploadVouchers /></ProtectedRoute>} />
             </Route>
           </Route>
 

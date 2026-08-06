@@ -12,11 +12,15 @@ const { requirePermission } = require("../middleware/rbac");
 
 const CACHE_KEY = "bookings";
 
-router.use(requirePermission(['operations', 'bookings']));
+// Define read and write permissions separately
+const readPerms = ['operations', 'bookings', 'create_booking', 'pod', 'upload_box', 'generate_bills', 'unbilled_reports', 'track_shipment'];
+const createPerms = ['operations', 'bookings', 'create_booking'];
+const writePerms = ['operations', 'bookings'];
 
 // Create Booking (LR)
 router.post(
   "/",
+  requirePermission(createPerms),
   [
   body("client").notEmpty().withMessage("Client name is required"),
   body("dispatch_date").notEmpty().withMessage("Date is required"),
@@ -61,6 +65,7 @@ router.post(
 // Get all bookings
 router.get(
   "/",
+  requirePermission(readPerms),
   asyncHandler(getRoot_2
 
 
@@ -83,12 +88,14 @@ router.get(
 // Clear all bookings
 router.delete(
   "/clear/all",
+  requirePermission(writePerms),
   asyncHandler(delete_clear_all_6)
 );
 
 // Get single booking
 router.get(
   "/:id",
+  requirePermission(readPerms),
   asyncHandler(get_id_3
 
 
@@ -100,6 +107,7 @@ router.get(
 // Update booking
 router.put(
   "/:id",
+  requirePermission(writePerms),
   asyncHandler(put_id_4
 
 
@@ -113,6 +121,7 @@ router.put(
 // Delete booking
 router.delete(
   "/:id",
+  requirePermission(writePerms),
   asyncHandler(delete_id_5
 
 

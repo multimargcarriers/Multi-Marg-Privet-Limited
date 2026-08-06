@@ -132,7 +132,7 @@ exports.put_id_3 = async (req, res) => {
     const empIdCheck = await db.collection("users").where("employeeId", "==", employeeId).get();
     let taken = false;
     empIdCheck.forEach(d => {
-      if (d.id !== id) taken = true;
+      if (String(d.id) !== String(id)) taken = true;
     });
     if (taken) return error(res, { message: "Employee ID already exists", statusCode: 400 });
   }

@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useToast } from "../context/ToastContext";
 import "../index.css"; 
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Tracking = () => {
   const { user, hasPermission } = useContext(AuthContext);
-  const { confirm, alert } = useDialog();
+  const navigate = useNavigate();
+  const { confirm } = useDialog();
+  const { addToast } = useToast();
   const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
 
   const [allUpdates, setAllUpdates] = useState([]);
@@ -24,6 +28,8 @@ const Tracking = () => {
     status: "",
     remarks: ""
   });
+  
+  const [editingTrackingId, setEditingTrackingId] = useState(null);
   
   const [searchAwb, setSearchAwb] = useState("");
   const [trackingHistory, setTrackingHistory] = useState([]);
@@ -71,7 +77,7 @@ const Tracking = () => {
     
     const fetchBookings = async () => {
       try {
-        const res = await axios.get(`${API}/bookings`);
+        const res = await axios.get(`${API}/bookings?worldwide=true`);
         if (res.data.success) {
           setBookingsList(res.data.data || []);
         }
@@ -128,13 +134,22 @@ const Tracking = () => {
     if (!awbToSearch) return;
     setIsSearching(true);
     try {
-      const match = bookingsList.find(b => getBookingAwb(b) === awbToSearch);
+      const cleanSearch = String(awbToSearch).trim().toLowerCase();
+      
+      // Find match using exact or partial inclusion
+      const match = bookingsList.find(b => {
+        const bAwb = getBookingAwb(b).toLowerCase();
+        return bAwb === cleanSearch || bAwb.includes(cleanSearch);
+      });
+      
       const fullId = match ? match.id : null;
+      // If we found a matching booking with a fuller AWB string (like MMC-123 instead of 123), use it to fetch
+      const actualAwbToSearch = match ? getBookingAwb(match) : awbToSearch;
 
-      const response = await axios.get(`${API}/tracking/${awbToSearch}`);
+      const response = await axios.get(`${API}/tracking/${actualAwbToSearch}`);
       let data = response.data.success ? response.data.data : [];
 
-      if (fullId && fullId !== awbToSearch) {
+      if (fullId && fullId !== actualAwbToSearch) {
           try {
               const res2 = await axios.get(`${API}/tracking/${fullId}`);
               if (res2.data.success) {
@@ -172,8 +187,18 @@ const Tracking = () => {
     
     // Clear selected booking if they just typed a random AWB manually that isn't matched
     if (!selectedSearchBooking || getBookingAwb(selectedSearchBooking) !== searchAwb) {
-       const match = bookingsList.find(b => getBookingAwb(b) === searchAwb);
+       const cleanSearch = String(searchAwb).trim().toLowerCase();
+       const match = bookingsList.find(b => {
+         const bAwb = getBookingAwb(b).toLowerCase();
+         return bAwb === cleanSearch || bAwb.includes(cleanSearch);
+       });
        setSelectedSearchBooking(match || null);
+       
+       if (match) {
+         setSearchAwb(getBookingAwb(match));
+         fetchTrackingHistory(getBookingAwb(match));
+         return;
+       }
     }
     
     fetchTrackingHistory(searchAwb);
@@ -184,7 +209,13 @@ const Tracking = () => {
     setIsSubmitting(true);
     setSuccess(false);
     try {
-      const response = await axios.post(`${API}/tracking`, formData);
+      let response;
+      if (editingTrackingId) {
+        response = await axios.put(`${API}/tracking/${editingTrackingId}`, formData);
+      } else {
+        response = await axios.post(`${API}/tracking`, formData);
+      }
+      
       if (response.data.success) {
         setSuccess(true);
         const awbUpdated = formData.awb;
@@ -196,20 +227,20 @@ const Tracking = () => {
           status: "",
           remarks: ""
         });
+        setEditingTrackingId(null);
         
-        if (hasSearched && searchAwb === awbUpdated) {
+        if (hasSearched && String(searchAwb).toLowerCase() === String(awbUpdated).toLowerCase()) {
            fetchTrackingHistory(awbUpdated);
         }
 
-        if (isAdmin) {
-           const refresh = await axios.get(`${API}/tracking`);
-           if (refresh.data.success) setAllUpdates(refresh.data.data || []);
-        }
+        const refresh = await axios.get(`${API}/tracking`);
+        if (refresh.data.success) setAllUpdates(refresh.data.data || []);
 
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (error) {
-      console.error("Error creating tracking entry", error);
+      console.error("Error saving tracking entry", error);
+      addToast("Failed to save tracking update.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -255,48 +286,97 @@ const Tracking = () => {
 
 
   const handleDelete = async (id) => {
-    const isConfirmed = await confirm("Are you sure you want to delete this tracking update?");
-    if (isConfirmed) {
-      try {
-        const response = await axios.delete(`${API}/tracking/${id}`);
-        if (response.data.success) {
-          setAllUpdates(prev => prev.filter(item => item.id !== id));
-          if (hasSearched) fetchTrackingHistory(searchAwb);
-          alert("Tracking update deleted successfully!");
-        }
-      } catch (error) {
-        console.error("Error deleting tracking", error);
-        alert("Failed to delete tracking update.");
-      }
+    const isConfirmed = await confirm({
+      title: "Delete Tracking Update",
+      message: "Are you sure you want to delete this tracking update?",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await axios.delete(`${API}/tracking/${id}`);
+      setTrackingHistory(trackingHistory.filter(t => t.id !== id));
+      setAllUpdates(allUpdates.filter(t => t.id !== id));
+      addToast("Tracking update deleted successfully!", "success");
+    } catch (error) {
+      console.error("Error deleting tracking", error);
+      addToast("Failed to delete tracking update.", "error");
     }
   };
 
+  const handleDeleteBooking = async (id) => {
+    const isConfirmed = await confirm({
+      title: "Delete Booking",
+      message: "Are you sure you want to delete this booking? This will also remove any associated data.",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await axios.delete(`${API}/bookings/${id}`);
+      addToast("Booking deleted successfully!", "success");
+      setSearchAwb("");
+      setTrackingHistory([]);
+      setSelectedSearchBooking(null);
+      setHasSearched(false);
+      // Re-fetch bookings list
+      const res = await axios.get(`${API}/bookings?worldwide=true`);
+      if (res.data.success) {
+        setBookingsList(res.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error deleting booking", error);
+      addToast("Failed to delete booking.", "error");
+    }
+  };
+
+  const handleEdit = (entry) => {
+    setEditingTrackingId(entry.id);
+    setFormData({
+      awb: entry.awb,
+      date: entry.date ? entry.date.split('T')[0] : "",
+      location: entry.location || "",
+      status: entry.status || "",
+      remarks: entry.remarks || ""
+    });
+    const match = bookingsList.find(b => {
+      const bAwb = b.awb || b.consignment || b.lrNo || (b.id ? b.id.slice(-6) : "");
+      return String(bAwb) === String(entry.awb);
+    });
+    if (match) setSelectedFormBooking(match);
+    
+    // Scroll to form (mobile friendly)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const AutocompleteDropdown = ({ filteredList, onSelect }) => (
-    <div
+    <div 
+      onMouseDown={(e) => e.preventDefault()}
       style={{
-        position: "absolute",
-        top: "100%",
-        left: 0,
-        right: 0,
-        background: "white",
-        border: "1px solid #cbd5e1",
-        borderRadius: "10px",
-        marginTop: "6px",
-        maxHeight: "260px",
-        overflowY: "auto",
-        zIndex: 50,
-        boxShadow: "0 15px 25px rgba(0,0,0,0.12)"
-      }}
-    >
-      {filteredList.map((booking) => {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      background: "white",
+      border: "1px solid #e5e7eb",
+      borderRadius: "8px",
+      boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
+      zIndex: 50,
+      maxHeight: "250px",
+      overflowY: "auto",
+      marginTop: "4px"
+    }}>
+      {filteredList.map((booking, index) => {
         const awb = getBookingAwb(booking);
         return (
-          <div
-            key={booking.id}
+          <div 
+            key={booking.id || index}
             onClick={() => onSelect(awb, booking)}
             style={{
-              padding: "0.75rem 1rem",
-              borderBottom: "1px solid #f1f5f9",
+              padding: "10px 15px",
+              borderBottom: index < filteredList.length - 1 ? "1px solid #f1f5f9" : "none",
               cursor: "pointer",
               display: "flex",
               justifyContent: "space-between",
@@ -413,7 +493,7 @@ const Tracking = () => {
                  <p style={{ margin: 0, fontSize: "0.9rem" }}>There is no tracking history recorded for <strong>{searchAwb}</strong>.</p>
               </div>
             ) : (
-              <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+              <div>
                 
                 {/* SHIPMENT DETAILS CARD (Auto-populated from LR) */}
                 {selectedSearchBooking && (
@@ -423,13 +503,20 @@ const Tracking = () => {
                     borderRadius: "12px",
                     padding: "1.25rem",
                     marginBottom: "2rem",
-                    marginLeft: "-1.5rem",
                     boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
                   }}>
                     <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <Package size={18} color="#0284c7" /> Shipment Overview
                     </h5>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.9rem" }}>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {selectedSearchBooking.date || selectedSearchBooking.dispatch_date 
+                            ? new Date(selectedSearchBooking.date || selectedSearchBooking.dispatch_date).toLocaleDateString('en-IN') 
+                            : "-"}
+                        </div>
+                      </div>
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Route</div>
                         <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin || "-"} &rarr; {selectedSearchBooking.destination || "-"}</div>
@@ -450,20 +537,23 @@ const Tracking = () => {
                   </div>
                 )}
 
-                {/* Vertical Line */}
-                <div style={{ 
-                  position: "absolute", 
-                  left: "26px", 
-                  top: selectedSearchBooking ? "140px" : "10px", 
-                  bottom: "10px", 
-                  width: "2px", 
-                  background: "#e5e7eb", 
-                  zIndex: 0 
-                }}></div>
+                <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+                  {/* Vertical Line */}
+                  <div style={{ 
+                    position: "absolute", 
+                    left: "26px", 
+                    top: "10px", 
+                    bottom: "10px", 
+                    width: "2px", 
+                    background: "#e5e7eb", 
+                    zIndex: 0 
+                  }}></div>
 
                 {trackingHistory.map((entry, index) => {
                   const isLatest = index === 0; 
                   const color = getStatusColor(entry.status);
+                  const isDelivered = trackingHistory.some(t => t.status === "Delivered");
+                  const canModify = isAdmin || !isDelivered;
 
                   return (
                     <div key={entry.id} style={{ position: "relative", zIndex: 1, marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem", display: "flex", gap: "1.5rem" }}>
@@ -488,14 +578,21 @@ const Tracking = () => {
                       <div style={{ flex: 1, padding: "1rem 1.2rem", background: isLatest ? "#f8fafc" : "#ffffff", border: isLatest ? "1px solid #e2e8f0" : "1px solid transparent", borderRadius: "12px", boxShadow: isLatest ? "0 4px 6px rgba(0,0,0,0.02)" : "none" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                           <span style={{ fontWeight: "700", color: color, fontSize: "1.05rem" }}>{entry.status}</span>
-                          <span style={{ fontSize: "0.85rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "20px", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                            <Clock size={12} />
-                            {entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : "N/A"}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                            <span style={{ fontSize: "0.85rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "20px", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                              <Clock size={12} />
+                              {entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : "N/A"}
+                            </span>
+                          </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#4b5563", fontSize: "0.95rem" }}>
                           <MapPin size={15} color="#9ca3af" />
                           <span style={{ fontWeight: "500" }}>{entry.location || "Location not provided"}</span>
+                          {isAdmin && (
+                            <span style={{ marginLeft: "auto", background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px", fontSize: "0.8rem", color: "#475569" }}>
+                              By: {entry.enteredBy || "Admin"}
+                            </span>
+                          )}
                         </div>
                         {entry.remarks && (
                           <div style={{ fontSize: "0.9rem", color: "#6b7280", background: "#f9fafb", padding: "0.75rem", borderRadius: "8px", borderLeft: "3px solid #d1d5db", fontStyle: "italic" }}>
@@ -506,6 +603,7 @@ const Tracking = () => {
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
           </div>
@@ -577,12 +675,24 @@ const Tracking = () => {
                 {selectedFormBooking && (
                   <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", fontSize: "0.85rem", color: "#0369a1" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                      <span style={{ fontWeight: 600 }}>Date:</span>
+                      <span>{selectedFormBooking.date || selectedFormBooking.dispatch_date ? new Date(selectedFormBooking.date || selectedFormBooking.dispatch_date).toLocaleDateString('en-IN') : "-"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600 }}>Route:</span>
                       <span>{selectedFormBooking.origin || "-"} &rarr; {selectedFormBooking.destination || "-"}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600 }}>Client:</span>
-                      <span>{selectedFormBooking.client || selectedFormBooking.clientName || "-"}</span>
+                      <span style={{ textAlign: "right" }}>{selectedFormBooking.client || selectedFormBooking.clientName || "-"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                      <span style={{ fontWeight: 600 }}>Consignor:</span>
+                      <span style={{ textAlign: "right" }}>{selectedFormBooking.consignor || "-"}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 600 }}>Consignee:</span>
+                      <span style={{ textAlign: "right" }}>{selectedFormBooking.consignee || "-"}</span>
                     </div>
                   </div>
                 )}
@@ -682,35 +792,112 @@ const Tracking = () => {
               </button>
             </div>
           </form>
+
+          {/* RECENT UPDATES FOR SELECTED AWB */}
+          {formData.awb.trim() !== "" && (
+            <div style={{ marginTop: "1rem", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "1rem" }}>
+              <h5 style={{ fontSize: "0.95rem", fontWeight: "600", color: "#475569", margin: "0 0 0.75rem 0", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <Clock size={16} /> Recent Updates for {formData.awb}
+              </h5>
+              
+              {(() => {
+                const recent = allUpdates
+                  .filter(u => String(u.awb).toLowerCase() === formData.awb.trim().toLowerCase())
+                  .sort((a,b) => new Date(b.date) - new Date(a.date));
+                
+                if (recent.length === 0) {
+                  return <div style={{ fontSize: "0.85rem", color: "#9ca3af", fontStyle: "italic" }}>No tracking history found.</div>;
+                }
+                
+                const isDelivered = recent.some(t => t.status === "Delivered");
+                const canModify = isAdmin || !isDelivered;
+                
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "200px", overflowY: "auto", paddingRight: "5px" }}>
+                    {recent.map((entry, idx) => (
+                      <div key={entry.id || idx} style={{ background: "white", padding: "0.75rem", borderRadius: "6px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                          <span style={{ color: getStatusColor(entry.status), fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+                            {getStatusIcon(entry.status)} {entry.status}
+                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>
+                              {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "0.85rem", color: "#334155", fontWeight: 500, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <MapPin size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "3px" }} />
+                            {entry.location}
+                          </div>
+                          {isAdmin && (
+                            <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "8px", fontSize: "0.75rem", color: "#475569" }}>
+                              By: {entry.enteredBy || "Admin"}
+                            </span>
+                          )}
+                        </div>
+                        {entry.remarks && (
+                          <div style={{ marginTop: "0.3rem", fontSize: "0.8rem", color: "#64748b", fontStyle: "italic" }}>
+                            "{entry.remarks}"
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
         )}
       </div>
 
-      {isAdmin && (
+      {/* Tracking Updates Table */}
+      {(isAdmin || hasPermission('update_tracking')) && (
         <div className="glass-panel" style={{ marginTop: "2rem", padding: "1.5rem" }}>
           <h4 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#1e293b", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <AlertCircle size={20} color="#f59e0b" />
-            All System Tracking Updates (Admin Only)
+            {isAdmin ? "All System Tracking Updates (Admin Only)" : "Your Tracking Updates"}
           </h4>
           <Table 
-            headers={["AWB / LR No", "Date", "Status", "Location", "Remarks", "Actions"]} 
-            data={allUpdates} 
+            headers={isAdmin ? ["AWB / LR No", "Date", "Status", "Location", "Entered By", "Remarks", "Actions"] : ["AWB / LR No", "Date", "Status", "Location", "Remarks", "Actions"]} 
+            data={isAdmin ? allUpdates : allUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
             pagination={true}
             defaultEntries={25}
-            renderRow={(row, index) => (
-              <tr key={row.id || index}>
-                <td style={{ fontWeight: 600, color: "#4f46e5" }}>{row.awb}</td>
-                <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
-                <td><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
-                <td>{row.location}</td>
-                <td>{row.remarks}</td>
-                <td>
-                  <button onClick={() => handleDelete(row.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }} title="Delete Update">
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
-            )}
+            renderRow={(row, index) => {
+              const isDelivered = allUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
+              const canModify = isAdmin || !isDelivered;
+              
+              return (
+                <tr key={row.id || index}>
+                  <td style={{ fontWeight: 600, color: "#4f46e5" }}>{row.awb}</td>
+                  <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
+                  <td><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
+                  <td>{row.location}</td>
+                  {isAdmin && (
+                    <td>
+                      <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px", fontSize: "0.85rem", color: "#475569" }}>
+                        {row.enteredBy || "Admin"}
+                      </span>
+                    </td>
+                  )}
+                  <td>{row.remarks}</td>
+                  <td>
+                    {canModify && (
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button type="button" onClick={() => handleEdit(row)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", padding: "4px" }} title="Edit Update">
+                          <Edit size={18} />
+                        </button>
+                        <button type="button" onClick={() => handleDelete(row.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }} title="Delete Update">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            }}
           />
         </div>
       )}

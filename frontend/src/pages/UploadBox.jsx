@@ -91,7 +91,7 @@ const UploadBox = () => {
 
   const fetchBookings = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/api/bookings`);
+      const res = await axios.get(`${apiUrl}/api/bookings?worldwide=true`);
       if (res.data.success) {
         setBookingsList(res.data.data || []);
       }

@@ -45,13 +45,15 @@ export const menuItems = [
     permission: "operations",
     children: [
       {
-        name: "ALL Bookings",
+        name: "ALL AWB Bookings",
         path: "/bookings",
         icon: <ClipboardList size={18} />,
         permission: "bookings"
       },
-      { name: "Trip Management", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
-      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} />, permission: "track_shipment" },
+      { name: "ALL Train AIR Road Bookings", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
+      { name: "Vehicle Trip MIS", path: "/trip-mis", icon: <FileText size={18} />, permission: "tripmis" },
+      { name: "Vendor Vehicle MIS", path: "/vendor-mis", icon: <Truck size={18} />, permission: "vendormis" },
+      { name: "Tracking", path: "/tracking", icon: <MapPin size={18} /> },
       { name: "POD Upload", path: "/pod", icon: <Upload size={18} />, permission: "pod" },
       {
         name: "Upload Box",
@@ -67,23 +69,23 @@ export const menuItems = [
     icon: <FileText size={18} />,
     permission: "accounts",
     children: [
+      { 
+        name: "Sales Bills", 
+        path: "/bills/all", 
+        icon: <Receipt size={18} />, 
+        permission: "all_bills" 
+      },
+      {
+        name: "Purchase Bills",
+        path: "/purchases",
+        icon: <ShoppingCart size={18} />,
+        permission: "purchases"
+      },
       {
         name: "Cash Sheet",
         path: "/cash-sheet",
         icon: <DollarSign size={18} />,
         permission: "cash_sheet"
-      },
-      {
-        name: "Purchases",
-        path: "/purchases",
-        icon: <ShoppingCart size={18} />,
-        permission: "purchases"
-      },
-      { 
-        name: "All Bills", 
-        path: "/bills/all", 
-        icon: <Receipt size={18} />, 
-        permission: "all_bills" 
       },
     ],
   },
@@ -168,6 +170,8 @@ export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
         const visibleChildren = item.children.filter(child => {
           if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
           
+          if (!child.permission) return true; // Show items with no permission explicitly required (like Tracking)
+
           if (user?.role === 'Vendor' || user?.role === 'Client') {
             if (child.permission === 'trips' && (hasPermission('tripmis') || hasPermission('trips') || hasPermission('vendormis'))) return true;
             return child.permission && hasPermission(child.permission);

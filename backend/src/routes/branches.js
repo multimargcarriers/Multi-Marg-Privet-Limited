@@ -9,16 +9,18 @@ const { body, param, validationResult } = require("express-validator");
 const branchesController = require('../controllers/branchesController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["masters","branches"]));
 
 const CACHE_KEY = "branches";
 
 // Get all branches
-router.get("/", asyncHandler(branchesController.getRoot_1));
+router.get(
+  "/",
+  requirePermission(["masters","branches","branches_data","all"]), asyncHandler(branchesController.getRoot_1));
 
 // Create branch
 router.post(
   "/",
+  requirePermission(["masters","branches","all"]),
   [
     body("branch").notEmpty().withMessage("Branch name is required"),
     body("name").notEmpty().withMessage("Contact person is required"),
@@ -32,6 +34,7 @@ router.post(
 // Update branch
 router.put(
   "/:id",
+  requirePermission(["masters","branches","all"]),
   [param("id").notEmpty().withMessage("Branch ID is required")],
   asyncHandler(branchesController.put_id_3)
 );
@@ -42,6 +45,7 @@ router.delete("/all", asyncHandler(branchesController.deleteAll));
 // Delete branch
 router.delete(
   "/:id",
+  requirePermission(["masters","branches","all"]),
   asyncHandler(branchesController.delete_id_4)
 );
 

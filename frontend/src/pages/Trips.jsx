@@ -4,8 +4,8 @@ import axios from "axios";
 import Table from "../components/Table";
 import { Plus, Truck, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Trash2, Printer, Search, Upload, AlertCircle } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
-import TripMIS from '../components/trips/TripMIS';
-import VendorMIS from '../components/trips/VendorMIS';
+
+
 import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -89,10 +89,6 @@ const Trips = () => {
 
   // Default view handling for restricted roles
   useEffect(() => {
-    if (user && !hasAccess('trips')) {
-      if (hasAccess('tripmis')) setView('list');
-      else if (hasAccess('vendormis')) setView('sheet');
-    }
   }, [user]);
 
   useEffect(() => {
@@ -103,10 +99,10 @@ const Trips = () => {
     try {
       if (trips.length === 0) setLoading(true);
       const [clientsRes, vendorsRes, citiesRes, tripsRes] = await Promise.all([
-        axios.get(`${API}/clients`),
-        axios.get(`${API}/vendors`),
-        axios.get(`${API}/cities`),
-        axios.get(`${API}/trips`)
+        axios.get(`${API}/clients`).catch(() => ({ data: { success: false } })),
+        axios.get(`${API}/vendors`).catch(() => ({ data: { success: false } })),
+        axios.get(`${API}/cities`).catch(() => ({ data: { success: false } })),
+        axios.get(`${API}/trips`).catch(() => ({ data: { success: false } })),
       ]);
       
       if (tripsRes.data.success) setTrips(tripsRes.data.data || []);
@@ -205,9 +201,7 @@ const Trips = () => {
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
             {view === 'manifest' ? 'TRIP AIR / FLIGHT EXPRESS' : 
-             view === 'list' ? 'Trip MIS' : 
-             view === 'sheet' ? 'Vendor Vehicle MIS' : 
-             view === 'bill' ? 'Trip Bill' : 'Trips & MIS'}
+             view === 'bill' ? 'Trip Bill' : 'Trips'}
           </h3>
         </div>
         {!showForm && hasAccess('trips') && (
@@ -412,8 +406,6 @@ const Trips = () => {
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {[
             { key: "manifest", label: "TRIP AIR / FLIGHT EXPRESS", icon: ClipboardList, permission: "trips" },
-            { key: "list", label: "TRIP MIS", icon: Truck, permission: "tripmis" },
-            { key: "sheet", label: "VENDOR VEHICLE MIS", icon: FileText, permission: "vendormis" },
             { key: "bill", label: "TRIP BILL", icon: FileText, permission: "trips" },
           ].filter(tab => hasAccess(tab.permission)).map(({ key, label, icon: Icon }) => (
             <button key={key}
@@ -521,8 +513,6 @@ const Trips = () => {
         />
       )}
 
-      {view === "list" && <TripMIS />}
-      {view === "sheet" && <VendorMIS />}
       {view === "bill" && (
         <div className="glass-panel" style={{ padding: "2rem", textAlign: "center" }}>
           <FileText size={48} style={{ color: "var(--text-muted)", marginBottom: "1rem" }} />

@@ -29,6 +29,7 @@ const BookingsList = () => {
   const [podModalOpen, setPodModalOpen] = useState(false);
   const [selectedBookingForPod, setSelectedBookingForPod] = useState(null);
   const [podMap, setPodMap] = useState({});
+  const [trackingMap, setTrackingMap] = useState({});
 
   // Box modal state & lookup map
   const [boxModalOpen, setBoxModalOpen] = useState(false);
@@ -93,6 +94,29 @@ const BookingsList = () => {
       setLoading(false); 
     }
   };
+
+  const fetchTrackingForMap = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/tracking`);
+      if (res.data.success && Array.isArray(res.data.data)) {
+        const map = {};
+        const sorted = res.data.data.sort((a,b) => new Date(a.date) - new Date(b.date));
+        sorted.forEach(t => {
+          if (t.awb) map[String(t.awb).trim().toLowerCase()] = t.status;
+        });
+        setTrackingMap(map);
+      }
+    } catch (err) {
+      console.error("Fetch Tracking error in BookingsList:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+    fetchPodEntries();
+    fetchBoxEntries();
+    fetchTrackingForMap();
+  }, []);
 
   useSocketSync("bookings", fetchBookings);
 
@@ -260,7 +284,11 @@ const BookingsList = () => {
                     <div className="booking-freight">
                       <RupeeIcon size={12} /> {parseFloat(item.freight_charge || item.freight || item.frieght || item.weight || 0).toFixed(2)}
                     </div>
-                    <span style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>By: {item.clerk_name || "Admin"}</span>
+                    {isSuperAdmin && (
+                      <span style={{ background: "#e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", color: "#334155", fontWeight: "600", marginTop: "4px", display: "inline-block" }}>
+                        Entered By: {item.clerk_name || "Admin"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -304,12 +332,24 @@ const BookingsList = () => {
                 {/* ── Card Footer: Actions ── */}
                 <div className="booking-card-footer">
                   <div className="booking-actions-left">
-                    <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
-                    <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} className="booking-action-btn" title="View Bills" style={{ color: '#8b5cf6' }}><Eye size={15} /></button>
-                    <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
-                    {isSuperAdmin && (
-                      <button onClick={() => handleDelete(item.id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
-                    )}
+                    {(() => {
+                      const awbLower = String(awb).trim().toLowerCase();
+                      const isDelivered = trackingMap[awbLower] === 'Delivered';
+                      const canModify = isSuperAdmin || !isDelivered;
+                      
+                      return (
+                        <>
+                          {canModify && (
+                            <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
+                          )}
+                          <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} className="booking-action-btn" title="View Bills" style={{ color: '#8b5cf6' }}><Eye size={15} /></button>
+                          <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
+                          {canModify && (
+                            <button onClick={() => handleDelete(item.id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   {canAccessPod && (
                     <div className="booking-actions-right">

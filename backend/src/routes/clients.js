@@ -9,7 +9,6 @@ const { body, validationResult } = require("express-validator");
 const { getRoot_1, postRoot_2, put_id_3, delete_id_4, deleteAll } = require('../controllers/clientsController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["masters","clients","trips","all"]));
 
 
 const CACHE_KEY = "clients";
@@ -17,12 +16,14 @@ const CACHE_KEY = "clients";
 // Get all clients
 router.get(
   "/",
+  requirePermission(["masters","clients","clients_data","trips","all"]),
   asyncHandler(getRoot_1)
 );
 
 // Create client
 router.post(
   "/",
+  requirePermission(["masters","clients","all"]),
   [
     body("name").notEmpty().withMessage("Client name is required")
   ],
@@ -32,6 +33,7 @@ router.post(
 // Update client
 router.put(
   "/:id",
+  requirePermission(["masters","clients","all"]),
   asyncHandler(put_id_3)
 );
 
@@ -44,6 +46,7 @@ router.delete(
 // Delete client
 router.delete(
   "/:id",
+  requirePermission(["masters","clients","all"]),
   asyncHandler(delete_id_4)
 );
 

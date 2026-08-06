@@ -9,14 +9,16 @@ const { body, validationResult } = require("express-validator");
 const { getRoot_1, postRoot_2, put_id_3, delete_id_4, deleteAll } = require('../controllers/ratesController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["rates","client_rates"]));
 
 const CACHE_KEY = "rates";
 
-router.get("/", asyncHandler(getRoot_1));
+router.get(
+  "/",
+  requirePermission(["rates","client_rates","client_rates_data","all"]), asyncHandler(getRoot_1));
 
 router.post(
   "/",
+  requirePermission(["rates","client_rates","all"]),
   [
     body("client").notEmpty().withMessage("Client name is required"),
     body("origin").notEmpty().withMessage("Origin is required"),
@@ -40,8 +42,12 @@ router.post(
 
 router.delete("/all", asyncHandler(deleteAll));
 
-router.put("/:id", asyncHandler(put_id_3));
+router.put(
+  "/:id",
+  requirePermission(["rates","client_rates","all"]), asyncHandler(put_id_3));
 
-router.delete("/:id", asyncHandler(delete_id_4));
+router.delete(
+  "/:id",
+  requirePermission(["rates","client_rates","all"]), asyncHandler(delete_id_4));
 
 module.exports = router;

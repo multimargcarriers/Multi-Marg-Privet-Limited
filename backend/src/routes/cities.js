@@ -8,7 +8,6 @@ const { getOrSet, delCache } = require("../config/redis");
 const { body, param, validationResult } = require("express-validator");const { getRoot_1, postRoot_2, put_id_3, delete_id_4 } = require('../controllers/citiesController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["masters","cities"]));
 
 
 const CACHE_KEY = "cities";
@@ -16,6 +15,7 @@ const CACHE_KEY = "cities";
 
 router.get(
   "/",
+  requirePermission(["masters","cities","cities_data","all"]),
   asyncHandler(getRoot_1
 
 
@@ -36,6 +36,7 @@ router.get(
 
 router.post(
   "/",
+  requirePermission(["masters","cities","all"]),
   [
   body("city").notEmpty().withMessage("City name is required"),
   body("short").
@@ -63,6 +64,7 @@ router.post(
 
 router.put(
   "/:id",
+  requirePermission(["masters","cities","all"]),
   asyncHandler(put_id_3
 
 
@@ -75,6 +77,7 @@ router.put(
 
 router.delete(
   "/:id",
+  requirePermission(["masters","cities","all"]),
   asyncHandler(delete_id_4
 
 
