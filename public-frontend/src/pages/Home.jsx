@@ -209,12 +209,9 @@ const Home = () => {
               
               {activeTab === 'track' && (
                 <form onSubmit={handleHomeTrack} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <select style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none', background: 'var(--bg-light-grey)' }}>
-                    <option>AWB / LR Number</option>
-                  </select>
                   <input 
                     type="text" 
-                    placeholder="Enter Tracking Number"
+                    placeholder="Enter AWB / LR Number"
                     value={homeTrackingNumber}
                     onChange={(e) => setHomeTrackingNumber(e.target.value)}
                     style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
