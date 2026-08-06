@@ -224,7 +224,7 @@ const Home = () => {
                 </form>
               )}
               {activeTab === 'branch' && (
-                <form onSubmit={handleBranchSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleBranchSearch} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                    <input 
                     type="text" 
                     placeholder="Enter City or Branch Name..."
@@ -233,13 +233,33 @@ const Home = () => {
                     style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
                     required
                   />
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#f9fafb', borderRadius: '4px', border: '1px solid var(--border-color)', display: branchSearch.length > 1 && !isBranchModalOpen ? 'block' : 'none' }}>
-                    {branches.filter(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase())).map(b => (
-                      <div key={b.id} onClick={() => { setSelectedBranch(b); setIsBranchModalOpen(true); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase' }}>
-                        <strong>{b.branch}</strong> - <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{b.address.substring(0,30)}...</span>
-                      </div>
-                    ))}
-                  </div>
+                  <AnimatePresence>
+                    {branchSearch.length > 1 && !isBranchModalOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '250px', overflowY: 'auto', background: 'white', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', zIndex: 50, marginTop: '4px' }}
+                      >
+                        {branches.filter(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase())).length > 0 ? (
+                          branches.filter(b => b.branch.toLowerCase().includes(branchSearch.toLowerCase()) || b.address.toLowerCase().includes(branchSearch.toLowerCase())).map(b => (
+                            <div 
+                              key={b.id} 
+                              onClick={() => { setSelectedBranch(b); setIsBranchModalOpen(true); }} 
+                              style={{ padding: '1rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', textTransform: 'uppercase', transition: 'background-color 0.2s', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                            >
+                              <strong style={{ color: 'var(--text-color)', fontSize: '0.95rem' }}>{b.branch}</strong>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.address}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.9rem', textAlign: 'center' }}>No branches found</div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <button type="submit" className="btn btn-blue" style={{ marginTop: '0.5rem', padding: '1rem' }}>Find Branch</button>
                 </form>
               )}
