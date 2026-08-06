@@ -294,26 +294,26 @@ const TrackShipment = () => {
                       )}
                       <div>
                         <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>From</p>
-                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', textTransform: 'uppercase' }}>
                           <MapPin size={14} color="var(--primary-red)"/> {trackingResult.booking.origin || '-'}
                         </p>
                       </div>
                       <div>
                         <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>To</p>
-                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
+                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', textTransform: 'uppercase' }}>
                           <MapPin size={14} color="var(--primary-blue)"/> {trackingResult.booking.destination || '-'}
                         </p>
                       </div>
                       {trackingResult.booking.consignor && (
                         <div>
                           <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignor</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignor}</p>
+                          <p style={{ fontWeight: 600, fontSize: '0.95rem', textTransform: 'uppercase' }}>{trackingResult.booking.consignor}</p>
                         </div>
                       )}
                       {trackingResult.booking.consignee && (
                         <div>
                           <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignee</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignee}</p>
+                          <p style={{ fontWeight: 600, fontSize: '0.95rem', textTransform: 'uppercase' }}>{trackingResult.booking.consignee}</p>
                         </div>
                       )}
                     </div>
