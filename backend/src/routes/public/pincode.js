@@ -23,7 +23,7 @@ router.get('/:pincode', async (req, res) => {
     const postOffice = data[0].PostOffice[0];
     const district = postOffice.District.toLowerCase();
     const state = postOffice.State.toLowerCase();
-    const locationName = `${postOffice.Name}, ${postOffice.District}`;
+    const locationName = `${postOffice.Name}, ${postOffice.District}`.toUpperCase();
 
     // 2. Fetch all branches to check coverage
     const snapshot = await db.collection("branches").get();
@@ -55,11 +55,11 @@ router.get('/:pincode', async (req, res) => {
 
     if (exactBranchMatch) {
       serviceability.isServiceable = true;
-      serviceability.message = `Yes, we have a direct branch in ${postOffice.District}!`;
+      serviceability.message = `Yes, we have a direct branch in ${postOffice.District.toUpperCase()}!`;
       serviceability.nearestBranch = exactBranchMatch;
     } else if (stateBranchMatch) {
       serviceability.isServiceable = true;
-      serviceability.message = `We deliver to ${locationName}. Our nearest branch is in ${stateBranchMatch.branch || stateBranchMatch.address.split(',')[0]}.`;
+      serviceability.message = `We deliver to ${locationName}. Our nearest branch is in ${(stateBranchMatch.branch || stateBranchMatch.address.split(',')[0]).toUpperCase()}.`;
       serviceability.nearestBranch = stateBranchMatch;
     } else {
       // Even if no direct match, standard logistics messaging
