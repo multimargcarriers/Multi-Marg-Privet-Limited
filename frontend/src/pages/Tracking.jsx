@@ -476,14 +476,13 @@ const Tracking = () => {
 
           <div style={{ padding: "1.5rem", flex: 1, background: "#ffffff", overflowY: "auto" }}>
             
-            {!hasSearched ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center", padding: "2rem" }}>
-                 <div style={{ background: "#f3f4f6", padding: "1.5rem", borderRadius: "50%", marginBottom: "1rem" }}>
-                    <Search size={40} color="#d1d5db" />
-                 </div>
-                 <h5 style={{ fontWeight: "600", color: "#6b7280", margin: "0 0 0.5rem 0" }}>Enter an AWB / LR No. to Start</h5>
-                 <p style={{ margin: 0, fontSize: "0.9rem" }}>Search for a shipment to view its complete journey and timeline.</p>
-              </div>
+            {!hasSearched ? (            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "300px", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)", borderRadius: "12px", border: "1px solid rgba(229, 231, 235, 0.5)", padding: "2rem", margin: "1rem", textAlign: "center", boxShadow: "0 8px 20px rgba(0,0,0,0.08)" }}>
+               <div style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", padding: "1rem", borderRadius: "50%", marginBottom: "1rem" }}>
+                  <Search size={40} color="#fff" />
+               </div>
+               <h5 style={{ fontWeight: "600", color: "#374151", fontSize: "1.2rem", margin: "0 0 0.5rem 0" }}>Enter AWB / LR Number to Begin</h5>
+               <p style={{ margin: 0, fontSize: "0.95rem", color: "#4b5563" }}>Search for a shipment to view its complete journey and timeline.</p>
+            </div>
             ) : trackingHistory.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center", padding: "2rem" }}>
                  <div style={{ background: "#fef2f2", padding: "1.5rem", borderRadius: "50%", marginBottom: "1rem" }}>

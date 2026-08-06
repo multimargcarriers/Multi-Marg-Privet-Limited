@@ -66,7 +66,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+    <div className="page-content">
       {/* Header */}
       <div className="header-flex">
         <div>
@@ -103,7 +103,7 @@ const Dashboard = () => {
 
       {/* Financial KPIs */}
       <h4 style={{ margin: '0 0 1rem 0', color: '#334155', fontSize: '1.1rem' }}>Sales Overview</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div className="stats-panel-grid">
         <StatCard title="Taxable Amount" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {((stats?.totalBillsAmount || 0) - (stats?.taxLiability || 0)).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<FileText size={24} />} trend="+Net" subtitle="Pre-tax revenue" />
         <StatCard title="Total GST (Tax)" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {(stats?.taxLiability || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<FileText size={24} />} trend="+Active" subtitle="GST on all bills" />
         <StatCard title="Total Sales" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {(stats?.totalBillsAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<DollarSign size={24} />} trend="+Active" subtitle="Total generated bills" />
@@ -112,7 +112,7 @@ const Dashboard = () => {
 
       {/* Operational & Cash KPIs */}
       <h4 style={{ margin: '0 0 1rem 0', color: '#334155', fontSize: '1.1rem' }}>Purchase Overview</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div className="stats-panel-grid">
         <StatCard title="Taxable Amount" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {((stats?.totalPurchaseValue || 0) - (stats?.totalPurchaseGst || 0)).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<FileText size={24} />} trend="+Net" subtitle="Pre-tax purchases" />
         <StatCard title="Total GST (Tax)" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {(stats?.totalPurchaseGst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<Receipt size={24} />} trend="+Active" subtitle="GST on purchases" />
         <StatCard title="Total Purchases" value={<span style={{ display: 'flex', alignItems: 'center' }}><RupeeIcon size={28} /> {(stats?.totalPurchaseValue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<ShoppingCart size={24} />} trend="+Spend" subtitle="Total generated bills" />
@@ -121,7 +121,7 @@ const Dashboard = () => {
 
       {/* Financial Overview */}
       <h4 style={{ margin: '0 0 1rem 0', color: '#334155', fontSize: '1.1rem' }}>Financial Overview</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div className="stats-panel-grid">
         <StatCard title="Total Booking AWB" value={stats?.totalBookings || 0} icon={<Truck size={24} />} trend="+Logistics" subtitle="Dispatched total" />
         <StatCard title="Total Unbilled AWB" value={<span style={{ display: 'flex', alignItems: 'center' }}> {stats?.unbilledAwbCount || 0}</span>} icon={<Clock size={24} />} trend="+Pending" subtitle="Bookings not billed" />
         <StatCard title="Cash In" value={<span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><RupeeIcon size={28} /> {(stats?.totalCashIn || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<TrendingUp size={24} />} trend="+Income" subtitle="Recorded Cash In" />
@@ -182,7 +182,7 @@ const Dashboard = () => {
       </div>
 
       {/* Bottom Grid: Leaders & Recent Activity */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '2rem' }}>
         
       {/* Top Leaders Table */}
       <div>

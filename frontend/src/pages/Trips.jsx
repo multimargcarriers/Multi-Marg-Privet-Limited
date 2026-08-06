@@ -204,11 +204,13 @@ const Trips = () => {
              view === 'bill' ? 'Trip Bill' : 'Trips'}
           </h3>
         </div>
-        {!showForm && hasAccess('trips') && (
-          <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "45px" }} onClick={() => setShowForm(true)}>
-            <Plus size={18} /> New Manifest
-          </button>
-        )}
+        <div className="page-header-actions">
+          {!showForm && hasAccess('trips') && (
+            <button className="page-header-btn page-header-btn-primary" onClick={() => setShowForm(true)}>
+              <Plus size={18} /> New Manifest
+            </button>
+          )}
+        </div>
       </div>
 
       {!showForm && (

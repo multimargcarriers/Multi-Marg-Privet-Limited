@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useDialog } from '../context/DialogContext';
 import axios from 'axios';
 import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint, Lock, X } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
@@ -9,6 +10,7 @@ import { formatDate } from '../utils/formatters';
 const EmployeeActivity = () => {
   const { token, user } = useContext(AuthContext);
   const { addToast } = useToast();
+  const { confirm } = useDialog();
   
   const [activeTab, setActiveTab] = useState('activities');
   const [users, setUsers] = useState([]);
@@ -109,7 +111,13 @@ const EmployeeActivity = () => {
   }).sort((a, b) => (b.isOnline === a.isOnline ? 0 : (b.isOnline ? 1 : -1)));
 
   const handleDeleteReport = async (id) => {
-    if (!window.confirm("Are you sure you want to permanently delete this threat report?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Threat Report",
+      message: "Are you sure you want to permanently delete this threat report?",
+      confirmText: "Delete Permanently",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
     try {
       const res = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/failed-google-logins/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -126,7 +134,14 @@ const EmployeeActivity = () => {
   };
 
   const handleForceLogout = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to forcibly logout and ban ${userName} for 3 minutes?`)) return;
+    const isConfirmed = await confirm({
+      title: "Force Logout & Ban",
+      message: `Are you sure you want to forcibly logout and ban ${userName} for 3 minutes?`,
+      confirmText: "Force Logout",
+      cancelText: "Cancel",
+      requireInput: "ban"
+    });
+    if (!isConfirmed) return;
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/force-logout/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }

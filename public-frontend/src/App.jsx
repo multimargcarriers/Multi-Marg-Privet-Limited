@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { ToastProvider } from './context/ToastContext';
+import { DialogProvider } from './context/DialogContext';
 
 // Pages
 import Home from './pages/Home';
@@ -28,28 +29,30 @@ const ScrollToTop = () => {
 
 function App() {
   return (
-    <ToastProvider>
-      <ScrollToTop />
-      <Navbar />
-      <main style={{ minHeight: '100vh' }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/industries" element={<Industries />} />
-          <Route path="/branches" element={<Branches />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/quote" element={<GetQuote />} />
-          <Route path="/track" element={<TrackShipment />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/careers" element={<Careers />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </main>
-      <Footer />
-    </ToastProvider>
+    <DialogProvider>
+      <ToastProvider>
+        <ScrollToTop />
+        <Navbar />
+        <main style={{ minHeight: '100vh' }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/industries" element={<Industries />} />
+            <Route path="/branches" element={<Branches />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/quote" element={<GetQuote />} />
+            <Route path="/track" element={<TrackShipment />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </main>
+        <Footer />
+      </ToastProvider>
+    </DialogProvider>
   );
 }
 

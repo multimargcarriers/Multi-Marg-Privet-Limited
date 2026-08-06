@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Download, Upload, FileText, ChevronDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { SettingsContext } from '../context/SettingsContext';
 
 const CsvImportExport = ({ moduleName, onImportSuccess, searchQuery }) => {
   const [isImporting, setIsImporting] = useState(false);
@@ -10,6 +11,8 @@ const CsvImportExport = ({ moduleName, onImportSuccess, searchQuery }) => {
   const fileInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const { addToast } = useToast();
+  const { globalSettings } = useContext(SettingsContext);
+  const enableCsvImport = globalSettings?.integrations?.enableCsvImport !== false;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -112,15 +115,17 @@ const CsvImportExport = ({ moduleName, onImportSuccess, searchQuery }) => {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-      <button 
-        onClick={handleDownloadSample}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '0.45rem 0.8rem', backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s' }}
-        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#0ea5e9'; e.currentTarget.style.borderColor = '#bae6fd'; }}
-        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-      >
-        <FileText size={14} /> Template
-      </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap', flexShrink: 0 }}>
+      {enableCsvImport && (
+        <button 
+          onClick={handleDownloadSample}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '0.45rem 0.8rem', backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', transition: 'all 0.2s' }}
+          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; e.currentTarget.style.color = '#0ea5e9'; e.currentTarget.style.borderColor = '#bae6fd'; }}
+          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+        >
+          <FileText size={14} /> Template
+        </button>
+      )}
 
       <button 
         onClick={handleExport}
@@ -132,17 +137,21 @@ const CsvImportExport = ({ moduleName, onImportSuccess, searchQuery }) => {
         <Download size={14} /> {isExporting ? "..." : "Export"}
       </button>
 
-      <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0', margin: '0 0.25rem' }}></div>
+      {enableCsvImport && (
+        <>
+          <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0', margin: '0 0.25rem' }}></div>
 
-      <button 
-        onClick={triggerFileInput}
-        disabled={isImporting}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '0.45rem 0.8rem', backgroundColor: '#0ea5e9', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isImporting ? 'not-allowed' : 'pointer', fontWeight: '600', boxShadow: '0 1px 2px 0 rgba(14, 165, 233, 0.4)', transition: 'all 0.2s' }}
-        onMouseOver={(e) => { if(!isImporting) e.currentTarget.style.backgroundColor = '#0284c7'; }}
-        onMouseOut={(e) => { if(!isImporting) e.currentTarget.style.backgroundColor = '#0ea5e9'; }}
-      >
-        <Upload size={14} /> {isImporting ? "..." : "Import CSV"}
-      </button>
+          <button 
+            onClick={triggerFileInput}
+            disabled={isImporting}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '0.45rem 0.8rem', backgroundColor: '#0ea5e9', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: isImporting ? 'not-allowed' : 'pointer', fontWeight: '600', boxShadow: '0 1px 2px 0 rgba(14, 165, 233, 0.4)', transition: 'all 0.2s' }}
+            onMouseOver={(e) => { if(!isImporting) e.currentTarget.style.backgroundColor = '#0284c7'; }}
+            onMouseOut={(e) => { if(!isImporting) e.currentTarget.style.backgroundColor = '#0ea5e9'; }}
+          >
+            <Upload size={14} /> {isImporting ? "..." : "Import CSV"}
+          </button>
+        </>
+      )}
 
       <input 
         type="file" 

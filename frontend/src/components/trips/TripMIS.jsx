@@ -8,11 +8,13 @@ import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
+import { useDialog } from "../../context/DialogContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const TripMIS = () => {
   const { addToast } = useToast();
+  const { confirm } = useDialog();
   const { token, user } = useContext(AuthContext);
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -814,7 +816,13 @@ const TripMIS = () => {
                         </button>
                       )}
                       <button onClick={async () => {
-                        if (window.confirm("Are you sure you want to delete this Trip MIS entry?")) {
+                        const isConfirmed = await confirm({
+                          title: "Delete Trip MIS Entry",
+                          message: "Are you sure you want to delete this Trip MIS entry?",
+                          confirmText: "Delete",
+                          cancelText: "Cancel"
+                        });
+                        if (isConfirmed) {
                           try {
                             const res = await axios.delete(`${API}/trip-mis/${item.id}`, { headers: { Authorization: `Bearer ${token}` } });
                             if (res.data.success) {

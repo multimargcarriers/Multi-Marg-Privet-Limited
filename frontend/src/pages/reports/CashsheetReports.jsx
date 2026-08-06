@@ -3,11 +3,13 @@ import axios from "axios";
 import { Search, Download, Edit, Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
 import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
+import { useDialog } from "../../context/DialogContext";
 import RupeeIcon from "../../components/RupeeIcon";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CashsheetReports = () => {
+  const { confirm } = useDialog();
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]);
   const [filters, setFilters] = useState({ fr: "", to: "" });
@@ -95,7 +97,13 @@ const CashsheetReports = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this cash entry?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Cash Entry",
+      message: "Are you sure you want to delete this cash entry?",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
     try {
       await axios.delete(`${API}/cash/${id}`);
       fetchCash();

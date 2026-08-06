@@ -616,6 +616,7 @@ const Settings = () => {
                 {Object.entries(globalSettings.integrations || {}).map(([key, value]) => {
                   let label = `${key} Integration`;
                   if (key === 'enableBulkDelete') label = 'Enable Bulk Delete / Clear All Features';
+                  if (key === 'enableCsvImport') label = 'Enable CSV Import & Template Download';
                   
                   return (
                     <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

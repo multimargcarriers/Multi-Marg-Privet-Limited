@@ -7,9 +7,13 @@ import Papa from "papaparse";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
+import { SettingsContext } from "../context/SettingsContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
+import StatsPanel from "../components/StatsPanel";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
@@ -22,7 +26,11 @@ const AllBills = () => {
   const [filterStatus, setFilterStatus] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [minPending, setMinPending] = useState("");
+  const [maxPending, setMaxPending] = useState("");
   const navigate = useNavigate();
+  const { globalSettings } = useContext(SettingsContext);
+  const enableCsvImport = globalSettings?.integrations?.enableCsvImport !== false;
 
   useEffect(() => { fetchBills(); }, []);
 
@@ -96,9 +104,20 @@ const AllBills = () => {
           return false;
         }
       }
+
+      // Pending Amount filter
+      const amt = parseFloat(b.amount || b.total || 0);
+      const rec = parseFloat(b.paidAmount || 0);
+      const pendingAmount = amt - rec;
+
+      if (minPending !== "" && pendingAmount < parseFloat(minPending)) return false;
+      if (maxPending !== "" && pendingAmount > parseFloat(maxPending)) return false;
+
       return true;
     });
-  }, [bills, search, filterStatus, fromDate, toDate]);
+  }, [bills, search, filterStatus, fromDate, toDate, minPending, maxPending]);
+
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "amount" });
 
   const stats = useMemo(() => {
     let totalBilled = 0;
@@ -196,165 +215,131 @@ const AllBills = () => {
           </h3>
           <p className="text-muted">Comprehensive overview of all generated invoices, payments, and outstandings.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: "wrap" }}>
-          <button className="btn btn-secondary" style={{ padding: "0 1.25rem", height: "42px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', fontWeight: 600, boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)" }} onClick={downloadSampleCSV}>
-            <Download size={16} /> Sample
-          </button>
-          <label className="btn btn-secondary" style={{ padding: "0 1.25rem", height: "42px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '8px', fontWeight: 600, boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)" }}>
-            <Upload size={16} /> Import
-            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
-          </label>
-          <button className="btn btn-secondary" style={{ padding: "0 1.25rem", height: "42px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', fontWeight: 600, boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)" }} onClick={exportToCSV}>
+        <div className="page-header-actions">
+          {enableCsvImport && (
+            <>
+              <button className="btn btn-secondary page-header-btn" onClick={downloadSampleCSV}>
+                <Download size={16} /> Sample
+              </button>
+              <label className="btn btn-secondary page-header-btn" style={{ cursor: 'pointer' }}>
+                <Upload size={16} /> Import
+                <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
+              </label>
+            </>
+          )}
+          <button className="btn btn-secondary page-header-btn" onClick={exportToCSV}>
             <Download size={16} /> Export
           </button>
-          <button className="btn btn-secondary" style={{ padding: "0 1.25rem", height: "42px", background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', fontWeight: 600, boxShadow: "0 1px 2px 0 rgba(0,0,0,0.05)" }} onClick={() => navigate("/bills/misc")}>
+          <button className="btn btn-secondary page-header-btn" onClick={() => navigate("/bills/misc")}>
             <FileText size={16} /> New Misc Bill
           </button>
-          <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "42px", display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px', fontWeight: 600, boxShadow: "0 4px 6px -1px rgba(13, 92, 150, 0.2)" }} onClick={() => navigate("/bills/generate")}>
+          <button className="btn btn-primary page-header-btn page-header-btn-primary" onClick={() => navigate("/bills/generate")}>
             <FileText size={16} /> Generate New
           </button>
         </div>
       </div>
 
       {/* DASHBOARD STATS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem", marginBottom: "1.5rem" }}>
-        
-        {/* Total Billed */}
-        <div style={{ background: "white", padding: "1.5rem", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "#0ea5e9" }}></div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Billed Value</p>
-              <h3 style={{ margin: "0.5rem 0 0 0", fontSize: "1.75rem", color: "#0f172a", display: "flex", alignItems: "center", fontWeight: "800" }}>
-                <RupeeIcon size={22} /> {stats.totalBilled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-            </div>
-            <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "rgba(14, 165, 233, 0.1)", color: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Wallet size={24} />
-            </div>
-          </div>
-          <p style={{ margin: "1rem 0 0 0", fontSize: "0.85rem", color: "#64748b", fontWeight: "500" }}>Across {filtered.length} total invoices</p>
-        </div>
+      <StatsPanel stats={[
+        { label: "Total Billed Value", value: "₹" + stats.totalBilled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: Wallet, color: "blue" },
+        { label: "Amount Received", value: "₹" + stats.totalReceived.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: TrendingUp, color: "green" },
+        { label: "Outstanding Due", value: "₹" + stats.totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: TrendingDown, color: "red" },
+        { label: "Pending Invoices", value: stats.countPending, icon: AlertCircle, color: "orange" }
+      ]} />
 
-        {/* Total Received */}
-        <div style={{ background: "white", padding: "1.5rem", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "#10b981" }}></div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Amount Received</p>
-              <h3 style={{ margin: "0.5rem 0 0 0", fontSize: "1.75rem", color: "#10b981", display: "flex", alignItems: "center", fontWeight: "800" }}>
-                <RupeeIcon size={22} /> {stats.totalReceived.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-            </div>
-            <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TrendingUp size={24} />
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "1rem 0 0 0", fontSize: "0.85rem", color: "#10b981", fontWeight: "600" }}>
-            <CheckCircle size={16} /> {stats.countPaid} Fully Paid Invoices
-          </div>
-        </div>
-
-        {/* Total Pending */}
-        <div style={{ background: "white", padding: "1.5rem", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, width: "4px", height: "100%", background: "#ef4444" }}></div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Outstanding Due</p>
-              <h3 style={{ margin: "0.5rem 0 0 0", fontSize: "1.75rem", color: "#ef4444", display: "flex", alignItems: "center", fontWeight: "800" }}>
-                <RupeeIcon size={22} /> {stats.totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-            </div>
-            <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TrendingDown size={24} />
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "1rem 0 0 0", fontSize: "0.85rem", color: "#ef4444", fontWeight: "600" }}>
-            <AlertCircle size={16} /> {stats.countPending} Invoices Pending
-          </div>
-        </div>
-
-      </div>
-
-      {/* ADVANCED FILTERS */}
-      <div style={{ background: "white", padding: "1.25rem", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "1.5rem", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "flex-end" }}>
+      {/* Filters */}
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
           
-          <div style={{ flex: "1 1 300px" }}>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem", textTransform: "uppercase" }}>Search Invoices</label>
-            <div style={{ position: "relative" }}>
-              <Search size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-              <input 
-                className="form-control" 
-                placeholder="Search by Bill No or Client Name..." 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
-                style={{ paddingLeft: "40px", height: "42px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", width: "100%", fontSize: "0.9rem" }}
-              />
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
+              <Search size={16} />
             </div>
+            <input 
+              type="text" 
+              placeholder="Search by Bill No or Client Name..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="premium-search-input"
+            />
           </div>
 
-          <div style={{ minWidth: "150px" }}>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem", textTransform: "uppercase" }}>Status Filter</label>
-            <div style={{ position: "relative" }}>
-              <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-                <Filter size={16} color="#94a3b8" />
-              </div>
-              <select 
-                className="form-control" 
-                value={filterStatus} 
-                onChange={(e) => setFilterStatus(e.target.value)}
-                style={{ height: "42px", paddingLeft: "36px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", width: "100%", fontSize: "0.9rem", cursor: "pointer" }}
-              >
-                <option value="All">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
+          <div className="premium-filter-group">
+            <Filter size={16} color="#64748b" style={{ marginLeft: "4px" }} />
+            <select 
+              value={filterStatus} 
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="premium-filter-input"
+              style={{ cursor: "pointer" }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
 
-          <div style={{ minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem", textTransform: "uppercase" }}>From Date</label>
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Date:</span>
             <input 
               type="date" 
-              className="form-control" 
               value={fromDate} 
               onChange={(e) => setFromDate(e.target.value)}
-              style={{ height: "42px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", width: "100%", fontSize: "0.9rem" }}
+              className="premium-filter-input"
             />
-          </div>
-
-          <div style={{ minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem", textTransform: "uppercase" }}>To Date</label>
+            <span style={{ color: "#94a3b8" }}>-</span>
             <input 
               type="date" 
-              className="form-control" 
               value={toDate} 
               onChange={(e) => setToDate(e.target.value)}
-              style={{ height: "42px", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f8fafc", width: "100%", fontSize: "0.9rem" }}
+              className="premium-filter-input"
             />
           </div>
 
-          {(search || filterStatus !== "All" || fromDate || toDate) && (
-            <button 
-              onClick={() => { setSearch(""); setFilterStatus("All"); setFromDate(""); setToDate(""); }}
-              style={{ height: "42px", padding: "0 1rem", background: "transparent", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", transition: "all 0.2s" }}
-              onMouseOver={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#0f172a"; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#64748b"; }}
-            >
-              Clear Filters
-            </button>
-          )}
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Pending Amount:</span>
+            <input 
+              type="number" 
+              placeholder="Min" 
+              value={minPending} 
+              onChange={(e) => setMinPending(e.target.value)} 
+              className="premium-filter-input"
+              style={{ width: "70px" }}
+            />
+            <span style={{ color: "#94a3b8" }}>-</span>
+            <input 
+              type="number" 
+              placeholder="Max" 
+              value={maxPending} 
+              onChange={(e) => setMaxPending(e.target.value)} 
+              className="premium-filter-input"
+              style={{ width: "70px" }}
+            />
+          </div>
 
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+          />
         </div>
+
+        {(search || filterStatus !== "All" || fromDate || toDate || minPending || maxPending || sortOption !== "newest") && (
+          <button 
+            onClick={() => { setSearch(""); setFilterStatus("All"); setFromDate(""); setToDate(""); setMinPending(""); setMaxPending(""); setSortOption("newest"); }}
+            className="premium-clear-btn"
+            style={{ alignSelf: "flex-end" }}
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
-      <div style={{ background: "white", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-        <Table
+      <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+        <Table 
           pagination={true}
           headers={["Bill No", "Client", "Total Amt", "Received", "Pending", "Date", "Status", "Actions"]}
-          data={filtered}
+          data={sortedData}
           renderRow={(item, index) => {
             const totalAmt = parseFloat(item.amount || item.total || 0);
             const receivedAmt = parseFloat(item.paidAmount || 0);

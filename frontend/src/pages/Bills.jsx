@@ -2,8 +2,9 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 import { TablePageSkeleton } from "../components/SkeletonLoader";
-import { Trash2 } from "lucide-react";
+import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
+import StatsPanel from "../components/StatsPanel";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatDate, formatAmount } from '../utils/formatters';
@@ -50,38 +51,45 @@ const Bills = () => {
   };
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "2rem",
-        }}
-      >
+    <div className="page-content">
+      <div className="header-flex">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "10px" }}>
             Bills / Invoices
-            <span style={{ fontSize: "1rem", background: "#f1f5f9", color: "#475569", padding: "2px 10px", borderRadius: "12px", border: "1px solid #cbd5e1" }}>
-              {bills.length} entries
-            </span>
           </h3>
-          <p className="text-muted">View generated bills and invoices.</p>
+          <p className="text-muted" style={{ margin: 0 }}>View generated bills and invoices.</p>
         </div>
       </div>
+      
+      <StatsPanel stats={[
+        { label: "Total Bills", value: bills.length, icon: FileText, color: "blue" },
+        { label: "Total Amount", value: "₹" + bills.reduce((sum, b) => sum + parseFloat(b.amount || b.total || 0), 0).toFixed(2), icon: IndianRupee, color: "green" },
+        { label: "Amount Paid", value: "₹" + bills.reduce((sum, b) => sum + parseFloat(b.paidAmount || 0), 0).toFixed(2), icon: CreditCard, color: "orange" },
+        { label: "Outstanding", value: "₹" + bills.reduce((sum, b) => sum + parseFloat((b.amount || b.total || 0) - (b.paidAmount || 0)), 0).toFixed(2), icon: AlertCircle, color: "red" }
+      ]} />
 
       <Table
         pagination={true}
         loading={loading}
-        headers={["Bill No", "Date", "Client", "Amount (?)", "Status", "Actions"]}
+        headers={["Bill No", "Date", "Client", "Amount (₹)", "Status", "Actions"]}
         data={bills}
         renderRow={(b, i) => (
           <tr key={b.id || i}>
             <td>{b.id}</td>
+            <td>{formatDate(b.invoice_date || b.date || b.createdAt)}</td>
             <td>{b.client || "-"}</td>
-            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{formatAmount(b.amount)}</span></td>
+            <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{formatAmount(b.amount || b.total)}</span></td>
             <td>
-              {formatDate(b.invoice_date || b.date || b.createdAt)}
+              <span style={{ 
+                padding: '4px 8px', 
+                borderRadius: '12px', 
+                fontSize: '0.75rem', 
+                fontWeight: '600',
+                backgroundColor: b.status === 'Paid' ? '#dcfce7' : (b.status === 'Partial' ? '#fef9c3' : '#fee2e2'),
+                color: b.status === 'Paid' ? '#166534' : (b.status === 'Partial' ? '#854d0e' : '#991b1b')
+              }}>
+                {b.status || 'Generated'}
+              </span>
             </td>
             <td>
               <button

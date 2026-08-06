@@ -136,7 +136,7 @@ const CreateBooking = () => {
           if (bookingsRes.data.success) {
             const allBookings = bookingsRes.data.data;
             let maxNum = 0;
-            let prefix = "";
+            // Prefix is ignored; we only keep numeric part
             allBookings.forEach(b => {
               const awbStr = b.awb || b.consignment || b.lrNo || "";
               const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
@@ -144,12 +144,11 @@ const CreateBooking = () => {
                 const num = parseInt(match[2], 10);
                 if (num > maxNum) {
                   maxNum = num;
-                  prefix = match[1] || "";
                 }
               }
             });
             if (maxNum > 0) {
-              const nextAwb = `${prefix}${maxNum + 1}`;
+              const nextAwb = `${maxNum + 1}`;
               setFormData(prev => ({ ...prev, consignment: nextAwb }));
             }
           }

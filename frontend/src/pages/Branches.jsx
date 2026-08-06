@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Edit, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Edit, Trash2, Building, MapPin, CheckCircle, Search } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { SettingsContext } from "../context/SettingsContext";
 import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
-import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
+import StatsPanel from "../components/StatsPanel";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const Branches = () => {
   const { user } = useContext(AuthContext);
+  const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const canBulkDelete = isSuperAdmin && globalSettings?.integrations?.enableBulkDelete;
 
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,15 +158,13 @@ const Branches = () => {
       (b.phno || "").toLowerCase().includes(query) ||
       (b.email || "").toLowerCase().includes(query)
     );
-  }).sort((a, b) => {
-    const codeA = a.code ? parseInt(a.code.replace(/\D/g, ''), 10) || 0 : 0;
-    const codeB = b.code ? parseInt(b.code.replace(/\D/g, ''), 10) || 0 : 0;
-    return codeB - codeA;
   });
 
+  const { sortedData, sortOption, setSortOption } = useTableSort(filteredBranches, "newest", { nameKey: "branch", amountKey: "id" });
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredBranches.length / entriesPerPage) || 1;
-  const currentData = filteredBranches.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage) || 1;
+  const currentData = sortedData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -183,30 +187,28 @@ const Branches = () => {
   return (
     <div className="page-content">
       {/* Title & Add Button */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="header-flex" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: "1.8rem", color: "var(--primary-color)", margin: 0, fontWeight: "700", letterSpacing: "-0.5px" }}>Branches Master</h3>
-        <div className="top-actions-container" style={{ display: "flex", gap: "1rem" }}>
-          {isSuperAdmin && branches.length > 0 && (
-            <button
-              onClick={handleDeleteAll}
-              className="btn btn-danger"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
+        <div className="page-header-actions">
+          {canBulkDelete && branches.length > 0 && (
+            <button onClick={handleDeleteAll} className="page-header-btn" style={{ color: "#dc2626", borderColor: "#fecaca" }}>
               <Trash2 size={16} /> Delete All Data
             </button>
           )}
           <CsvImportExport moduleName="branches" onImportSuccess={fetchBranches} />
           {!isAdding && !editing && (
-            <button 
-              onClick={handleAddNewClick}
-              className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "var(--shadow-md)" }}
-            >
+            <button onClick={handleAddNewClick} className="page-header-btn page-header-btn-primary">
               + Add New Branch
             </button>
           )}
         </div>
       </div>
+
+      <StatsPanel stats={[
+        { label: "Total Branches", value: branches.length, color: "blue", icon: Building },
+        { label: "Unique Cities", value: new Set(branches.map(b => b.city)).size, color: "purple", icon: MapPin },
+        { label: "With Contact Info", value: branches.filter(b => b.phone && b.phone.trim() !== '').length, color: "green", icon: CheckCircle }
+      ]} />
 
       {/* Form Section */}
       <AnimatePresence>
@@ -332,31 +334,50 @@ const Branches = () => {
         )}
       </AnimatePresence>
 
-      {/* Table Section */}
-      <div className="glass-panel" style={{ padding: "1.5rem" }}>
-        
-        {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px" }}>
-          <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-            Show 
-            <select value={entriesPerPage} onChange={handleEntriesChange} style={{ margin: "0 0.5rem", padding: "0.2rem", border: "1px solid #cbd5e1", borderRadius: "2px" }}>
+      {/* Toolbar */}
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
+          
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
+              <Search size={16} />
+            </div>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="premium-search-input"
+              placeholder="Search branches..."
+            />
+          </div>
+
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "az", "za"]} 
+          />
+
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Show</span>
+            <select 
+              value={entriesPerPage} 
+              onChange={handleEntriesChange} 
+              className="premium-filter-input"
+              style={{ cursor: "pointer", width: "50px" }}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            entries
+            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <label style={{ fontSize: "0.9rem", color: "#64748b" }}>Search:</label>
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={handleSearchChange}
-              style={{ border: "1px solid #cbd5e1", padding: "0.25rem 0.5rem", borderRadius: "2px", width: "200px" }}
-            />
-          </div>
+
         </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
 
         {/* Table */}
         <div style={{ overflowX: "auto" }}>

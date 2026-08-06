@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation, ArrowRight, Users, HelpCircle, UserPlus, Phone, FileText, Briefcase, TrendingUp, CheckCircle, Monitor, CarFront, BriefcaseMedical, Factory, X, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useDialog } from '../context/DialogContext';
 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -11,6 +12,7 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState('track');
   const [homeTrackingNumber, setHomeTrackingNumber] = useState('');
   const navigate = useNavigate();
+  const { confirm } = useDialog();
 
   // Branch Locator State
   const [branches, setBranches] = useState([]);
@@ -54,7 +56,12 @@ const Home = () => {
       setSelectedBranch(match);
       setIsBranchModalOpen(true);
     } else {
-      alert("No branch found matching your search. Please try another city or branch name.");
+      confirm({
+        title: "Branch Not Found",
+        message: "No branch found matching your search. Please try another city or branch name.",
+        confirmText: "OK",
+        cancelText: "Close"
+      });
     }
   };
 
@@ -70,7 +77,12 @@ const Home = () => {
         setIsPincodeModalOpen(true);
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Error verifying pincode. Please try again.");
+      confirm({
+        title: "Verification Failed",
+        message: err.response?.data?.message || "Error verifying pincode. Please try again.",
+        confirmText: "OK",
+        cancelText: "Close"
+      });
     } finally {
       setIsPincodeLoading(false);
     }

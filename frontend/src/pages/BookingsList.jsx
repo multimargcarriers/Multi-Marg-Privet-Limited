@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -8,11 +8,14 @@ import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import CsvImportExport from "../components/CsvImportExport";
+import StatsPanel from "../components/StatsPanel";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import BoxEntryModal from "../components/box/BoxEntryModal";
 import { AnimatePresence } from "framer-motion";
 import { useSocketSync } from '../hooks/useSocketSync';
 import { SettingsContext } from "../context/SettingsContext";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const BookingsList = () => {
   const { user, hasPermission } = useContext(AuthContext);
@@ -152,36 +155,28 @@ const BookingsList = () => {
   };
 
   const filtered = useMemo(() => {
-    const filteredList = bookings.filter(b =>
+    return bookings.filter(b =>
       !search || (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.destination || "").toLowerCase().includes(search.toLowerCase())
     );
-
-    filteredList.sort((a, b) => {
-      const awbA = a.awb || a.consignment || a.lrNo || "";
-      const awbB = b.awb || b.consignment || b.lrNo || "";
-      const numA = parseInt(String(awbA).replace(/\D/g, '')) || 0;
-      const numB = parseInt(String(awbB).replace(/\D/g, '')) || 0;
-      return numB - numA;
-    });
-
-    return filteredList;
   }, [bookings, search]);
 
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "frieght" });
+
   // Pagination logic
-  const totalPages = Math.ceil(filtered.length / entriesPerPage);
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage);
   const indexOfLast = currentPage * entriesPerPage;
   const indexOfFirst = indexOfLast - entriesPerPage;
-  const currentEntries = filtered.slice(indexOfFirst, indexOfLast);
+  const currentEntries = sortedData.slice(indexOfFirst, indexOfLast);
 
   // Ensure current page is valid when filtering changes
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1);
     }
-  }, [filtered.length, totalPages, currentPage]);
+  }, [sortedData.length, totalPages, currentPage]);
 
   return (
     <div className="bookings-page-wrapper">
@@ -190,59 +185,76 @@ const BookingsList = () => {
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: '#1e293b' }}>ALL Bookings (LR)</h3>
           <p className="text-muted">View bookings alongside their nested LR details in a grouped format.</p>
         </div>
-        <div className="top-actions-container">
+        <div className="page-header-actions">
             <div className="booking-csv-manager-card">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking & LR CSV Manager</span>
                 <CsvImportExport moduleName="bookings" onImportSuccess={fetchBookings} searchQuery={search} />
               </div>
             </div>
-          <div className="booking-action-buttons-row">
             {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
-              <button 
-                className="btn btn-clear-all"
-                onClick={handleClearAll}
-                title="Clear All Bookings"
-              >
-                <Trash2 size={14} style={{ display: 'inline', marginRight: '4px', marginBottom: '-2px' }} /> Clear
+              <button className="page-header-btn" style={{ color: "#dc2626", borderColor: "#fecaca" }} onClick={handleClearAll} title="Clear All Bookings">
+                <Trash2 size={14} /> Clear
               </button>
             )}
             {(hasPermission("create_booking") || isSuperAdmin) && (
-              <button className="btn btn-primary btn-new-booking" onClick={() => navigate("/bookings/create")}>
+              <button className="page-header-btn page-header-btn-primary" onClick={() => navigate("/bookings/create")}>
                 + New Booking
               </button>
             )}
-          </div>
         </div>
       </div>
 
-      <div className="booking-search-card">
-        <div className="booking-search-row">
-          <div className="booking-search-field">
-            <div className="booking-search-icon">
+      <StatsPanel stats={[
+        { label: "Total Bookings", value: filtered.length, color: "blue", icon: Package },
+        { label: "Total Freight Value", value: "₹" + filtered.reduce((sum, b) => sum + parseFloat(b.freight_charge || b.freight || b.frieght || b.weight || 0), 0).toFixed(2), color: "green", icon: IndianRupee },
+        { label: "With LR Details", value: filtered.filter(b => (b.invoiceDetails && b.invoiceDetails.length > 0) || (b.parcels && b.parcels.length > 0)).length, color: "purple", icon: FileCheck },
+        { label: "Total Quantity (Pkgs)", value: filtered.reduce((sum, b) => {
+            const parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
+            return sum + parcels.reduce((pSum, p) => pSum + (parseInt(p.quantity, 10) || 0), 0);
+          }, 0), color: "orange", icon: Box },
+        { label: "E-way Bills Attached", value: filtered.reduce((sum, b) => {
+            const parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
+            return sum + parcels.filter(p => p.eway || p.ewayBill).length;
+          }, 0), color: "red", icon: FileText }
+      ]} />
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
+          
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
               <Search size={18} />
             </div>
             <input 
-              className="booking-search-input"
+              className="premium-search-input"
               placeholder="Search by client, LR no, origin, destination..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
             />
           </div>
-          <div className="booking-entries-select-group">
-            <span>Show</span>
+
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+          />
+
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Show</span>
             <select 
               value={entriesPerPage} 
               onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="booking-entries-select"
+              className="premium-filter-input"
+              style={{ cursor: "pointer", width: "50px" }}
             >
-              <option value={10}>10</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={500}>500</option>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
             </select>
-            <span>entries</span>
+            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
           </div>
+
         </div>
       </div>
 

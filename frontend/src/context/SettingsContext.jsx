@@ -19,6 +19,9 @@ export const SettingsProvider = ({ children }) => {
         if (parsed.integrations && parsed.integrations.enableBulkDelete === undefined) {
           parsed.integrations.enableBulkDelete = false;
         }
+        if (parsed.integrations && parsed.integrations.enableCsvImport === undefined) {
+          parsed.integrations.enableCsvImport = true;
+        }
         return parsed;
       } catch (e) {
         console.error("Failed to parse cached globalSettings");
@@ -58,7 +61,8 @@ export const SettingsProvider = ({ children }) => {
     integrations: {
       redis: true,
       cloudinary: true,
-        enableBulkDelete: false
+      enableBulkDelete: false,
+      enableCsvImport: true
     },
     modules: {
       masters: true,

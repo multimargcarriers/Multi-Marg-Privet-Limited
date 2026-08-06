@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Shield, Plus, Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight } from 'lucide-react';
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import Table from '../components/Table';
 import { useDialog } from '../context/DialogContext';
@@ -101,6 +101,7 @@ const IAM = () => {
   const [clientsList, setClientsList] = useState([]);
   const [vendorsList, setVendorsList] = useState([]);
   const [isCustomName, setIsCustomName] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({});
   
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
@@ -145,6 +146,10 @@ const IAM = () => {
         : [...prev.permissions, moduleId];
       return { ...prev, permissions: perms };
     });
+  };
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
   const handleSubmit = async (e) => {
@@ -213,30 +218,394 @@ const IAM = () => {
         setIsCustomName(false);
       }
     } else {
-      setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MMPL-${Math.floor(1000 + Math.random() * 9000)}` });
+      setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}` });
       setIsCustomName(false);
     }
+    // Expand all sections by default when opening modal
+    const expanded = {};
+    PERMISSIONS_TREE.forEach(node => { if (!node.isPage) expanded[node.id] = true; });
+    setExpandedSections(expanded);
     setIsAdding(true);
   };
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+    <div className="iam-page">
+      <style>{`
+        .iam-page {
+          background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #ede9fe 100%);
+          min-height: 100vh;
+          padding: 2rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        .iam-header-icon {
+          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          padding: 10px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .iam-title {
+          font-size: 1.8rem;
+          color: #1e293b;
+          margin: 0;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .iam-subtitle {
+          color: #64748b;
+          margin: 6px 0 0 0;
+          font-size: 0.9rem;
+          padding-left: 54px;
+        }
+        .iam-add-btn {
+          background: linear-gradient(135deg, #6366F1, #4F46E5);
+          border: none;
+          color: white;
+          padding: 0.65rem 1.5rem;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+          font-size: 0.9rem;
+          white-space: nowrap;
+        }
+        .iam-add-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(99,102,241,0.45);
+        }
+        .iam-form-card {
+          background: rgba(255,255,255,0.75);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          padding: 2rem;
+          border-radius: 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+          border: 1px solid rgba(255,255,255,0.85);
+        }
+        .iam-form-title {
+          margin: 0 0 1.5rem 0;
+          font-size: 1.2rem;
+          color: #0f172a;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .iam-form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          margin-bottom: 1.5rem;
+        }
+        .iam-form-field label {
+          display: block;
+          font-size: 0.82rem;
+          color: #64748b;
+          font-weight: 600;
+          margin-bottom: 0.4rem;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .iam-form-field label span { color: #ef4444; }
+        .iam-input {
+          width: 100%;
+          padding: 0.7rem 0.85rem;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 10px;
+          color: #0f172a;
+          background: white;
+          outline: none;
+          transition: all 0.2s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          font-size: 0.9rem;
+          box-sizing: border-box;
+        }
+        .iam-input:focus {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+        .iam-perms-section {
+          grid-column: 1 / -1;
+        }
+        .iam-perms-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+          margin-top: 0.75rem;
+          background: rgba(248,250,252,0.8);
+          padding: 1.25rem;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+        }
+        .iam-perm-group {
+          background: white;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+          transition: box-shadow 0.2s;
+        }
+        .iam-perm-group:hover {
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .iam-perm-header {
+          display: flex;
+          align-items: center;
+          padding: 0.65rem 0.85rem;
+          cursor: pointer;
+          gap: 8px;
+          background: #fafbfc;
+          border-bottom: 1px solid #f1f5f9;
+          user-select: none;
+        }
+        .iam-perm-header:hover {
+          background: #f1f5f9;
+        }
+        .iam-perm-header-label {
+          font-size: 0.88rem;
+          color: #1e293b;
+          font-weight: 600;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .iam-perm-children {
+          padding: 0.5rem 0.75rem 0.5rem 2rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .iam-perm-child {
+          display: flex;
+          align-items: center;
+          font-size: 0.82rem;
+          color: #475569;
+          cursor: pointer;
+          padding: 0.2rem 0;
+        }
+        .iam-perm-child.disabled {
+          color: #94a3b8;
+          cursor: not-allowed;
+        }
+        .iam-perm-standalone {
+          background: white;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          padding: 0.65rem 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: box-shadow 0.2s;
+        }
+        .iam-perm-standalone:hover {
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .iam-checkbox {
+          width: 16px;
+          height: 16px;
+          accent-color: #4F46E5;
+          flex-shrink: 0;
+          cursor: pointer;
+        }
+        .iam-checkbox-sm {
+          width: 14px;
+          height: 14px;
+          accent-color: #4F46E5;
+          flex-shrink: 0;
+        }
+        .iam-form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 1.5rem;
+          padding-top: 1.25rem;
+          border-top: 1px solid #e2e8f0;
+        }
+        .iam-btn-cancel {
+          background: transparent;
+          color: #64748b;
+          border: 1.5px solid #cbd5e1;
+          padding: 0.6rem 1.5rem;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 0.9rem;
+        }
+        .iam-btn-cancel:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+        .iam-btn-save {
+          background: linear-gradient(135deg, #6366F1, #4F46E5);
+          color: white;
+          border: none;
+          padding: 0.6rem 2rem;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+          font-size: 0.9rem;
+        }
+        .iam-btn-save:hover {
+          opacity: 0.92;
+          transform: translateY(-1px);
+        }
+        .iam-table-wrap {
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.85);
+          background: rgba(255,255,255,0.55);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          overflow: hidden;
+        }
+        .iam-role-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 3px 10px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .iam-role-super {
+          background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+          color: #4F46E5;
+          border: 1px solid #c7d2fe;
+        }
+        .iam-role-default {
+          background: #f8fafc;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+        }
+        .iam-action-btn {
+          padding: 6px 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          background: white;
+          cursor: pointer;
+          transition: all 0.15s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .iam-action-btn:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+        .iam-action-btn.delete {
+          color: #ef4444;
+        }
+        .iam-action-btn.delete:hover {
+          background: #fef2f2;
+          border-color: #fecaca;
+        }
+        .iam-name-toggle {
+          background: transparent;
+          border: none;
+          color: #4F46E5;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        /* ---- TABLET ---- */
+        @media (max-width: 1024px) {
+          .iam-perms-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        /* ---- MOBILE ---- */
+        @media (max-width: 768px) {
+          .iam-page {
+            padding: 1rem;
+            gap: 1rem;
+          }
+          .iam-title {
+            font-size: 1.25rem;
+          }
+          .iam-subtitle {
+            padding-left: 0;
+            font-size: 0.82rem;
+          }
+          .iam-form-card {
+            padding: 1.25rem;
+            border-radius: 12px;
+          }
+          .iam-form-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+          .iam-perms-grid {
+            grid-template-columns: 1fr;
+            padding: 0.75rem;
+          }
+          .iam-form-actions {
+            flex-direction: column;
+          }
+          .iam-btn-cancel, .iam-btn-save {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+          }
+          .iam-table-wrap {
+            border-radius: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .iam-page {
+            padding: 0.75rem;
+          }
+          .iam-header-icon {
+            padding: 7px;
+            border-radius: 8px;
+          }
+          .iam-header-icon svg {
+            width: 16px;
+            height: 16px;
+          }
+          .iam-title {
+            font-size: 1.1rem;
+            gap: 8px;
+          }
+          .iam-form-card {
+            padding: 1rem;
+          }
+        }
+      `}</style>
+
       {/* Title & Add Button */}
       <div className="header-flex">
         <div>
-          <h3 style={{ fontSize: "1.6rem", color: "#1e293b", margin: 0, fontWeight: "600", display: 'flex', alignItems: 'center' }}>
-            <Shield size={24} style={{ marginRight: '10px', color: '#4F46E5' }} /> Identity & Access Management
+          <h3 className="iam-title">
+            <div className="iam-header-icon">
+              <Shield size={20} color="#fff" />
+            </div>
+            Identity & Access Management
           </h3>
-          <p style={{ color: "#64748b", margin: "5px 0 0 34px", fontSize: "0.9rem" }}>Manage administrators and module permissions.</p>
+          <p className="iam-subtitle">Manage user accounts, roles, and module-level permissions.</p>
         </div>
-        {!isAdding && (
-          <button 
-            onClick={() => openModal()}
-            style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 1.2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-          >
-            + Add User
-          </button>
-        )}
+        <div className="page-header-actions">
+          {!isAdding && (
+            <button onClick={() => openModal()} className="iam-add-btn">
+              + Add User
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Form Section */}
@@ -249,12 +618,15 @@ const IAM = () => {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             style={{ overflow: "hidden" }}
           >
-            <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", marginBottom: "2rem", border: "1px solid #e2e8f0" }}>
-              <h4 style={{ margin: "0 0 1.5rem 0", fontSize: "1.2rem", color: "#0f172a" }}>{formData.id ? 'Edit User' : 'Create New User'}</h4>
+            <div className="iam-form-card">
+              <h4 className="iam-form-title">
+                <Users size={18} color="#4F46E5" />
+                {formData.id ? 'Edit User' : 'Create New User'}
+              </h4>
               <form onSubmit={handleSubmit}>
-                <div className="grid-2-col">
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Role<span style={{ color: "#ef4444" }}>*</span></label>
+                <div className="iam-form-grid">
+                  <div className="iam-form-field">
+                    <label>Role<span>*</span></label>
                     <select 
                       value={formData.role} 
                       onChange={e => {
@@ -262,9 +634,7 @@ const IAM = () => {
                         setFormData({...formData, role: newRole, name: (newRole === 'Client' || newRole === 'Vendor') ? '' : formData.name});
                         setIsCustomName(false);
                       }}
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                      className="iam-input"
                     >
                       <option value="Vendor">Vendor</option>
                       <option value="Client">Client</option>
@@ -273,20 +643,13 @@ const IAM = () => {
                       <option value="SuperAdmin">Super Admin</option>
                     </select>
                   </div>
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <label style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "600", margin: 0 }}>
-                        {formData.role === 'Client' ? 'Client Account' : formData.role === 'Vendor' ? 'Vendor Account' : 'Name'}<span style={{ color: "#ef4444" }}>*</span>
+                  <div className="iam-form-field">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                      <label style={{ margin: 0 }}>
+                        {formData.role === 'Client' ? 'Client Account' : formData.role === 'Vendor' ? 'Vendor Account' : 'Name'}<span>*</span>
                       </label>
                       {(formData.role === 'Client' || formData.role === 'Vendor') && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCustomName(!isCustomName);
-                            setFormData({ ...formData, name: '' });
-                          }}
-                          style={{ background: "transparent", border: "none", color: "#4F46E5", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }}
-                        >
+                        <button type="button" onClick={() => { setIsCustomName(!isCustomName); setFormData({ ...formData, name: '' }); }} className="iam-name-toggle">
                           {isCustomName ? "← Select from List" : "+ Enter Manual Name"}
                         </button>
                       )}
@@ -303,9 +666,7 @@ const IAM = () => {
                           }
                         }} 
                         required 
-                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", backgroundColor: "white", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                        onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                        onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                        className="iam-input"
                       >
                         <option value="">-- Select {formData.role} Name --</option>
                         {formData.role === 'Client' ? (
@@ -330,115 +691,121 @@ const IAM = () => {
                         onChange={e => setFormData({...formData, name: e.target.value})} 
                         required 
                         placeholder={isCustomName ? `Enter ${formData.role} name manually...` : "Enter Name..."}
-                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                        onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                        onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                        className="iam-input"
                       />
                     )}
                   </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Employee ID<span style={{ color: "#ef4444" }}>*</span></label>
+                  <div className="iam-form-field">
+                    <label>Employee ID<span>*</span></label>
                     <input 
                       type="text" 
                       value={formData.employeeId || ''} 
                       onChange={e => setFormData({...formData, employeeId: e.target.value.toUpperCase()})} 
                       required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", fontWeight: "600" }}
-                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
-                      placeholder="MMPL-1234"
+                      className="iam-input"
+                      style={{ fontWeight: "600" }}
+                      placeholder="MCPL-1234"
                     />
                   </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Email<span style={{ color: "#ef4444" }}>*</span></label>
+                  <div className="iam-form-field">
+                    <label>Email<span>*</span></label>
                     <input 
                       type="email" 
                       value={formData.email} 
                       onChange={e => setFormData({...formData, email: e.target.value})} 
                       required 
-                      style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                      onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                      onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                      className="iam-input"
                     />
                   </div>
                   {!formData.id && (
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Password<span style={{ color: "#ef4444" }}>*</span></label>
+                    <div className="iam-form-field">
+                      <label>Password<span>*</span></label>
                       <input 
                         type="password" 
                         value={formData.password} 
                         onChange={e => setFormData({...formData, password: e.target.value})} 
                         required={!formData.id} 
-                        style={{ width: "100%", padding: "0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#0f172a", outline: "none", transition: "border-color 0.2s", boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)" }}
-                        onFocus={(e) => e.target.style.borderColor = "#4F46E5"}
-                        onBlur={(e) => e.target.style.borderColor = "#cbd5e1"}
+                        className="iam-input"
                       />
                     </div>
                   )}
                   
                   {formData.role !== 'SuperAdmin' && (
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Module & Page Permissions</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '10px', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        {PERMISSIONS_TREE.map(node => (
-                          <div key={node.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.95rem', color: '#1e293b', fontWeight: '600', cursor: 'pointer' }}>
-                              <input 
-                                type="checkbox" 
-                                checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
-                                onChange={() => handleTogglePermission(node.id)}
-                                style={{ marginRight: '8px', width: '16px', height: '16px', accentColor: '#4F46E5' }}
-                              />
-                              {node.name}
-                            </label>
-                            
-                            {!node.isPage && node.pages && (
-                              <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', borderLeft: '2px solid #e2e8f0', marginLeft: '8px' }}>
-                                {node.pages.map(page => {
-                                  // If parent is checked, visually show children as checked
-                                  const isChecked = formData.permissions.includes(page.id) || formData.permissions.includes(node.id) || formData.permissions.includes('all');
-                                  const isDisabled = formData.permissions.includes(node.id) || formData.permissions.includes('all');
-                                  
-                                  return (
-                                    <label key={page.id} style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: isDisabled ? '#94a3b8' : '#475569', cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
-                                      <input 
-                                        type="checkbox" 
-                                        checked={isChecked}
-                                        disabled={isDisabled}
-                                        onChange={() => {
-                                          if (!isDisabled) handleTogglePermission(page.id);
-                                        }}
-                                        style={{ marginRight: '8px', width: '14px', height: '14px', accentColor: isDisabled ? '#94a3b8' : '#4F46E5' }}
-                                      />
-                                      {page.name}
-                                    </label>
-                                  );
-                                })}
+                    <div className="iam-perms-section">
+                      <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.82rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.3px" }}>
+                        <Lock size={14} /> Module & Page Permissions
+                      </label>
+                      <div className="iam-perms-grid">
+                        {PERMISSIONS_TREE.map(node => {
+                          if (node.isPage) {
+                            return (
+                              <div key={node.id} className="iam-perm-standalone" onClick={() => handleTogglePermission(node.id)}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
+                                  onChange={() => handleTogglePermission(node.id)}
+                                  className="iam-checkbox"
+                                  onClick={e => e.stopPropagation()}
+                                />
+                                <span style={{ fontSize: '0.88rem', color: '#1e293b', fontWeight: '600' }}>{node.name}</span>
                               </div>
-                            )}
-                          </div>
-                        ))}
+                            );
+                          }
+                          
+                          const isExpanded = expandedSections[node.id] !== false;
+                          return (
+                            <div key={node.id} className="iam-perm-group">
+                              <div className="iam-perm-header" onClick={() => toggleSection(node.id)}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
+                                  onChange={() => handleTogglePermission(node.id)}
+                                  className="iam-checkbox"
+                                  onClick={e => e.stopPropagation()}
+                                />
+                                <span className="iam-perm-header-label">
+                                  {node.name}
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: '400' }}>({node.pages.length})</span>
+                                </span>
+                                {isExpanded ? <ChevronDown size={14} color="#94a3b8" /> : <ChevronRight size={14} color="#94a3b8" />}
+                              </div>
+                              {isExpanded && node.pages && (
+                                <div className="iam-perm-children">
+                                  {node.pages.map(page => {
+                                    const isChecked = formData.permissions.includes(page.id) || formData.permissions.includes(node.id) || formData.permissions.includes('all');
+                                    const isDisabled = formData.permissions.includes(node.id) || formData.permissions.includes('all');
+                                    
+                                    return (
+                                      <label key={page.id} className={`iam-perm-child ${isDisabled ? 'disabled' : ''}`}>
+                                        <input 
+                                          type="checkbox" 
+                                          checked={isChecked}
+                                          disabled={isDisabled}
+                                          onChange={() => {
+                                            if (!isDisabled) handleTogglePermission(page.id);
+                                          }}
+                                          className="iam-checkbox-sm"
+                                          style={{ marginRight: '8px', accentColor: isDisabled ? '#94a3b8' : '#4F46E5' }}
+                                        />
+                                        {page.name}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #e2e8f0" }}>
-                  <button 
-                    type="button"
-                    onClick={() => setIsAdding(false)}
-                    style={{ backgroundColor: "transparent", color: "#64748b", border: "1px solid #cbd5e1", padding: "0.6rem 1.5rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s" }}
-                    onMouseOver={(e) => { e.target.style.backgroundColor = "#f1f5f9"; e.target.style.color = "#0f172a"; }}
-                    onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#64748b"; }}
-                  >
+                <div className="iam-form-actions">
+                  <button type="button" onClick={() => setIsAdding(false)} className="iam-btn-cancel">
                     Cancel
                   </button>
-                  <button 
-                    type="submit"
-                    style={{ backgroundColor: "#4F46E5", color: "white", border: "none", padding: "0.6rem 2rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer", transition: "background-color 0.2s", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.2)" }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = "#4338ca"}
-                    onMouseOut={(e) => e.target.style.backgroundColor = "#4F46E5"}
-                  >
+                  <button type="submit" className="iam-btn-save">
                     {formData.id ? "Save Changes" : "Save User"}
                   </button>
                 </div>
@@ -448,42 +815,38 @@ const IAM = () => {
         )}
       </AnimatePresence>
 
-      <Table
-        loading={loading}
-        headers={['Name', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
-        data={users}
-        renderRow={(u, index) => (
-          <tr key={u.id || index}>
-            <td><strong>{u.name}</strong></td>
-            <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
-            <td>{u.email}</td>
-            <td>
-              <span 
-                className="badge" 
-                style={
-                  u.role === 'SuperAdmin' 
-                    ? { background: 'transparent', color: 'var(--primary-color)', border: '1px solid var(--primary-color)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }
-                    : { background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }
-                }
-              >
-                {u.role === 'SuperAdmin' && <Shield size={12} />}
-                {u.role}
-              </span>
-            </td>
-            <td style={{ fontSize: '0.85rem' }}>
-              {u.permissions.includes('all') ? 'Full Access' : u.permissions.join(', ') || 'None'}
-            </td>
-            <td>
-              <button className="btn" style={{ padding: '4px 8px', marginRight: '5px' }} onClick={() => openModal(u)}><Edit2 size={14} /></button>
-              {isSuperAdmin && u.id !== currentUser.id && (
-                <button className="btn" style={{ padding: '4px 8px', color: 'red' }} onClick={() => handleDelete(u.id)}><Trash2 size={14} /></button>
-              )}
-            </td>
-          </tr>
-        )}
-      />
-
+      {/* Users Table */}
+      <div className="iam-table-wrap">
+        <Table
+          loading={loading}
+          headers={['Name', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
+          data={users}
+          renderRow={(u, index) => (
+            <tr key={u.id || index}>
+              <td><strong>{u.name}</strong></td>
+              <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
+              <td>{u.email}</td>
+              <td>
+                <span className={`iam-role-badge ${u.role === 'SuperAdmin' ? 'iam-role-super' : 'iam-role-default'}`}>
+                  {u.role === 'SuperAdmin' && <Shield size={12} />}
+                  {u.role}
+                </span>
+              </td>
+              <td style={{ fontSize: '0.85rem' }}>
+                {u.permissions.includes('all') ? 'Full Access' : u.permissions.join(', ') || 'None'}
+              </td>
+              <td style={{ whiteSpace: 'nowrap' }}>
+                <button className="iam-action-btn" onClick={() => openModal(u)} title="Edit"><Edit2 size={14} /></button>
+                {' '}
+                {isSuperAdmin && u.id !== currentUser.id && (
+                  <button className="iam-action-btn delete" onClick={() => handleDelete(u.id)} title="Delete"><Trash2 size={14} /></button>
+                )}
+              </td>
+            </tr>
+          )}
+        />
       </div>
+    </div>
   );
 };
 

@@ -187,7 +187,7 @@ exports.postRoot_1 = async (req, res) => {
         { returnDocument: "after" }
       );
       
-      booking.consignment = `MMC-${updatedCounter.seq}`;
+      booking.consignment = `${updatedCounter.seq}`;
     } catch (err) {
       console.error("Error generating sequential AWB:", err);
       booking.consignment = `MMC-${Date.now().toString().slice(-6)}`; // Fallback
@@ -282,15 +282,39 @@ exports.put_id_4 = async (req, res) => {
 };
 
 exports.delete_id_5 = async (req, res) => {
-  const {
-    id
-  } = req.params;
+  const { id } = req.params;
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
+  const bookingData = doc.data(); // capture before deletion
   await db.collection("bookings").doc(id).delete(req.user);
+
+  // Cascade delete related tracking entries
+  if (bookingData?.consignment) {
+    const trackingSnap = await db.collection("tracking")
+      .where("awb", "==", bookingData.consignment)
+      .get();
+    const batchDel = db.batch();
+    trackingSnap.forEach(trkDoc => {
+      batchDel.delete(db.collection("tracking").doc(trkDoc.id));
+    });
+    await batchDel.commit();
+  }
+
+  // Cascade delete related bills
+  if (bookingData?.lrNumber) {
+    const billsSnap = await db.collection("bills")
+      .where("lrNo", "==", bookingData.lrNumber)
+      .get();
+    const batchBills = db.batch();
+    billsSnap.forEach(billDoc => {
+      batchBills.delete(db.collection("bills").doc(billDoc.id));
+    });
+    await batchBills.commit();
+  }
+
   await delCache(CACHE_KEY);
   emitDataUpdated("bookings");
-    return success(res, "Booking deleted successfully");
+  return success(res, "Booking and related data deleted successfully");
 };
 
 exports.delete_clear_all_6 = async (req, res) => {

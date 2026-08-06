@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Users, ShieldCheck, AlertCircle, Search, Filter } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { SettingsContext } from "../context/SettingsContext";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
+import StatsPanel from "../components/StatsPanel";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const Clients = () => {
   const { user } = useContext(AuthContext);
+  const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const canBulkDelete = isSuperAdmin && globalSettings?.integrations?.enableBulkDelete;
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +39,7 @@ const Clients = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
     fetchClients();
@@ -161,26 +168,22 @@ const Clients = () => {
   const filteredClients = clients.filter(c => {
     const query = searchQuery.toLowerCase();
     const cName = c.name || "";
-    return (
-      cName.toLowerCase().includes(query) ||
+    
+    const matchesSearch = cName.toLowerCase().includes(query) ||
       (c.clientCode || "").toLowerCase().includes(query) ||
       (c.gst || "").toLowerCase().includes(query) ||
-      (c.address || "").toLowerCase().includes(query)
-    );
-  }).sort((a, b) => {
-    // Extract numeric values from clientCode to sort them logically
-    const matchA = String(a.clientCode || "").match(/\d+/);
-    const matchB = String(b.clientCode || "").match(/\d+/);
+      (c.address || "").toLowerCase().includes(query);
+      
+    const matchesStatus = statusFilter === "All" || c.status === statusFilter;
     
-    const numA = matchA ? parseInt(matchA[0], 10) : 0;
-    const numB = matchB ? parseInt(matchB[0], 10) : 0;
-    
-    return numB - numA; // Descending order (highest/latest code at the top)
+    return matchesSearch && matchesStatus;
   });
 
+  const { sortedData, sortOption, setSortOption } = useTableSort(filteredClients, "newest", { nameKey: "name", amountKey: "id" });
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredClients.length / entriesPerPage) || 1;
-  const currentData = filteredClients.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage) || 1;
+  const currentData = sortedData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -203,30 +206,28 @@ const Clients = () => {
   return (
     <div className="page-content">
       {/* Title & Add Button */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="header-flex" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: "1.8rem", color: "var(--primary-color)", margin: 0, fontWeight: "700", letterSpacing: "-0.5px" }}>Clients Master</h3>
-        <div className="top-actions-container" style={{ display: "flex", gap: "1rem" }}>
+        <div className="page-header-actions">
           <CsvImportExport moduleName="clients" onImportSuccess={fetchClients} />
-          {isSuperAdmin && clients.length > 0 && (
-            <button 
-              onClick={handleDeleteAll}
-              className="btn btn-danger"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
+          {canBulkDelete && clients.length > 0 && (
+            <button onClick={handleDeleteAll} className="page-header-btn" style={{ color: "#dc2626", borderColor: "#fecaca" }}>
               <Trash2 size={16} /> Delete All
             </button>
           )}
           {!isAdding && !editing && (
-            <button 
-              onClick={handleAddClick}
-              className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "var(--shadow-md)" }}
-            >
+            <button onClick={handleAddClick} className="page-header-btn page-header-btn-primary">
               + Add New Client
             </button>
           )}
         </div>
       </div>
+
+      <StatsPanel stats={[
+        { label: "Total Clients", value: clients.length, color: "blue", icon: Users },
+        { label: "With GST", value: clients.filter(c => c.gst && c.gst.trim() !== '').length, color: "green", icon: ShieldCheck },
+        { label: "Without GST", value: clients.filter(c => !c.gst || c.gst.trim() === '').length, color: "orange", icon: AlertCircle }
+      ]} />
 
       {/* Form Section */}
       <AnimatePresence>
@@ -344,31 +345,64 @@ const Clients = () => {
     )}
   </AnimatePresence>
 
-      {/* Table Section */}
-      <div className="glass-panel" style={{ padding: "1.5rem" }}>
-        
-        {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px" }}>
-          <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-            Show 
-            <select value={entriesPerPage} onChange={handleEntriesChange} style={{ margin: "0 0.5rem", padding: "0.2rem", border: "1px solid #cbd5e1", borderRadius: "2px" }}>
+      {/* Toolbar */}
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
+          
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
+              <Search size={16} />
+            </div>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="premium-search-input"
+              placeholder="Search clients..."
+            />
+          </div>
+
+          <div className="premium-filter-group">
+            <Filter size={16} color="#64748b" style={{ marginLeft: "4px" }} />
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)} 
+              className="premium-filter-input"
+              style={{ cursor: "pointer" }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "az", "za"]} 
+          />
+
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Show</span>
+            <select 
+              value={entriesPerPage} 
+              onChange={handleEntriesChange} 
+              className="premium-filter-input"
+              style={{ cursor: "pointer", width: "50px" }}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            entries
+            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <label style={{ fontSize: "0.9rem", color: "#64748b" }}>Search:</label>
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={handleSearchChange}
-              style={{ border: "1px solid #cbd5e1", padding: "0.25rem 0.5rem", borderRadius: "2px", width: "200px" }}
-            />
-          </div>
+
         </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
 
         {/* Table */}
         <div style={{ overflowX: "auto" }}>

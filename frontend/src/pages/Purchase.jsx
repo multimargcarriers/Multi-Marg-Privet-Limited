@@ -28,6 +28,9 @@ import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
+import StatsPanel from "../components/StatsPanel";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -46,6 +49,8 @@ const Purchase = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [minPending, setMinPending] = useState("");
+  const [maxPending, setMaxPending] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -346,34 +351,45 @@ const Purchase = () => {
   const filteredPurchases = useMemo(() => {
     return purchases.filter(item => {
       // Search
-      const searchLower = search.toLowerCase();
+      const searchStr = search.toLowerCase();
       const matchesSearch = 
-        (item.vendor || "").toLowerCase().includes(searchLower) ||
-        (item.billNo || "").toLowerCase().includes(searchLower) ||
-        (item.remarks || "").toLowerCase().includes(searchLower);
-      
-      // Date Range
+        (item.vendor || "").toLowerCase().includes(searchStr) ||
+        (item.billNo || "").toLowerCase().includes(searchStr);
+        
+      // Date
       const itemDate = new Date(item.date || item.createdAt);
       const matchesFrom = fromDate ? itemDate >= new Date(fromDate) : true;
-      // ToDate should include the whole day
+      
       const toDateObj = toDate ? new Date(toDate) : null;
       if (toDateObj) toDateObj.setHours(23, 59, 59, 999);
       const matchesTo = toDateObj ? itemDate <= toDateObj : true;
 
-      // Status
+      // Status & Pending Amount
       const totalAmount = parseFloat(item.total || 0);
       const paidAmount = parseFloat(item.paidAmount || 0);
-      const isPaid = paidAmount >= totalAmount && totalAmount > 0;
-      const isPartial = paidAmount > 0 && paidAmount < totalAmount;
-      const isPending = paidAmount === 0 || !item.paidAmount;
+      const pendingAmount = totalAmount - paidAmount;
+      
+      const isPaid = pendingAmount <= 0.01; // fuzzy check for floats
+      const isPending = pendingAmount > 0;
+      const isPartial = pendingAmount > 0 && paidAmount > 0;
 
       let matchesStatus = true;
       if (statusFilter === "Paid") matchesStatus = isPaid;
       if (statusFilter === "Pending") matchesStatus = isPending || isPartial;
 
-      return matchesSearch && matchesFrom && matchesTo && matchesStatus;
+      let matchesPendingAmount = true;
+      if (minPending !== "") {
+        matchesPendingAmount = matchesPendingAmount && (pendingAmount >= parseFloat(minPending));
+      }
+      if (maxPending !== "") {
+        matchesPendingAmount = matchesPendingAmount && (pendingAmount <= parseFloat(maxPending));
+      }
+
+      return matchesSearch && matchesFrom && matchesTo && matchesStatus && matchesPendingAmount;
     });
-  }, [purchases, search, fromDate, toDate, statusFilter]);
+  }, [purchases, search, fromDate, toDate, statusFilter, minPending, maxPending]);
+
+  const { sortedData, sortOption, setSortOption } = useTableSort(filteredPurchases, "newest", { nameKey: "vendor", amountKey: "total" });
 
   const stats = useMemo(() => {
     const totalPurchases = filteredPurchases.length;
@@ -381,7 +397,7 @@ const Purchase = () => {
     const totalGst = filteredPurchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
     const totalPaid = filteredPurchases.reduce((s, e) => s + parseFloat(e.paidAmount || 0), 0);
     const outstanding = totalAmount - totalPaid;
-    return { totalPurchases, totalAmount, totalGst, outstanding };
+    return { totalPurchases, totalAmount, totalGst, outstanding, totalPaid };
   }, [filteredPurchases]);
 
   return (
@@ -417,23 +433,11 @@ const Purchase = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className="page-header-actions">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              color: "#475569",
-              padding: "0.45rem 0.85rem",
-              borderRadius: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: 600,
-              fontSize: "0.8rem"
-            }}
+            className="page-header-btn"
           >
             <RefreshCw size={14} className={refreshing ? "spin-animation" : ""} />
             {refreshing ? "Refreshing..." : "Refresh"}
@@ -442,20 +446,8 @@ const Purchase = () => {
           {!isAdding && (
             <button 
               onClick={() => setIsAdding(true)}
-              style={{
-                background: "#8b5cf6",
-                color: "white",
-                border: "none",
-                padding: "0.45rem 1rem",
-                borderRadius: "8px",
-                fontWeight: "600",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 2px 6px rgba(139, 92, 246, 0.2)",
-                fontSize: "0.825rem"
-              }}
+              className="page-header-btn page-header-btn-primary"
+              style={{ background: "#8b5cf6", borderColor: "#8b5cf6", boxShadow: "0 2px 6px rgba(139, 92, 246, 0.2)" }}
             >
               <Plus size={15} />
               New Purchase
@@ -845,96 +837,59 @@ const Purchase = () => {
       </AnimatePresence>
 
       {/* STATS CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Purchases</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               {stats.totalPurchases}
-            </div>
-          </div>
-          <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}><FileSpreadsheet size={24} color="#64748b" /></div>
-        </div>
-
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Value</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#8b5cf6", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {formatAmount(stats.totalAmount)}
-            </div>
-          </div>
-          <div style={{ background: "#f5f3ff", padding: "12px", borderRadius: "12px" }}><ShoppingCart size={24} color="#8b5cf6" /></div>
-        </div>
-
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total GST Paid</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f59e0b", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {formatAmount(stats.totalGst)}
-            </div>
-          </div>
-          <div style={{ background: "#fffbeb", padding: "12px", borderRadius: "12px" }}><Receipt size={24} color="#f59e0b" /></div>
-        </div>
-
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Outstanding</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {formatAmount(stats.outstanding)}
-            </div>
-          </div>
-          <div style={{ background: "#fef2f2", padding: "12px", borderRadius: "12px" }}><DollarSign size={24} color="#ef4444" /></div>
-        </div>
-      </div>
+      <StatsPanel stats={[
+        { label: "Total Purchases", value: stats.totalPurchases, icon: FileSpreadsheet, color: "blue" },
+        { label: "Total Value", value: "₹" + formatAmount(stats.totalAmount), icon: ShoppingCart, color: "purple" },
+        { label: "Total Paid", value: "₹" + formatAmount(stats.totalPaid), icon: Receipt, color: "green" },
+        { label: "Total GST Paid", value: "₹" + formatAmount(stats.totalGst), icon: FileText, color: "orange" },
+        { label: "Total Outstanding", value: "₹" + formatAmount(stats.outstanding), icon: DollarSign, color: "red" }
+      ]} />
 
       
       {/* FILTER BAR */}
-      <div className="glass-panel" style={{ padding: "1rem 1.5rem", marginBottom: "1.5rem", borderRadius: "12px", display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between", background: "white", border: "1px solid #e2e8f0" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", flex: 1 }}>
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
           
           {/* Search Box */}
-          <div style={{ position: "relative", minWidth: "250px", flex: 1 }}>
-            <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
               <Search size={18} />
             </div>
             <input 
               type="text" 
-              className="form-control" 
+              className="premium-search-input" 
               placeholder="Search Vendor, Bill No..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
-              style={{ paddingLeft: "2.5rem", width: "100%", borderRadius: "8px", border: "1px solid #cbd5e1" }}
             />
           </div>
 
           {/* Date Range */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#f8fafc", padding: "0.25rem 0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-            <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#64748b", marginLeft: "4px" }}>Date:</span>
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Date:</span>
             <input 
               type="date" 
-              className="form-control" 
+              className="premium-filter-input" 
               value={fromDate} 
               onChange={(e) => setFromDate(e.target.value)} 
-              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none" }}
             />
             <span style={{ color: "#94a3b8" }}>-</span>
             <input 
               type="date" 
-              className="form-control" 
+              className="premium-filter-input" 
               value={toDate} 
               onChange={(e) => setToDate(e.target.value)} 
-              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none" }}
             />
           </div>
 
           {/* Status Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#f8fafc", padding: "0.25rem 0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+          <div className="premium-filter-group">
             <Filter size={16} color="#64748b" style={{ marginLeft: "4px" }} />
             <select 
-              className="form-control" 
+              className="premium-filter-input" 
               value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)} 
-              style={{ padding: "0.25rem 0.5rem", border: "none", background: "transparent", fontSize: "0.85rem", outline: "none", cursor: "pointer" }}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ cursor: "pointer" }}
             >
               <option value="All">All Statuses</option>
               <option value="Pending">Pending / Unpaid</option>
@@ -942,13 +897,40 @@ const Purchase = () => {
             </select>
           </div>
 
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Pending Amount:</span>
+            <input 
+              type="number" 
+              placeholder="Min" 
+              value={minPending} 
+              onChange={(e) => setMinPending(e.target.value)} 
+              className="premium-filter-input"
+              style={{ width: "60px" }}
+            />
+            <span style={{ color: "#94a3b8" }}>-</span>
+            <input 
+              type="number" 
+              placeholder="Max" 
+              value={maxPending} 
+              onChange={(e) => setMaxPending(e.target.value)} 
+              className="premium-filter-input"
+              style={{ width: "60px" }}
+            />
+          </div>
+          
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+          />
         </div>
 
         {/* Clear Filters Button */}
-        {(search || fromDate || toDate || statusFilter !== "All") && (
+        {(search || fromDate || toDate || statusFilter !== "All" || minPending || maxPending || sortOption !== "newest") && (
           <button 
-            onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setStatusFilter("All"); }}
-            style={{ padding: "0.5rem 1rem", background: "#fff1f2", color: "#e11d48", border: "1px solid #fecdd3", borderRadius: "8px", fontSize: "0.85rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+            onClick={() => { setSearch(""); setFromDate(""); setToDate(""); setStatusFilter("All"); setMinPending(""); setMaxPending(""); setSortOption("newest"); }}
+            className="premium-clear-btn"
+            style={{ alignSelf: "flex-end" }}
           >
             <X size={14} /> Clear Filters
           </button>
@@ -959,7 +941,7 @@ const Purchase = () => {
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
           headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status", "Bill Image", "Actions"]}
-          data={filteredPurchases}
+          data={sortedData}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {

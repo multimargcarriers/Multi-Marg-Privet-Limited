@@ -181,7 +181,8 @@ const defaultSettings = {
   integrations: {
     redis: true,
     cloudinary: true,
-    enableBulkDelete: false
+    enableBulkDelete: false,
+    enableCsvImport: true
   },
   modules: {
     masters: true,
@@ -217,6 +218,7 @@ router.get("/config", async (req, res) => {
     if (!settings.system) settings.system = { ...defaultSettings.system };
     if (!settings.integrations) settings.integrations = { ...defaultSettings.integrations };
     if (settings.integrations.enableBulkDelete === undefined) settings.integrations.enableBulkDelete = false;
+    if (settings.integrations.enableCsvImport === undefined) settings.integrations.enableCsvImport = true;
     
     return success(res, "Global configuration fetched", settings);
   } catch (err) {

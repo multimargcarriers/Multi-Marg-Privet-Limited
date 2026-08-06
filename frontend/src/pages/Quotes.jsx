@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
+import { useDialog } from "../context/DialogContext";
 import {
   FileText, Search, Trash2, CheckCircle, Clock, TrendingUp,
   MapPin, Phone, Mail, Package, Truck, Scale, Calendar, RefreshCw,
   ChevronLeft, ChevronRight, AlertCircle
 } from "lucide-react";
 import axios from "axios";
+import StatsPanel from "../components/StatsPanel";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const Quotes = () => {
   const { token } = useContext(AuthContext);
+  const { confirm } = useDialog();
   const [quotes, setQuotes] = useState([]);
   const [stats, setStats] = useState({ total: 0, estimated: 0, proceeded: 0, todayCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -42,7 +47,13 @@ const Quotes = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this quote?")) return;
+    const isConfirmed = await confirm({
+      title: "Delete Quote",
+      message: "Are you sure you want to delete this quote?",
+      confirmText: "Delete",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
     try {
       await axios.delete(`${API}/api/quotes/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -70,8 +81,10 @@ const Quotes = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / entriesPerPage);
-  const paginatedData = filtered.slice(
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "name", amountKey: "id" }); // No amount in quotes, use id as fallback
+
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage);
+  const paginatedData = sortedData.slice(
     (currentPage - 1) * entriesPerPage,
     currentPage * entriesPerPage
   );
@@ -89,16 +102,16 @@ const Quotes = () => {
   };
 
   const statCards = [
-    { label: "Total Quotes", value: stats.total, icon: <FileText size={22} />, color: "#4F46E5", bg: "rgba(79, 70, 229, 0.08)" },
-    { label: "Estimated", value: stats.estimated, icon: <Clock size={22} />, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.08)" },
-    { label: "Proceeded", value: stats.proceeded, icon: <CheckCircle size={22} />, color: "#10b981", bg: "rgba(16, 185, 129, 0.08)" },
-    { label: "Today", value: stats.todayCount, icon: <TrendingUp size={22} />, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.08)" },
+    { label: "Total Quotes", value: stats.total, icon: FileText, color: "blue" },
+    { label: "Estimated", value: stats.estimated, icon: Clock, color: "orange" },
+    { label: "Proceeded", value: stats.proceeded, icon: CheckCircle, color: "green" },
+    { label: "Today", value: stats.todayCount, icon: TrendingUp, color: "purple" },
   ];
 
   return (
     <div className="page-content">
       {/* Page Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+      <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
         <div>
           <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-color)", margin: 0 }}>
             Quote Requests
@@ -107,83 +120,74 @@ const Quotes = () => {
             All quote enquiries from the public website
           </p>
         </div>
-        <button
-          onClick={fetchQuotes}
-          style={{
-            display: "flex", alignItems: "center", gap: "0.5rem",
-            padding: "0.6rem 1.2rem", border: "1px solid var(--border-color)",
-            borderRadius: "8px", background: "white", cursor: "pointer",
-            fontSize: "0.85rem", fontWeight: 600, color: "var(--text-color)",
-            transition: "all 0.2s"
-          }}
-        >
-          <RefreshCw size={16} /> Refresh
-        </button>
+        <div className="page-header-actions">
+          <button onClick={fetchQuotes} className="page-header-btn">
+            <RefreshCw size={16} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        {statCards.map((card, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-panel"
-            style={{ padding: "1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}
-          >
-            <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: card.bg, display: "flex", alignItems: "center", justifyContent: "center", color: card.color }}>
-              {card.icon}
-            </div>
-            <div>
-              <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0, fontWeight: 500 }}>{card.label}</p>
-              <h3 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, color: card.color }}>{card.value}</h3>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      <StatsPanel stats={statCards} />
 
-      {/* Table Section */}
-      <div className="glass-panel" style={{ padding: "1.5rem" }}>
-        {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px", flexWrap: "wrap", gap: "0.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-            <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-              Show{" "}
-              <select
-                value={entriesPerPage}
-                onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                style={{ margin: "0 0.5rem", padding: "0.2rem", border: "1px solid #cbd5e1", borderRadius: "2px" }}
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              entries
+      {/* Toolbar */}
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
+          
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
+              <Search size={16} />
             </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="premium-search-input"
+              placeholder="Name, phone, ref..."
+            />
+          </div>
+
+          <div className="premium-filter-group">
+            <Filter size={16} color="#64748b" style={{ marginLeft: "4px" }} />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              style={{ padding: "0.35rem 0.75rem", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.85rem", cursor: "pointer" }}
+              className="premium-filter-input"
+              style={{ cursor: "pointer" }}
             >
               <option value="all">All Status</option>
               <option value="estimated">Estimated</option>
               <option value="proceeded">Proceeded</option>
             </select>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <label style={{ fontSize: "0.9rem", color: "#64748b" }}>Search:</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              style={{ border: "1px solid #cbd5e1", padding: "0.25rem 0.5rem", borderRadius: "2px", width: "200px" }}
-              placeholder="Name, phone, ref..."
-            />
-          </div>
-        </div>
 
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "az", "za"]} 
+          />
+
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Show</span>
+            <select
+              value={entriesPerPage}
+              onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              className="premium-filter-input"
+              style={{ cursor: "pointer", width: "50px" }}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
           <div className="table-responsive">

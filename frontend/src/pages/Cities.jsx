@@ -6,6 +6,10 @@ import { useDialog } from "../context/DialogContext";
 import { formatAllCaps } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
+import StatsPanel from "../components/StatsPanel";
+import { MapPin, Search } from "lucide-react";
+import SortDropdown from "../components/SortDropdown";
+import useTableSort from "../hooks/useTableSort";
 
 const Cities = () => {
   const { user } = useContext(AuthContext);
@@ -106,9 +110,11 @@ const Cities = () => {
     );
   });
 
+  const { sortedData, sortOption, setSortOption } = useTableSort(filteredCities, "newest", { nameKey: "city", amountKey: "id" });
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredCities.length / entriesPerPage) || 1;
-  const currentData = filteredCities.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage) || 1;
+  const currentData = sortedData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -131,21 +137,21 @@ const Cities = () => {
   return (
     <div className="page-content">
       {/* Title & Add Button */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="header-flex" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: "1.8rem", color: "var(--primary-color)", margin: 0, fontWeight: "700", letterSpacing: "-0.5px" }}>Cities Master</h3>
-        <div className="top-actions-container" style={{ display: "flex", gap: "1rem" }}>
+        <div className="page-header-actions">
           <CsvImportExport moduleName="cities" onImportSuccess={fetchCities} />
           {!isAdding && !editing && (
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="btn btn-primary"
-              style={{ display: "flex", alignItems: "center", gap: "0.5rem", boxShadow: "var(--shadow-md)" }}
-            >
+            <button onClick={() => setIsAdding(true)} className="page-header-btn page-header-btn-primary">
               + Add New City
             </button>
           )}
         </div>
       </div>
+
+      <StatsPanel stats={[
+        { label: "Total Cities", value: cities.length, icon: MapPin, color: "blue" }
+      ]} />
 
       {/* ADD/EDIT FORM SECTION */}
       <AnimatePresence>
@@ -206,31 +212,49 @@ const Cities = () => {
         )}
       </AnimatePresence>
 
-      {/* TABLE SECTION */}
-      <div className="glass-panel" style={{ padding: "1.5rem" }}>
-        
-        {/* Toolbar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px" }}>
-          <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-            Show 
-            <select value={entriesPerPage} onChange={handleEntriesChange} style={{ margin: "0 0.5rem", padding: "0.2rem", border: "1px solid #cbd5e1", borderRadius: "2px" }}>
+      <div className="premium-filter-toolbar">
+        <div className="premium-filter-grid">
+          
+          <div className="premium-search-wrapper">
+            <div className="premium-search-icon">
+              <Search size={16} />
+            </div>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="premium-search-input"
+              placeholder="Search cities..."
+            />
+          </div>
+
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["newest", "oldest", "az", "za"]} 
+          />
+
+          <div className="premium-filter-group">
+            <span className="premium-filter-label">Show</span>
+            <select 
+              value={entriesPerPage} 
+              onChange={handleEntriesChange} 
+              className="premium-filter-input"
+              style={{ cursor: "pointer", width: "50px" }}
+            >
               <option value="10">10</option>
               <option value="25">25</option>
               <option value="50">50</option>
               <option value="100">100</option>
             </select>
-            entries
+            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <label style={{ fontSize: "0.9rem", color: "#64748b" }}>Search:</label>
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={handleSearchChange}
-              style={{ border: "1px solid #cbd5e1", padding: "0.25rem 0.5rem", borderRadius: "2px", width: "200px" }}
-            />
-          </div>
+
         </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
 
         {/* Table */}
         <div style={{ overflowX: "auto" }}>

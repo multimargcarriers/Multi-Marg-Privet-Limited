@@ -1,0 +1,97 @@
+.stats-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+
+.stat-card-blue::before { background: #3b82f6; }
+.stat-card-green::before { background: #10b981; }
+.stat-card-purple::before { background: #8b5cf6; }
+.stat-card-orange::before { background: #f59e0b; }
+.stat-card-red::before { background: #ef4444; }
+
+.stat-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.stat-card-icon-wrapper {
+  padding: 0.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card-blue .stat-card-icon-wrapper { background: #eff6ff; color: #3b82f6; }
+.stat-card-green .stat-card-icon-wrapper { background: #ecfdf5; color: #10b981; }
+.stat-card-purple .stat-card-icon-wrapper { background: #f5f3ff; color: #8b5cf6; }
+.stat-card-orange .stat-card-icon-wrapper { background: #fffbeb; color: #f59e0b; }
+.stat-card-red .stat-card-icon-wrapper { background: #fef2f2; color: #ef4444; }
+
+.stat-card-trend {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.stat-card-trend-label {
+  color: #94a3b8;
+}
