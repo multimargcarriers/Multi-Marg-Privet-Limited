@@ -3,8 +3,19 @@ import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation, 
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
+import { useNavigate } from 'react-router-dom';
+
 const Home = () => {
   const [activeTab, setActiveTab] = useState('track');
+  const [homeTrackingNumber, setHomeTrackingNumber] = useState('');
+  const navigate = useNavigate();
+
+  const handleHomeTrack = (e) => {
+    e.preventDefault();
+    if (homeTrackingNumber.trim()) {
+      navigate(`/track?awb=${encodeURIComponent(homeTrackingNumber.trim())}`);
+    }
+  };
 
   return (
     <div>
@@ -101,7 +112,7 @@ const Home = () => {
               </h3>
               
               {activeTab === 'track' && (
-                <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleHomeTrack} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <select style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none', background: 'var(--bg-light-grey)' }}>
                     <option>LR Number (Waybill)</option>
                     <option>Invoice Number</option>
@@ -109,7 +120,10 @@ const Home = () => {
                   <input 
                     type="text" 
                     placeholder="Enter Tracking Number"
+                    value={homeTrackingNumber}
+                    onChange={(e) => setHomeTrackingNumber(e.target.value)}
                     style={{ padding: '0.85rem', border: '1px solid var(--border-color)', borderRadius: '4px', outline: 'none' }}
+                    required
                   />
                   <button type="submit" className="btn btn-blue" style={{ marginTop: '0.5rem', padding: '1rem' }}>Track Now</button>
                 </form>

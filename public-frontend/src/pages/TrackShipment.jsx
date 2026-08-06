@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
@@ -28,15 +29,18 @@ const getStatusColor = (status) => {
 };
 
 const TrackShipment = () => {
-  const [trackingNumber, setTrackingNumber] = useState('');
+  const [searchParams] = useSearchParams();
+  const awbQuery = searchParams.get('awb');
+
+  const [trackingNumber, setTrackingNumber] = useState(awbQuery || '');
   const [isSearching, setIsSearching] = useState(false);
   const [trackingResult, setTrackingResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const searchStarted = useRef(false);
 
-  const handleTrack = async (e) => {
-    e.preventDefault();
-    const trimmed = trackingNumber.trim();
+  const performSearch = async (awb) => {
+    const trimmed = (awb || '').trim();
     if (!trimmed) return;
 
     setIsSearching(true);
@@ -64,6 +68,18 @@ const TrackShipment = () => {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  useEffect(() => {
+    if (awbQuery && !searchStarted.current) {
+      searchStarted.current = true;
+      performSearch(awbQuery);
+    }
+  }, [awbQuery]);
+
+  const handleTrack = (e) => {
+    if (e) e.preventDefault();
+    performSearch(trackingNumber);
   };
 
   const fadeInUp = {
