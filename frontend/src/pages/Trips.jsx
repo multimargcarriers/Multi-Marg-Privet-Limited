@@ -200,7 +200,7 @@ const Trips = () => {
       <div className="header-flex no-print">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-            {view === 'manifest' ? 'TRIP AIR / FLIGHT EXPRESS' : 
+            {view === 'manifest' ? 'Transport Bookings (Train / Air / Road)' : 
              view === 'bill' ? 'Trip Bill' : 'Trips'}
           </h3>
         </div>
@@ -210,6 +210,29 @@ const Trips = () => {
           </button>
         )}
       </div>
+
+      {!showForm && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }} className="no-print">
+          <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #3b82f6" }}>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trips</div>
+            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{trips.length}</div>
+          </div>
+          <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #10b981" }}>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Freight</div>
+            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827", display: "flex", alignItems: "center" }}>
+              <RupeeIcon size={24} />{trips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Train / Air / Road</div>
+            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+              <span><span style={{ color: "#a21caf" }}>T:</span> {trips.filter(t => t.mode?.toLowerCase() === 'train').length}</span>
+              <span><span style={{ color: "#0ea5e9" }}>A:</span> {trips.filter(t => t.mode?.toLowerCase() === 'flight').length}</span>
+              <span><span style={{ color: "#f97316" }}>R:</span> {trips.filter(t => t.mode?.toLowerCase() === 'road').length}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {success && (
         <div className="glass-panel no-print" style={{ padding: "1.5rem", marginBottom: "2rem", display: "flex", alignItems: "center", gap: "1rem", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.2)" }}>
@@ -224,16 +247,16 @@ const Trips = () => {
         <form onSubmit={handleSave} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "2rem" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Flight No</label>
-              <input type="text" className="form-control" placeholder="Auto-generated (e.g. FLIGHT-1)" value={form.tripNo} disabled />
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip / Internal Ref No</label>
+              <input type="text" className="form-control" placeholder="Auto-generated (e.g. TRP-1001)" value={form.tripNo} disabled />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value })} required>
                 <option value="">-- Select Mode --</option>
-                <option value="GCR FLIGHT">GCR FLIGHT</option>
-                <option value="PRIME FLIGHT">PRIME FLIGHT</option>
-                <option value="EXPRESS MODE">EXPRESS MODE</option>
+                <option value="Train">Train</option>
+                <option value="Flight">Flight</option>
+                <option value="Road">Road</option>
               </select>
             </div>
             <div className="form-group">
@@ -246,8 +269,10 @@ const Trips = () => {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>AWB No</label>
-              <input type="text" className="form-control" placeholder="Enter AWB No" value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
+                {form.mode === 'Train' ? 'Train / RR Number' : form.mode === 'Road' ? 'Vehicle / Truck Number' : 'Flight / AWB Number'}
+              </label>
+              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : 'Flight / AWB No'}`} value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
@@ -405,7 +430,7 @@ const Trips = () => {
       <div className="glass-panel no-print" style={{ padding: "1rem", marginBottom: "2rem" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {[
-            { key: "manifest", label: "TRIP AIR / FLIGHT EXPRESS", icon: ClipboardList, permission: "trips" },
+            { key: "manifest", label: "TRANSPORT BOOKINGS", icon: ClipboardList, permission: "trips" },
             { key: "bill", label: "TRIP BILL", icon: FileText, permission: "trips" },
           ].filter(tab => hasAccess(tab.permission)).map(({ key, label, icon: Icon }) => (
             <button key={key}
@@ -424,7 +449,7 @@ const Trips = () => {
       {view === "manifest" && (
         <Table
           loading={loading}
-          headers={["Flight No", "Mode", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
+          headers={["Trip No", "Mode", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
           data={trips}
           renderRow={(item, index) => (
             <tr key={item.id || index}>
