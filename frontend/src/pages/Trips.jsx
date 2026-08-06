@@ -255,7 +255,7 @@ const Trips = () => {
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value })} required>
+              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value, ...(e.target.value !== 'Flight' ? { cdNo: '' } : {}) })} required>
                 <option value="">-- Select Mode --</option>
                 <option value="Train">Train</option>
                 <option value="Flight">Flight</option>
@@ -309,10 +309,12 @@ const Trips = () => {
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>AWB No</label>
               <input type="text" className="form-control" placeholder="Enter AWB No" value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
             </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
-              <input type="text" className="form-control" placeholder="Enter CD No" value={form.cdNo} onChange={e => setForm({ ...form, cdNo: formatAllCaps(e.target.value) })} />
-            </div>
+            {form.mode === 'Flight' && (
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
+                <input type="text" className="form-control" placeholder="Enter CD No" value={form.cdNo} onChange={e => setForm({ ...form, cdNo: formatAllCaps(e.target.value) })} />
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Vendor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
