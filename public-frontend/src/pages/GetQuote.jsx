@@ -265,9 +265,14 @@ const GetQuote = () => {
               <div className="form-section">
                 <h3 className="form-section-title"><Scale size={24} /> Shipment Dimensions</h3>
                 <div className="dimension-grid">
-                  <div className="form-group">
+                  <div className="form-group" style={{ position: 'relative' }}>
                     <label>Weight (kg)</label>
                     <input type="number" name="weight" value={formData.weight} onChange={handleInputChange} className="form-input" placeholder="0" style={{ paddingLeft: '1rem' }} required min="1" />
+                    {formData.weight && parseFloat(formData.weight) < 100 && (
+                      <div style={{ fontSize: '0.7rem', color: '#d97706', marginTop: '0.25rem', lineHeight: '1.2' }}>
+                        *We deliver high volume material. Minimum 100kg will be charged.
+                      </div>
+                    )}
                   </div>
                   <div className="form-group">
                     <label>Length (cm)</label>
@@ -368,11 +373,20 @@ const GetQuote = () => {
                         <strong className="detail-val">~{quoteResult.distanceKm} km</strong>
                       </div>
                     </div>
+                    {Number(quoteResult.chargeableWeight) > Number(formData.weight) && (
+                      <div className="detail-item">
+                        <div className="detail-icon"><Scale size={18} /></div>
+                        <div>
+                          <span className="detail-title">Chargeable Wt.</span>
+                          <strong className="detail-val">{quoteResult.chargeableWeight} kg</strong>
+                        </div>
+                      </div>
+                    )}
                     <div className="detail-item">
                       <div className="detail-icon"><Scale size={18} /></div>
                       <div>
-                        <span className="detail-title">Chargeable Wt.</span>
-                        <strong className="detail-val">{quoteResult.chargeableWeight} kg</strong>
+                        <span className="detail-title">Actual Wt.</span>
+                        <strong className="detail-val">{formData.weight} kg</strong>
                       </div>
                     </div>
                   </div>

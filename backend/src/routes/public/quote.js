@@ -160,8 +160,9 @@ router.post('/', async (req, res) => {
       volumetricWeight = (lengthNum * breadthNum * heightNum) / volumetricDivisor;
     }
 
-    // Chargeable weight = max of actual weight and volumetric weight
-    const chargeableWeight = Math.max(weightNum, volumetricWeight);
+    // Chargeable weight = max of actual weight, volumetric weight, and minimum 100kg
+    const calculatedWeight = Math.max(weightNum, volumetricWeight);
+    const chargeableWeight = Math.max(100, calculatedWeight);
 
     // Base rate per kg (HIDDEN — never exposed to user)
     let baseRatePerKg;
