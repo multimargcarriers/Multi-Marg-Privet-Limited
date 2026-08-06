@@ -46,82 +46,58 @@ const BookingsList = () => {
   const navigate = useNavigate();
 
   useEffect(() => { 
-    fetchBookings(); 
-    fetchPodEntries(); 
-    fetchBoxEntries();
+    fetchAllData(); 
   }, []);
 
-  const fetchBoxEntries = async () => {
+  const fetchAllData = async () => {
+    if (bookings.length === 0) setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/box`);
-      if (res.data.success && Array.isArray(res.data.data)) {
+      const [bookingsRes, podRes, boxRes, trackingRes] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings`),
+        axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/pod`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/box`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/tracking`).catch(() => ({ data: { data: [] } }))
+      ]);
+      
+      if (bookingsRes.data.success) setBookings(bookingsRes.data.data || []);
+      
+      // Build POD map
+      if (podRes.data.success && Array.isArray(podRes.data.data)) {
         const map = {};
-        res.data.data.forEach(item => {
-          if (item.lrNo) map[String(item.lrNo).trim()] = item;
-          if (item.bookingId) map[item.bookingId] = item;
-        });
-        setBoxMap(map);
-      }
-    } catch (err) {
-      console.error("Fetch Boxes error in BookingsList:", err);
-    }
-  };
-
-  const fetchPodEntries = async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/pod`);
-      if (res.data.success && Array.isArray(res.data.data)) {
-        const map = {};
-        res.data.data.forEach(item => {
+        podRes.data.data.forEach(item => {
           if (item.lrNo) map[String(item.lrNo).trim()] = item;
           if (item.bookingId) map[item.bookingId] = item;
         });
         setPodMap(map);
       }
-    } catch (err) {
-      console.error("Fetch PODs error in BookingsList:", err);
-    }
-  };
-
-  const fetchBookings = async () => {
-    try {
-      // Avoid flickering if already loading
-      if (bookings.length === 0) setLoading(true);
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings`);
-      if (res.data.success) {
-        setBookings(res.data.data || []);
-      }
-    } catch (err) { 
-      console.error("Fetch bookings error", err); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
-
-  const fetchTrackingForMap = async () => {
-    try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/tracking`);
-      if (res.data.success && Array.isArray(res.data.data)) {
+      
+      // Build Box map
+      if (boxRes.data.success && Array.isArray(boxRes.data.data)) {
         const map = {};
-        const sorted = res.data.data.sort((a,b) => new Date(a.date) - new Date(b.date));
+        boxRes.data.data.forEach(item => {
+          if (item.lrNo) map[String(item.lrNo).trim()] = item;
+          if (item.bookingId) map[item.bookingId] = item;
+        });
+        setBoxMap(map);
+      }
+      
+      // Build Tracking map
+      if (trackingRes.data.success && Array.isArray(trackingRes.data.data)) {
+        const map = {};
+        const sorted = trackingRes.data.data.sort((a,b) => new Date(a.date) - new Date(b.date));
         sorted.forEach(t => {
           if (t.awb) map[String(t.awb).trim().toLowerCase()] = t.status;
         });
         setTrackingMap(map);
       }
     } catch (err) {
-      console.error("Fetch Tracking error in BookingsList:", err);
+      console.error("Fetch data error", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchBookings();
-    fetchPodEntries();
-    fetchBoxEntries();
-    fetchTrackingForMap();
-  }, []);
-
-  useSocketSync("bookings", fetchBookings);
+  useSocketSync("bookings", fetchAllData);
 
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
@@ -134,7 +110,7 @@ const BookingsList = () => {
     
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/${id}`);
-      fetchBookings();
+      fetchAllData();
     } catch (err) { console.error("Delete booking error", err); }
   };
 
@@ -150,7 +126,7 @@ const BookingsList = () => {
     
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/clear/all`);
-      fetchBookings();
+      fetchAllData();
     } catch (err) { console.error("Clear all bookings error", err); }
   };
 
@@ -189,7 +165,7 @@ const BookingsList = () => {
             <div className="booking-csv-manager-card">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking & LR CSV Manager</span>
-                <CsvImportExport moduleName="bookings" onImportSuccess={fetchBookings} searchQuery={search} />
+                <CsvImportExport moduleName="bookings" onImportSuccess={fetchAllData} searchQuery={search} />
               </div>
             </div>
             {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
@@ -467,8 +443,7 @@ const BookingsList = () => {
             booking={selectedBookingForPod}
             existingPod={selectedBookingForPod ? podMap[selectedBookingForPod.awb || selectedBookingForPod.lrNo || selectedBookingForPod.id] : null}
             onSuccess={() => {
-              fetchBookings();
-              fetchPodEntries();
+              fetchAllData();
             }}
           />
         )}
@@ -482,8 +457,7 @@ const BookingsList = () => {
             booking={selectedBookingForBox}
             existingBox={selectedBookingForBox ? boxMap[selectedBookingForBox.awb || selectedBookingForBox.lrNo || selectedBookingForBox.id] : null}
             onSuccess={() => {
-              fetchBookings();
-              fetchBoxEntries();
+              fetchAllData();
             }}
           />
         )}

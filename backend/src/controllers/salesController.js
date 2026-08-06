@@ -58,12 +58,12 @@ exports.get_summary_2 = async (req, res) => {
     from,
     to
   } = req.query;
-  const snapshot = await db.collection("bills").get();
-  const bills = [];
-  snapshot.forEach(doc => bills.push({
-    id: doc.id,
-    ...doc.data()
-  }));
+  const bills = await getOrSet("bills", async () => {
+    const snapshot = await db.collection("bills").orderBy("createdAt", "desc").get();
+    const items = [];
+    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+    return items;
+  }, 300);
   let filtered = bills;
   if (from) filtered = filtered.filter(b => new Date(b.createdAt) >= new Date(from));
   if (to) filtered = filtered.filter(b => new Date(b.createdAt) <= new Date(to));
@@ -75,4 +75,3 @@ exports.get_summary_2 = async (req, res) => {
     averagePerBill: filtered.length > 0 ? filtered.reduce((s, b) => s + parseFloat(b.total || b.amount || 0), 0) / filtered.length : 0
   });
 };
-

@@ -146,8 +146,10 @@ axios.interceptors.response.use(
   }
 );
 
-// Global memory cache for instant UI
+// Global memory cache for instant UI with TTL
 const memCache = new Map();
+const memCacheTimestamps = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for cached data
 
 // URL rewriter to support access from mobile devices on local network
 const rewriteUrl = (url) => {
@@ -158,29 +160,44 @@ const rewriteUrl = (url) => {
   return url;
 };
 
-// Override GET for instant cache + background update
+// Override GET for instant cache + background update with UI refresh
 const originalGet = axios.get;
 axios.get = async function (url, config) {
   url = rewriteUrl(url);
   const cacheKey = url;
-  if (memCache.has(cacheKey)) {
-    // Fetch in background to keep fresh
-    originalGet.call(this, url, { ...config, params: { ...config?.params, _t: Date.now() } })
-      .then(res => memCache.set(cacheKey, res.data))
-      .catch(() => {});
-      
-    // Return cached data instantly
+  const now = Date.now();
+  const cachedTimestamp = memCacheTimestamps.get(cacheKey) || 0;
+  const isStale = (now - cachedTimestamp) > CACHE_TTL_MS;
+  
+  if (memCache.has(cacheKey) && !isStale) {
+    // Fresh cache — return instantly, no background fetch needed
     return Promise.resolve({ data: memCache.get(cacheKey) });
   }
   
-  // First time fetch
-  const res = await originalGet.call(this, url, { ...config, params: { ...config?.params, _t: Date.now() } });
+  if (memCache.has(cacheKey) && isStale) {
+    // Stale cache — return instantly, background refresh + UI update
+    originalGet.call(this, url, { ...config, params: { ...config?.params, _t: now } })
+      .then(res => {
+        memCache.set(cacheKey, res.data);
+        memCacheTimestamps.set(cacheKey, Date.now());
+        // Notify components that fresh data is available
+        window.dispatchEvent(new CustomEvent('cache-refreshed', { detail: { url: cacheKey } }));
+      })
+      .catch(() => {});
+      
+    // Return cached data instantly for zero-latency UI
+    return Promise.resolve({ data: memCache.get(cacheKey) });
+  }
+  
+  // First time fetch — no cache available
+  const res = await originalGet.call(this, url, { ...config, params: { ...config?.params, _t: now } });
   memCache.set(cacheKey, res.data);
+  memCacheTimestamps.set(cacheKey, Date.now());
   return res;
 };
 
-// Clear cache on mutations (POST, PUT, DELETE)
-const clearCache = () => memCache.clear();
+// Clear cache on mutations (POST, PUT, DELETE) — ensures writes are never stale
+const clearCache = () => { memCache.clear(); memCacheTimestamps.clear(); };
 
 const originalPost = axios.post;
 axios.post = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalPost.apply(this, args); };

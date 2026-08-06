@@ -9,9 +9,14 @@ const {
   asyncHandler
 } = require("../middleware/errorHandler");
 const {
-  authenticateToken
-} = require("../middleware/auth");
+  getOrSet
+} = require("../config/redis");
 
+/**
+ * Optimized Search Controller
+ * Uses cached collection data instead of fetching all docs from 5 collections per query.
+ * Falls back to direct DB queries if cache misses.
+ */
 exports.getRoot_1 = async (req, res) => {
   const q = req.query.q || "";
   if (!q || q.length < 2) {
@@ -31,24 +36,32 @@ exports.getRoot_1 = async (req, res) => {
     });
   };
 
-  // Firebase Implementation (Firestore)
-  // Since Firestore lacks native partial string search, we fetch all active docs and filter in memory.
-  // In production, Algolia would be recommended.
-  const fetchCollection = async colName => {
-    const snapshot = await db.collection(colName).get();
-    const items = [];
-    snapshot.forEach(doc => items.push({
-      id: doc.id,
-      ...doc.data()
-    }));
-    return items;
+  // Use already-cached data from each collection's cache key.
+  // This avoids 5 full-collection fetches per keystroke.
+  const fetchCached = async (cacheKey, colName, orderField) => {
+    return await getOrSet(cacheKey, async () => {
+      let cursor = db.collection(colName);
+      if (orderField) cursor = cursor.orderBy(orderField, "desc");
+      const snapshot = await cursor.get();
+      const items = [];
+      snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+      return items;
+    }, 300);
   };
+
   try {
-    const [bookings, clients, vendors, trips, bills] = await Promise.all([fetchCollection("bookings"), fetchCollection("clients"), fetchCollection("vendors"), fetchCollection("trips"), fetchCollection("bills")]);
-    results.push(...bookings.filter(b => match(b, ["lrNo", "consignor", "consignee", "origin", "destination"])).slice(0, 5).map(b => ({
+    const [bookings, clients, vendors, trips, bills] = await Promise.all([
+      fetchCached("bookings", "bookings", "date"),
+      fetchCached("clients", "clients", null),
+      fetchCached("vendors", "vendors", null),
+      fetchCached("trips", "trips", "date"),
+      fetchCached("bills", "bills", "createdAt")
+    ]);
+
+    results.push(...bookings.filter(b => match(b, ["lrNo", "consignor", "consignee", "origin", "destination", "awb", "consignment", "client"])).slice(0, 5).map(b => ({
       type: "Booking",
       id: b.id,
-      title: b.lrNo || "LR",
+      title: b.awb || b.consignment || b.lrNo || "LR",
       subtitle: `${b.origin || ""} to ${b.destination || ""}`,
       link: `/bookings`
     })));
@@ -66,19 +79,19 @@ exports.getRoot_1 = async (req, res) => {
       subtitle: v.phno,
       link: `/vendors`
     })));
-    results.push(...trips.filter(t => match(t, ["tripId", "vehicleNo", "driverName"])).slice(0, 5).map(t => ({
+    results.push(...trips.filter(t => match(t, ["tripId", "tripNo", "vehicleNo", "driverName"])).slice(0, 5).map(t => ({
       type: "Trip",
       id: t.id,
-      title: t.tripId || "Trip",
+      title: t.tripNo || t.tripId || "Trip",
       subtitle: t.vehicleNo || "",
       link: `/trips`
     })));
-    results.push(...bills.filter(b => match(b, ["billNo", "clientName", "billTo"])).slice(0, 5).map(b => ({
+    results.push(...bills.filter(b => match(b, ["billNo", "client", "lrNo"])).slice(0, 5).map(b => ({
       type: "Bill",
       id: b.id,
       title: b.billNo || "Bill",
-      subtitle: b.clientName || b.billTo,
-      link: `/bills`
+      subtitle: b.client,
+      link: `/bills/all`
     })));
   } catch (err) {
     return error(res, {
@@ -92,4 +105,3 @@ exports.getRoot_1 = async (req, res) => {
     data: results
   });
 };
-

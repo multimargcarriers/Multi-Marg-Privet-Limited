@@ -53,12 +53,12 @@ exports.get_summary_2 = async (req, res) => {
     from,
     to
   } = req.query;
-  const snapshot = await db.collection("purchases").get();
-  const purchases = [];
-  snapshot.forEach(doc => purchases.push({
-    id: doc.id,
-    ...doc.data()
-  }));
+  const purchases = await getOrSet("purchases", async () => {
+    const snapshot = await db.collection("purchases").orderBy("date", "desc").get();
+    const items = [];
+    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+    return items;
+  }, 300);
   let filtered = purchases;
   if (from) filtered = filtered.filter(p => new Date(p.date) >= new Date(from));
   if (to) filtered = filtered.filter(p => new Date(p.date) <= new Date(to));
@@ -68,4 +68,3 @@ exports.get_summary_2 = async (req, res) => {
     averagePerPurchase: filtered.length > 0 ? filtered.reduce((s, p) => s + parseFloat(p.total || 0), 0) / filtered.length : 0
   });
 };
-

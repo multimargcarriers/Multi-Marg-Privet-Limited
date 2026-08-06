@@ -5,7 +5,7 @@ import { useDialog } from "../context/DialogContext";
 import {
   FileText, Search, Trash2, CheckCircle, Clock, TrendingUp,
   MapPin, Phone, Mail, Package, Truck, Scale, Calendar, RefreshCw,
-  ChevronLeft, ChevronRight, AlertCircle
+  ChevronLeft, ChevronRight, AlertCircle, Filter
 } from "lucide-react";
 import axios from "axios";
 import StatsPanel from "../components/StatsPanel";

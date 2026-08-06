@@ -90,7 +90,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logoutTimerId = useRef(null);
-  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const warningTimerId = useRef(null);
+  const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+  const WARNING_BEFORE_MS = 60 * 1000; // Show warning 1 minute before logout
 
   useEffect(() => {
     // Axios 401 Interceptor
@@ -107,7 +109,13 @@ export const AuthProvider = ({ children }) => {
 
     const resetIdleTimer = () => {
       if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
+      if (warningTimerId.current) clearTimeout(warningTimerId.current);
       if (user && token) {
+        // Warning toast 1 minute before auto-logout
+        warningTimerId.current = setTimeout(() => {
+          addToast("Your session will expire in 1 minute due to inactivity. Move your mouse to stay logged in.", "warning");
+        }, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS);
+        
         logoutTimerId.current = setTimeout(() => {
           addToast("Session expired due to inactivity.", "warning");
           logout();
@@ -115,12 +123,12 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    // Event listeners for idle timeout
-    const events = ['mousemove', 'keydown', 'scroll', 'click'];
+    // Event listeners for idle timeout — includes touch for mobile
+    const events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
     const handleActivity = () => resetIdleTimer();
     
     if (user && token) {
-      events.forEach(event => window.addEventListener(event, handleActivity));
+      events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
       resetIdleTimer();
     }
 
@@ -128,6 +136,7 @@ export const AuthProvider = ({ children }) => {
       axios.interceptors.response.eject(interceptor);
       events.forEach(event => window.removeEventListener(event, handleActivity));
       if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
+      if (warningTimerId.current) clearTimeout(warningTimerId.current);
     };
   }, [user, token]);
 

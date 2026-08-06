@@ -179,21 +179,21 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth/login", authLimiter);
 
-// Prevent browser caching for all API routes
+// Smart Cache Headers per HTTP Method
 app.use("/api", (req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  res.setHeader("Surrogate-Control", "no-store");
+  if (req.method === "GET") {
+    // Allow brief browser caching for GET requests to prevent duplicate fetches
+    res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
+  } else {
+    // No caching for mutations
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
   next();
 });
 
-// ============================================================
-// Request Parsing
-// ============================================================
-
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// (Request parsing already configured above)
 
 // ============================================================
 // Logging

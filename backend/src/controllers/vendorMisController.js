@@ -1,25 +1,26 @@
 const { db } = require("../config/database");
 const { success, created, error } = require("../utils/response");
 const { getNextSequence } = require("../utils/sequenceGenerator");
+const { getOrSet, delCache } = require("../config/redis");
+
+const CACHE_KEY = "vendor_mis";
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-
-  let query = db.collection("vendor_mis").orderBy("createdAt", "desc");
-
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
 
-  // If user is not an Admin, they can only see their own entries
-  if (!isAdmin) {
-    query = db.collection("vendor_mis").where("createdBy", "==", user.id).orderBy("createdAt", "desc");
-  }
+  // Cache full collection, filter per-user in memory
+  const allRecords = await getOrSet(CACHE_KEY, async () => {
+    const snapshot = await db.collection("vendor_mis").orderBy("createdAt", "desc").get();
+    const records = [];
+    snapshot.forEach(doc => records.push({ id: doc.id, ...doc.data() }));
+    return records;
+  }, 300);
 
-  const snapshot = await query.get();
-  const records = [];
-  snapshot.forEach(doc => records.push({
-    id: doc.id,
-    ...doc.data()
-  }));
+  let records = allRecords;
+  if (!isAdmin) {
+    records = allRecords.filter(r => r.createdBy === user.id);
+  }
 
   return success(res, "Vendor MIS fetched successfully", records);
 };
@@ -47,6 +48,7 @@ exports.postRoot_2 = async (req, res) => {
   }
 
   const docRef = await db.collection("vendor_mis").add(payload);
+  await delCache(CACHE_KEY);
 
   return created(res, "Vendor MIS entry created successfully", {
     id: docRef.id,
@@ -79,6 +81,7 @@ exports.put_id_3 = async (req, res) => {
   delete req.body.remarks;
 
   await db.collection("vendor_mis").doc(id).update(req.body);
+  await delCache(CACHE_KEY);
 
   return success(res, "Vendor MIS updated successfully", {
     id,
@@ -102,6 +105,7 @@ exports.delete_id_4 = async (req, res) => {
   }
 
   await db.collection("vendor_mis").doc(id).delete(req.user);
+  await delCache(CACHE_KEY);
 
   return success(res, "Vendor MIS deleted successfully");
 };

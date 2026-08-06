@@ -31,31 +31,133 @@ async function setupIndexes() {
   const db = client.db(dbName);
   console.log(`Connected to database: ${dbName}`);
 
-  console.log("Setting up Bookings indexes...");
+  const safeIndex = async (col, spec, opts = {}) => {
+    try {
+      await col.createIndex(spec, { background: true, ...opts });
+      console.log(`  ✓ ${JSON.stringify(spec)}`);
+    } catch (e) {
+      console.warn(`  ⚠ ${JSON.stringify(spec)} — ${e.message}`);
+    }
+  };
+
+  // ─── Bookings ───────────────────────────────────────────
+  console.log("\n📦 Bookings indexes...");
   const bookings = db.collection("bookings");
-  await bookings.createIndex({ lr_number: 1 }, { unique: true, background: true });
-  await bookings.createIndex({ client_id: 1, created_at: -1 }, { background: true });
-  await bookings.createIndex({ status: 1 }, { background: true });
-  await bookings.createIndex({ created_at: -1 }, { background: true });
+  await safeIndex(bookings, { date: -1 });
+  await safeIndex(bookings, { createdAt: -1 });
+  await safeIndex(bookings, { id: 1 });
+  await safeIndex(bookings, { awb: 1 });
+  await safeIndex(bookings, { consignment: 1 });
+  await safeIndex(bookings, { client: 1 });
+  await safeIndex(bookings, { status: 1 });
+  await safeIndex(bookings, { lrNumber: 1 });
 
-  console.log("Setting up POD indexes...");
-  const pod = db.collection("pod_entries");
-  await pod.createIndex({ booking_id: 1 }, { unique: true, background: true });
-  await pod.createIndex({ status: 1 }, { background: true });
-  await pod.createIndex({ created_at: -1 }, { background: true });
+  // ─── Bills ──────────────────────────────────────────────
+  console.log("\n📄 Bills indexes...");
+  const bills = db.collection("bills");
+  await safeIndex(bills, { createdAt: -1 });
+  await safeIndex(bills, { id: 1 });
+  await safeIndex(bills, { lrNo: 1 });
+  await safeIndex(bills, { client: 1 });
+  await safeIndex(bills, { status: 1 });
+  await safeIndex(bills, { billNo: 1 });
 
-  console.log("Setting up Trips indexes...");
+  // ─── Trips ──────────────────────────────────────────────
+  console.log("\n🚚 Trips indexes...");
   const trips = db.collection("trips");
-  await trips.createIndex({ trip_id: 1 }, { unique: true, background: true });
-  await trips.createIndex({ status: 1 }, { background: true });
-  await trips.createIndex({ date: -1 }, { background: true });
+  await safeIndex(trips, { date: -1 });
+  await safeIndex(trips, { id: 1 });
+  await safeIndex(trips, { createdAt: -1 });
 
-  console.log("Setting up Box Entries indexes...");
-  const box = db.collection("box_entries");
-  await box.createIndex({ lr_number: 1 }, { background: true });
-  await box.createIndex({ status: 1 }, { background: true });
+  // ─── Tracking ───────────────────────────────────────────
+  console.log("\n📍 Tracking indexes...");
+  const tracking = db.collection("tracking");
+  await safeIndex(tracking, { updatedAt: -1 });
+  await safeIndex(tracking, { awb: 1 });
 
-  console.log("All indexes successfully applied!");
+  // ─── Cash Entries ───────────────────────────────────────
+  console.log("\n💰 Cash Entries indexes...");
+  const cashEntries = db.collection("cashEntries");
+  await safeIndex(cashEntries, { date: -1 });
+  await safeIndex(cashEntries, { partyName: 1, partyType: 1 });
+
+  // ─── Purchases ──────────────────────────────────────────
+  console.log("\n🛒 Purchases indexes...");
+  const purchases = db.collection("purchases");
+  await safeIndex(purchases, { date: -1 });
+  await safeIndex(purchases, { vendor: 1 });
+
+  // ─── POD ────────────────────────────────────────────────
+  console.log("\n📸 POD indexes...");
+  const pod = db.collection("pod");
+  await safeIndex(pod, { uploadedAt: -1 });
+  await safeIndex(pod, { lrNo: 1 });
+  await safeIndex(pod, { bookingId: 1 });
+
+  // ─── Box ────────────────────────────────────────────────
+  console.log("\n📦 Box indexes...");
+  const box = db.collection("box");
+  await safeIndex(box, { uploadedAt: -1 });
+  await safeIndex(box, { lrNo: 1 });
+  await safeIndex(box, { bookingId: 1 });
+
+  // ─── Outstanding ────────────────────────────────────────
+  console.log("\n📊 Outstanding indexes...");
+  const outstanding = db.collection("outstanding");
+  await safeIndex(outstanding, { date: -1 });
+  await safeIndex(outstanding, { client: 1 });
+
+  // ─── Vendor Outstanding ─────────────────────────────────
+  console.log("\n📊 Vendor Outstanding indexes...");
+  const vendorOutstanding = db.collection("vendorOutstanding");
+  await safeIndex(vendorOutstanding, { date: -1 });
+  await safeIndex(vendorOutstanding, { vendor: 1 });
+
+  // ─── Trip MIS ───────────────────────────────────────────
+  console.log("\n📋 Trip MIS indexes...");
+  const tripMis = db.collection("trip_mis");
+  await safeIndex(tripMis, { createdAt: -1 });
+  await safeIndex(tripMis, { createdBy: 1 });
+
+  // ─── Vendor MIS ─────────────────────────────────────────
+  console.log("\n📋 Vendor MIS indexes...");
+  const vendorMis = db.collection("vendor_mis");
+  await safeIndex(vendorMis, { createdAt: -1 });
+  await safeIndex(vendorMis, { createdBy: 1 });
+
+  // ─── Clients ────────────────────────────────────────────
+  console.log("\n👥 Clients indexes...");
+  const clients = db.collection("clients");
+  await safeIndex(clients, { name: 1 });
+
+  // ─── Vendors ────────────────────────────────────────────
+  console.log("\n🏭 Vendors indexes...");
+  const vendors = db.collection("vendors");
+  await safeIndex(vendors, { name: 1 });
+
+  // ─── Rates ──────────────────────────────────────────────
+  console.log("\n💲 Rates indexes...");
+  const rates = db.collection("rates");
+  await safeIndex(rates, { id: 1 });
+
+  // ─── Quotes ─────────────────────────────────────────────
+  console.log("\n💬 Quotes indexes...");
+  const quotes = db.collection("quotes");
+  await safeIndex(quotes, { createdAt: -1 });
+
+  // ─── Trash (TTL cleanup) ────────────────────────────────
+  console.log("\n🗑️ Trash indexes...");
+  const trash = db.collection("trash");
+  await safeIndex(trash, { expiresAt: 1 });
+  await safeIndex(trash, { originalCollection: 1 });
+
+  // ─── System Logs ────────────────────────────────────────
+  console.log("\n📝 System Logs indexes...");
+  const systemLogs = db.collection("systemLogs");
+  await safeIndex(systemLogs, { timestamp: -1 });
+  await safeIndex(systemLogs, { userId: 1 });
+
+  console.log("\n✅ All indexes successfully applied!");
   await client.close();
 }
 
