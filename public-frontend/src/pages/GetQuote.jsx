@@ -268,36 +268,6 @@ const GetQuote = () => {
                   <div className="form-group" style={{ position: 'relative' }}>
                     <label>Weight (kg)</label>
                     <input type="number" name="weight" value={formData.weight} onChange={handleInputChange} className="form-input" placeholder="0" style={{ paddingLeft: '1rem' }} required min="1" />
-                    <AnimatePresence>
-                      {formData.weight && parseFloat(formData.weight) < 100 && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -5, height: 0 }}
-                          animate={{ opacity: 1, y: 0, height: 'auto' }}
-                          exit={{ opacity: 0, y: -5, height: 0 }}
-                          style={{ 
-                            display: 'flex', 
-                            alignItems: 'flex-start', 
-                            gap: '0.5rem',
-                            fontSize: '0.75rem', 
-                            color: '#b45309', 
-                            backgroundColor: '#fef3c7',
-                            border: '1px solid #fde68a',
-                            padding: '0.75rem',
-                            borderRadius: '8px',
-                            marginTop: '0.5rem',
-                            lineHeight: '1.4',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
-                          <div>
-                            <strong style={{ display: 'block', marginBottom: '2px', color: '#92400e' }}>High Volume Material Notice</strong>
-                            We specialize in bulk transport. A minimum charge of <strong>100 kg</strong> applies for all shipments.
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                   <div className="form-group">
                     <label>Length (cm)</label>
@@ -313,6 +283,38 @@ const GetQuote = () => {
                   </div>
                 </div>
               </div>
+              
+              <AnimatePresence>
+                {formData.weight && parseFloat(formData.weight) < 100 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, y: -10, height: 0 }}
+                    style={{ overflow: 'hidden', marginBottom: '1.5rem' }}
+                  >
+                    <div
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem',
+                        fontSize: '0.85rem', 
+                        color: '#b45309', 
+                        backgroundColor: '#fef3c7',
+                        border: '1px solid #fde68a',
+                        padding: '1rem 1.25rem',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <AlertCircle size={20} style={{ flexShrink: 0, color: '#d97706' }} />
+                      <div>
+                        <strong style={{ color: '#92400e' }}>High Volume Material Notice: </strong>
+                        We specialize in bulk transport. A minimum charge of <strong>100 kg</strong> applies for all shipments.
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <button type="submit" className="submit-btn" disabled={isCalculating}>
                 {isCalculating ? (
