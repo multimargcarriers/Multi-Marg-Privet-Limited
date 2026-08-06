@@ -37,15 +37,13 @@ router.post(
   "/",
   [
   body("date").notEmpty().withMessage("Date is required"),
-  body("vehicleType").notEmpty().withMessage("Vehicle type is required"),
-  body("vehicleRate").notEmpty().withMessage("Vehicle rate is required"),
-  body("vehicleNo").notEmpty().withMessage("Vehicle number is required"),
-  body("driverName").notEmpty().withMessage("Driver name is required"),
+  body("mode").notEmpty().withMessage("Mode is required"),
+  body("type").notEmpty().withMessage("Type is required"),
+  body("bookingType").notEmpty().withMessage("Booking type is required"),
   body("vendor").notEmpty().withMessage("Vendor is required"),
   body("origin").notEmpty().withMessage("Origin is required"),
   body("destination").notEmpty().withMessage("Destination is required"),
-  body("materialDetails").isArray({ min: 1 }).withMessage("At least one material detail is required"),
-  body("specialInstruction").notEmpty().withMessage("Special instruction is required")],
+  body("materialDetails").isArray({ min: 1 }).withMessage("At least one material detail is required")],
 
   asyncHandler(postRoot_2
 
