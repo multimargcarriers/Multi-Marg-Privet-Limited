@@ -21,9 +21,10 @@ router.get('/:pincode', async (req, res) => {
     }
 
     const postOffice = data[0].PostOffice[0];
+    const districtUpper = postOffice.District.toUpperCase();
+    const stateUpper = postOffice.State.toUpperCase();
     const district = postOffice.District.toLowerCase();
     const state = postOffice.State.toLowerCase();
-    const locationName = `${postOffice.Name}, ${postOffice.District}`.toUpperCase();
 
     // 2. Fetch all branches to check coverage
     const snapshot = await db.collection("branches").get();
@@ -32,6 +33,7 @@ router.get('/:pincode', async (req, res) => {
     
     snapshot.forEach(doc => {
       const b = doc.data();
+      b._id = doc.id;
       const branchAddress = (b.address || "").toLowerCase();
       const branchName = (b.branch || "").toLowerCase();
       
@@ -50,21 +52,24 @@ router.get('/:pincode', async (req, res) => {
       isServiceable: false,
       message: "",
       nearestBranch: null,
-      location: locationName
+      location: `${districtUpper}, ${stateUpper}`,
+      district: districtUpper,
+      state: stateUpper,
+      pincode: pincode
     };
 
     if (exactBranchMatch) {
       serviceability.isServiceable = true;
-      serviceability.message = `Yes, we have a direct branch in ${postOffice.District.toUpperCase()}!`;
+      serviceability.message = `Yes! We deliver to ${districtUpper}, ${stateUpper}. We have a direct branch in ${districtUpper}.`;
       serviceability.nearestBranch = exactBranchMatch;
     } else if (stateBranchMatch) {
+      const branchCity = (stateBranchMatch.branch || "").toUpperCase();
       serviceability.isServiceable = true;
-      serviceability.message = `We deliver to ${locationName}. Our nearest branch is in ${(stateBranchMatch.branch || stateBranchMatch.address.split(',')[0]).toUpperCase()}.`;
+      serviceability.message = `Yes! We deliver to ${districtUpper}, ${stateUpper}. Our nearest branch is in ${branchCity}.`;
       serviceability.nearestBranch = stateBranchMatch;
     } else {
-      // Even if no direct match, standard logistics messaging
-      serviceability.isServiceable = true; // Most logistics companies can arrange delivery anywhere
-      serviceability.message = `We can arrange delivery to ${locationName} through our extended network.`;
+      serviceability.isServiceable = true;
+      serviceability.message = `Yes! We deliver to ${stateUpper} through our extended Pan-India network.`;
     }
 
     return res.json({
