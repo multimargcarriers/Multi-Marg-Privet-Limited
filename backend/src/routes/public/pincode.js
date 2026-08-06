@@ -60,16 +60,16 @@ router.get('/:pincode', async (req, res) => {
 
     if (exactBranchMatch) {
       serviceability.isServiceable = true;
-      serviceability.message = `Yes! We deliver to ${districtUpper}, ${stateUpper}. We have a direct branch in ${districtUpper}.`;
+      serviceability.message = `Yes! We deliver to ${districtUpper}. We have a direct branch in ${districtUpper}.`;
       serviceability.nearestBranch = exactBranchMatch;
     } else if (stateBranchMatch) {
       const branchCity = (stateBranchMatch.branch || "").toUpperCase();
       serviceability.isServiceable = true;
-      serviceability.message = `Yes! We deliver to ${districtUpper}, ${stateUpper}. Our nearest branch is in ${branchCity}.`;
+      serviceability.message = `Yes! We deliver to ${districtUpper}. Our nearest branch is in ${branchCity}.`;
       serviceability.nearestBranch = stateBranchMatch;
     } else {
       serviceability.isServiceable = true;
-      serviceability.message = `Yes! We deliver to ${stateUpper} through our extended Pan-India network.`;
+      serviceability.message = `Yes! We deliver to ${districtUpper} through our extended Pan-India network.`;
     }
 
     return res.json({
