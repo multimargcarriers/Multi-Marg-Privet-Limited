@@ -15,6 +15,7 @@ const Profile = () => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [newId, setNewId] = useState(user?.id || '');
   const [password, setPassword] = useState('');
   const [photo, setPhoto] = useState(null);
@@ -79,6 +80,7 @@ const Profile = () => {
       setName(user.name || '');
       setEmail(user.email || '');
       setEmployeeId(user.employeeId || '');
+      setUsername(user.username || '');
       setNewId(user.id || '');
       const userPhoto = user.photo || user.avatar || user.picture || null;
       if (userPhoto) setPhotoPreview(userPhoto);
@@ -239,6 +241,15 @@ const Profile = () => {
       if (name !== user.name) formData.append('name', name);
       if (email !== user.email) formData.append('email', email);
       if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
+      
+      if (username !== (user.username || '')) {
+        if (!window.confirm("Are you sure you want to change your username? This will be used for your next login.")) {
+          setIsLoading(false);
+          return;
+        }
+        formData.append('username', username);
+      }
+      
       if (newId !== user.id) formData.append('newId', newId);
       if (password) formData.append('password', password);
       if (photo) {
@@ -510,6 +521,11 @@ const Profile = () => {
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID {!isSuperAdmin && <span style={{ fontSize: '0.8rem', color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 500 }}>(Contact SuperAdmin to change)</span>}</label>
                     <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} disabled={!isSuperAdmin} placeholder="MCPL-1234" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: !isSuperAdmin ? '#f1f5f9' : 'var(--bg-color)', color: !isSuperAdmin ? '#94a3b8' : 'var(--text-dark)', cursor: !isSuperAdmin ? 'not-allowed' : 'text' }} onFocus={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#0078D4'} onBlur={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#8A8886'} />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Username <span>(Optional)</span></label>
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))} placeholder="e.g. john_doe" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   </div>
 
                   <div style={{ marginTop: '1rem' }}>

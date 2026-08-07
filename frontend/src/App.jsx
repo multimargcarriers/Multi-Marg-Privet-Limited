@@ -16,6 +16,7 @@ import PrintLR from "./pages/PrintLR";
 import PrintManifest from "./pages/PrintManifest";
 import PrintTripList from "./pages/PrintTripList";
 import PrintSingleTrip from "./pages/PrintSingleTrip";
+import PrintSingleVendorTrip from "./pages/PrintSingleVendorTrip";
 import Branches from "./pages/Branches";
 import CashSheet from "./pages/CashSheet";
 import Cities from "./pages/Cities";
@@ -114,6 +115,7 @@ function App() {
               <Route path="/print-manifest/:id" element={<ProtectedRoute requiredPermission="bookings"><PrintManifest /></ProtectedRoute>} />
               <Route path="/print-trip-list" element={<ProtectedRoute requiredPermission="trips"><PrintTripList /></ProtectedRoute>} />
               <Route path="/print-single-trip/:index" element={<ProtectedRoute requiredPermission="trips"><PrintSingleTrip /></ProtectedRoute>} />
+              <Route path="/print-vendor-trip/:index" element={<ProtectedRoute requiredPermission="trips"><PrintSingleVendorTrip /></ProtectedRoute>} />
               <Route path="/pod" element={<ProtectedRoute requiredPermission="pod"><POD /></ProtectedRoute>} />
               <Route path="/pod/view" element={<ProtectedRoute requiredPermission="pod"><PodViewer /></ProtectedRoute>} />
               <Route path="/tracking" element={<Tracking />} />

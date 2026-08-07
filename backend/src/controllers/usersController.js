@@ -47,7 +47,8 @@ exports.postRoot_2 = async (req, res) => {
     password,
     role,
     permissions,
-    employeeId
+    employeeId,
+    username
   } = req.body;
   if (!name || !email || !password || !role || !employeeId) {
     return error(res, {
@@ -65,6 +66,11 @@ exports.postRoot_2 = async (req, res) => {
     statusCode: 400
   });
 
+  if (username) {
+    const usernameCheck = await db.collection("users").where("username", "==", username).get();
+    if (!usernameCheck.empty) return error(res, { message: "Username already exists", statusCode: 400 });
+  }
+
   const randomAvatar = defaultAssets.DEFAULT_AVATARS[Math.floor(Math.random() * defaultAssets.DEFAULT_AVATARS.length)] || null;
   const randomBanner = defaultAssets.DEFAULT_BANNERS[Math.floor(Math.random() * defaultAssets.DEFAULT_BANNERS.length)] || null;
 
@@ -73,6 +79,7 @@ exports.postRoot_2 = async (req, res) => {
     employeeId,
     name,
     email,
+    username: username || "",
     password: hashedPassword,
     role,
     permissions: permissions || [],
@@ -112,7 +119,8 @@ exports.put_id_3 = async (req, res) => {
     role,
     permissions,
     password,
-    employeeId
+    employeeId,
+    username
   } = req.body;
   const updates = {
     name,
@@ -121,6 +129,7 @@ exports.put_id_3 = async (req, res) => {
     permissions
   };
   if (employeeId) updates.employeeId = employeeId;
+  if (username) updates.username = username;
   
   if (password) {
     const salt = await bcrypt.genSalt(10);
@@ -135,6 +144,13 @@ exports.put_id_3 = async (req, res) => {
       if (String(d.id) !== String(id)) taken = true;
     });
     if (taken) return error(res, { message: "Employee ID already exists", statusCode: 400 });
+  }
+
+  if (username) {
+    const userCheck = await db.collection("users").where("username", "==", username).get();
+    let taken = false;
+    userCheck.forEach(d => { if (String(d.id) !== String(id)) taken = true; });
+    if (taken) return error(res, { message: "Username already exists", statusCode: 400 });
   }
 
   const docRef = db.collection("users").doc(id);
@@ -196,5 +212,26 @@ exports.getAllUserActivities = async (req, res) => {
   return success(res, {
     message: "All user activities fetched successfully",
     data: activities
+  });
+};
+
+exports.clearUserActivity = async (req, res) => {
+  const { id } = req.params; // The ID of the employee
+  
+  if (!id) {
+    return error(res, { message: "User ID is required", statusCode: 400 });
+  }
+
+  const snapshot = await db.collection("userActivities").where("userId", "==", id).get();
+  
+  const batch = db.batch();
+  snapshot.forEach(doc => {
+    batch.delete(doc.ref);
+  });
+  
+  await batch.commit();
+
+  return success(res, {
+    message: "Login history cleared successfully for the employee"
   });
 };

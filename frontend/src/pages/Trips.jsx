@@ -513,8 +513,8 @@ const Trips = () => {
               <td>
                 <span style={{
                     padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
-                    background: item.approvalStatus === 'Approved' ? '#dcfce7' : item.approvalStatus === 'Rejected' ? '#fee2e2' : item.approvalStatus === 'Pending' ? '#fef9c3' : '#e0e7ff',
-                    color: item.approvalStatus === 'Approved' ? '#166534' : item.approvalStatus === 'Rejected' ? '#991b1b' : item.approvalStatus === 'Pending' ? '#854d0e' : '#3730a3'
+                    background: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
+                    color: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3'
                 }}>
                   {item.approvalStatus || 'Approved'}
                 </span>
@@ -526,13 +526,14 @@ const Trips = () => {
                   
                   {isAdminOrSuperAdmin && (
                     <>
-                      {item.approvalStatus !== 'Approved' && (
+                      {String(item.approvalStatus || 'Approved').toLowerCase() !== 'approved' && (
                         <button onClick={async () => {
                           try {
                             const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
                             if(res.data.success) {
                                const newTrips = [...trips];
-                               newTrips[index].approvalStatus = 'Approved';
+                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
                                setTrips(newTrips);
                                addToast("Trip Approved!", "success");
                             }
@@ -540,13 +541,14 @@ const Trips = () => {
                         }} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Approve</button>
                       )}
                       
-                      {item.approvalStatus !== 'Rejected' && (
+                      {String(item.approvalStatus).toLowerCase() !== 'rejected' && (
                         <button onClick={async () => {
                           try {
                             const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
                             if(res.data.success) {
                                const newTrips = [...trips];
-                               newTrips[index].approvalStatus = 'Rejected';
+                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
                                setTrips(newTrips);
                                addToast("Trip Rejected", "success");
                             }
@@ -554,15 +556,16 @@ const Trips = () => {
                         }} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Reject</button>
                       )}
 
-                      {item.approvalStatus !== 'Pending' && (
+                      {String(item.approvalStatus).toLowerCase() !== 'pending' && (
                         <button onClick={async () => {
                           try {
                             const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
                             if(res.data.success) {
                                const newTrips = [...trips];
-                               newTrips[index].approvalStatus = 'Pending';
+                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
                                setTrips(newTrips);
-                               addToast("Trip Moved to Pending", "success");
+                               addToast("Trip set to Pending", "success");
                             }
                           } catch(_e) { addToast("Error moving to pending", "error"); }
                         }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>

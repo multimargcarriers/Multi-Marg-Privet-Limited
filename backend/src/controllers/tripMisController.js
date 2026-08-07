@@ -91,6 +91,7 @@ exports.put_id_3 = async (req, res) => {
       updateData.approvalStatus = req.body.approvalStatus;
     }
     await db.collection("trip_mis").doc(id).update(updateData);
+    await delCache(CACHE_KEY);
     return success(res, "Trip MIS approval status updated successfully", { id, ...existingData, ...updateData });
   }
 

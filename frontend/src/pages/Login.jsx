@@ -601,19 +601,19 @@ const Login = () => {
           {view === 'login' && (
             <form onSubmit={handleLogin}>
               <div className="input-group">
-                <label htmlFor="login-email" className="sr-only">Email or Employee Code</label>
+                <label htmlFor="login-email" className="sr-only">Email, Username, or Emp Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   id="login-email"
                   name="email"
                   type="text" 
                   className="input-field"
-                  placeholder="Email or Employee Code" 
+                  placeholder="Email, Username, or Emp Code" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
-                  aria-label="Email or Employee Code"
+                  aria-label="Email, Username, or Emp Code"
                 />
               </div>
 
@@ -682,19 +682,19 @@ const Login = () => {
           {view === 'forgot' && (
             <form onSubmit={handleForgotPassword}>
               <div className="input-group" style={{ marginBottom: '2rem' }}>
-                <label htmlFor="forgot-email" className="sr-only">Email or Employee Code</label>
+                <label htmlFor="forgot-email" className="sr-only">Email, Username, or Emp Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   id="forgot-email"
                   name="email"
                   type="text" 
                   className="input-field"
-                  placeholder="Email or Employee Code" 
+                  placeholder="Email, Username, or Emp Code" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
-                  aria-label="Email or Employee Code for password reset"
+                  aria-label="Email, Username, or Emp Code for password reset"
                 />
               </div>
               

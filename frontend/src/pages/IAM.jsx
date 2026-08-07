@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Shield,  Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight } from 'lucide-react';
+import { Shield,  Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight, History } from 'lucide-react';
 import { } from '../components/SkeletonLoader';
 import Table from '../components/Table';
 import { useDialog } from '../context/DialogContext';
@@ -105,7 +105,14 @@ const IAM = () => {
   
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
-    id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: ''
+    id: '',
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'Admin',
+    permissions: [],
+    employeeId: ''
   });
 
   useEffect(() => {
@@ -185,6 +192,25 @@ const IAM = () => {
     }
   };
 
+  const handleClearHistory = async (id) => {
+    const isConfirmed = await confirm({
+      title: "Clear Login History",
+      message: "Are you sure you want to delete all login history for this employee?",
+      confirmText: "Clear History",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+    
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/activity/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      addToast("Login history cleared successfully!", "success");
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Error clearing history', 'error');
+    }
+  };
+
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
       title: "Delete User",
@@ -208,7 +234,7 @@ const IAM = () => {
 
   const openModal = (user = null) => {
     if (user) {
-      setFormData({ employeeId: '', ...user, password: '' });
+      setFormData({ employeeId: '', username: '', ...user, password: '' });
       if ((user.role === 'Client' || user.role === 'Vendor') && user.name) {
         const inList = user.role === 'Client' 
           ? clientsList.some(c => (c.name || c.clientName) === user.name)
@@ -218,7 +244,7 @@ const IAM = () => {
         setIsCustomName(false);
       }
     } else {
-      setFormData({ id: '', name: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}` });
+      setFormData({ id: '', name: '', username: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}` });
       setIsCustomName(false);
     }
     // Expand all sections by default when opening modal
@@ -708,6 +734,16 @@ const IAM = () => {
                     />
                   </div>
                   <div className="iam-form-field">
+                    <label>Username <span>(Optional)</span></label>
+                    <input 
+                      type="text" 
+                      value={formData.username || ''} 
+                      onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')})} 
+                      className="iam-input"
+                      placeholder="e.g. john_doe"
+                    />
+                  </div>
+                  <div className="iam-form-field">
                     <label>Email<span>*</span></label>
                     <input 
                       type="email" 
@@ -819,11 +855,12 @@ const IAM = () => {
       <div className="iam-table-wrap">
         <Table
           loading={loading}
-          headers={['Name', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
+          headers={['Name', 'Username', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
           data={users}
           renderRow={(u, index) => (
             <tr key={u.id || index}>
               <td><strong>{u.name}</strong></td>
+              <td style={{ color: '#64748b' }}>{u.username ? `@${u.username}` : <span style={{opacity: 0.5}}>-</span>}</td>
               <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
               <td>{u.email}</td>
               <td>
@@ -839,7 +876,11 @@ const IAM = () => {
                 <button className="iam-action-btn" onClick={() => openModal(u)} title="Edit"><Edit2 size={14} /></button>
                 {' '}
                 {isSuperAdmin && u.id !== currentUser.id && (
-                  <button className="iam-action-btn delete" onClick={() => handleDelete(u.id)} title="Delete"><Trash2 size={14} /></button>
+                  <>
+                    <button className="iam-action-btn" style={{ color: '#0078D4' }} onClick={() => handleClearHistory(u.id)} title="Clear Login History"><History size={14} /></button>
+                    {' '}
+                    <button className="iam-action-btn delete" onClick={() => handleDelete(u.id)} title="Delete"><Trash2 size={14} /></button>
+                  </>
                 )}
               </td>
             </tr>

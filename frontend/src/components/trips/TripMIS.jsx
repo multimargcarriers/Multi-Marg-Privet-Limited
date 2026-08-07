@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -300,19 +300,6 @@ const TripMIS = () => {
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
            </div>
            
-            {user?.role !== 'Client' && (
-              <>
-                <input type="file" accept=".csv" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImportCSV} />
-                <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => fileInputRef.current.click()}>
-                  <Upload size={16} style={{ marginRight: 6 }} /> Import CSV
-                </button>
-                
-                <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleSampleCSV}>
-                  <FileText size={16} style={{ marginRight: 6 }} /> Sample CSV
-                </button>
-              </>
-            )}
-            
             <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
               <Download size={16} style={{ marginRight: 6 }} /> Export CSV
             </button>
@@ -713,8 +700,8 @@ const TripMIS = () => {
               <td>
                 <span style={{
                     padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
-                    background: item.approvalStatus === 'Approved' ? '#dcfce7' : item.approvalStatus === 'Rejected' ? '#fee2e2' : '#fef9c3',
-                    color: item.approvalStatus === 'Approved' ? '#166534' : item.approvalStatus === 'Rejected' ? '#991b1b' : '#854d0e'
+                    background: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : '#fef9c3',
+                    color: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : '#854d0e'
                 }}>
                   {item.approvalStatus || 'Approved'}
                 </span>
@@ -764,56 +751,67 @@ const TripMIS = () => {
                   )}
                 </button>
               </td>
-              <td style={{ textAlign: "right" }}>
-                <div className="action-buttons-wrapper">
+              <td style={{ textAlign: "right", whiteSpace: "nowrap", minWidth: "max-content" }}>
+                <div className="action-buttons-wrapper" style={{ display: "flex", flexWrap: "nowrap", flexDirection: "row", justifyContent: "flex-end", gap: "6px", width: "max-content" }}>
                   {(isAdminOrSuperAdmin || user?.role === 'Client') && (
                     <>
-                      {item.approvalStatus !== 'Approved' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
-                            if(res.data.success) {
-                               const newEntries = [...tripListEntries];
-                               newEntries[idx].approvalStatus = 'Approved';
-                               setTripListEntries(newEntries);
-                               addToast("Entry Approved!", "success");
-                            }
-                          } catch(_e) { addToast("Error approving entry", "error"); }
-                        }} className="action-btn action-btn-success">
-                          <Check size={14} /> Approve
-                        </button>
-                      )}
-                      
-                      {item.approvalStatus !== 'Rejected' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
-                            if(res.data.success) {
-                               const newEntries = [...tripListEntries];
-                               newEntries[idx].approvalStatus = 'Rejected';
-                               setTripListEntries(newEntries);
-                               addToast("Entry Rejected", "success");
-                            }
-                          } catch(_e) { addToast("Error rejecting entry", "error"); }
-                        }} className="action-btn action-btn-danger">
-                          <X size={14} /> Reject
-                        </button>
-                      )}
-
-                      {item.approvalStatus !== 'Pending' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Pending' }, { headers: { Authorization: `Bearer ${token}` } });
-                            if(res.data.success) {
-                               const newEntries = [...tripListEntries];
-                               newEntries[idx].approvalStatus = 'Pending';
-                               setTripListEntries(newEntries);
-                               addToast("Entry Moved to Pending", "success");
-                            }
-                          } catch(_e) { addToast("Error moving to pending", "error"); }
-                        }} className="action-btn action-btn-warning">
-                          <Clock size={14} /> Pending
-                        </button>
+                      {String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? (
+                        <select
+                          value={item.approvalStatus}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value;
+                            if (newStatus === item.approvalStatus) return;
+                            try {
+                              const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: newStatus }, { headers: { Authorization: `Bearer ${token}` } });
+                              if(res.data.success) {
+                                 const newEntries = [...tripListEntries];
+                                 const entryIndex = newEntries.findIndex(e => e.id === item.id);
+                                 if (entryIndex !== -1) newEntries[entryIndex].approvalStatus = newStatus;
+                                 setTripListEntries(newEntries);
+                                 addToast(`Status changed to ${newStatus}`, "success");
+                              }
+                            } catch(_e) { addToast("Error updating status", "error"); }
+                          }}
+                          className="action-btn"
+                          style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none" }}
+                        >
+                          <option value="Approved">Approved</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                      ) : (
+                        <>
+                          <button onClick={async () => {
+                            try {
+                              const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Approved' }, { headers: { Authorization: `Bearer ${token}` } });
+                              if(res.data.success) {
+                                 const newEntries = [...tripListEntries];
+                                 const entryIndex = newEntries.findIndex(e => e.id === item.id);
+                                 if (entryIndex !== -1) newEntries[entryIndex].approvalStatus = 'Approved';
+                                 setTripListEntries(newEntries);
+                                 addToast("Entry Approved!", "success");
+                              }
+                            } catch(_e) { addToast("Error approving entry", "error"); }
+                          }} className="action-btn action-btn-success">
+                            <Check size={14} /> Approve
+                          </button>
+                          
+                          {item.approvalStatus !== 'Rejected' && (
+                            <button onClick={async () => {
+                              try {
+                                const res = await axios.put(`${API}/trip-mis/${item.id}`, { approvalStatus: 'Rejected' }, { headers: { Authorization: `Bearer ${token}` } });
+                                if(res.data.success) {
+                                   const newEntries = [...tripListEntries];
+                                   newEntries[idx].approvalStatus = 'Rejected';
+                                   setTripListEntries(newEntries);
+                                   addToast("Entry Rejected", "success");
+                                }
+                              } catch(_e) { addToast("Error rejecting entry", "error"); }
+                            }} className="action-btn action-btn-danger">
+                              <X size={14} /> Reject
+                            </button>
+                          )}
+                        </>
                       )}
                       <button onClick={async () => {
                         const isConfirmed = await confirm({
@@ -847,20 +845,16 @@ const TripMIS = () => {
                       <Edit size={14} /> Edit
                     </button>
                   )}
-                  {(isAdminOrSuperAdmin || user?.role === 'Client' || user?.role?.toLowerCase() === 'client') && (
-                    <>
-                      <button 
-                        onClick={() => {
-                          localStorage.setItem("printSingleTripData", JSON.stringify(item));
-                          window.open(`/print-single-trip/mis-print`, '_blank');
-                        }}
-                        className="action-btn action-btn-light"
-                        title="Print Single Trip"
-                      >
-                        <Printer size={14} /> Print
-                      </button>
-                    </>
-                  )}
+                  <button 
+                    onClick={() => {
+                      localStorage.setItem("printSingleTripData", JSON.stringify(item));
+                      window.open(`/print-single-trip/mis-print`, '_blank');
+                    }}
+                    className="action-btn action-btn-light"
+                    title="Print Single Trip"
+                  >
+                    <Printer size={14} /> Print
+                  </button>
                 </div>
               </td>
             </tr>
@@ -976,8 +970,8 @@ const TripMIS = () => {
                     <span>Client: <strong style={{ color: "#ffffff" }}>{activeRemarksModal.clientName}</strong></span>
                     <span>•</span>
                     <span style={{
-                      background: activeRemarksModal.approvalStatus === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: activeRemarksModal.approvalStatus === 'Approved' ? '#6ee7b7' : '#fcd34d',
+                      background: String(activeRemarksModal.approvalStatus || 'Approved').toLowerCase() === 'approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                      color: String(activeRemarksModal.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#6ee7b7' : '#fcd34d',
                       padding: "1px 6px",
                       borderRadius: "4px",
                       fontWeight: 700,
@@ -1084,7 +1078,7 @@ const TripMIS = () => {
             </div>
 
             {/* Input Footer or Closed Notice */}
-            {(user?.role === 'Vendor' && activeRemarksModal.approvalStatus === 'Approved') ? (
+            {(user?.role === 'Vendor' && String(activeRemarksModal.approvalStatus || 'Approved').toLowerCase() === 'approved') ? (
               <div style={{
                 padding: "1.25rem 1.5rem",
                 background: "#fff1f2",
@@ -1273,7 +1267,7 @@ const TripMIS = () => {
                     {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Pickup: {p.pickup}</span>}
                     {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Del: {p.delivery}</span>}
                   </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: item.approvalStatus === 'Pending' ? '#d97706' : '#16a34a' }}>
+                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: String(item.approvalStatus).toLowerCase() === 'pending' ? '#d97706' : '#16a34a' }}>
                     {pIdx === 0 ? (item.approvalStatus || 'Approved') : ''}
                   </td>
                 </tr>

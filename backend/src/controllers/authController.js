@@ -341,7 +341,11 @@ exports.post_login_1 = async (req, res) => {
   }
 
   if (snapshot.empty) {
-    return error(res, { message: "Invalid Email/Employee ID or Password", statusCode: 401 });
+    snapshot = await usersRef.where("username", "==", email).get();
+  }
+
+  if (snapshot.empty) {
+    return error(res, { message: "Invalid Email, Username, or Employee ID", statusCode: 401 });
   }
 
   let userDoc = null;
@@ -463,7 +467,8 @@ exports.put_profile_2 = async (req, res) => {
     email,
     password,
     newId,
-    employeeId
+    employeeId,
+    username
   } = req.body;
   console.log("=== PUT PROFILE ===");
   console.log("req.body:", req.body);
@@ -510,6 +515,13 @@ exports.put_profile_2 = async (req, res) => {
   const updates = {};
   if (name) updates.name = name;
   if (email && isSuperAdmin) updates.email = email;
+  if (username) {
+    const userCheck = await db.collection("users").where("username", "==", username).get();
+    let taken = false;
+    userCheck.forEach(d => { if (d.id !== userId) taken = true; });
+    if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
+    updates.username = username;
+  }
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
@@ -619,6 +631,10 @@ exports.forgot_password = async (req, res) => {
 
     if (snapshot.empty) {
       snapshot = await usersRef.where('employeeId', '==', email).get();
+    }
+
+    if (snapshot.empty) {
+      snapshot = await usersRef.where('username', '==', email).get();
     }
 
     if (snapshot.empty) {
@@ -827,8 +843,10 @@ exports.get_activity = async (req, res) => {
     // Sort by date descending
     activities.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Limit to recent 20
-    activities = activities.slice(0, 20);
+    // Limit to 5 for regular users, 20 for SuperAdmin
+    const isSuperAdmin = req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimargcarriers.co.in';
+    const limit = isSuperAdmin ? 20 : 5;
+    activities = activities.slice(0, limit);
 
     return success(res, { data: activities });
   } catch (error) {
