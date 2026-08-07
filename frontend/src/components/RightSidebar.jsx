@@ -12,35 +12,42 @@ const RightSidebar = () => {
       name: "New Booking (LR)",
       path: "/bookings/create",
       icon: <Plus size={18} />,
-      permission: "operations",
+      permission: "bookings",
       color: "var(--primary-color)"
     },
     {
       name: "Generate Bill",
       path: "/bills/generate",
       icon: <Receipt size={18} />,
-      permission: "billing",
+      permission: "all_bills",
       color: "#10B981" // Emerald
     },
     {
       name: "Misc Bill",
       path: "/bills/misc",
       icon: <FileText size={18} />,
-      permission: "billing",
+      permission: "all_bills",
       color: "#F43F5E" // Rose
     },
     {
       name: "Upload POD",
       path: "/pod",
       icon: <Upload size={18} />,
-      permission: "operations",
+      permission: "pod",
       color: "#8B5CF6" // Violet
+    },
+    {
+      name: "Upload Box",
+      path: "/upload-box",
+      icon: <Upload size={18} />,
+      permission: "upload_box",
+      color: "#F97316" // Orange
     },
     {
       name: "Tracking",
       path: "/tracking",
       icon: <MapPin size={18} />,
-      permission: "operations",
+      permission: "tracking",
       color: "#0EA5E9" // Sky Blue
     },
     {

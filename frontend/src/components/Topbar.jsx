@@ -124,12 +124,12 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
           </button>
         )}
         <img src="/mc.png" alt="Logo" className="topbar-logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
-        {(!user || hasPermission('operations') || hasPermission('dashboard')) && (
-          <div 
-            className="topbar-search"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', minWidth: '200px' }}
-          >
+        {/* Global Search (Available for all roles) */}
+        <div 
+          className="topbar-search"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.8rem', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', minWidth: '200px' }}
+        >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Search size={16} color="rgba(255,255,255,0.7)" />
               <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>Search bookings...</span>
@@ -138,25 +138,40 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
               Ctrl K
             </div>
           </div>
-        )}
+
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="topbar-right">
         {/* Quick Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }} className="hide-on-mobile">
-          {hasPermission('operations') && (
-            <NavLink to="/bookings/create" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary-color)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingBottom: '2px' }} className="hide-on-mobile">
+          {hasPermission('bookings') && (
+            <NavLink to="/bookings/create" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary-color)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.1)', whiteSpace: 'nowrap' }}>
               <Plus size={14} /> New LR
             </NavLink>
           )}
-          {hasPermission('operations') && (
-            <NavLink to="/trips" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+          {hasPermission('trips') && (
+            <NavLink to="/trips" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
               <Plus size={14} /> Add Trip
             </NavLink>
           )}
-          {hasPermission('billing') && (
-            <NavLink to="/bills/generate" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+          {(hasPermission('billing') || hasPermission('all_bills')) && (
+            <NavLink to="/bills/generate" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
               <Plus size={14} /> New Bill
+            </NavLink>
+          )}
+          {hasPermission('pod') && (
+            <NavLink to="/pod" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Plus size={14} /> POD Upload
+            </NavLink>
+          )}
+          {hasPermission('upload_box') && (
+            <NavLink to="/upload-box" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Plus size={14} /> Box Upload
+            </NavLink>
+          )}
+          {(!user || hasPermission('tracking')) && (
+            <NavLink to="/tracking" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Search size={14} /> Tracking
             </NavLink>
           )}
         </div>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, Package, Users, Truck, FileText,  Compass, Zap, Plus } from 'lucide-react';
 import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
 
 const CommandPalette = ({ isOpen, setIsOpen }) => {
   const [query, setQuery] = useState('');
@@ -10,32 +11,35 @@ const CommandPalette = ({ isOpen, setIsOpen }) => {
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef(null);
   const navigate = useNavigate();
+  const { hasPermission } = useContext(AuthContext);
 
   // Quick Actions to show when query is empty
-  const QUICK_ACTIONS = [
-    { type: 'Quick Action', title: 'Create New LR (Booking)', subtitle: 'Generate a new transport booking', link: '/bookings/create', icon: <Plus size={16} color="#10b981" /> },
-    { type: 'Quick Action', title: 'Add New Client', subtitle: 'Register a new customer', link: '/clients', icon: <Users size={16} color="#3b82f6" /> },
-    { type: 'Quick Action', title: 'Generate Bill', subtitle: 'Create an invoice for clients', link: '/bills/generate', icon: <FileText size={16} color="#8b5cf6" /> },
-    { type: 'Quick Action', title: 'System Settings', subtitle: 'Configure global preferences', link: '/settings', icon: <Zap size={16} color="#f59e0b" /> }
+  const ALL_QUICK_ACTIONS = [
+    { type: 'Quick Action', title: 'Create New LR (Booking)', subtitle: 'Generate a new transport booking', link: '/bookings/create', icon: <Plus size={16} color="#10b981" />, permission: 'bookings' },
+    { type: 'Quick Action', title: 'Add New Client', subtitle: 'Register a new customer', link: '/clients', icon: <Users size={16} color="#3b82f6" />, permission: 'clients' },
+    { type: 'Quick Action', title: 'Generate Bill', subtitle: 'Create an invoice for clients', link: '/bills/generate', icon: <FileText size={16} color="#8b5cf6" />, permission: 'all_bills' },
+    { type: 'Quick Action', title: 'System Settings', subtitle: 'Configure global preferences', link: '/settings', icon: <Zap size={16} color="#f59e0b" />, permission: 'superadmin' }
   ];
+  const QUICK_ACTIONS = ALL_QUICK_ACTIONS.filter(action => !action.permission || hasPermission(action.permission));
 
-  const MENU_ITEMS = [
-    { type: 'Menu', id: 'm1', title: 'Dashboard', subtitle: 'View main dashboard', link: '/' },
-    { type: 'Menu', id: 'm2', title: 'Create LR (Booking)', subtitle: 'Add a new Booking', link: '/bookings/create' },
-    { type: 'Menu', id: 'm3', title: 'Bookings List', subtitle: 'View all Bookings', link: '/bookings' },
-    { type: 'Menu', id: 'm4', title: 'Add Trip', subtitle: 'Create a new Trip', link: '/trips/create' },
-    { type: 'Menu', id: 'm5', title: 'Trips List', subtitle: 'View all Trips', link: '/trips' },
-    { type: 'Menu', id: 'm6', title: 'Add Client', subtitle: 'Create a new Client', link: '/clients/create' },
-    { type: 'Menu', id: 'm7', title: 'Clients List', subtitle: 'View all Clients', link: '/clients' },
-    { type: 'Menu', id: 'm8', title: 'Add Vendor', subtitle: 'Create a new Vendor', link: '/vendors/create' },
-    { type: 'Menu', id: 'm9', title: 'Vendors List', subtitle: 'View all Vendors', link: '/vendors' },
-    { type: 'Menu', id: 'm10', title: 'Generate Bill', subtitle: 'Create a new Bill', link: '/bills/generate' },
-    { type: 'Menu', id: 'm11', title: 'Bills List', subtitle: 'View all Bills', link: '/bills' },
-    { type: 'Menu', id: 'm12', title: 'Cities List', subtitle: 'Manage Cities', link: '/cities' },
-    { type: 'Menu', id: 'm13', title: 'Branches List', subtitle: 'Manage Branches', link: '/branches' },
-    { type: 'Menu', id: 'm14', title: 'Reports', subtitle: 'View Analytics & Reports', link: '/reports' },
-    { type: 'Menu', id: 'm15', title: 'Tracking', subtitle: 'Track Shipments', link: '/tracking' },
+  const ALL_MENU_ITEMS = [
+    { type: 'Menu', id: 'm1', title: 'Dashboard', subtitle: 'View main dashboard', link: '/', permission: 'dashboard' },
+    { type: 'Menu', id: 'm2', title: 'Create LR (Booking)', subtitle: 'Add a new Booking', link: '/bookings/create', permission: 'bookings' },
+    { type: 'Menu', id: 'm3', title: 'Bookings List', subtitle: 'View all Bookings', link: '/bookings', permission: 'bookings' },
+    { type: 'Menu', id: 'm4', title: 'Add Trip', subtitle: 'Create a new Trip', link: '/trips/create', permission: 'trips' },
+    { type: 'Menu', id: 'm5', title: 'Trips List', subtitle: 'View all Trips', link: '/trips', permission: 'trips' },
+    { type: 'Menu', id: 'm6', title: 'Add Client', subtitle: 'Create a new Client', link: '/clients/create', permission: 'clients' },
+    { type: 'Menu', id: 'm7', title: 'Clients List', subtitle: 'View all Clients', link: '/clients', permission: 'clients' },
+    { type: 'Menu', id: 'm8', title: 'Add Vendor', subtitle: 'Create a new Vendor', link: '/vendors/create', permission: 'vendors' },
+    { type: 'Menu', id: 'm9', title: 'Vendors List', subtitle: 'View all Vendors', link: '/vendors', permission: 'vendors' },
+    { type: 'Menu', id: 'm10', title: 'Generate Bill', subtitle: 'Create a new Bill', link: '/bills/generate', permission: 'all_bills' },
+    { type: 'Menu', id: 'm11', title: 'Bills List', subtitle: 'View all Bills', link: '/bills', permission: 'all_bills' },
+    { type: 'Menu', id: 'm12', title: 'Cities List', subtitle: 'Manage Cities', link: '/cities', permission: 'cities' },
+    { type: 'Menu', id: 'm13', title: 'Branches List', subtitle: 'Manage Branches', link: '/branches', permission: 'branches' },
+    { type: 'Menu', id: 'm14', title: 'Reports', subtitle: 'View Analytics & Reports', link: '/reports', permission: 'reports' },
+    { type: 'Menu', id: 'm15', title: 'Tracking', subtitle: 'Track Shipments', link: '/tracking', permission: 'tracking' },
   ];
+  const MENU_ITEMS = ALL_MENU_ITEMS.filter(item => !item.permission || hasPermission(item.permission));
 
   // Listen for Ctrl+K and custom event
   useEffect(() => {
