@@ -5,7 +5,7 @@ import { AuthContext } from './AuthContext';
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
   const [incompleteItems, setIncompleteItems] = useState(() => {
     const cached = localStorage.getItem('incompleteNotifications');
     return cached ? JSON.parse(cached) : [];
@@ -19,11 +19,13 @@ export const NotificationProvider = ({ children }) => {
   const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
   const fetchIncompleteItems = async () => {
-    if (!user) return; // Wait for user to be logged in
+    if (!user || !token) return; // Wait for user to be logged in
     
     try {
       if (!localStorage.getItem('incompleteNotifications')) setLoading(true);
-      const res = await axios.get(`${API}/notifications/incomplete`);
+      const res = await axios.get(`${API}/notifications/incomplete`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (res.data.success) {
         setIncompleteItems(res.data.data.items || []);
         setTotalIncomplete(res.data.data.total || 0);
