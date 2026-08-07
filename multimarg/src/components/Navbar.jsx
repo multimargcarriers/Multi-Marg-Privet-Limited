@@ -267,7 +267,7 @@ const Navbar = () => {
               Contact Us
             </Link>
             <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
-              Customer Login
+              Login
             </a>
           </div>
         </div>
