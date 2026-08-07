@@ -184,7 +184,7 @@ const Navbar = () => {
               <PhoneCall size={18} />
               <span>+91 5944-324033</span>
             </div>
-            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red">
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-red">
               Login
             </a>
           </div>
@@ -266,7 +266,7 @@ const Navbar = () => {
             <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Contact Us
             </Link>
-            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
               Customer Login
             </a>
           </div>

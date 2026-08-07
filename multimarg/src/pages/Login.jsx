@@ -272,11 +272,13 @@ const Login = () => {
           <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
             {/* Minimalist Logo Overlay */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '180px' }} />
-              <div>
-                <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800, letterSpacing: '1px', color: '#111827', lineHeight: 1.1 }}>Multi Marg Carriers PVT LTD</h2>
-                <p style={{ margin: 0, fontSize: '2rem', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 700 }}>Logistics Platform</p>
-              </div>
+              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: '2rem' }}>
+                <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '180px' }} />
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800, letterSpacing: '1px', color: '#111827', lineHeight: 1.1 }}>Multi Marg Carriers PVT LTD</h2>
+                  <p style={{ margin: 0, fontSize: '2rem', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '3px', fontWeight: 700 }}>Logistics Platform</p>
+                </div>
+              </a>
             </div>
 
             {/* Floating Stat Widget */}
@@ -370,7 +372,9 @@ const Login = () => {
             
             {/* Mobile Logo */}
             <div className="mobile-only-logo" style={{ display: 'none', textAlign: 'center', marginBottom: '2rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '90px', margin: '0 auto', display: 'block' }} />
+              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"}>
+                <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '90px', margin: '0 auto', display: 'block' }} />
+              </a>
             </div>
 
           <style>{`
@@ -552,7 +556,9 @@ const Login = () => {
             
             {/* Branding Logo at Top of Form */}
             <div className="desktop-only-logo" style={{ marginBottom: '1.5rem' }}>
-              <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
+              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"}>
+                <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
+              </a>
             </div>
 
             {view === 'login' && (
