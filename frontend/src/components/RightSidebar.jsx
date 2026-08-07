@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Plus, Receipt, Truck, Upload, DollarSign, FileText, MapPin, Users, Briefcase, Building2, TrendingUp, Activity } from 'lucide-react';
+import { Plus, Receipt,  Upload, DollarSign, FileText, MapPin, Users, Briefcase, Building2, TrendingUp, Activity } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 const RightSidebar = () => {

@@ -2,16 +2,16 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus, Truck, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Trash2, Printer, Search, Upload, AlertCircle } from "lucide-react";
+import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download,     } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
 
-import { TablePageSkeleton, FormPageSkeleton } from '../components/SkeletonLoader';
+import { TablePageSkeleton, } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
-import SearchableSelect from "../components/SearchableSelect";
-import { formatAllCaps, formatTitleCase } from "../utils/formatters";
+
+import { formatAllCaps, } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
@@ -19,7 +19,7 @@ import { useSocketSync } from "../hooks/useSocketSync";
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const Trips = () => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -78,7 +78,7 @@ const Trips = () => {
     try {
       const saved = localStorage.getItem('manifestFormDraft');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (_e) {}
     return initialFormState;
   });
   const [view, setView] = useState("manifest");
@@ -536,7 +536,7 @@ const Trips = () => {
                                setTrips(newTrips);
                                addToast("Trip Approved!", "success");
                             }
-                          } catch(e) { addToast("Error approving trip", "error"); }
+                          } catch(_e) { addToast("Error approving trip", "error"); }
                         }} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Approve</button>
                       )}
                       
@@ -550,7 +550,7 @@ const Trips = () => {
                                setTrips(newTrips);
                                addToast("Trip Rejected", "success");
                             }
-                          } catch(e) { addToast("Error rejecting trip", "error"); }
+                          } catch(_e) { addToast("Error rejecting trip", "error"); }
                         }} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Reject</button>
                       )}
 
@@ -564,7 +564,7 @@ const Trips = () => {
                                setTrips(newTrips);
                                addToast("Trip Moved to Pending", "success");
                             }
-                          } catch(e) { addToast("Error moving to pending", "error"); }
+                          } catch(_e) { addToast("Error moving to pending", "error"); }
                         }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
                       )}
                     </>

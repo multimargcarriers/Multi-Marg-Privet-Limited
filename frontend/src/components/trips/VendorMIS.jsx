@@ -3,9 +3,9 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, User } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
-import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
+import { formatAllCaps,  formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
@@ -205,7 +205,7 @@ const VendorMIS = () => {
   const [vendorMisForm, setVendorMisForm] = useState(initialVendorMisForm);
   const [showVendorMisForm, setShowVendorMisForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [editingStatus, setEditingStatus] = useState('');
+  const [_editingStatus, setEditingStatus] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -323,7 +323,7 @@ const VendorMIS = () => {
                     addToast("Vendor MIS entry added successfully!", "success");
                   }
                 }
-              } catch(err) {
+              } catch(_err) {
                  addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
@@ -483,7 +483,7 @@ const VendorMIS = () => {
                                                 setVendorMisEntries(updated);
                                             }
                                         }
-                                    } catch(err) {
+                                    } catch(_err) {
                                         addToast("Failed to update status", "error");
                                     }
                                 }}
@@ -578,7 +578,7 @@ const VendorMIS = () => {
                                setVendorMisEntries(newEntries);
                                addToast("Entry Approved!", "success");
                             }
-                          } catch(e) { addToast("Error approving entry", "error"); }
+                          } catch(_e) { addToast("Error approving entry", "error"); }
                         }} className="action-btn action-btn-success">
                           <Check size={14} /> Approve
                         </button>
@@ -594,7 +594,7 @@ const VendorMIS = () => {
                                setVendorMisEntries(newEntries);
                                addToast("Entry Rejected", "success");
                             }
-                          } catch(e) { addToast("Error rejecting entry", "error"); }
+                          } catch(_e) { addToast("Error rejecting entry", "error"); }
                         }} className="action-btn action-btn-danger">
                           <X size={14} /> Reject
                         </button>
@@ -610,7 +610,7 @@ const VendorMIS = () => {
                                setVendorMisEntries(newEntries);
                                addToast("Entry Moved to Pending", "success");
                             }
-                          } catch(e) { addToast("Error moving to pending", "error"); }
+                          } catch(_e) { addToast("Error moving to pending", "error"); }
                         }} className="action-btn action-btn-warning">
                           <Clock size={14} /> Pending
                         </button>
@@ -630,7 +630,7 @@ const VendorMIS = () => {
                                  setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
                                  addToast("Entry deleted successfully", "success");
                                }
-                            } catch(err) {
+                            } catch(_err) {
                                addToast("Failed to delete entry", "error");
                             }
                          }

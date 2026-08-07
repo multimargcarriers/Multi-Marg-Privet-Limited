@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Plus, X } from "lucide-react";
 
-const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "Select or type to create...", format }) => {
+const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "Select or type to create...", _format }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef(null);

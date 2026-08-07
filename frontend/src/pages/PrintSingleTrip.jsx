@@ -4,12 +4,12 @@ import { Download, ArrowLeft } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
-import RupeeIcon from "../components/RupeeIcon";
+
 
 const PrintSingleTrip = () => {
   const { index } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const _location = useLocation();
   const { user } = useContext(AuthContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const [signName, setSignName] = useState(user?.name || "Admin");

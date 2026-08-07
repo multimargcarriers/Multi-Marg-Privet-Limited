@@ -3,7 +3,7 @@ import axios from 'axios';
 import { 
   Server, Database, Cloud, HardDrive, RefreshCw, AlertCircle, MemoryStick, 
   ToggleLeft, ToggleRight, Building, Palette, Shield, FileText, Bell, Save,
-  ChevronDown, ChevronRight, Upload, RotateCcw, Image as ImageIcon
+ChevronDown, ChevronRight, Upload, RotateCcw
 } from 'lucide-react';
 import CompanyStamp from '../components/CompanyStamp';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
@@ -311,36 +311,45 @@ const Settings = () => {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Company Name</label>
+                <label htmlFor="company-name" style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Company Name</label>
                 <input 
+                  id="company-name"
                   type="text" name="name" value={localCompany.name || ''} onChange={handleCompanyChange}
+                  autoComplete="organization"
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>GSTIN</label>
+                <label htmlFor="company-gstin" style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>GSTIN</label>
                   <input 
+                    id="company-gstin"
                     type="text" name="gstin" value={localCompany.gstin || ''} onChange={(e) => setLocalCompany({ ...localCompany, gstin: e.target.value.toUpperCase() })}
+                    autoComplete="off"
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Email Address</label>
+                <label htmlFor="company-email" style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Email Address</label>
                 <input 
+                  id="company-email"
                   type="email" name="email" value={localCompany.email || ''} onChange={handleCompanyChange}
+                  autoComplete="email"
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Phone Number</label>
+                <label htmlFor="company-phone" style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Phone Number</label>
                 <input 
+                  id="company-phone"
                   type="text" name="phone" value={localCompany.phone || ''} onChange={handleCompanyChange}
+                  autoComplete="tel"
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                 />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Registered Address</label>
+                <label htmlFor="company-address" style={{ display: 'block', fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 500 }}>Registered Address</label>
                 <textarea 
+                  id="company-address"
                   name="address" value={localCompany.address || ''} onChange={handleCompanyChange} rows={3}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', resize: 'vertical' }}
                 />

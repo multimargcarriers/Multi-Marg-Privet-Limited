@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Users, DollarSign, FileText, Globe, ArrowUpRight, TrendingUp, Activity, ArrowDownRight, CreditCard, RefreshCw, Clock, Truck, ShoppingCart, FileSpreadsheet, Receipt } from 'lucide-react';
+import {  DollarSign, FileText, Globe,  TrendingUp, Activity,  CreditCard, RefreshCw, Clock, Truck, ShoppingCart,  Receipt } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { formatDate } from '../utils/formatters';
@@ -8,7 +8,7 @@ import RupeeIcon from '../components/RupeeIcon';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
-const StatCard = ({ title, value, icon, subtitle, trend }) => (
+const StatCard = ({ title, value, icon, _subtitle, _trend }) => (
   <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <div>
@@ -26,7 +26,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { addToast } = useToast();
 
   const fetchStats = async () => {

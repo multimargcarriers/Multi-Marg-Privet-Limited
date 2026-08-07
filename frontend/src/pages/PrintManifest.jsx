@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { Download, ArrowLeft } from "lucide-react";
-import RupeeIcon from "../components/RupeeIcon";
+
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
 
-const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
+const _API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const PrintManifest = () => {
   const { id } = useParams();

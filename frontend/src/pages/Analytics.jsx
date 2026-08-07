@@ -7,7 +7,7 @@ import {
   LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { DollarSign, FileText, AlertCircle, TrendingUp, Activity, RefreshCw } from 'lucide-react';
+import { DollarSign, FileText, AlertCircle, TrendingUp,  RefreshCw } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { useToast } from '../context/ToastContext';
 

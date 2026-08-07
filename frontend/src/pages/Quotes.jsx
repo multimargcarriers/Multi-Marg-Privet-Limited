@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import {
   FileText, Search, Trash2, CheckCircle, Clock, TrendingUp,
-  MapPin, Phone, Mail, Package, Truck, Scale, Calendar, RefreshCw,
+RefreshCw,
   ChevronLeft, ChevronRight, AlertCircle, Filter
 } from "lucide-react";
 import axios from "axios";

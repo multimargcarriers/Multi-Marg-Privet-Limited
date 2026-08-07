@@ -6,9 +6,9 @@ import { SettingsContext } from '../context/SettingsContext';
 import { useNotification } from '../context/NotificationContext';
 import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
-import { useToast } from '../context/ToastContext';
+import { } from '../context/ToastContext';
 
-const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
+const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
   const { user, hasPermission } = useContext(AuthContext);
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
   const { fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
@@ -87,6 +87,35 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
   };
 
   return (
+    <>
+    <style>{`
+      @media (max-width: 768px) {
+        .topbar {
+          padding: 0 0.75rem !important;
+        }
+        .topbar-right {
+          gap: 0.5rem !important;
+        }
+        .font-size-adjuster {
+          gap: 0 !important;
+          padding: 1px 4px !important;
+          margin-right: 0 !important;
+          transform: scale(0.9);
+          transform-origin: right center;
+        }
+        .font-size-adjuster input {
+          width: 28px !important;
+          font-size: 0.75rem !important;
+        }
+        .topbar-avatar {
+          width: 28px !important;
+          height: 28px !important;
+        }
+        .topbar-logo {
+          height: 28px !important;
+        }
+      }
+    `}</style>
     <div className="topbar no-print" style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 200 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         {hasSidebar && (
@@ -94,7 +123,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
             <Menu size={24} />
           </button>
         )}
-        <img src="/mc.png" alt="Logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
+        <img src="/mc.png" alt="Logo" className="topbar-logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
         {(!user || hasPermission('operations') || hasPermission('dashboard')) && (
           <div 
             className="topbar-search"
@@ -134,15 +163,18 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
 
         {/* Font Size Adjuster Controls */}
         <div 
+          className="font-size-adjuster"
           title="Adjust Application Text Size"
           style={{
             display: 'flex',
             alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '6px',
-            padding: '0.2rem 0.4rem',
+            background: 'rgba(255, 255, 255, 0.08)',
+            borderRadius: '20px',
+            padding: '3px 6px',
             border: '1px solid rgba(255, 255, 255, 0.15)',
-            gap: '0.2rem'
+            gap: '0.2rem',
+            marginRight: '0.5rem',
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
           }}
         >
           <button
@@ -175,7 +207,10 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
               onClick={resetFontSize}
               title="Click to reset text size to 100%"
             />
+            <label htmlFor="font-size-input" style={{ display: 'none' }}>Font Size</label>
             <input
+              id="font-size-input"
+              name="fontSize"
               type="text"
               value={fontInputValue}
               onChange={(e) => setFontInputValue(e.target.value)}
@@ -200,18 +235,18 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
               }}
               title="Type custom text size percentage (50 - 400) & press Enter"
               style={{
-                width: '38px',
+                width: '32px',
                 background: 'transparent',
                 border: 'none',
                 color: '#ffffff',
-                fontSize: '0.78rem',
+                fontSize: '0.8rem',
                 fontWeight: '600',
                 textAlign: 'center',
                 outline: 'none',
                 padding: '0'
               }}
             />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ffffff', opacity: 0.9 }}>%</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>%</span>
           </div>
 
           <button
@@ -314,7 +349,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
             <img 
               src={getUserAvatarUrl()} 
               alt="User" 
-              className="avatar" 
+              className="avatar topbar-avatar" 
               style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} 
             />
           </div>
@@ -389,6 +424,7 @@ const Topbar = ({ toggleSidebar, isSidebarOpen, hasSidebar = true }) => {
         initialName={modalInitialName}
       />
     </div>
+    </>
   );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, Download } from "lucide-react";
+
 import RupeeIcon from '../components/RupeeIcon';
 import Table from '../components/Table';
 

@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Download, Upload, FileText, ChevronDown } from 'lucide-react';
+import { Download, Upload, FileText, } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { SettingsContext } from '../context/SettingsContext';
 
 const CsvImportExport = ({ moduleName, onImportSuccess, searchQuery }) => {
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [_isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const { addToast } = useToast();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
-import { TablePageSkeleton } from "../components/SkeletonLoader";
+import { } from "../components/SkeletonLoader";
 import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 import StatsPanel from "../components/StatsPanel";

@@ -6,8 +6,8 @@ import {
   Plus, 
   X, 
   RefreshCw, 
-  Trash2, 
-  Eye, 
+
+
   Calendar,
   IndianRupee,
   Receipt,
@@ -23,7 +23,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 const MiscBill = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clients, setClients] = useState([]);
+  const [_clients, _setClients] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   
   const [isAdding, setIsAdding] = useState(false);

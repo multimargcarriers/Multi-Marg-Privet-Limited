@@ -59,7 +59,7 @@ import MaintenanceGuard from "./components/MaintenanceGuard";
 import "./index.css";
 
 // Prevent mouse wheel from changing number input values globally
-document.addEventListener("wheel", function(event) {
+document.addEventListener("wheel", function(_event) {
   if (document.activeElement.type === "number") {
     document.activeElement.blur();
   }

@@ -3,20 +3,20 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import { 
   X, 
-  Upload, 
+
   Camera, 
   Image as ImageIcon, 
   CheckCircle, 
   FileText, 
-  AlertCircle, 
+
   Loader2, 
-  Heart, 
+
   Sparkles, 
   ExternalLink,
   FileCheck,
   Check
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, } from "framer-motion";
 import PODImageStudioModal from "../pod/PODImageStudioModal";
 import { useDialog } from "../../context/DialogContext";
 

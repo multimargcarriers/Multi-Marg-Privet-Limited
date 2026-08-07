@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Shield, Plus, Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight } from 'lucide-react';
-import { TablePageSkeleton } from '../components/SkeletonLoader';
+import { Shield,  Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight } from 'lucide-react';
+import { } from '../components/SkeletonLoader';
 import Table from '../components/Table';
 import { useDialog } from '../context/DialogContext';
 import { useToast } from '../context/ToastContext';
@@ -200,7 +200,7 @@ const IAM = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       addToast("User deleted successfully!", "success");
-    } catch (err) {
+    } catch (_err) {
       addToast('Error deleting user', 'error');
       fetchUsers();
     }

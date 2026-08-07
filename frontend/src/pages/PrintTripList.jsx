@@ -7,7 +7,7 @@ import { formatDate } from "../utils/formatters";
 
 const PrintTripList = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const _location = useLocation();
   const { user } = useContext(AuthContext);
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);

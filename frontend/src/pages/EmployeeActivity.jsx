@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDialog } from '../context/DialogContext';
 import axios from 'axios';
-import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint, Lock, X } from 'lucide-react';
+import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint,  X } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
 
 const EmployeeActivity = () => {

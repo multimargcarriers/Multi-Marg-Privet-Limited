@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const { addToast } = useToast();
   
   const navigate = useNavigate();
-  const location = useLocation();
+  const _location = useLocation();
 
   const normalizeUserData = (userData) => {
     if (!userData) return userData;
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
           const cleanUser = normalizeUserData(parsed);
           setUser(cleanUser);
           localStorage.setItem('user', JSON.stringify(cleanUser));
-        } catch (e) {
+        } catch (_e) {
           console.error("Failed to parse user info");
         }
       }
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
   const logoutTimerId = useRef(null);
   const warningTimerId = useRef(null);
-  const IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+  const IDLE_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
   const WARNING_BEFORE_MS = 60 * 1000; // Show warning 1 minute before logout
 
   useEffect(() => {
@@ -141,9 +141,10 @@ export const AuthProvider = ({ children }) => {
   }, [user, token]);
 
   const login = (userData, userToken) => {
-    setUser(userData);
+    const cleanUser = normalizeUserData(userData);
+    setUser(cleanUser);
     setToken(userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(cleanUser));
     localStorage.setItem('token', userToken);
 
     // Determine initial route based on permissions
@@ -172,15 +173,10 @@ export const AuthProvider = ({ children }) => {
     
     setUser(null);
     setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    localStorage.clear();
+    sessionStorage.clear();
     
-    // Use hard reload if we are already at root, or standard navigate
-    if (window.location.pathname !== '/') {
-      navigate('/');
-    } else {
-      window.location.reload();
-    }
+    window.location.href = '/';
   };
 
   const updateUser = (userData, userToken) => {

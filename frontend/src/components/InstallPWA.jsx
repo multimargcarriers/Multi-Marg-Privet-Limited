@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Share, PlusSquare, X } from 'lucide-react';
+import {  Share, PlusSquare, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const InstallPWA = () => {

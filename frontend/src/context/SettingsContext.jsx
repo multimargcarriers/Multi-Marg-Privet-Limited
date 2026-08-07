@@ -23,7 +23,7 @@ export const SettingsProvider = ({ children }) => {
           parsed.integrations.enableCsvImport = true;
         }
         return parsed;
-      } catch (e) {
+      } catch (_e) {
         console.error("Failed to parse cached globalSettings");
       }
     }

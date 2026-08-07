@@ -525,6 +525,17 @@ const Login = () => {
               background: #f8f9fa;
               box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
             }
+            .sr-only {
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border-width: 0;
+            }
           `}</style>
           
           {view !== 'login' && (
@@ -590,6 +601,7 @@ const Login = () => {
           {view === 'login' && (
             <form onSubmit={handleLogin}>
               <div className="input-group">
+                <label htmlFor="login-email" className="sr-only">Email or Employee Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   id="login-email"
@@ -606,6 +618,7 @@ const Login = () => {
               </div>
 
               <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                <label htmlFor="login-password" className="sr-only">Password</label>
                 <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
                   id="login-password"
@@ -669,6 +682,7 @@ const Login = () => {
           {view === 'forgot' && (
             <form onSubmit={handleForgotPassword}>
               <div className="input-group" style={{ marginBottom: '2rem' }}>
+                <label htmlFor="forgot-email" className="sr-only">Email or Employee Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   id="forgot-email"
@@ -695,6 +709,7 @@ const Login = () => {
           {view === 'otp' && (
             <form onSubmit={handleVerifyOtp}>
               <div className="input-group">
+                <label htmlFor="otp-code" className="sr-only">One-time password code</label>
                 <div className="icon-wrapper"><Key size={18} strokeWidth={2} /></div>
                 <input 
                   id="otp-code"
@@ -733,6 +748,7 @@ const Login = () => {
           {view === 'reset' && (
             <form onSubmit={handleResetPassword}>
               <div className="input-group">
+                <label htmlFor="new-password" className="sr-only">New password</label>
                 <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
                   id="new-password"
@@ -753,6 +769,7 @@ const Login = () => {
               </div>
               
               <div className="input-group" style={{ marginBottom: '2rem' }}>
+                <label htmlFor="confirm-password" className="sr-only">Confirm new password</label>
                 <div className="icon-wrapper"><CheckCircle size={18} strokeWidth={2} /></div>
                 <input 
                   id="confirm-password"

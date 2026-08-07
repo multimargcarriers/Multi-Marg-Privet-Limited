@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, User } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -38,7 +38,7 @@ const TripMIS = () => {
     }
   }, [activeRemarksModal?.remarks]);
 
-  const handleShareWhatsApp = (item) => {
+  const _handleShareWhatsApp = (item) => {
     localStorage.setItem("printSingleTripData", JSON.stringify(item));
     window.open('/print-single-trip/mis-print', '_blank');
 
@@ -270,7 +270,7 @@ const TripMIS = () => {
   const [tripListForm, setTripListForm] = useState(initialTripListForm);
   const [showTripListForm, setShowTripListForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [editingStatus, setEditingStatus] = useState('');
+  const [_editingStatus, setEditingStatus] = useState('');
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
 
   useEffect(() => {
@@ -411,7 +411,7 @@ const TripMIS = () => {
                     addToast("Vehicle Trip MIS entry added successfully!", "success");
                   }
                 }
-              } catch(err) {
+              } catch(_err) {
                 addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
@@ -778,7 +778,7 @@ const TripMIS = () => {
                                setTripListEntries(newEntries);
                                addToast("Entry Approved!", "success");
                             }
-                          } catch(e) { addToast("Error approving entry", "error"); }
+                          } catch(_e) { addToast("Error approving entry", "error"); }
                         }} className="action-btn action-btn-success">
                           <Check size={14} /> Approve
                         </button>
@@ -794,7 +794,7 @@ const TripMIS = () => {
                                setTripListEntries(newEntries);
                                addToast("Entry Rejected", "success");
                             }
-                          } catch(e) { addToast("Error rejecting entry", "error"); }
+                          } catch(_e) { addToast("Error rejecting entry", "error"); }
                         }} className="action-btn action-btn-danger">
                           <X size={14} /> Reject
                         </button>
@@ -810,7 +810,7 @@ const TripMIS = () => {
                                setTripListEntries(newEntries);
                                addToast("Entry Moved to Pending", "success");
                             }
-                          } catch(e) { addToast("Error moving to pending", "error"); }
+                          } catch(_e) { addToast("Error moving to pending", "error"); }
                         }} className="action-btn action-btn-warning">
                           <Clock size={14} /> Pending
                         </button>
@@ -829,7 +829,7 @@ const TripMIS = () => {
                               setTripListEntries(tripListEntries.filter(t => t.id !== item.id));
                               addToast("Entry deleted successfully", "success");
                             }
-                          } catch(e) { addToast("Error deleting entry", "error"); }
+                          } catch(_e) { addToast("Error deleting entry", "error"); }
                         }
                       }} className="action-btn action-btn-secondary">
                         <Trash2 size={14} /> Delete
@@ -902,7 +902,7 @@ const TripMIS = () => {
                     setPaymentModal({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
                     addToast("Payment updated successfully!", "success");
                   }
-                } catch(e) {
+                } catch(_e) {
                    addToast("Error updating payment", "error");
                 }
               }}>Save Payment</button>

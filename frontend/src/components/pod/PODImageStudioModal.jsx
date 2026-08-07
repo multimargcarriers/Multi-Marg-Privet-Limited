@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { 
-  Camera, 
+
   RefreshCw, 
   RotateCw, 
   RotateCcw, 
   Check, 
   X, 
-  Sliders, 
-  Sun, 
-  Contrast, 
-  Wand2, 
-  Image as ImageIcon,
-  FileCheck,
+
+
+
+
+Image as
+
   AlertCircle,
-  Crop
+
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 

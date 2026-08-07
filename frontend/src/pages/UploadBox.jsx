@@ -11,21 +11,21 @@ import {
   Search, 
   Eye, 
   X, 
-  Check, 
-  ArrowRight, 
-  ShieldCheck, 
-  HelpCircle, 
+
+
+
+
   Calendar, 
   RefreshCw, 
   ExternalLink,
-  Info,
-  Filter,
+
+
   FileCheck,
   Camera,
   Image as ImageIcon,
-  Wand2,
-  Sliders,
-  RotateCw
+
+
+
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -58,7 +58,7 @@ const UploadBox = () => {
   // Table Filter states
   const [tableSearch, setTableSearch] = useState("");
   const [activeTab, setActiveTab] = useState("ALL"); // 'ALL' | 'VERIFIED' | 'UNKNOWN'
-  const [previewImage, setPreviewImage] = useState(null); // URL for modal preview
+  const [_previewImage, _setPreviewImage] = useState(null); // URL for modal preview
 
   // Box Image Studio Modal state
   const [studioOpen, setStudioOpen] = useState(false);
@@ -143,7 +143,7 @@ const UploadBox = () => {
   }, [bookingsList, lrInput]);
 
   // Handle selecting an LR from the search dropdown
-  const handleSelectLR = (booking) => {
+  const _handleSelectLR = (booking) => {
     setSelectedLR(booking);
     setLrInput(getBookingAwb(booking));
   };

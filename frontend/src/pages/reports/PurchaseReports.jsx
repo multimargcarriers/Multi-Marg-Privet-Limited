@@ -11,7 +11,7 @@ const PurchaseReports = () => {
   const [filters, setFilters] = useState({ search: "", fr: "", to: "" });
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const _handleSearch = (e) => {
     if (e) e.preventDefault();
     fetchData(); // Refetch or refilter based on requirements, but wait, data is fetched once. Let's filter locally if possible, or refetch. Actually, we should refilter locally if we already have the raw data.
   };

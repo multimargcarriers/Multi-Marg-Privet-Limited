@@ -7,9 +7,9 @@ import Table from "../components/Table";
 import { 
   Plus, 
   FileText, 
-  CheckCircle, 
+
   Trash2, Edit3, 
-  AlertCircle, 
+
   Eye, 
   X,
   Calendar, 

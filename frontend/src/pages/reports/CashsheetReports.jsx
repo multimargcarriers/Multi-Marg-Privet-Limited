@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Search, Download, Edit, Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
+import { Search, Download,  Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
 import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
 import { useDialog } from "../../context/DialogContext";

@@ -14,7 +14,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const Tracking = () => {
   const { user, hasPermission } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { confirm } = useDialog();
   const { addToast } = useToast();
   const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
@@ -305,7 +305,7 @@ const Tracking = () => {
     }
   };
 
-  const handleDeleteBooking = async (id) => {
+  const _handleDeleteBooking = async (id) => {
     const isConfirmed = await confirm({
       title: "Delete Booking",
       message: "Are you sure you want to delete this booking? This will also remove any associated data.",
@@ -412,7 +412,7 @@ const Tracking = () => {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "2rem", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "2rem", alignItems: "start" }}>
         
         {/* LEFT COLUMN: TRACKING VIEWER */}
         <div className="glass-panel" style={{ padding: "0", overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", minHeight: "500px" }}>
@@ -423,7 +423,10 @@ const Tracking = () => {
             </h4>
                 <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", position: "relative" }}>
               <div style={{ position: "relative", flex: 1 }}>
+                <label htmlFor="searchAwbInput" className="sr-only">Search AWB or LR Number</label>
                 <input 
+                  id="searchAwbInput"
+                  name="searchAwb"
                   type="text" 
                   className="form-control" 
                   placeholder="Enter AWB or LR No..." 
@@ -476,12 +479,45 @@ const Tracking = () => {
 
           <div style={{ padding: "1.5rem", flex: 1, background: "#ffffff", overflowY: "auto" }}>
             
-            {!hasSearched ? (            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "300px", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)", borderRadius: "12px", border: "1px solid rgba(229, 231, 235, 0.5)", padding: "2rem", margin: "1rem", textAlign: "center", boxShadow: "0 8px 20px rgba(0,0,0,0.08)" }}>
-               <div style={{ background: "linear-gradient(135deg, #6366f1, #4f46e5)", padding: "1rem", borderRadius: "50%", marginBottom: "1rem" }}>
-                  <Search size={40} color="#fff" />
+            {!hasSearched ? (            
+              <div style={{ 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                justifyContent: "center", 
+                minHeight: "400px", 
+                background: "#ffffff", 
+                borderRadius: "20px", 
+                border: "1px solid #e2e8f0", 
+                padding: "3rem 2rem", 
+                margin: "1rem 0", 
+                textAlign: "center", 
+                width: "100%", 
+                boxSizing: "border-box",
+                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.01)"
+              }}>
+               <div style={{ 
+                  background: "#eff6ff", 
+                  color: "#3b82f6", 
+                  width: "90px",
+                  height: "90px",
+                  borderRadius: "50%", 
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "2rem",
+                  boxShadow: "0 0 0 10px #f8fafc"
+               }}>
+                  <Search size={40} strokeWidth={2} />
                </div>
-               <h5 style={{ fontWeight: "600", color: "#374151", fontSize: "1.2rem", margin: "0 0 0.5rem 0" }}>Enter AWB / LR Number to Begin</h5>
-               <p style={{ margin: 0, fontSize: "0.95rem", color: "#4b5563" }}>Search for a shipment to view its complete journey and timeline.</p>
+               <div style={{ display: "block", width: "100%" }}>
+                 <h5 style={{ fontWeight: "800", color: "#0f172a", fontSize: "1.5rem", margin: "0 0 1rem 0", letterSpacing: "-0.02em" }}>
+                   Ready to Track?
+                 </h5>
+                 <p style={{ margin: "0 auto", fontSize: "1.05rem", color: "#64748b", maxWidth: "340px", lineHeight: "1.6" }}>
+                   Enter your <b>AWB</b> or <b>LR number</b> in the search bar above to instantly view real-time status and delivery timeline.
+                 </p>
+               </div>
             </div>
             ) : trackingHistory.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center", padding: "2rem" }}>
@@ -552,7 +588,7 @@ const Tracking = () => {
                   const isLatest = index === 0; 
                   const color = getStatusColor(entry.status);
                   const isDelivered = trackingHistory.some(t => t.status === "Delivered");
-                  const canModify = isAdmin || !isDelivered;
+                  const _canModify = isAdmin || !isDelivered;
 
                   return (
                     <div key={entry.id} style={{ position: "relative", zIndex: 1, marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem", display: "flex", gap: "1.5rem" }}>
@@ -635,10 +671,11 @@ const Tracking = () => {
             <div style={{ padding: "1.5rem 2rem", flex: 1, background: "white", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
               
               <div className="form-group" style={{ marginBottom: 0, position: "relative" }}>
-                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                <label htmlFor="statusUpdateAwb" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
                   AWB / LR No.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                 </label>
                 <input 
+                  id="statusUpdateAwb"
                   type="text" 
                   className="form-control" 
                   name="awb" 
@@ -698,10 +735,11 @@ const Tracking = () => {
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                <label htmlFor="statusUpdateStatus" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
                   Status<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                 </label>
                 <select 
+                  id="statusUpdateStatus"
                   className="form-control" 
                   name="status" 
                   value={formData.status} 
@@ -720,10 +758,11 @@ const Tracking = () => {
 
               <div className="grid-2-col" style={{ gap: "1rem" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                  <label htmlFor="statusUpdateDate" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
                     Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                   </label>
                   <input 
+                    id="statusUpdateDate"
                     type="date" min="1947-01-01" max="2200-12-31" 
                     className="form-control" 
                     name="date" 
@@ -735,11 +774,12 @@ const Tracking = () => {
                 </div>
                 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                  <label htmlFor="statusUpdateLocation" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
                     Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                   </label>
                   <div style={{ position: "relative", zIndex: 10 }}>
                     <CreatableDropdown 
+                      id="statusUpdateLocation"
                       options={locations} 
                       value={formData.location} 
                       onChange={(loc) => setFormData({ ...formData, location: loc })} 
@@ -751,10 +791,11 @@ const Tracking = () => {
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                <label htmlFor="statusUpdateRemarks" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
                   Remarks<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                 </label>
                 <textarea 
+                  id="statusUpdateRemarks"
                   className="form-control" 
                   name="remarks" 
                   placeholder="Enter detailed remarks about this status update..." 
@@ -809,7 +850,7 @@ const Tracking = () => {
                 }
                 
                 const isDelivered = recent.some(t => t.status === "Delivered");
-                const canModify = isAdmin || !isDelivered;
+                const _canModify = isAdmin || !isDelivered;
                 
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "200px", overflowY: "auto", paddingRight: "5px" }}>

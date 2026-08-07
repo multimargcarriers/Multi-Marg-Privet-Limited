@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Mail, Shield, Save, Key, Hash, Activity, Bell, Lock, LogOut, Globe, Clock, Smartphone, CheckCircle, ChevronRight, LayoutGrid, Code, MessageSquare, ShieldCheck, Monitor, History, Image as ImageIcon, X, IdCard, Download } from 'lucide-react';
+import { Camera, User,  Shield,  Key,     LogOut, Globe, Clock,  CheckCircle, ChevronRight, LayoutGrid,   ShieldCheck, Monitor, History, Image as  X, IdCard, } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 
@@ -251,7 +251,7 @@ const Profile = () => {
       }
 
       let hasUpdates = false;
-      for (let pair of formData.entries()) {
+      for (let _pair of formData.entries()) {
         hasUpdates = true;
         break;
       }
@@ -763,7 +763,7 @@ const Profile = () => {
                       link.download = `MMC_TECH_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
-                    } catch (err) {
+                    } catch (_err) {
                       addToast("Failed to download", "error");
                     }
                     e.currentTarget.innerHTML = originalText;
@@ -785,7 +785,7 @@ const Profile = () => {
                       link.download = `MMC_TECH_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
-                    } catch (err) {
+                    } catch (_err) {
                       addToast("Failed to download", "error");
                     }
                     e.currentTarget.innerHTML = originalText;

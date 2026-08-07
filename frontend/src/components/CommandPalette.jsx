@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, Package, Users, Truck, FileText, X, Compass, Zap, Plus } from 'lucide-react';
+import { Search, Loader2, Package, Users, Truck, FileText,  Compass, Zap, Plus } from 'lucide-react';
 import axios from 'axios';
 
 const CommandPalette = ({ isOpen, setIsOpen }) => {

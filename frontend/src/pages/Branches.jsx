@@ -5,7 +5,7 @@ import { Edit, Trash2, Building, MapPin, CheckCircle, Search } from "lucide-reac
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";
-import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
+import {  formatTitleCase, formatPhoneNumber } from "../utils/formatters";
 import CsvImportExport from "../components/CsvImportExport";
 import StatsPanel from "../components/StatsPanel";
 import SortDropdown from "../components/SortDropdown";

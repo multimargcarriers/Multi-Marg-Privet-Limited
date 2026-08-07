@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, FileText, Loader2, MapPin, FileCheck } from "lucide-react";
-import SearchableSelect from "../components/SearchableSelect";
+import { CheckCircle, FileText, Loader2,  FileCheck } from "lucide-react";
+
 import CreatableDropdown from "../components/CreatableDropdown";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
@@ -159,8 +159,31 @@ const CreateBooking = () => {
         setLoading(false);
       }
     };
+    
+    // Load draft if not in edit mode
+    if (!id) {
+      const savedDraft = localStorage.getItem('bookingFormDraft');
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed) {
+            setFormData(prev => ({ ...prev, ...parsed }));
+          }
+        } catch (e) {
+          console.error("Failed to parse booking draft", e);
+        }
+      }
+    }
+
     fetchData();
   }, [id]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (!isEditMode && formData) {
+      localStorage.setItem('bookingFormDraft', JSON.stringify(formData));
+    }
+  }, [formData, isEditMode]);
 
   // Auto-calculate rates
   useEffect(() => {
@@ -270,6 +293,9 @@ const CreateBooking = () => {
       
       if (response.data.success) {
         addToast(`Booking ${isEditMode ? 'updated' : 'created'} successfully`, "success");
+        if (!isEditMode) {
+          localStorage.removeItem('bookingFormDraft');
+        }
         navigate("/bookings");
       }
     } catch (error) {
@@ -533,23 +559,23 @@ const CreateBooking = () => {
                 <tr key={i} style={{ borderBottom: "1px solid #e5e7eb" }}>
                   <td style={{ padding: "8px", textAlign: "center", fontWeight: "500", color: "#374151" }}>{i + 1}</td>
                   <td style={{ padding: "8px" }}>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
+                    <input id={`invoiceNo-${i}`} aria-label="Invoice Number" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
+                    <input id={`invoiceValue-${i}`} aria-label="Invoice Value" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
+                    <input id={`invoiceDate-${i}`} aria-label="Invoice Date" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
+                    <input id={`partNumber-${i}`} aria-label="Part Number" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
+                    <input id={`ewayBill-${i}`} aria-label="E-way Bill" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                      <input id={`quantity-${i}`} aria-label="Quantity" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
                       {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>&times;</button>}
                     </div>
                   </td>
@@ -639,7 +665,7 @@ const CreateBooking = () => {
               border: "1px solid #e2e8f0",
               color: "var(--text-muted)",
             }}
-            onClick={() =>
+            onClick={() => {
               setFormData({
                 ...formData,
                 client: "",
@@ -667,8 +693,11 @@ const CreateBooking = () => {
                 paymentMode: "",
                 insuredBy: "",
                 invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
-              })
-            }
+              });
+              if (!isEditMode) {
+                localStorage.removeItem('bookingFormDraft');
+              }
+            }}
           >
             Reset
           </button>

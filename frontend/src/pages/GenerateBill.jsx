@@ -2,8 +2,8 @@ import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FileText, Search, Download, Send, CheckCircle, Loader2, Calculator } from "lucide-react";
-import SearchableSelect from "../components/SearchableSelect";
+import { FileText, Search,   CheckCircle, Loader2, Calculator } from "lucide-react";
+
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import { useNavigate } from "react-router-dom";
@@ -19,11 +19,11 @@ const GenerateBill = () => {
   const [rates, setRates] = useState([]);
   const [selected, setSelected] = useState([]);
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, _setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasSearched, setHasSearched] = useState(false);
-  const { globalSettings } = useSettings();
-  const { user } = useAuth();
+  const { _globalSettings } = useSettings();
+  const { _user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 

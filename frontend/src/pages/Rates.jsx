@@ -1,9 +1,9 @@
-import RupeeIcon from '../components/RupeeIcon';
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { Edit, Trash2, IndianRupee, Users, TrendingUp, Search } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import CreatableDropdown from "../components/CreatableDropdown";
-import SearchableSelect from "../components/SearchableSelect";
+
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";

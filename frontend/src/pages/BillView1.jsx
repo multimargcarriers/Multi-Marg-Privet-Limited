@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import { Printer, Cloud, Download, CheckSquare, Square, Building2, ShieldCheck } from "lucide-react";
+import { Printer, Cloud, Download, CheckSquare, Square,  } from "lucide-react";
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
@@ -81,7 +81,7 @@ const BillView1 = () => {
     try {
       const saved = localStorage.getItem("bill_include_stamp");
       return saved !== null ? JSON.parse(saved) : true;
-    } catch (e) {
+    } catch (_e) {
       return true;
     }
   });
@@ -90,7 +90,7 @@ const BillView1 = () => {
     setIncludeStamp(val);
     try {
       localStorage.setItem("bill_include_stamp", JSON.stringify(val));
-    } catch (e) {}
+    } catch (_e) {}
   };
 
   // Option toggle for official company background watermark
@@ -98,7 +98,7 @@ const BillView1 = () => {
     try {
       const saved = localStorage.getItem("bill_show_watermark");
       return saved !== null ? JSON.parse(saved) : true;
-    } catch (e) {
+    } catch (_e) {
       return true;
     }
   });
@@ -107,7 +107,7 @@ const BillView1 = () => {
     setShowWatermark(val);
     try {
       localStorage.setItem("bill_show_watermark", JSON.stringify(val));
-    } catch (e) {}
+    } catch (_e) {}
   };
 
   useEffect(() => {
@@ -249,7 +249,7 @@ const BillView1 = () => {
   const igstVal = parseFloat(billData.igst || 0);
   const totalPayableVal = parseFloat(billData.totalPayable || billData.total || (subtotalVal + cgstVal + sgstVal + igstVal));
 
-  const customStampUrl = globalSettings?.company?.companyStampUrl || "";
+  const _customStampUrl = globalSettings?.company?.companyStampUrl || "";
 
   return (
     <div>
