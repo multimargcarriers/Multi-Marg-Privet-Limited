@@ -72,9 +72,11 @@ const PrintSingleTrip = () => {
     document.body.appendChild(wrapper);
 
     setTimeout(() => {
+      const nameStr = (trip?.vendorName || trip?.clientName) ? ` - ${(trip.vendorName || trip.clientName).toUpperCase()}` : '';
+
       const opt = {
         margin: 0,
-        filename: `Trip_Receipt_${trip?.tripNo || index}.pdf`,
+        filename: `VENDOR TRIP ${trip?.tripNo || trip?.id || index}${nameStr}.pdf`,
         image: { type: 'jpeg', quality: 1 },
         html2canvas: { scale: 2, useCORS: true, width: 1400, height: 990, windowWidth: 1400, scrollY: 0, scrollX: 0 },
         jsPDF: { unit: 'px', format: [1400, 990], orientation: 'landscape' }

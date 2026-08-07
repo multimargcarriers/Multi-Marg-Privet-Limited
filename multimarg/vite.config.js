@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['mc.png', 'Final.mp4', 'logistics_global_standards.png', 'construction_materials.png'],
+      includeAssets: ['PWA IMAGE.png', 'mc.png', 'Final.mp4', 'logistics_global_standards.png', 'construction_materials.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4}'],
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
@@ -22,12 +22,12 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'mc.png',
+            src: 'PWA IMAGE.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'mc.png',
+            src: 'PWA IMAGE.png',
             sizes: '512x512',
             type: 'image/png'
           }

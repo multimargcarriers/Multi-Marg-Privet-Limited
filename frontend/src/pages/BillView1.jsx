@@ -159,9 +159,10 @@ const BillView1 = () => {
     const width = element.offsetWidth || 940;
     const height = element.offsetHeight + 10; // Extra padding so nothing cuts off
     
+    const nameStr = (billData?.client?.name || billData?.customerName || billData?.clientName) ? ` - ${(billData.client?.name || billData.customerName || billData.clientName).toUpperCase()}` : '';
     const opt = {
       margin:       0,
-      filename:     `Invoice_${billData.billNo || id}.pdf`,
+      filename:     `BILL ${billData.billNo || id}${nameStr}.pdf`,
       image:        { type: 'jpeg', quality: 1 },
       html2canvas:  { 
         scale: 2, 

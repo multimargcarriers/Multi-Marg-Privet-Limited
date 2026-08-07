@@ -91,9 +91,13 @@ const PrintManifest = () => {
     document.body.appendChild(wrapper);
 
     setTimeout(() => {
+      const originStr = trip?.origin ? ` - ${trip.origin.toUpperCase()}` : '';
+      const destStr = trip?.destination ? ` - ${trip.destination.toUpperCase()}` : '';
+      const nameStr = trip?.clientName ? ` - ${trip.clientName.toUpperCase()}` : '';
+
       const opt = {
         margin: 0,
-        filename: `Manifest_${trip.trip || trip.tripNo || trip.id.slice(-6)}.pdf`,
+        filename: `MANIFEST ${trip.trip || trip.tripNo || trip.id.slice(-6)}${originStr}${destStr}${nameStr}.pdf`,
         image: { type: 'jpeg', quality: 1 },
         html2canvas: { scale: 2, useCORS: true, width: 800, height: 1131, windowWidth: 800, scrollY: 0, scrollX: 0 },
         jsPDF: { unit: 'px', format: [800, 1131], orientation: 'portrait' }

@@ -200,9 +200,14 @@ const PrintLR = () => {
 
     // Allow DOM to repaint
     setTimeout(() => {
+      const lrNum = booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || 'UNKNOWN';
+      const originStr = booking?.origin ? ` - ${booking.origin.toUpperCase()}` : '';
+      const destStr = booking?.destination ? ` - ${booking.destination.toUpperCase()}` : '';
+      const nameStr = (booking?.consignor || booking?.clientName) ? ` - ${(booking.consignor || booking.clientName).toUpperCase()}` : '';
+
       const opt = {
         margin:       0,
-        filename:     `Bilty_${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}.pdf`,
+        filename:     `AWB ${lrNum}${originStr}${destStr}${nameStr}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
         html2canvas:  { 
           scale: 2, 
