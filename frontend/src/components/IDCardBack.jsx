@@ -65,7 +65,7 @@ const IDCardBack = ({ user, globalSettings }) => {
         {/* QR Code */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
           <div style={{ padding: '0.4rem', border: '2px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=EMP:${user?.employeeId || user?.id}&color=7b2cbf`} alt="QR Code" style={{ width: '70px', height: '70px', display: 'block' }} crossOrigin="anonymous" />
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${user?.role === 'Vendor' ? 'VENDOR' : user?.role === 'Client' ? 'CLIENT' : 'EMP'}:${user?.employeeId || user?.id}&color=7b2cbf`} alt="QR Code" style={{ width: '70px', height: '70px', display: 'block' }} crossOrigin="anonymous" />
           </div>
           <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 700, letterSpacing: '1px' }}>SCAN TO VERIFY</span>
         </div>

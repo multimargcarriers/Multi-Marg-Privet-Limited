@@ -72,7 +72,9 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
         {/* Data Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', marginTop: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           <div>
-            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Employee ID</span>
+            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+              {user?.role === 'Vendor' ? 'Vendor Account' : user?.role === 'Client' ? 'Client Account' : 'Employee ID'}
+            </span>
             <span style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', fontWeight: 800 }}>{user?.employeeId || 'MC-1001'}</span>
           </div>
           <div>
