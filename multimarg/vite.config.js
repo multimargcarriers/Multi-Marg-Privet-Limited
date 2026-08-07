@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import { VitePWA } from "vite-plugin-pwa";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,54 +8,31 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg', 'PWA IMAGE.png', 'mc.png'],
+      includeAssets: ['mc.png', 'Final.mp4', 'logistics_global_standards.png', 'construction_materials.png'],
       workbox: {
-        maximumFileSizeToCacheInBytes: 5000000,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4}'],
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
       },
       manifest: {
         name: 'Multimarg Carriers',
         short_name: 'Multimarg',
-        description: 'Multimarg Carriers Management System',
-        theme_color: '#FF9900',
-        background_color: '#f2f3f3',
+        description: 'Multimarg Carriers - Nationwide Logistics',
+        theme_color: '#0B1B3D',
+        background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {
-            src: 'PWA IMAGE.png',
+            src: 'mc.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'PWA IMAGE.png',
+            src: 'mc.png',
             sizes: '512x512',
             type: 'image/png'
-          },
-          {
-            src: 'PWA IMAGE.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
           }
         ]
       }
     })
-  ],
-  server: {
-    port: 5173,
-    hmr: {
-      clientPort: 5173,
-    },
-    proxy: {
-      "/api": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      "/uploads": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
-});
+  ]
+})

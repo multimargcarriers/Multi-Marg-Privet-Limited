@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, } from "react";
-import { CheckCircle, XCircle, X, AlertTriangle, Info } from "lucide-react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { CheckCircle, XCircle, X } from "lucide-react";
 
 const ToastContext = createContext();
 
@@ -9,7 +9,7 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = "success", duration = 4000) => {
-    const id = Date.now() + Math.random().toString(36).substring(2, 9);
+    const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     
     setTimeout(() => {
@@ -28,30 +28,32 @@ export const ToastProvider = ({ children }) => {
         style={{
           position: "fixed",
           top: "20px",
-          right: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: 99999,
           display: "flex",
           flexDirection: "column",
           gap: "10px",
-          pointerEvents: "none"
+          pointerEvents: "none",
+          alignItems: "center"
         }}
       >
         <style>
           {`
             @keyframes toastSlideIn {
-              from { transform: translateX(100%); opacity: 0; }
-              to { transform: translateX(0); opacity: 1; }
+              from { transform: translateY(-150%); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
             }
             @keyframes toastFadeOut {
-              from { transform: translateX(0); opacity: 1; }
-              to { transform: translateX(100%); opacity: 0; }
+              from { transform: translateY(0); opacity: 1; }
+              to { transform: translateY(-150%); opacity: 0; }
             }
             .toast-item {
               pointer-events: auto;
               animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
               background: white;
               border-radius: 8px;
-              box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+              box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
               border-left: 4px solid;
               display: flex;
               align-items: center;
@@ -62,8 +64,6 @@ export const ToastProvider = ({ children }) => {
               position: relative;
             }
             .toast-success { border-left-color: #10b981; }
-            .toast-warning { border-left-color: #eab308; }
-            .toast-info { border-left-color: #3b82f6; }
             .toast-error { border-left-color: #ef4444; }
             .toast-logo {
               width: 32px;
@@ -73,7 +73,7 @@ export const ToastProvider = ({ children }) => {
               margin-right: 12px;
               background: #f8fafc;
               padding: 2px;
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+              box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             }
             .toast-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
             .toast-title {
@@ -108,28 +108,45 @@ export const ToastProvider = ({ children }) => {
               background: #f1f5f9;
               color: #475569;
             }
+
+            @media (min-width: 768px) {
+              .toast-item {
+                min-width: 450px;
+                padding: 16px 20px;
+              }
+              .toast-logo {
+                width: 40px;
+                height: 40px;
+                margin-right: 16px;
+              }
+              .toast-title {
+                font-size: 1rem;
+              }
+              .toast-message {
+                font-size: 0.95rem;
+              }
+            }
           `}
         </style>
         {toasts.map((t) => (
           <div key={t.id} className={`toast-item toast-${t.type}`}>
             <img 
-              src="/logo.png" // User's company logo (assumes logo.png is in public folder)
+              src="/mc.png"
               alt="Logo" 
               className="toast-logo"
               onError={(e) => {
-                // Graceful fallback if no logo image exists
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
               }}
             />
             {/* Fallback Icon */}
             <div style={{ display: 'none', marginRight: '12px', alignItems: 'center', justifyContent: 'center' }}>
-               {t.type === 'success' ? <CheckCircle size={28} color="#10b981" /> : t.type === 'warning' ? <AlertTriangle size={28} color="#eab308" /> : t.type === 'info' ? <Info size={28} color="#3b82f6" /> : <XCircle size={28} color="#ef4444" />}
+               {t.type === 'success' ? <CheckCircle size={28} color="#10b981" /> : <XCircle size={28} color="#ef4444" />}
             </div>
             
             <div className="toast-content">
               <h4 className="toast-title">
-                {t.type === "success" ? "Success" : t.type === "warning" ? "Warning" : t.type === "info" ? "Info" : "Error"}
+                {t.type === "success" ? "Success" : "Error"}
               </h4>
               <p className="toast-message">{t.message}</p>
             </div>
