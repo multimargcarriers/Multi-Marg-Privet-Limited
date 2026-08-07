@@ -60,6 +60,9 @@ exports.postRoot_2 = async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
+  const emailLower = email ? email.toLowerCase().trim() : "";
+  const usernameLower = username ? username.toLowerCase().trim() : "";
+
   // Check Employee ID uniqueness
   const empIdSnapshot = await db.collection("users").where("employeeId", "==", employeeId).get();
   if (!empIdSnapshot.empty) return error(res, {
@@ -67,8 +70,8 @@ exports.postRoot_2 = async (req, res) => {
     statusCode: 400
   });
 
-  if (username) {
-    const usernameCheck = await db.collection("users").where("username", "==", username).get();
+  if (usernameLower) {
+    const usernameCheck = await db.collection("users").where("username", "==", usernameLower).get();
     if (!usernameCheck.empty) return error(res, { message: "Username already exists", statusCode: 400 });
   }
 
@@ -79,8 +82,8 @@ exports.postRoot_2 = async (req, res) => {
     id: uuidv4(),
     employeeId,
     name,
-    email,
-    username: username || "",
+    email: emailLower,
+    username: usernameLower,
     password: hashedPassword,
     role,
     permissions: permissions || [],
@@ -126,13 +129,16 @@ exports.put_id_3 = async (req, res) => {
   } = req.body;
   const updates = {
     name,
-    email,
     role,
     permissions
   };
+  if (email) updates.email = email.toLowerCase().trim();
   if (employeeId) updates.employeeId = employeeId;
+  const bloodGroup = req.body.bloodGroup;
   if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
-  if (username !== undefined) updates.username = username;
+  if (username !== undefined) {
+    updates.username = username ? username.toLowerCase().trim() : "";
+  }
   
   if (password) {
     const salt = await bcrypt.genSalt(10);
@@ -149,8 +155,8 @@ exports.put_id_3 = async (req, res) => {
     if (taken) return error(res, { message: "Employee ID already exists", statusCode: 400 });
   }
 
-  if (username) {
-    const userCheck = await db.collection("users").where("username", "==", username).get();
+  if (updates.username) {
+    const userCheck = await db.collection("users").where("username", "==", updates.username).get();
     let taken = false;
     userCheck.forEach(d => { if (String(d.id) !== String(id)) taken = true; });
     if (taken) return error(res, { message: "Username already exists", statusCode: 400 });

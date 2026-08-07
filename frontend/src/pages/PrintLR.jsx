@@ -63,6 +63,55 @@ const PrintLR = () => {
               if (cClient) b.clientGst = cClient.gst;
             }
           }
+          
+          // Apply fallback mapping for CSV imported bookings
+          b.consignment = b.consignment || b.awb || b.lrNo || b.lr || "";
+          b.client = b.client || b.billedTo || "";
+          
+          b.box = b.box || b.boxes || b.pkg || b.packages || "";
+          b.actual_wt = b.actual_wt || b.actualWt || b.weight || b.actualWeight || "";
+          b.charge_wt = b.charge_wt || b.chargeWt || b.chargeWeight || b.weight || "";
+          
+          b.freight_charge = b.freight_charge || b.freight || b.frieght || b.frieghtCharge || "";
+          b.awb_charge = b.awb_charge || b.awbCharge || b.docketCharge || "";
+          b.pickup_charge = b.pickup_charge || b.pickupCharge || "";
+          b.delivery_charge = b.delivery_charge || b.deliveryCharge || "";
+          b.packaging_charge = b.packaging_charge || b.packagingCharge || b.pkgCharge || "";
+          b.handling_charge = b.handling_charge || b.handlingCharge || "";
+          
+          b.type_of_delivery = b.type_of_delivery || b.deliveryType || "Door";
+          b.clerk_name = b.clerk_name || b.clerkName || "Admin";
+
+          b.description = b.description || b.desc || b.goods || "";
+          b.remarks = b.remarks || b.remark || "";
+          
+          if (b.insuredBy) {
+             const ib = String(b.insuredBy).toLowerCase();
+             if (ib === "consignor") b.insuredBy = "Consignor";
+             else if (ib === "consignee") b.insuredBy = "Consignee";
+             else if (ib === "carrier") b.insuredBy = "Carrier";
+             else if (ib === "owner") b.insuredBy = "Owner";
+          } else {
+             const fallback = String(b.insured || b.insurance || "").toLowerCase();
+             if (fallback === "consignor") b.insuredBy = "Consignor";
+             else if (fallback === "consignee") b.insuredBy = "Consignee";
+             else if (fallback === "carrier") b.insuredBy = "Carrier";
+             else if (fallback === "owner") b.insuredBy = "Owner";
+             else b.insuredBy = fallback || "";
+          }
+
+          let parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
+          if (parcels && parcels.length > 0) {
+            b.invoiceDetails = parcels.map(p => ({
+              invoiceNo: p.invoiceNo || p.invoice || "",
+              invoiceValue: p.invoiceValue || p.value || "",
+              invoiceDate: p.invoiceDate || p.invdate || p.date || "",
+              partNumber: p.partNumber || p.part || "",
+              ewayBill: p.ewayBill || p.eway || "",
+              quantity: p.quantity || p.qty || ""
+            }));
+          }
+          
           setBooking(b);
         }
       } catch (err) {
@@ -107,8 +156,12 @@ const PrintLR = () => {
   const gst = 0; // Customize if GST applies
   const totalAmount = subTotal + gst;
 
-  const invoices = booking.invoiceDetails && booking.invoiceDetails.length > 0 && booking.invoiceDetails[0].invoiceNo 
-    ? booking.invoiceDetails 
+  const validInvoices = (booking.invoiceDetails || []).filter(inv => 
+    inv.invoiceNo || inv.invoiceValue || inv.partNumber || inv.ewayBill || (inv.quantity && inv.quantity !== "0")
+  );
+
+  const invoices = validInvoices.length > 0 
+    ? validInvoices 
     : [{ invoiceNo: "NA", invoiceValue: "0", invoiceDate: null, partNumber: "NA", ewayBill: "NA", quantity: "0" }];
 
   const handleDownloadPDF = () => {
@@ -346,11 +399,6 @@ const PrintLR = () => {
               </div>
               <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
             </div>
-          </div>
-
-          {/* Consignment Note Title */}
-          <div style={{ background: "#f8fafc", padding: "4px", textAlign: "center", borderBottom: "1px solid #cbd5e1" }}>
-            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>NON-NEGOTIABLE CONSIGNMENT NOTE</h2>
           </div>
 
           {/* AWB Details */}

@@ -110,16 +110,22 @@ const BillView1 = () => {
     } catch (_e) {}
   };
 
+  const [clients, setClients] = useState([]);
+
   useEffect(() => {
-    const fetchBill = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(id)}`);
-        if (res.data.success) setBill(res.data.data);
+        const [billRes, clientsRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(id)}`),
+          axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/clients`)
+        ]);
+        if (billRes.data.success) setBill(billRes.data.data);
+        if (clientsRes.data.success) setClients(clientsRes.data.data || []);
       } catch (err) {
-        console.error("Error fetching bill", err);
+        console.error("Error fetching bill or clients", err);
       }
     };
-    fetchBill();
+    fetchData();
   }, [id]);
 
   const handleUploadCloudinary = async () => {
@@ -160,13 +166,11 @@ const BillView1 = () => {
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
-        width: width,
-        height: height,
-        windowWidth: width,
         scrollY: 0,
         scrollX: 0
       },
-      jsPDF:        { unit: 'px', format: [width, height], orientation: 'portrait' }
+      jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: 'css' }
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
@@ -250,6 +254,36 @@ const BillView1 = () => {
   const totalPayableVal = parseFloat(billData.totalPayable || billData.total || (subtotalVal + cgstVal + sgstVal + igstVal));
 
   const _customStampUrl = globalSettings?.company?.companyStampUrl || "";
+
+  const matchedClient = clients.find(c => {
+    const cName = String(c.name || "").trim().toLowerCase();
+    const bName = String(billData.client || "").trim().toLowerCase();
+    if (cName === bName) return true;
+    
+    // Smart fuzzy match: ignore special characters and spaces
+    const cNameClean = cName.replace(/[^a-z0-9]/g, '');
+    const bNameClean = bName.replace(/[^a-z0-9]/g, '');
+    
+    if (cNameClean.length > 5 && bNameClean.length > 5) {
+      if (cNameClean.includes(bNameClean) || bNameClean.includes(cNameClean)) return true;
+      
+      // Match if the first two main words are identical
+      const cWords = cName.split(/[\s\-\(\)]+/).filter(w => w.length > 2);
+      const bWords = bName.split(/[\s\-\(\)]+/).filter(w => w.length > 2);
+      if (cWords.length >= 2 && bWords.length >= 2 && cWords[0] === bWords[0] && cWords[1] === bWords[1]) {
+        return true;
+      }
+    }
+    return false;
+  }) || {};
+  
+  const displayAddress = (matchedClient.address && matchedClient.address.trim() !== "") 
+    ? matchedClient.address 
+    : (billData.clientAddress || "");
+    
+  const displayGst = (matchedClient.gst && matchedClient.gst.trim() !== "") 
+    ? matchedClient.gst 
+    : (billData.gstin || "");
 
   return (
     <div>
@@ -377,24 +411,30 @@ const BillView1 = () => {
       </style>
 
       {/* Premium Executive Tax Invoice Printable Document Sheet */}
-      <div 
-        id="bill-content"
-        className="tax-invoice-sheet"
-        style={{
-          background: "#ffffff",
-          color: "#000000",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          padding: "2.25rem",
-          maxWidth: "940px",
-          margin: "0 auto",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-          borderRadius: "8px",
-          border: "1px solid #E2E8F0",
-          position: "relative",
-          lineHeight: "1.35",
-          overflow: "hidden"
-        }}
-      >
+      <div id="bill-content">
+        {Array.from({ length: Math.ceil(itemsList.length / 8) }).map((_, pageIndex) => {
+          const chunk = itemsList.slice(pageIndex * 8, (pageIndex + 1) * 8);
+          const isLastPage = pageIndex === Math.ceil(itemsList.length / 8) - 1;
+          
+          return (
+            <div key={pageIndex}>
+              <div 
+                className="tax-invoice-sheet"
+                style={{
+                  background: "#ffffff",
+                  color: "#000000",
+                  fontFamily: "Arial, Helvetica, sans-serif",
+                  padding: "2.25rem",
+                  maxWidth: "940px",
+                  margin: "0 auto",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                  borderRadius: "8px",
+                  border: "1px solid #E2E8F0",
+                  position: "relative",
+                  lineHeight: "1.35",
+                  overflow: "hidden"
+                }}
+              >
         {/* Official Company Background Watermark Overlay */}
         {showWatermark && (
           <div
@@ -467,10 +507,10 @@ const BillView1 = () => {
                 {billData.client}
               </h3>
               <p style={{ margin: "0 0 0.35rem 0", fontSize: "0.82rem", fontWeight: "600", textTransform: "uppercase", color: "#334155", lineHeight: "1.3" }}>
-                {billData.clientAddress}
+                {displayAddress}
               </p>
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.4rem", fontSize: "0.82rem", fontWeight: "700" }}>
-                <span><strong style={{ color: "#0F172A" }}>GSTIN:</strong> {billData.gstin ? String(billData.gstin).toUpperCase() : ""}</span>
+                <span><strong style={{ color: "#0F172A" }}>GSTIN:</strong> {displayGst ? String(displayGst).toUpperCase() : ""}</span>
                 <span><strong style={{ color: "#0F172A" }}>State Code:</strong> {billData.stateCode}</span>
               </div>
             </div>
@@ -521,9 +561,9 @@ const BillView1 = () => {
               </tr>
             </thead>
             <tbody>
-              {itemsList.map((item, idx) => (
+              {chunk.map((item, idx) => (
                 <tr key={idx} style={{ borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || idx + 1}</td>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || (pageIndex * 8) + idx + 1}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo || item.awb}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt || item.awb_date}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.ref}</td>
@@ -545,107 +585,124 @@ const BillView1 = () => {
           </table>
 
           {/* Lower Grid: Accounts Details (Left) & Tax Summary (Right) */}
-          <div style={{ display: "flex" }}>
-            {/* Accounts Details (Left 60%) */}
-            <div style={{ flex: "1.4", padding: "0.75rem 0.85rem", borderRight: "1.5px solid #000000", background: "#F8FAFC", fontSize: "0.85rem" }}>
-              <div style={{ fontSize: "0.8rem", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", letterSpacing: "0.5px", marginBottom: "0.4rem" }}>
-                Accounts Details
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", rowGap: "0.35rem", fontSize: "0.85rem" }}>
-                <div style={{ fontWeight: "800", color: "#475569" }}>Bank:</div>
-                <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.bankDetails?.bank || "Bank of Baroda, Rudrapur"}</div>
+          {isLastPage && (
+              <div style={{ display: "flex", borderTop: "1.5px solid #000000" }}>
+                {/* Accounts Details (Left 60%) */}
+                <div style={{ flex: "1.4", padding: "0.75rem 0.85rem", borderRight: "1.5px solid #000000", background: "#F8FAFC", fontSize: "0.85rem" }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", letterSpacing: "0.5px", marginBottom: "0.4rem" }}>
+                    Accounts Details
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "70px 1fr", rowGap: "0.35rem", fontSize: "0.85rem" }}>
+                    <div style={{ fontWeight: "800", color: "#475569" }}>Bank:</div>
+                    <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.bankDetails?.bank || "Bank of Baroda, Rudrapur"}</div>
 
-                <div style={{ fontWeight: "800", color: "#475569" }}>A/c:</div>
-                <div style={{ fontWeight: "800", color: "#000000", fontFamily: "monospace", fontSize: "0.9rem" }}>{billData.bankDetails?.acNo || "24980400007426"}</div>
+                    <div style={{ fontWeight: "800", color: "#475569" }}>A/c:</div>
+                    <div style={{ fontWeight: "800", color: "#000000", fontFamily: "monospace", fontSize: "0.9rem" }}>{billData.bankDetails?.acNo || "24980400007426"}</div>
 
-                <div style={{ fontWeight: "800", color: "#475569" }}>IFSC:</div>
-                <div style={{ fontWeight: "800", color: "#0F172A", fontFamily: "monospace" }}>{billData.bankDetails?.ifsc || "BARBORUDAVA"}</div>
-              </div>
-            </div>
+                    <div style={{ fontWeight: "800", color: "#475569" }}>IFSC:</div>
+                    <div style={{ fontWeight: "800", color: "#0F172A", fontFamily: "monospace" }}>{billData.bankDetails?.ifsc || "BARBORUDAVA"}</div>
+                  </div>
+                </div>
 
-            {/* Tax Totals Grid (Right 40%) */}
-            <div style={{ flex: "1", padding: "0.6rem 0.85rem", fontSize: "0.85rem", background: "#FFFFFF" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>Subtotal:</span>
-                <span style={{ fontWeight: "800", color: "#0F172A" }}>₹{subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                {/* Tax Totals Grid (Right 40%) */}
+                <div style={{ flex: "1", padding: "0.6rem 0.85rem", fontSize: "0.85rem", background: "#FFFFFF" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                    <span style={{ fontWeight: "700", color: "#475569" }}>Subtotal:</span>
+                    <span style={{ fontWeight: "800", color: "#0F172A" }}>₹{subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                    <span style={{ fontWeight: "700", color: "#475569" }}>CGST ({cgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
+                    <span style={{ fontWeight: "600" }}>₹{cgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
+                    <span style={{ fontWeight: "700", color: "#475569" }}>SGST ({sgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
+                    <span style={{ fontWeight: "600" }}>₹{sgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.45rem" }}>
+                    <span style={{ fontWeight: "700", color: "#475569" }}>IGST ({igstVal > 0 && billData.gst ? parseFloat(billData.gst) + "%" : "0%"}):</span>
+                    <span style={{ fontWeight: "600" }}>₹{igstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0.6rem", background: "#0C4A6E", color: "#FFFFFF", borderRadius: "4px", fontWeight: "900", fontSize: "1rem", marginTop: "0.2rem" }}>
+                    <span>Total Payable:</span>
+                    <span>₹{totalPayableVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>CGST ({cgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
-                <span style={{ fontWeight: "600" }}>₹{cgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>SGST ({sgstVal > 0 && billData.gst ? (parseFloat(billData.gst) / 2) + "%" : "0%"}):</span>
-                <span style={{ fontWeight: "600" }}>₹{sgstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.45rem" }}>
-                <span style={{ fontWeight: "700", color: "#475569" }}>IGST ({igstVal > 0 && billData.gst ? parseFloat(billData.gst) + "%" : "0%"}):</span>
-                <span style={{ fontWeight: "600" }}>₹{igstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.5rem 0.6rem", background: "#0C4A6E", color: "#FFFFFF", borderRadius: "4px", fontWeight: "900", fontSize: "1rem", marginTop: "0.2rem" }}>
-                <span>Total Payable:</span>
-                <span>₹{totalPayableVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* Amount In Words Highlight Box */}
-        <div style={{ marginTop: "0.85rem", marginBottom: "1.25rem", padding: "0.6rem 0.85rem", background: "#F1F5F9", borderRadius: "4px", borderLeft: "4px solid #0C4A6E", fontSize: "0.88rem" }}>
-          <strong style={{ color: "#0C4A6E" }}>Amount In Words:</strong> &nbsp;<span style={{ fontWeight: "700", color: "#0F172A" }}>{numberToWordsIndian(totalPayableVal)}</span>
-        </div>
-
-        {/* Terms & Signature Section */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", gap: "1.5rem" }}>
-          {/* Terms & Conditions */}
-          <div style={{ flex: 1.2, fontSize: "0.82rem", background: "#FAFBFD", padding: "0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0" }}>
-            <p style={{ margin: "0 0 0.35rem 0", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", fontSize: "0.8rem", letterSpacing: "0.5px" }}>Terms & Conditions</p>
-            <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: "1.45", color: "#334155" }}>
-              <li style={{ marginBottom: "0.25rem" }}>Payment due on receipt of the bill.</li>
-              <li style={{ marginBottom: "0.25rem" }}>Payment to be made by Cheque/DD/RTGS in favour of <strong>MULTIMARG CARRIERS PVT. LTD.</strong> only.</li>
-              <li style={{ marginBottom: "0.25rem" }}>Interest will be charged at 18% per annum if the payment not made within agreed period.</li>
-              <li>Contact within 3 days in case of any discrepancy in this bill.</li>
-            </ul>
+          {/* CLOSE OUTER INVOICE BOX */}
           </div>
 
-          {/* Official Stamp & Authorised Signature Block */}
-          <div style={{ flex: 0.8, textAlign: "center", minWidth: "220px", background: "#FFFFFF", padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <p style={{ margin: "0 0 0.25rem 0", fontSize: "0.88rem", fontWeight: "800", color: "#0F172A" }}>
-              For Multimarg Carriers Pvt. Ltd.
-            </p>
+          {isLastPage && (
+            <>
+              {/* Amount In Words Highlight Box */}
+              <div style={{ marginTop: "0.85rem", marginBottom: "1.25rem", padding: "0.6rem 0.85rem", background: "#F1F5F9", borderRadius: "4px", borderLeft: "4px solid #0C4A6E", fontSize: "0.88rem" }}>
+                <strong style={{ color: "#0C4A6E" }}>Amount In Words:</strong> &nbsp;<span style={{ fontWeight: "700", color: "#0F172A" }}>{numberToWordsIndian(totalPayableVal)}</span>
+              </div>
 
-            {/* Stamp Slot: Conditional based on includeStamp toggle & custom uploaded stamp image */}
-            <div style={{ height: "105px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0.25rem 0" }}>
-              {includeStamp ? (
-                (globalSettings?.company?.companyStampUrl) ? (
-                  <img 
-                    src={globalSettings?.company?.companyStampUrl} 
-                    alt="Official Company Stamp" 
-                    style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain', transform: 'rotate(-4deg)' }} 
-                  />
-                ) : (
-                  <CompanyStamp size={105} />
-                )
-              ) : (
-                <div style={{ height: "65px" }}></div>
-              )}
-            </div>
+              {/* Terms & Signature Section */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", gap: "1.5rem" }}>
+                {/* Terms & Conditions */}
+                <div style={{ flex: 1.2, fontSize: "0.82rem", background: "#FAFBFD", padding: "0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0" }}>
+                  <p style={{ margin: "0 0 0.35rem 0", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", fontSize: "0.8rem", letterSpacing: "0.5px" }}>Terms & Conditions</p>
+                  <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: "1.45", color: "#334155" }}>
+                    <li style={{ marginBottom: "0.25rem" }}>Payment due on receipt of the bill.</li>
+                    <li style={{ marginBottom: "0.25rem" }}>Payment to be made by Cheque/DD/RTGS in favour of <strong>MULTIMARG CARRIERS PVT. LTD.</strong> only.</li>
+                    <li style={{ marginBottom: "0.25rem" }}>Interest will be charged at 18% per annum if the payment not made within agreed period.</li>
+                    <li>Contact within 3 days in case of any discrepancy in this bill.</li>
+                  </ul>
+                </div>
 
-              {includeStamp ? (
-                <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: "700", color: "#64748b" }}>
-                  This is a system generated invoice,<br/>no signature required.
-                </p>
-              ) : (
-                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "800", color: "#0C4A6E" }}>
-                  (Authorised Sign)
-                </p>
-              )}
+                {/* Official Stamp & Authorised Signature Block */}
+                <div style={{ flex: 0.8, textAlign: "center", minWidth: "220px", background: "#FFFFFF", padding: "0.5rem 0.75rem", borderRadius: "6px", border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <p style={{ margin: "0 0 0.25rem 0", fontSize: "0.88rem", fontWeight: "800", color: "#0F172A" }}>
+                    For Multimarg Carriers Pvt. Ltd.
+                  </p>
+
+                  {/* Stamp Slot: Conditional based on includeStamp toggle & custom uploaded stamp image */}
+                  <div style={{ height: "105px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0.25rem 0" }}>
+                    {includeStamp ? (
+                      (globalSettings?.company?.companyStampUrl) ? (
+                        <img 
+                          src={globalSettings?.company?.companyStampUrl} 
+                          alt="Official Company Stamp" 
+                          style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain', transform: 'rotate(-4deg)' }} 
+                        />
+                      ) : (
+                        <CompanyStamp size={105} />
+                      )
+                    ) : (
+                      <div style={{ height: "65px" }}></div>
+                    )}
+                  </div>
+
+                    {includeStamp ? (
+                      <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: "700", color: "#64748b" }}>
+                        This is a system generated invoice,<br/>no signature required.
+                      </p>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "800", color: "#0C4A6E" }}>
+                        (Authorised Sign)
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* Bottom Footer Note */}
+              <div style={{ textAlign: "center", fontSize: "0.85rem", fontWeight: "700", color: "#0C4A6E", marginTop: "1rem", letterSpacing: "1px" }}>
+                ❖ Thank You For Your Business ❖
+              </div>
+            </>
+          )}
+
+          {/* Close tax-invoice-sheet */}
           </div>
-        </div>
 
-        {/* Bottom Footer Note */}
-        <div style={{ textAlign: "center", fontSize: "0.85rem", fontWeight: "700", color: "#0C4A6E", marginTop: "1rem", letterSpacing: "1px" }}>
-          ❖ Thank You For Your Business ❖
+          {/* Page Break for html2pdf (not rendered on last page) */}
+          {!isLastPage && <div className="html2pdf__page-break" style={{ pageBreakAfter: "always", height: "0" }}></div>}
         </div>
+        );
+      })}
       </div>
     </div>
   );

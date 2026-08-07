@@ -603,13 +603,13 @@ exports.post_import_9 = async (req, res) => {
         const bookingsSnap = await db.collection("bookings").where("lrNumber", "==", awb).get();
         if (!bookingsSnap.empty) {
           const bookingDoc = bookingsSnap.docs[0];
-          await db.collection("bookings").doc(bookingDoc.id).update({ status: "Booked" });
+          await db.collection("bookings").doc(bookingDoc.id).update({ status: "Billed" });
         } else {
           // Check by awb field
           const awbSnap = await db.collection("bookings").where("awb", "==", awb).get();
           if (!awbSnap.empty) {
             const bookingDoc = awbSnap.docs[0];
-            await db.collection("bookings").doc(bookingDoc.id).update({ status: "Booked" });
+            await db.collection("bookings").doc(bookingDoc.id).update({ status: "Billed" });
           }
         }
       } catch(e) {}

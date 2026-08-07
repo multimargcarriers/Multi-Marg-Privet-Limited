@@ -51,6 +51,10 @@ exports.getAdvancedAnalytics = async (req, res) => {
       };
     }
 
+    const safeToDouble = (field) => ({
+      $convert: { input: field, to: "double", onError: 0, onNull: 0 }
+    });
+
     // --- PIPELINES ---
 
     // A. Financial Totals (Bills)
@@ -59,9 +63,9 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: { $toDouble: { $ifNull: ["$total", "$amount"] } } },
-          paidAmount: { $sum: { $toDouble: "$paidAmount" } },
-          taxLiability: { $sum: { $add: [{ $toDouble: "$cgst" }, { $toDouble: "$sgst" }, { $toDouble: "$igst" }] } },
+          totalRevenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) },
+          paidAmount: { $sum: safeToDouble("$paidAmount") },
+          taxLiability: { $sum: { $add: [safeToDouble("$cgst"), safeToDouble("$sgst"), safeToDouble("$igst")] } },
           totalBills: { $sum: 1 }
         }
       }
@@ -81,7 +85,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalExpenses: { $sum: { $toDouble: "$total" } }
+          totalExpenses: { $sum: safeToDouble("$total") }
         }
       }
     ];
@@ -92,7 +96,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: dateGroupId,
-          revenue: { $sum: { $toDouble: { $ifNull: ["$total", "$amount"] } } }
+          revenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) }
         }
       },
       { $sort: { _id: 1 } }
@@ -103,7 +107,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: dateGroupIdDate,
-          expense: { $sum: { $toDouble: "$total" } }
+          expense: { $sum: safeToDouble("$total") }
         }
       },
       { $sort: { _id: 1 } }
@@ -129,7 +133,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
             $sum: {
               $cond: [
                 { $and: [{ $ne: ["$status", "Billed"] }, { $ne: ["$status", "billed"] }] },
-                { $toDouble: { $ifNull: ["$totalAmount", "$freight_charge"] } },
+                safeToDouble({ $ifNull: ["$totalAmount", { $ifNull: ["$freight_charge", 0] }] }),
                 0
               ]
             }
@@ -168,8 +172,8 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: "$client",
-          revenue: { $sum: { $toDouble: { $ifNull: ["$total", "$amount"] } } },
-          paid: { $sum: { $toDouble: "$paidAmount" } }
+          revenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) },
+          paid: { $sum: safeToDouble("$paidAmount") }
         }
       },
       { $sort: { revenue: -1 } },
@@ -190,8 +194,8 @@ exports.getAdvancedAnalytics = async (req, res) => {
       {
         $group: {
           _id: dateGroupIdDate,
-          cashIn: { $sum: { $cond: [{ $eq: ["$type", "in"] }, { $toDouble: "$amount" }, 0] } },
-          cashOut: { $sum: { $cond: [{ $eq: ["$type", "out"] }, { $toDouble: "$amount" }, 0] } }
+          cashIn: { $sum: { $cond: [{ $eq: ["$type", "in"] }, safeToDouble("$amount"), 0] } },
+          cashOut: { $sum: { $cond: [{ $eq: ["$type", "out"] }, safeToDouble("$amount"), 0] } }
         }
       },
       { $sort: { _id: 1 } }

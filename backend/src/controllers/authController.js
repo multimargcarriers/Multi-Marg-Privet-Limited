@@ -331,17 +331,27 @@ exports.post_login_1 = async (req, res) => {
     details: errors.array()
   });
   const { email, password } = req.body;
+  const loginId = email ? email.trim() : "";
+  const loginIdLower = loginId.toLowerCase();
 
   // Real Firebase Authentication with Seamless Bcrypt Migration
   const usersRef = db.collection("users");
-  let snapshot = await usersRef.where("email", "==", email).get();
+  let snapshot = await usersRef.where("email", "==", loginIdLower).get();
 
   if (snapshot.empty) {
-    snapshot = await usersRef.where("employeeId", "==", email).get();
+    snapshot = await usersRef.where("email", "==", loginId).get();
   }
 
   if (snapshot.empty) {
-    snapshot = await usersRef.where("username", "==", email).get();
+    snapshot = await usersRef.where("employeeId", "==", loginId).get();
+  }
+
+  if (snapshot.empty) {
+    snapshot = await usersRef.where("username", "==", loginIdLower).get();
+  }
+
+  if (snapshot.empty) {
+    snapshot = await usersRef.where("username", "==", loginId).get();
   }
 
   if (snapshot.empty) {
@@ -515,13 +525,14 @@ exports.put_profile_2 = async (req, res) => {
 
   const updates = {};
   if (name) updates.name = name;
-  if (email && isSuperAdmin) updates.email = email;
+  if (email && isSuperAdmin) updates.email = email.toLowerCase().trim();
   if (username) {
-    const userCheck = await db.collection("users").where("username", "==", username).get();
+    const lowerUsername = username.toLowerCase().trim();
+    const userCheck = await db.collection("users").where("username", "==", lowerUsername).get();
     let taken = false;
     userCheck.forEach(d => { if (d.id !== userId) taken = true; });
     if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
-    updates.username = username;
+    updates.username = lowerUsername;
   }
   if (bloodGroup) updates.bloodGroup = bloodGroup;
   if (password) {

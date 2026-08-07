@@ -34,6 +34,8 @@ const CreateBooking = () => {
     destCode: "",
     consignor: "",
     consignee: "",
+    type_of_delivery: "Door",
+    clerk_name: "",
     invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }],
     box: "",
     actual_wt: "",
@@ -107,11 +109,49 @@ const CreateBooking = () => {
           const bookingRes = await axios.get(`${API}/bookings/${id}`);
           if (bookingRes.data.success) {
             const b = bookingRes.data.data;
-            if (!b.invoiceDetails || b.invoiceDetails.length === 0) {
+            const fixDate = (raw) => {
+              if (!raw) return "";
+              if (typeof raw === 'string') {
+                const parts = raw.split(/[-/ T]/);
+                if (parts[0]?.length === 2 && parts[2]?.length === 4) {
+                   return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                } else if (parts[0]?.length === 4 && parts[1]?.length === 2 && parts[2]?.length === 2) {
+                   return `${parts[0]}-${parts[1]}-${parts[2]}`;
+                }
+                return raw.split('T')[0];
+              }
+              try { return new Date(raw).toISOString().split('T')[0]; } catch(e) { return ""; }
+            };
+
+            let parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
+            if (parcels && parcels.length > 0) {
+              b.invoiceDetails = parcels.map(p => ({
+                invoiceNo: p.invoiceNo || p.invoice || "",
+                invoiceValue: p.invoiceValue || p.value || "",
+                invoiceDate: fixDate(p.invoiceDate || p.invdate || p.date || ""),
+                partNumber: p.partNumber || p.part || "",
+                ewayBill: p.ewayBill || p.eway || "",
+                quantity: p.quantity || p.qty || ""
+              }));
+            } else {
               b.invoiceDetails = [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }];
             }
-            if (b.dispatch_date) {
-              b.dispatch_date = b.dispatch_date.split('T')[0];
+
+            b.dispatch_date = fixDate(b.dispatch_date || b.date || b.createdAt);
+
+            if (b.mode) {
+               const lowerMode = b.mode.toLowerCase();
+               if (lowerMode === "road") b.mode = "Road";
+               else if (lowerMode === "rail" || lowerMode === "train") b.mode = "Rail";
+               else if (lowerMode === "air") b.mode = "Air";
+               else if (lowerMode === "sea") b.mode = "Sea";
+            }
+            
+            if (b.paymentMode) {
+               const pm = b.paymentMode.toLowerCase().replace(/\s/g, '');
+               if (pm === "topay") b.paymentMode = "To Pay";
+               else if (pm === "paid") b.paymentMode = "Paid";
+               else if (pm === "credit") b.paymentMode = "Credit";
             }
             
             // Auto-fill missing GST for old bookings so they fix themselves when edited
@@ -127,6 +167,50 @@ const CreateBooking = () => {
             if (!b.clientGst && b.client) {
                const cClient = clientsList.find(c => c.name === b.client || c.client === b.client);
                if (cClient) b.clientGst = cClient.gst;
+            }
+
+            // Full fallback mapping for all fields from possible imported CSV structures
+            b.consignment = b.consignment || b.awb || b.lrNo || b.lr || "";
+            b.client = b.client || b.billedTo || "";
+            
+            b.box = b.box || b.boxes || b.pkg || b.packages || "";
+            b.actual_wt = b.actual_wt || b.actualWt || b.weight || b.actualWeight || "";
+            b.charge_wt = b.charge_wt || b.chargeWt || b.chargeWeight || b.weight || "";
+            
+            b.freight_charge = b.freight_charge || b.freight || b.frieght || b.frieghtCharge || "";
+            b.awb_charge = b.awb_charge || b.awbCharge || b.docketCharge || "";
+            b.pickup_charge = b.pickup_charge || b.pickupCharge || "";
+            b.delivery_charge = b.delivery_charge || b.deliveryCharge || "";
+            b.packaging_charge = b.packaging_charge || b.packagingCharge || b.pkgCharge || "";
+            b.handling_charge = b.handling_charge || b.handlingCharge || "";
+            
+            b.type_of_delivery = b.type_of_delivery || b.deliveryType || "Door";
+            b.clerk_name = b.clerk_name || b.clerkName || "Admin";
+
+            b.description = b.description || b.desc || b.goods || "";
+            b.remarks = b.remarks || b.remark || "";
+            
+            if (b.insuredBy) {
+               const ib = String(b.insuredBy).toLowerCase();
+               if (ib === "consignor") b.insuredBy = "Consignor";
+               else if (ib === "consignee") b.insuredBy = "Consignee";
+               else if (ib === "carrier") b.insuredBy = "Carrier";
+               else if (ib === "owner") b.insuredBy = "Owner";
+            } else {
+               const fallback = String(b.insured || b.insurance || "").toLowerCase();
+               if (fallback === "consignor") b.insuredBy = "Consignor";
+               else if (fallback === "consignee") b.insuredBy = "Consignee";
+               else if (fallback === "carrier") b.insuredBy = "Carrier";
+               else if (fallback === "owner") b.insuredBy = "Owner";
+               else b.insuredBy = fallback || "";
+            }
+
+            if (b.invoiceDetails && Array.isArray(b.invoiceDetails)) {
+               b.invoiceDetails = b.invoiceDetails.map(inv => ({
+                 ...inv,
+                 quantity: inv.quantity || inv.qty || "",
+                 invoiceDate: inv.invoiceDate || inv.invdate || ""
+               }));
             }
 
             setFormData(b);
@@ -458,15 +542,36 @@ const CreateBooking = () => {
               <option value="Sea">Sea</option>
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Payment Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+          <div className="form-group-custom">
+            <label>Payment Mode <span className="text-danger">*</span></label>
             <select className="form-control" name="paymentMode" value={formData.paymentMode} onChange={handleChange} required>
-              <option value="">-- Select Payment Mode --</option>
+              <option value="" disabled>-- Select Payment Mode --</option>
               <option value="To Pay">To Pay</option>
               <option value="Paid">Paid</option>
               <option value="Credit">Credit</option>
             </select>
           </div>
+          <div className="form-group-custom">
+            <label>Type of Delivery <span className="text-danger">*</span></label>
+            <select className="form-control" name="type_of_delivery" value={formData.type_of_delivery} onChange={handleChange} required>
+              <option value="Door">Door</option>
+              <option value="Godown">Godown</option>
+            </select>
+          </div>
+          {formData.clerk_name && (
+            <div className="form-group-custom">
+              <label>Clerk Name (Auto-filled)</label>
+              <input 
+                type="text" 
+                className="form-control" 
+                name="clerk_name"
+                value={formData.clerk_name} 
+                onChange={handleChange}
+                disabled={!canEditAwb} 
+                style={{ backgroundColor: !canEditAwb ? '#f1f5f9' : '#fff' }} 
+              />
+            </div>
+          )}
         </div>
 
         {/* Consignor, Consignee */}
