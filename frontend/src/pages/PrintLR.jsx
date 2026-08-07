@@ -399,8 +399,12 @@ const PrintLR = () => {
             
             {/* QR Code & Tracking */}
             <div style={{ width: "110px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ padding: "4px", background: "white", border: "2px solid #1e293b", borderRadius: "6px", display: "inline-flex", justifyContent: "center", alignItems: "center", width: "80px", height: "80px" }}>
-                <QRCodeCanvas value={window.location.origin + '/tracking?lr=' + booking.id} size={70} style={{ display: "block" }} />
+              <div style={{ padding: "4px", background: "white", border: "2px solid #1e293b", borderRadius: "6px", display: "inline-flex", justifyContent: "center", alignItems: "center", width: "auto", height: "auto" }}>
+                <QRCodeCanvas 
+                  value={`https://multimarg.vercel.app/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`} 
+                  size={70} 
+                  style={{ display: "block", maxWidth: "100%", height: "auto" }} 
+                />
               </div>
               <div style={{ fontSize: "0.7rem", fontWeight: "800", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
             </div>
