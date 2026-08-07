@@ -28,6 +28,7 @@ const Profile = () => {
   const [defaultAssets, setDefaultAssets] = useState({ avatars: [], banners: [] });
   const [showGallery, setShowGallery] = useState(false);
   const [galleryType, setGalleryType] = useState('photo'); // 'photo' or 'banner'
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   useEffect(() => {
     const fetchDefaults = async () => {
@@ -232,8 +233,14 @@ const Profile = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, skipConfirm = false) => {
     if (e && e.preventDefault) e.preventDefault();
+    
+    if (username !== (user.username || '') && !skipConfirm) {
+      setShowConfirmDialog(true);
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -243,10 +250,6 @@ const Profile = () => {
       if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
       
       if (username !== (user.username || '')) {
-        if (!window.confirm("Are you sure you want to change your username? This will be used for your next login.")) {
-          setIsLoading(false);
-          return;
-        }
         formData.append('username', username);
       }
       
@@ -871,6 +874,41 @@ const Profile = () => {
                   <img src={url} alt={`Banner ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               ))}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showConfirmDialog && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: '#ffffff', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: 700 }}>Confirm Username Change</h2>
+              <button onClick={() => setShowConfirmDialog(false)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}><X size={24} /></button>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: '0 0 1.5rem 0', color: '#475569', fontSize: '1rem', lineHeight: 1.5 }}>
+                Are you sure you want to change your username? This will be used for your next login.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button 
+                  onClick={() => setShowConfirmDialog(false)}
+                  style={{ padding: '0.6rem 1.25rem', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#334155'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => { setShowConfirmDialog(false); handleSubmit(null, true); }}
+                  style={{ padding: '0.6rem 1.25rem', background: '#0078D4', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#005a9e'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#0078D4'; }}
+                >
+                  Confirm Change
+                </button>
               </div>
             </div>
           </div>
