@@ -26,11 +26,16 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
         zIndex: 1, 
         clipPath: 'polygon(0 0, 100% 0, 100% 75%, 0% 100%)' 
       }}>
-        {/* Subtle geometric overlay to represent logistics network/routes */}
-        <div style={{ position: 'absolute', top: 0, right: 0, opacity: 0.1, backgroundImage: 'radial-gradient(#fff 2px, transparent 2px)', backgroundSize: '16px 16px', width: '100%', height: '100%' }}></div>
+        {/* Professional 3D Dotted overlay for Logistics Theme */}
+        <div style={{ 
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundImage: "url(\"data:image/svg+xml;utf8,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2.5' fill='%23000000' opacity='0.15'/%3E%3Ccircle cx='5' cy='5' r='2.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='22' cy='22' r='4' fill='%23000000' opacity='0.1'/%3E%3Ccircle cx='21' cy='21' r='4' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='26' cy='8' r='1.5' fill='%23000000' opacity='0.2'/%3E%3Ccircle cx='25' cy='7' r='1.5' fill='%23ffffff' opacity='0.5'/%3E%3C/svg%3E\")", 
+          backgroundSize: '32px 32px',
+          opacity: 0.8
+        }}></div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1.5rem', zIndex: 2 }}>
+      <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1.5rem', zIndex: 2 }}>
         {/* Company Logo uploaded by user */}
         <div style={{ width: '65px', height: '65px', background: '#fff', borderRadius: '12px', padding: '0.4rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
           <img src="/mc.png" alt="Company Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} crossOrigin="anonymous" />
@@ -43,7 +48,7 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
       </div>
       
       {/* Photo Container */}
-      <div style={{ display: 'flex', justifyContent: 'center', zIndex: 2, marginTop: '0.5rem' }}>
+      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', zIndex: 2, marginTop: '0.5rem' }}>
         <div style={{ width: '140px', height: '160px', borderRadius: '16px', border: '4px solid #ffffff', background: '#f5f5f5', overflow: 'hidden', boxShadow: '0 12px 24px rgba(0,0,0,0.15)' }}>
           <img 
             src={avatarUrl} 
@@ -85,7 +90,7 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
       </div>
 
       {/* Bottom Bar */}
-      <div style={{ height: '8px', background: 'linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)', width: '100%' }}></div>
+      <div style={{ height: '8px', background: "url(\"data:image/svg+xml;utf8,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2.5' fill='%23000000' opacity='0.15'/%3E%3Ccircle cx='5' cy='5' r='2.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='22' cy='22' r='4' fill='%23000000' opacity='0.1'/%3E%3Ccircle cx='21' cy='21' r='4' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='26' cy='8' r='1.5' fill='%23000000' opacity='0.2'/%3E%3Ccircle cx='25' cy='7' r='1.5' fill='%23ffffff' opacity='0.5'/%3E%3C/svg%3E\") 0 0 / 32px 32px, linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)", width: '100%' }}></div>
     </div>
   );
 };

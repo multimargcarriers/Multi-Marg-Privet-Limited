@@ -20,7 +20,7 @@ const IDCardBack = ({ user, globalSettings }) => {
       }}
     >
       {/* Top Header */}
-      <div style={{ background: 'linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)', padding: '1rem', textAlign: 'center' }}>
+      <div style={{ background: "url(\"data:image/svg+xml;utf8,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2.5' fill='%23000000' opacity='0.15'/%3E%3Ccircle cx='5' cy='5' r='2.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='22' cy='22' r='4' fill='%23000000' opacity='0.1'/%3E%3Ccircle cx='21' cy='21' r='4' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='26' cy='8' r='1.5' fill='%23000000' opacity='0.2'/%3E%3Ccircle cx='25' cy='7' r='1.5' fill='%23ffffff' opacity='0.5'/%3E%3C/svg%3E\") 0 0 / 32px 32px, linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)", padding: '1rem', textAlign: 'center' }}>
         <h3 style={{ margin: 0, color: '#ffffff', fontSize: '0.85rem', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase' }}>Terms & Conditions</h3>
       </div>
 
@@ -84,7 +84,7 @@ const IDCardBack = ({ user, globalSettings }) => {
       </div>
 
       {/* Bottom Bar */}
-      <div style={{ height: '8px', background: 'linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)', width: '100%' }}></div>
+      <div style={{ height: '8px', background: "url(\"data:image/svg+xml;utf8,%3Csvg width='32' height='32' viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='2.5' fill='%23000000' opacity='0.15'/%3E%3Ccircle cx='5' cy='5' r='2.5' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='22' cy='22' r='4' fill='%23000000' opacity='0.1'/%3E%3Ccircle cx='21' cy='21' r='4' fill='%23ffffff' opacity='0.4'/%3E%3Ccircle cx='26' cy='8' r='1.5' fill='%23000000' opacity='0.2'/%3E%3Ccircle cx='25' cy='7' r='1.5' fill='%23ffffff' opacity='0.5'/%3E%3C/svg%3E\") 0 0 / 32px 32px, linear-gradient(90deg, #7b2cbf 0%, #d00000 100%)", width: '100%' }}></div>
     </div>
   );
 };
