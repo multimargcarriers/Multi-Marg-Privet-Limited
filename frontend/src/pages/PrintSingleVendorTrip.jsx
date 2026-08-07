@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Download, ArrowLeft } from "lucide-react";
 import html2pdf from "html2pdf.js";
@@ -91,11 +91,9 @@ const PrintSingleTrip = () => {
 
   if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={() => navigate(-1)}>Go Back</button></div>;
 
-  const baseFreight = parseFloat(trip?.freight || trip?.parcels?.reduce((s,p)=>s+(parseFloat(p.freight)||0),0)) || 0;
-  const gstAmount = baseFreight * 0.18;
-  const grandTotal = baseFreight + gstAmount;
-  const amountPaid = parseFloat(trip?.paidAmount || 0);
-  const remaining = grandTotal - amountPaid;
+  const grandTotal = parseFloat(trip?.totalAmount || 0);
+  const totalDetailsAmount = (trip?.details || []).reduce((s, p) => s + (parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0), 0);
+  const displayTotal = grandTotal > 0 ? grandTotal : totalDetailsAmount;
 
   return (
     <div style={{ background: "#e2e8f0", minHeight: "100vh", padding: "2rem" }} className="print-wrapper">
@@ -224,101 +222,80 @@ const PrintSingleTrip = () => {
                 </div>
 
                 <div style={{ background: "#f8fafc", padding: "6px", textAlign: "center", borderBottom: "1px solid #cbd5e1" }}>
-                  <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP RECEIPT</h2>
+                  <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>VENDOR VEHICLE MIS RECEIPT</h2>
                 </div>
 
                 <div style={{ flex: 1, padding: "6px 20px" }}>
                     
-                    <div className="section-header">1. Vehicle & Trip Info</div>
+                    <div className="section-header">1. Vendor & Info</div>
                     <table className="manifest-table">
                         <tbody>
                             <tr>
-                                <td className="gray-cell" style={{ width: "12%" }}>TRIP NO.</td>
-                                <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>{(trip.tripNo || "-").toUpperCase()}</td>
+                                <td className="gray-cell" style={{ width: "12%" }}>VENDOR MIS ID</td>
+                                <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>{(trip.id || trip.tripNo || "-")}</td>
                                 <td className="gray-cell" style={{ width: "12%" }}>DATE</td>
-                                <td className="data-cell" style={{ width: "21%" }}>{trip.date ? formatDate(trip.date) : "-"}</td>
-                                <td className="gray-cell" style={{ width: "13%" }}>CLIENT NAME</td>
-                                <td className="data-cell" style={{ width: "21%", color: "#1e3a8a", fontSize: "0.85rem" }}>{(trip.clientName || "-").toUpperCase()}</td>
+                                <td className="data-cell" style={{ width: "21%" }}>{trip.createdAt ? formatDate(trip.createdAt) : (trip.date ? formatDate(trip.date) : "-")}</td>
+                                <td className="gray-cell" style={{ width: "13%" }}>VENDOR NAME</td>
+                                <td className="data-cell" style={{ width: "21%", color: "#1e3a8a", fontSize: "0.85rem" }}>{(trip.vendorName || trip.clientName || "-").toUpperCase()}</td>
                             </tr>
                             <tr>
-                                <td className="gray-cell">FROM</td>
-                                <td className="data-cell" style={{ fontWeight: "700" }}>{(trip.origin || "-").toUpperCase()}</td>
-                                <td className="gray-cell">TO</td>
-                                <td className="data-cell" style={{ fontWeight: "700" }}>{(trip.destination || "-").toUpperCase()}</td>
-                                <td className="gray-cell">MODE</td>
-                                <td className="data-cell">{(trip.mode || "-").toUpperCase()}</td>
-                            </tr>
-                            <tr>
-                                <td className="gray-cell">VEHICLE NO.</td>
-                                <td className="data-cell">{(trip.vehicleNo || "-").toUpperCase()}</td>
-                                <td className="gray-cell">VEHICLE TYPE</td>
-                                <td className="data-cell">{(trip.vehicleType || "-").toUpperCase()}</td>
+                                <td className="gray-cell">STATUS</td>
+                                <td className="data-cell" style={{ fontWeight: "700" }}>{(trip.approvalStatus || trip.status || "-").toUpperCase()}</td>
+                                <td className="gray-cell"></td>
+                                <td className="data-cell"></td>
                                 <td className="gray-cell"></td>
                                 <td className="data-cell"></td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <div className="section-header">2. Item Details</div>
+                    <div className="section-header">2. Vendor Trip Details</div>
                     <table className="manifest-table" style={{ fontSize: "0.7rem", width: "100%" }}>
                         <thead>
                             <tr className="gray-cell" style={{ fontSize: "0.7rem" }}>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>LR NO</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>CONSIGNOR</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>CONSIGNEE</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>ORIGIN</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>DEST</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>DATE</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>VEHICLE NO</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>FROM</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>TO</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>HANDOVER TO</th>
+                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>PARTICULAR</th>
                                 <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>MODE</th>
-                                <th style={{ textAlign: "center", padding: "6px 4px", whiteSpace: "nowrap" }}>BOX</th>
-                                <th style={{ textAlign: "center", padding: "6px 4px", whiteSpace: "nowrap" }}>WT</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>FRT</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>PICK</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>DELV</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>SPEC</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>OTH</th>
+                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>AMOUNT</th>
+                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>OTHERS</th>
                                 <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {trip.parcels && trip.parcels.length > 0 ? (
-                                trip.parcels.map((p, i) => (
+                            {trip.details && trip.details.length > 0 ? (
+                                trip.details.map((p, i) => (
                                     <tr key={i}>
-                                        <td className="data-cell" style={{ color: "#ef4444", fontWeight: "700", padding: "4px", whiteSpace: "nowrap" }}>{p.lrNo || "-"}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.consignor || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.consignee || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.origin || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.destination || "-").toUpperCase()}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.from || "-").toUpperCase()}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.to || "-").toUpperCase()}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.handoverTo || "-").toUpperCase()}</td>
+                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.particular || "-").toUpperCase()}</td>
                                         <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ textAlign: "center", padding: "4px", whiteSpace: "nowrap" }}>{p.box || "-"}</td>
-                                        <td className="data-cell" style={{ textAlign: "center", padding: "4px", whiteSpace: "nowrap" }}>{p.weight || "-"}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.freight || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.pickup || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.delivery || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.special || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.other || 0).toFixed(2)}</td>
+                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
+                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
                                         <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px", whiteSpace: "nowrap" }}>
-                                            {((parseFloat(p.freight) || 0) + (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0)).toFixed(2)}
+                                            {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="14" style={{ textAlign: "center", padding: "10px" }} className="data-cell">No parcels available.</td>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "10px" }} className="data-cell">No details available.</td>
                                 </tr>
                             )}
                         </tbody>
                         <tfoot>
                             <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.7rem" }}>
-                                <td colSpan="6" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL:</td>
-                                <td className="data-cell" style={{ textAlign: "center", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.box || trip.parcels?.reduce((s,p)=>s+(parseInt(p.box)||0),0)}</td>
-                                <td className="data-cell" style={{ textAlign: "center", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.weight || trip.parcels?.reduce((s,p)=>s+(parseFloat(p.weight)||0),0)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.parcels?.reduce((s,p)=>s+(parseFloat(p.freight)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.parcels?.reduce((s,p)=>s+(parseFloat(p.pickup)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.parcels?.reduce((s,p)=>s+(parseFloat(p.delivery)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.parcels?.reduce((s,p)=>s+(parseFloat(p.special)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.parcels?.reduce((s,p)=>s+(parseFloat(p.other)||0),0).toFixed(2)}</td>
+                                <td colSpan="7" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL:</td>
+                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s,p)=>s+(parseFloat(p.amount)||0),0).toFixed(2)}</td>
+                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s,p)=>s+(parseFloat(p.others)||0),0).toFixed(2)}</td>
                                 <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", color: "#10b981", padding: "6px 4px", whiteSpace: "nowrap" }}>
-                                    Rs. {parseFloat(trip.freight || trip.parcels?.reduce((s,p)=>s+(parseFloat(p.freight)||0)+(parseFloat(p.pickup)||0)+(parseFloat(p.delivery)||0)+(parseFloat(p.special)||0)+(parseFloat(p.other)||0),0)).toFixed(2)}
+                                    Rs. {totalDetailsAmount.toFixed(2)}
                                 </td>
                             </tr>
                         </tfoot>
@@ -328,27 +305,9 @@ const PrintSingleTrip = () => {
                     <table className="manifest-table">
                         <tbody>
                             <tr>
-                                <td className="gray-cell" style={{ width: "25%" }}>PAYMENT MODE</td>
-                                <td className="data-cell" style={{ width: "25%" }}>{(trip.payment || "-").toUpperCase()}</td>
-                                <td className="gray-cell" style={{ width: "25%" }}>FREIGHT (BASE)</td>
-                                <td className="data-cell" style={{ width: "25%" }}>
-                                    Rs. {baseFreight.toFixed(2)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="gray-cell">GST (18%)</td>
-                                <td className="data-cell">Rs. {gstAmount.toFixed(2)}</td>
-                                <td className="gray-cell">GRAND TOTAL</td>
-                                <td className="data-cell" style={{ color: "#10b981", fontSize: "1.1rem" }}>
-                                    Rs. {grandTotal.toFixed(2)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="gray-cell">AMOUNT PAID</td>
-                                <td className="data-cell" style={{ color: "#f59e0b" }}>Rs. {amountPaid.toFixed(2)}</td>
-                                <td className="gray-cell">REMAINING AMOUNT</td>
-                                <td className="data-cell" style={{ color: "#ef4444" }}>
-                                    Rs. {remaining.toFixed(2)}
+                                <td className="gray-cell" style={{ width: "50%" }}>VENDOR GRAND TOTAL</td>
+                                <td className="data-cell" style={{ width: "50%", color: "#10b981", fontSize: "1.1rem" }}>
+                                    Rs. {displayTotal.toFixed(2)}
                                 </td>
                             </tr>
                         </tbody>

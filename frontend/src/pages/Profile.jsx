@@ -680,7 +680,7 @@ const Profile = () => {
                     e.currentTarget.innerHTML = 'PROCESSING...';
                     try {
                       const el = document.getElementById('id-card-front');
-                      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
+                      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, width: 320, height: 540, windowWidth: 320, windowHeight: 540 });
                       const link = document.createElement('a');
                       link.download = `MULTIMARG_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
@@ -702,7 +702,7 @@ const Profile = () => {
                     e.currentTarget.innerHTML = 'PROCESSING...';
                     try {
                       const el = document.getElementById('id-card-back');
-                      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
+                      const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, width: 320, height: 540, windowWidth: 320, windowHeight: 540 });
                       const link = document.createElement('a');
                       link.download = `MULTIMARG_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');

@@ -6,7 +6,9 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
       id="id-card-front"
       style={{
         width: '320px',
-        height: '500px',
+        minWidth: '320px',
+        height: '540px',
+        minHeight: '540px',
         background: '#ffffff',
         borderRadius: '16px',
         boxShadow: '0 12px 36px rgba(0, 0, 0, 0.12)',

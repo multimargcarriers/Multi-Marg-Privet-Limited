@@ -170,7 +170,7 @@ const BillView1 = () => {
         scrollX: 0
       },
       jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: 'css' }
+      pagebreak:    { mode: 'css', avoid: 'tr' }
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
@@ -412,13 +412,8 @@ const BillView1 = () => {
 
       {/* Premium Executive Tax Invoice Printable Document Sheet */}
       <div id="bill-content">
-        {Array.from({ length: Math.ceil(itemsList.length / 8) }).map((_, pageIndex) => {
-          const chunk = itemsList.slice(pageIndex * 8, (pageIndex + 1) * 8);
-          const isLastPage = pageIndex === Math.ceil(itemsList.length / 8) - 1;
-          
-          return (
-            <div key={pageIndex}>
-              <div 
+        <div>
+          <div 
                 className="tax-invoice-sheet"
                 style={{
                   background: "#ffffff",
@@ -561,9 +556,9 @@ const BillView1 = () => {
               </tr>
             </thead>
             <tbody>
-              {chunk.map((item, idx) => (
-                <tr key={idx} style={{ borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || (pageIndex * 8) + idx + 1}</td>
+              {itemsList.map((item, idx) => (
+                <tr key={idx} style={{ pageBreakInside: "avoid", borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
+                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || idx + 1}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo || item.awb}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt || item.awb_date}</td>
                   <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.ref}</td>
@@ -585,9 +580,8 @@ const BillView1 = () => {
           </table>
 
           {/* Lower Grid: Accounts Details (Left) & Tax Summary (Right) */}
-          {isLastPage && (
-              <div style={{ display: "flex", borderTop: "1.5px solid #000000" }}>
-                {/* Accounts Details (Left 60%) */}
+          <div style={{ display: "flex", borderTop: "1.5px solid #000000" }}>
+            {/* Accounts Details (Left 60%) */}
                 <div style={{ flex: "1.4", padding: "0.75rem 0.85rem", borderRight: "1.5px solid #000000", background: "#F8FAFC", fontSize: "0.85rem" }}>
                   <div style={{ fontSize: "0.8rem", fontWeight: "800", textTransform: "uppercase", color: "#0C4A6E", letterSpacing: "0.5px", marginBottom: "0.4rem" }}>
                     Accounts Details
@@ -628,14 +622,11 @@ const BillView1 = () => {
                   </div>
                 </div>
               </div>
-          )}
 
           {/* CLOSE OUTER INVOICE BOX */}
           </div>
 
-          {isLastPage && (
-            <>
-              {/* Amount In Words Highlight Box */}
+          {/* Amount In Words Highlight Box */}
               <div style={{ marginTop: "0.85rem", marginBottom: "1.25rem", padding: "0.6rem 0.85rem", background: "#F1F5F9", borderRadius: "4px", borderLeft: "4px solid #0C4A6E", fontSize: "0.88rem" }}>
                 <strong style={{ color: "#0C4A6E" }}>Amount In Words:</strong> &nbsp;<span style={{ fontWeight: "700", color: "#0F172A" }}>{numberToWordsIndian(totalPayableVal)}</span>
               </div>
@@ -692,17 +683,10 @@ const BillView1 = () => {
               <div style={{ textAlign: "center", fontSize: "0.85rem", fontWeight: "700", color: "#0C4A6E", marginTop: "1rem", letterSpacing: "1px" }}>
                 ❖ Thank You For Your Business ❖
               </div>
-            </>
-          )}
 
           {/* Close tax-invoice-sheet */}
           </div>
-
-          {/* Page Break for html2pdf (not rendered on last page) */}
-          {!isLastPage && <div className="html2pdf__page-break" style={{ pageBreakAfter: "always", height: "0" }}></div>}
         </div>
-        );
-      })}
       </div>
     </div>
   );
