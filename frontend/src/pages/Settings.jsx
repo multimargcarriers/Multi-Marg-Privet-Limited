@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import axios from 'axios';
+import Papa from 'papaparse';
 import { 
   Server, Database, Cloud, HardDrive, RefreshCw, AlertCircle, MemoryStick, 
   ToggleLeft, ToggleRight, Building, Palette, Shield, FileText, Bell, Save,
@@ -53,6 +54,9 @@ const Settings = () => {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
   const [updatingToggles, setUpdatingToggles] = useState(false);
+  
+  const tripFileRef = useRef(null);
+  const vendorFileRef = useRef(null);
 
   // Local state for complex forms (Company Profile)
   const [localCompany, setLocalCompany] = useState({});
@@ -227,8 +231,10 @@ const Settings = () => {
         });
         try {
           addToast("Importing Trip MIS data...", "info");
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+          const token = localStorage.getItem('token');
           for (let tripNo in tripsMap) {
-            await axios.post(`${API}/trip-mis`, tripsMap[tripNo], { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${apiUrl}/api/trip-mis`, tripsMap[tripNo], { headers: { Authorization: `Bearer ${token}` } });
           }
           addToast("Trip MIS imported successfully!", "success");
         } catch (err) {
@@ -279,8 +285,10 @@ const Settings = () => {
         });
         try {
           addToast("Importing Vendor MIS data...", "info");
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+          const token = localStorage.getItem('token');
           for (let tripNo in tripsMap) {
-            await axios.post(`${API}/vendor-mis`, tripsMap[tripNo], { headers: { Authorization: `Bearer ${token}` } });
+            await axios.post(`${apiUrl}/api/vendor-mis`, tripsMap[tripNo], { headers: { Authorization: `Bearer ${token}` } });
           }
           addToast("Vendor MIS imported successfully!", "success");
         } catch (err) {

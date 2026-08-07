@@ -48,7 +48,8 @@ exports.postRoot_2 = async (req, res) => {
     role,
     permissions,
     employeeId,
-    username
+    username,
+    bloodGroup
   } = req.body;
   if (!name || !email || !password || !role || !employeeId) {
     return error(res, {
@@ -83,6 +84,7 @@ exports.postRoot_2 = async (req, res) => {
     password: hashedPassword,
     role,
     permissions: permissions || [],
+    bloodGroup: bloodGroup || "",
     photo: randomAvatar,
     banner: randomBanner,
     createdAt: new Date().toISOString()
@@ -129,7 +131,8 @@ exports.put_id_3 = async (req, res) => {
     permissions
   };
   if (employeeId) updates.employeeId = employeeId;
-  if (username) updates.username = username;
+  if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+  if (username !== undefined) updates.username = username;
   
   if (password) {
     const salt = await bcrypt.genSalt(10);

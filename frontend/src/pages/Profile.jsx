@@ -5,9 +5,13 @@ import { useToast } from '../context/ToastContext';
 import { Camera, User,  Shield,  Key,     LogOut, Globe, Clock,  CheckCircle, ChevronRight, LayoutGrid,   ShieldCheck, Monitor, History, Image as  X, IdCard, } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
+import IDCardFront from '../components/IDCardFront';
+import IDCardBack from '../components/IDCardBack';
+import { SettingsContext } from '../context/SettingsContext';
 
 const Profile = () => {
   const { user, updateUser, token, logout } = useContext(AuthContext);
+  const { globalSettings } = useContext(SettingsContext);
   const { addToast } = useToast();
   
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -16,6 +20,7 @@ const Profile = () => {
   const [email, setEmail] = useState(user?.email || '');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
   const [username, setUsername] = useState(user?.username || '');
+  const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || '');
   const [newId, setNewId] = useState(user?.id || '');
   const [password, setPassword] = useState('');
   const [photo, setPhoto] = useState(null);
@@ -82,6 +87,7 @@ const Profile = () => {
       setEmail(user.email || '');
       setEmployeeId(user.employeeId || '');
       setUsername(user.username || '');
+      setBloodGroup(user.bloodGroup || '');
       setNewId(user.id || '');
       const userPhoto = user.photo || user.avatar || user.picture || null;
       if (userPhoto) setPhotoPreview(userPhoto);
@@ -248,6 +254,7 @@ const Profile = () => {
       if (name !== user.name) formData.append('name', name);
       if (email !== user.email) formData.append('email', email);
       if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
+      if (bloodGroup !== (user.bloodGroup || '')) formData.append('bloodGroup', bloodGroup);
       
       if (username !== (user.username || '')) {
         formData.append('username', username);
@@ -527,6 +534,21 @@ const Profile = () => {
                   </div>
 
                   <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Blood Group</label>
+                    <select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'}>
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+
+                  <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Username <span>(Optional)</span></label>
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))} placeholder="e.g. john_doe" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   </div>
@@ -634,138 +656,19 @@ const Profile = () => {
             </div>
           )}
           {activeTab === 'idcard' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start', fontFamily: "'Inter', sans-serif" }}>
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'flex-start', fontFamily: "'Inter', sans-serif", width: '100%' }}>
               <div>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#000', margin: '0 0 0.5rem 0', letterSpacing: '-1px' }}>ID CARD</h1>
-                <p style={{ color: '#666', fontSize: '1rem', margin: 0, fontWeight: 500 }}>Modern corporate identification.</p>
+                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Corporate ID Card</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Vibrant corporate identification badge.</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', width: '100%', alignItems: 'flex-start', justifyContent: 'center', background: '#f5f5f5', padding: '3rem', borderRadius: '12px', border: '1px solid #e5e5e5' }}>
+              <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', width: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-color)', padding: '3rem', borderRadius: '12px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border-color)' }}>
                 
                 {/* --- FRONT OF ID CARD --- */}
-                <div 
-                  id="id-card-front"
-                  style={{
-                    width: '320px',
-                    height: '500px',
-                    background: '#ffffff',
-                    border: '2px solid #000000',
-                    boxShadow: '8px 8px 0px #000000',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    fontFamily: "'Inter', sans-serif",
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  {/* Top Bar (Banana Yellow) */}
-                  <div style={{ width: '100%', padding: '1rem 1.5rem', background: '#fbbf24', borderBottom: '2px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 2 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#000', letterSpacing: '-0.5px', textTransform: 'uppercase' }}>MULTI MARG</h2>
-                      <p style={{ margin: 0, fontSize: '0.65rem', color: '#000', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>Logistics Core</p>
-                    </div>
-                  </div>
-                  
-                  {/* Photo Container */}
-                  <div style={{ padding: '2rem 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-start' }}>
-                    <div style={{ width: '120px', height: '120px', border: '3px solid #000', background: '#f5f5f5', overflow: 'hidden' }}>
-                      <img 
-                        src={getAvatarUrl()} 
-                        alt="Profile" 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1) grayscale(0.2)' }} 
-                        crossOrigin="anonymous" 
-                        onError={(e) => {
-                          if (!e.currentTarget.src.includes('data:image')) {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Employee Details */}
-                  <div style={{ padding: '0 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', zIndex: 2 }}>
-                    <div>
-                      <h2 style={{ margin: '0 0 0.2rem 0', color: '#000', fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-1px', lineHeight: 1.1 }}>{user.name}</h2>
-                      <p style={{ margin: '0.2rem 0 1rem 0', color: '#666', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>{user.role || 'CORE TEAM'}</p>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                      <div style={{ display: 'flex', borderBottom: '2px solid #000', paddingBottom: '0.4rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>ID_NUM</span>
-                        <span style={{ color: '#000', fontSize: '1.1rem', fontWeight: 900, fontFamily: 'monospace' }}>{user.employeeId || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', borderBottom: '2px solid #000', paddingBottom: '0.4rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>BLOOD</span>
-                        <span style={{ color: '#000', fontSize: '1.1rem', fontWeight: 900, fontFamily: 'monospace' }}>O+</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 'auto', background: '#000', padding: '1rem', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '2px' }}>ACCESS: AUTHORIZED</span>
-                     <div style={{ width: '12px', height: '12px', background: '#fbbf24', borderRadius: '50%' }}></div>
-                  </div>
-                </div>
+                <IDCardFront user={user} avatarUrl={getAvatarUrl()} globalSettings={globalSettings} />
 
                 {/* --- BACK OF ID CARD --- */}
-                <div 
-                  id="id-card-back"
-                  style={{
-                    width: '320px',
-                    height: '500px',
-                    background: '#000000',
-                    border: '2px solid #000000',
-                    boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    fontFamily: "'Inter', sans-serif",
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <div style={{ padding: '1.5rem', background: '#fbbf24', borderBottom: '2px solid #000' }}>
-                     <h3 style={{ margin: 0, color: '#000', fontSize: '1.1rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.5px' }}>IF FOUND</h3>
-                  </div>
-
-                  {/* Return Info */}
-                  <div style={{ padding: '2rem 1.5rem 1rem 1.5rem' }}>
-                    <p style={{ margin: 0, color: '#fff', fontSize: '0.85rem', lineHeight: 1.6, fontWeight: 500 }}>
-                      Please return to:<br/><br/>
-                      <strong style={{ fontSize: '1.1rem', fontWeight: 800 }}>MULTI MARG CARRIERS</strong><br/>
-                      Global Logistics Hub<br/>
-                      Mumbai, MH, India<br/>
-                      TEL: +91 98765 43210
-                    </p>
-                  </div>
-
-                  {/* QR Code */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', padding: '0 1.5rem', margin: '1rem 0' }}>
-                    <div style={{ padding: '0.5rem', background: '#fff' }}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=EMP:${user.employeeId || user.id}&color=000000`} alt="QR Code" style={{ width: '90px', height: '90px', display: 'block' }} crossOrigin="anonymous" />
-                    </div>
-                  </div>
-                  
-                  {/* Terms */}
-                  <div style={{ padding: '1.5rem', marginTop: 'auto' }}>
-                    <p style={{ margin: '0 0 1rem 0', color: '#888', fontSize: '0.65rem', lineHeight: 1.5, fontWeight: 500 }}>
-                      This badge is strictly non-transferable property of Multi Marg Carriers.
-                    </p>
-                    
-                    {/* Signatures */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.5rem' }}>
-                      <div style={{ width: '45%', borderTop: '2px solid #333', paddingTop: '0.5rem' }}>
-                        <span style={{ color: '#fff', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>HOLDER</span>
-                      </div>
-                      <div style={{ width: '45%', borderTop: '2px solid #333', paddingTop: '0.5rem' }}>
-                        <span style={{ color: '#fff', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>AUTH</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <IDCardBack user={user} globalSettings={globalSettings} />
 
               </div>
 
@@ -779,7 +682,7 @@ const Profile = () => {
                       const el = document.getElementById('id-card-front');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = `MMC_TECH_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
+                      link.download = `MULTIMARG_ID_Front_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (_err) {
@@ -787,9 +690,9 @@ const Profile = () => {
                     }
                     e.currentTarget.innerHTML = originalText;
                   }}
-                  style={{ padding: '1rem 2rem', background: '#fbbf24', color: '#000', border: '2px solid #000', boxShadow: '4px 4px 0px #000', fontWeight: 900, fontSize: '0.9rem', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.1s' }}
-                  onMouseDown={(e) => { e.currentTarget.style.boxShadow = '0px 0px 0px #000'; e.currentTarget.style.transform = 'translate(4px, 4px)'; }}
-                  onMouseUp={(e) => { e.currentTarget.style.boxShadow = '4px 4px 0px #000'; e.currentTarget.style.transform = 'translate(0px, 0px)'; }}
+                  style={{ padding: '0.75rem 1.5rem', background: '#1e40af', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(30, 64, 175, 0.3)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(30, 64, 175, 0.4)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30, 64, 175, 0.3)'; }}
                 >
                   Download Front
                 </button>
@@ -801,7 +704,7 @@ const Profile = () => {
                       const el = document.getElementById('id-card-back');
                       const canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
                       const link = document.createElement('a');
-                      link.download = `MMC_TECH_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
+                      link.download = `MULTIMARG_ID_Back_${user.name.replace(/\s+/g, '_')}.png`;
                       link.href = canvas.toDataURL('image/png');
                       link.click();
                     } catch (_err) {
@@ -809,9 +712,9 @@ const Profile = () => {
                     }
                     e.currentTarget.innerHTML = originalText;
                   }}
-                  style={{ padding: '1rem 2rem', background: '#fff', color: '#000', border: '2px solid #000', boxShadow: '4px 4px 0px #000', fontWeight: 900, fontSize: '0.9rem', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.1s' }}
-                  onMouseDown={(e) => { e.currentTarget.style.boxShadow = '0px 0px 0px #000'; e.currentTarget.style.transform = 'translate(4px, 4px)'; }}
-                  onMouseUp={(e) => { e.currentTarget.style.boxShadow = '4px 4px 0px #000'; e.currentTarget.style.transform = 'translate(0px, 0px)'; }}
+                  style={{ padding: '0.75rem 1.5rem', background: '#fff', color: '#1e40af', border: '1px solid #1e40af', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
                   Download Back
                 </button>

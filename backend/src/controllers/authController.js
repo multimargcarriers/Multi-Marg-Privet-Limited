@@ -468,7 +468,8 @@ exports.put_profile_2 = async (req, res) => {
     password,
     newId,
     employeeId,
-    username
+    username,
+    bloodGroup
   } = req.body;
   console.log("=== PUT PROFILE ===");
   console.log("req.body:", req.body);
@@ -522,6 +523,7 @@ exports.put_profile_2 = async (req, res) => {
     if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
     updates.username = username;
   }
+  if (bloodGroup) updates.bloodGroup = bloodGroup;
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
