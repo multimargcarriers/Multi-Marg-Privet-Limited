@@ -5,8 +5,8 @@ const dns = require('dns');
 const dotenv = require("dotenv");
 
 // Fix ISP DNS and IPv6 routing issues causing MongoDB and Redis connection timeouts
-dns.setDefaultResultOrder('ipv4first');
-dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+// dns.setDefaultResultOrder('ipv4first');
+// dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 const morgan = require("morgan");
 const helmet = require("helmet");

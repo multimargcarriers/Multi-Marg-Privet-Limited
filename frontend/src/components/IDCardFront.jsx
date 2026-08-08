@@ -78,15 +78,15 @@ const IDCardFront = ({ user, avatarUrl, globalSettings }) => {
 
         {/* Data Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', marginTop: 'auto', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
+          <div style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {user?.role === 'Vendor' ? 'Vendor Account' : user?.role === 'Client' ? 'Client Account' : 'Employee ID'}
             </span>
-            <span style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', fontWeight: 800 }}>{user?.employeeId || 'MC-1001'}</span>
+            <span style={{ display: 'block', fontSize: '0.95rem', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.employeeId || 'MC-1001'}</span>
           </div>
-          <div>
-            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Blood Group</span>
-            <span style={{ display: 'block', fontSize: '0.95rem', color: '#d00000', fontWeight: 800 }}>{user?.bloodGroup || 'N/A'}</span>
+          <div style={{ minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Blood Group</span>
+            <span style={{ display: 'block', fontSize: '0.95rem', color: '#d00000', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.bloodGroup || 'N/A'}</span>
           </div>
         </div>
       </div>

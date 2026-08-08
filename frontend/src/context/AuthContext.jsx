@@ -49,10 +49,7 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.error("Failed to fetch fresh user data from DB:", e);
       if (e.response?.status === 401) {
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        logout();
       }
     }
   };
@@ -91,7 +88,7 @@ export const AuthProvider = ({ children }) => {
 
   const logoutTimerId = useRef(null);
   const warningTimerId = useRef(null);
-  const IDLE_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
   const WARNING_BEFORE_MS = 60 * 1000; // Show warning 1 minute before logout
 
   useEffect(() => {
@@ -151,7 +148,12 @@ export const AuthProvider = ({ children }) => {
     const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimargcarriers.co.in';
     const hasDashboard = isSuperAdmin || (userData.permissions && (userData.permissions.includes('all') || userData.permissions.includes('dashboard')));
     
-    if (hasDashboard) {
+    const savedRedirectUrl = localStorage.getItem('redirectUrl');
+
+    if (savedRedirectUrl) {
+      localStorage.removeItem('redirectUrl');
+      navigate(savedRedirectUrl);
+    } else if (hasDashboard) {
       navigate('/dashboard');
     } else if (userData.role === 'Client' || userData.role === 'Vendor') {
       navigate('/trips');
@@ -171,10 +173,20 @@ export const AuthProvider = ({ children }) => {
       console.error("Logout API failed", e);
     }
     
+    let redirectUrl = null;
+    if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+      redirectUrl = window.location.pathname + window.location.search;
+    }
+
     setUser(null);
     setToken(null);
+    
     localStorage.clear();
     sessionStorage.clear();
+
+    if (redirectUrl) {
+      localStorage.setItem('redirectUrl', redirectUrl);
+    }
     
     window.location.href = '/';
   };

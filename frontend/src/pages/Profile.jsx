@@ -662,13 +662,17 @@ const Profile = () => {
                 <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Vibrant corporate identification badge.</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', width: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-color)', padding: '3rem', borderRadius: '12px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', width: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-color)', padding: '3rem 1rem', borderRadius: '12px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
                 
                 {/* --- FRONT OF ID CARD --- */}
-                <IDCardFront user={user} avatarUrl={getAvatarUrl()} globalSettings={globalSettings} />
+                <div className="id-card-scaler">
+                  <IDCardFront user={user} avatarUrl={getAvatarUrl()} globalSettings={globalSettings} />
+                </div>
 
                 {/* --- BACK OF ID CARD --- */}
-                <IDCardBack user={user} globalSettings={globalSettings} />
+                <div className="id-card-scaler">
+                  <IDCardBack user={user} globalSettings={globalSettings} />
+                </div>
 
               </div>
 
@@ -730,6 +734,20 @@ const Profile = () => {
         .hover-lift:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+        }
+        @media (max-width: 400px) {
+          .id-card-scaler {
+            transform: scale(0.85);
+            transform-origin: top center;
+            margin-bottom: -80px;
+          }
+        }
+        @media (max-width: 340px) {
+          .id-card-scaler {
+            transform: scale(0.75);
+            transform-origin: top center;
+            margin-bottom: -135px;
+          }
         }
       `}} />
 
