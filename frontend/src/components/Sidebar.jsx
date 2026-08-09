@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { SettingsContext } from "../context/SettingsContext";
+import { BadgeContext } from "../context/BadgeContext";
 import appDB from "../utils/appDB";
 import {
   LayoutDashboard,
@@ -49,9 +50,10 @@ export const menuItems = [
         name: "ALL AWB Bookings",
         path: "/bookings",
         icon: <ClipboardList size={18} />,
-        permission: "bookings"
+        permission: "bookings",
+        moduleKey: "bookings"
       },
-      { name: "ALL Train AIR Road Bookings", path: "/trips", icon: <Truck size={18} />, permission: "trips" },
+      { name: "ALL Train AIR Road Bookings", path: "/trips", icon: <Truck size={18} />, permission: "trips", moduleKey: "trips" },
       { name: "Vehicle Trip MIS", path: "/trip-mis", icon: <FileText size={18} />, permission: "tripmis" },
       { name: "Vendor Vehicle MIS", path: "/vendor-mis", icon: <Truck size={18} />, permission: "vendormis" },
       { name: "Tracking", path: "/tracking", icon: <MapPin size={18} /> },
@@ -74,19 +76,22 @@ export const menuItems = [
         name: "Sales Bills", 
         path: "/bills/all", 
         icon: <Receipt size={18} />, 
-        permission: "all_bills" 
+        permission: "all_bills",
+        moduleKey: "bills" 
       },
       {
         name: "Purchase Bills",
         path: "/purchases",
         icon: <ShoppingCart size={18} />,
-        permission: "purchases"
+        permission: "purchases",
+        moduleKey: "purchases"
       },
       {
         name: "Cash Sheet",
         path: "/cash-sheet",
         icon: <DollarSign size={18} />,
-        permission: "cash_sheet"
+        permission: "cash_sheet",
+        moduleKey: "cashEntries"
       },
     ],
   },
@@ -203,6 +208,7 @@ export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
 
 const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
+  const { unreadCounts } = useContext(BadgeContext);
   const { globalSettings } = useContext(SettingsContext);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredPopover, setHoveredPopover] = useState(null);
@@ -495,6 +501,11 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
                           {child.icon}
                         </div>
                         <span>{child.name}</span>
+                  {child.moduleKey && unreadCounts?.[child.moduleKey] > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {unreadCounts[child.moduleKey]}
+                    </span>
+                  )}
                       </NavLink>
                     ))}
                   </div>

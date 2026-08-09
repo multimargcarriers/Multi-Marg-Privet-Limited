@@ -33,12 +33,15 @@ import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
+import VendorBalancesModal from "../components/VendorBalancesModal";
+import { BadgeContext } from "../context/BadgeContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CashSheet = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
+  const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
@@ -174,6 +177,7 @@ const CashSheet = () => {
 
   useEffect(() => {
     fetchData();
+    clearBadge("cashEntries");
   }, []);
 
   async function fetchData() {

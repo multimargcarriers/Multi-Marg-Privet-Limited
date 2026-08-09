@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { BadgeContext } from "../context/BadgeContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate, formatAmount } from '../utils/formatters';
@@ -36,6 +37,7 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const Purchase = () => {
   const { user } = useContext(AuthContext);
+  const { clearBadge } = useContext(BadgeContext);
   const { confirm, alert: alertDialog } = useDialog();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
@@ -92,6 +94,7 @@ const Purchase = () => {
 
   useEffect(() => {
     fetchData();
+    clearBadge("purchases");
   }, []);
 
   const fetchData = async () => {

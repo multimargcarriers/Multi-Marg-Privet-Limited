@@ -204,7 +204,7 @@ exports.postRoot_1 = async (req, res) => {
   // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
-  emitDataUpdated("bookings");
+  emitDataUpdated("bookings", "create");
   return created(res, "Booking created successfully", {
     id: docRef.id,
     ...booking
@@ -274,7 +274,7 @@ exports.put_id_4 = async (req, res) => {
   // await generateOrUpdateBillForBooking(updatedBooking, false); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
-  emitDataUpdated("bookings");
+  emitDataUpdated("bookings", "update");
     return success(res, "Booking updated successfully", {
     id,
     ...req.body
@@ -313,7 +313,7 @@ exports.delete_id_5 = async (req, res) => {
   }
 
   await delCache(CACHE_KEY);
-  emitDataUpdated("bookings");
+  emitDataUpdated("bookings", "delete");
   return success(res, "Booking and related data deleted successfully");
 };
 
@@ -327,7 +327,7 @@ exports.delete_clear_all_6 = async (req, res) => {
   try {
     const snapshot = await db.collection("bookings").get();
     if (snapshot.empty) {
-      emitDataUpdated("bookings");
+      emitDataUpdated("bookings", "update");
     return success(res, "No bookings found to delete.");
     }
 

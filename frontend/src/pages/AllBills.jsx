@@ -9,6 +9,7 @@ import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
 import { SettingsContext } from "../context/SettingsContext";
 import { useSocketSync } from "../hooks/useSocketSync";
+import { BadgeContext } from "../context/BadgeContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import StatsPanel from "../components/StatsPanel";
@@ -18,6 +19,7 @@ import useTableSort from "../hooks/useTableSort";
 const AllBills = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
+  const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
@@ -32,7 +34,10 @@ const AllBills = () => {
   const { globalSettings } = useContext(SettingsContext);
   const enableCsvImport = globalSettings?.integrations?.enableCsvImport !== false;
 
-  useEffect(() => { fetchBills(); }, []);
+  useEffect(() => {
+    fetchBills();
+    clearBadge("bills");
+  }, []);
 
   const fetchBills = async () => {
     try {

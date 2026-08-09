@@ -13,6 +13,7 @@ import PodEntryModal from "../components/pod/PodEntryModal";
 import BoxEntryModal from "../components/box/BoxEntryModal";
 import { AnimatePresence } from "framer-motion";
 import { useSocketSync } from '../hooks/useSocketSync';
+import { BadgeContext } from "../context/BadgeContext";
 import { SettingsContext } from "../context/SettingsContext";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
@@ -20,6 +21,7 @@ import useTableSort from "../hooks/useTableSort";
 const BookingsList = () => {
   const { user, hasPermission } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
+  const { clearBadge } = useContext(BadgeContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const canAccessPod = isSuperAdmin || user?.role === 'Admin' || user?.permissions?.includes('pod') || true;
@@ -47,6 +49,7 @@ const BookingsList = () => {
 
   useEffect(() => { 
     fetchAllData(); 
+    clearBadge("bookings");
   }, []);
 
   const fetchAllData = async () => {

@@ -53,7 +53,7 @@ exports.postRoot_2 = async (req, res) => {
   
   const docRef = await db.collection("trips").add(trip);
   await delCache(CACHE_KEY);
-  emitDataUpdated("trips");
+  emitDataUpdated("trips", "create");
   return created(res, "Trip created successfully", {
     id: docRef.id,
     ...trip
@@ -68,7 +68,7 @@ exports.put_id_3 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip not found", 404);
   await db.collection("trips").doc(id).update(req.body);
   await delCache(CACHE_KEY);
-  emitDataUpdated("trips");
+  emitDataUpdated("trips", "update");
     return success(res, "Trip updated successfully", {
     id,
     ...req.body
@@ -83,7 +83,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip not found", 404);
   await db.collection("trips").doc(id).delete(req.user);
   await delCache(CACHE_KEY);
-  emitDataUpdated("trips");
+  emitDataUpdated("trips", "delete");
     return success(res, "Trip deleted successfully");
 };
 

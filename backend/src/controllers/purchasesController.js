@@ -59,7 +59,7 @@ exports.postRoot_2 = async (req, res) => {
     await recalculatePartyPayments('Vendor', purchase.vendor);
   }
   await delCache(CACHE_KEY);
-  emitDataUpdated("purchases");
+  emitDataUpdated("purchases", "create");
   return created(res, "Purchase created successfully", {
     id: docRef.id,
     ...purchase
@@ -144,7 +144,7 @@ exports.delete_id_3 = async (req, res) => {
     await recalculatePartyPayments('Vendor', data.vendor);
   }
   await delCache(CACHE_KEY);
-  emitDataUpdated("purchases");
+  emitDataUpdated("purchases", "update");
     return success(res, "Purchase deleted successfully");
 };
 
@@ -188,7 +188,7 @@ exports.postImport = async (req, res) => {
     }
     
     await delCache(CACHE_KEY);
-    emitDataUpdated("purchases");
+    emitDataUpdated("purchases", "delete");
     return success(res, 'Import successful', { count: entries.length });
   } catch (err) {
     console.error('[Purchases] Import Error:', err);

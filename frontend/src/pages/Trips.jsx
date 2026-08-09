@@ -16,6 +16,7 @@ import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import appDB from "../utils/appDB";
+import { BadgeContext } from "../context/BadgeContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -23,6 +24,7 @@ const Trips = () => {
   const _navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
+  const { clearBadge } = useContext(BadgeContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
@@ -86,19 +88,6 @@ const Trips = () => {
 
   useEffect(() => {
     appDB.set('manifestFormDraft', form);
-  }, [form]);
-
-  // Default view handling for restricted roles
-  useEffect(() => {
-  }, [user]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      if (trips.length === 0) setLoading(true);
       const [clientsRes, vendorsRes, citiesRes, tripsRes] = await Promise.all([
         axios.get(`${API}/clients`).catch(() => ({ data: { success: false } })),
         axios.get(`${API}/vendors`).catch(() => ({ data: { success: false } })),

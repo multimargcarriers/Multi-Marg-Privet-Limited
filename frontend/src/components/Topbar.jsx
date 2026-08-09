@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
 import { useNotification } from '../context/NotificationContext';
+import { BadgeContext } from '../context/BadgeContext';
 import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
 import { } from '../context/ToastContext';
@@ -11,6 +12,7 @@ import { } from '../context/ToastContext';
 const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
   const { user, hasPermission } = useContext(AuthContext);
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
+  const { notifications, totalUnreadActivity, markAsRead } = useContext(BadgeContext);
   const { fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
   const [fontInputValue, setFontInputValue] = useState(fontSize ? fontSize.toString() : '100');
 
@@ -57,6 +59,22 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const totalNotificationCount = totalIncomplete + totalUnreadActivity;
+
+  const handleActivityClick = (item) => {
+    markAsRead(item.id);
+    setDropdownOpen(false);
+    
+    let path = "/dashboard";
+    if (item.module === "bookings") path = "/bookings";
+    if (item.module === "trips") path = "/trips";
+    if (item.module === "bills") path = "/bills/all";
+    if (item.module === "purchases") path = "/purchases";
+    if (item.module === "cashEntries") path = "/cash-sheet";
+    
+    navigate(path);
+  };
 
   const handleNotificationClick = (item) => {
     setDropdownOpen(false);
@@ -288,21 +306,21 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
           </button>
         </div>
 
-        {/* Notifications (Admin & Super Admin ONLY) */}
-        {hasSidebar && (user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email?.includes('admin@')) && (
+        {/* Notifications (Admin, Super Admin, and those with activity permissions) */}
+        {hasSidebar && (
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', position: 'relative', display: 'flex', alignItems: 'center' }}
             >
               <Bell size={20} />
-              {totalIncomplete > 0 && (
+              {totalNotificationCount > 0 && (
                 <span style={{
                   position: 'absolute', top: '-5px', right: '-8px',
                   background: '#ef4444', color: 'white', borderRadius: '50%',
                   padding: '0.1rem 0.4rem', fontSize: '0.7rem', fontWeight: 'bold'
                 }}>
-                  {totalIncomplete}
+                  {totalNotificationCount}
                 </span>
               )}
             </button>
@@ -310,38 +328,70 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
             {dropdownOpen && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '10px',
-                width: '300px', background: 'white', borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                width: '320px', background: 'white', borderRadius: '8px',
+                boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15), 0 4px 6px -2px rgba(0,0,0,0.05)',
                 border: '1px solid #e2e8f0', color: '#1e293b', zIndex: 1000
               }}>
-                <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600' }}>
-                  Notifications ({totalIncomplete})
+                <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Notifications</span>
+                  <span style={{ fontSize: '0.8rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>{totalNotificationCount} New</span>
                 </div>
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  {incompleteItems.length === 0 ? (
+                <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                  {incompleteItems.length === 0 && notifications.length === 0 ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
                       No pending notifications!
                     </div>
                   ) : (
-                    incompleteItems.map(item => (
-                      <div 
-                        key={item.id} 
-                        onClick={() => handleNotificationClick(item)}
-                        style={{ 
-                          padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                          display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
-                          transition: 'background 0.2s'
-                        }}
-                        onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
-                        onMouseOut={e => e.currentTarget.style.background = 'white'}
-                      >
-                        <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>Incomplete {item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>"{item.name}" requires more details. Click to complete.</div>
+                    <>
+                      {/* Real-time Activity Notifications */}
+                      {notifications.map(item => (
+                        <div 
+                          key={item.id} 
+                          onClick={() => handleActivityClick(item)}
+                          style={{ 
+                            padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                            display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+                            background: item.read ? 'white' : '#eff6ff',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.background = item.read ? '#f8fafc' : '#dbeafe'}
+                          onMouseOut={e => e.currentTarget.style.background = item.read ? 'white' : '#eff6ff'}
+                        >
+                          <Bell size={18} color="#3b82f6" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: item.read ? '500' : '600' }}>{item.title || item.message}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              {new Date(item.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                          {!item.read && (
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: '6px' }} />
+                          )}
                         </div>
-                      </div>
-                    ))
+                      ))}
+
+                      {/* Incomplete Master Notifications */}
+                      {incompleteItems.map(item => (
+                        <div 
+                          key={item.id} 
+                          onClick={() => handleNotificationClick(item)}
+                          style={{ 
+                            padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                            display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
+                            background: 'white',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+                          onMouseOut={e => e.currentTarget.style.background = 'white'}
+                        >
+                          <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>Incomplete {item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>"{item.name}" requires more details. Click to complete.</div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
                   )}
                 </div>
               </div>

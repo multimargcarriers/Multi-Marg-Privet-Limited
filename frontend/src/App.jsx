@@ -55,6 +55,7 @@ import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
 import { DialogProvider } from "./context/DialogContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { BadgeProvider } from "./context/BadgeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MaintenanceGuard from "./components/MaintenanceGuard";
 import "./index.css";
@@ -74,8 +75,9 @@ function App() {
           <SettingsProvider>
             <DialogProvider>
               <NotificationProvider>
-                <Routes>
-          <Route path="/" element={<Login />} />
+                <BadgeProvider>
+                  <Routes>
+                    <Route path="/" element={<Login />} />
 
           {/* Protected Routes */}
           <Route element={<DashboardLayout />}>
@@ -176,7 +178,8 @@ function App() {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                  </Routes>
+                </BadgeProvider>
               </NotificationProvider>
             </DialogProvider>
           </SettingsProvider>

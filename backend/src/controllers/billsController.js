@@ -98,7 +98,7 @@ exports.post_id_upload_pdf_4 = async (req, res) => {
     pdfUrl: uploadResult.url
   });
   await delCache(CACHE_KEY);
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "create");
     return success(res, "PDF uploaded successfully", { url: uploadResult.url });
 };
 
@@ -304,7 +304,7 @@ exports.post_generate_5 = async (req, res) => {
   await delCache(CACHE_KEY);
   await delCache("bookings");
   
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "update");
     return success(res, "Bills generated successfully", {
     billNo: bill.billNo,
     bills: [bill],
@@ -357,8 +357,8 @@ exports.post_misc_6 = async (req, res) => {
     await recalculatePartyPayments('Client', bill.client);
   }
   await delCache(CACHE_KEY);
-  emitDataUpdated("bills");
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("bills", "update");
   return created(res, "Miscellaneous bill created successfully", bill);
 };
 
@@ -417,7 +417,7 @@ exports.put_id_7 = async (req, res) => {
       await recalculatePartyPayments('Client', newClient);
   }
   await delCache(CACHE_KEY);
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "update");
     return success(res, "Bill updated successfully", {
     id,
     ...updatedData
@@ -460,7 +460,7 @@ exports.delete_id_8 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   await delCache("bookings");
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "delete");
     return success(res, "Bill deleted successfully");
 };
 
@@ -621,7 +621,7 @@ exports.post_import_9 = async (req, res) => {
   }
 
   await delCache(CACHE_KEY);
-  emitDataUpdated("bills");
+  emitDataUpdated("bills", "update");
   return success(res, `Successfully imported ${importedCount} bills`);
 };
 

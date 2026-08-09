@@ -59,7 +59,7 @@ exports.postRoot_2 = async (req, res) => {
   await recalculatePartyPayments(entry.partyType, entry.partyName);
 
   await delCache(CACHE_KEY);
-  emitDataUpdated("cashEntries");
+  emitDataUpdated("cashEntries", "create");
   return created(res, "Cash entry created successfully", {
     id: docRef.id,
     ...entry
@@ -84,7 +84,7 @@ exports.delete_id_3 = async (req, res) => {
 
   await docRef.delete(req.user);
   await delCache(CACHE_KEY);
-  emitDataUpdated("cashEntries");
+  emitDataUpdated("cashEntries", "create");
   await recalculatePartyPayments(data.partyType, data.partyName);
   return success(res, "Cash entry deleted successfully");
 };
@@ -134,7 +134,7 @@ exports.put_id_4 = async (req, res) => {
 
     await docRef.update(updateData);
     await delCache(CACHE_KEY);
-    emitDataUpdated("cashEntries");
+    emitDataUpdated("cashEntries", "update");
     runAnalyticsAggregation().catch(e => console.error("Auto analytics sync failed", e));
     
     
@@ -188,7 +188,7 @@ exports.postImport = async (req, res) => {
     }
     
     await delCache(CACHE_KEY);
-    emitDataUpdated("cashEntries");
+    emitDataUpdated("cashEntries", "delete");
     return success(res, 'Import successful', { count: entries.length });
   } catch (err) {
     console.error('[Cash] Import Error:', err);
@@ -234,7 +234,7 @@ exports.postImportVendor = async (req, res) => {
     }
     
     await delCache(CACHE_KEY);
-    emitDataUpdated("cashEntries");
+    emitDataUpdated("cashEntries", "update");
     return success(res, 'Vendor import successful', { count: entries.length });
   } catch (err) {
     console.error('[Cash] Vendor Import Error:', err);
@@ -279,7 +279,7 @@ exports.bulkDelete = async (req, res) => {
 
   await batch.commit();
   await delCache(CACHE_KEY);
-  emitDataUpdated("cashEntries");
+  emitDataUpdated("cashEntries", "create");
 
   // Recalculate balances
   for (const itemStr of partiesToRecalculate) {
