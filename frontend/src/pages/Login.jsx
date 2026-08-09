@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import appDB from '../utils/appDB';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,9 +28,9 @@ const Login = () => {
 
   // Check for active OTP session on mount
   useEffect(() => {
-    const savedSession = localStorage.getItem('otpSession');
+    const savedSession = appDB.memGet('otpSession');
     if (savedSession) {
-      const { email: savedEmail, expiresAt, resendAt } = JSON.parse(savedSession);
+      const { email: savedEmail, expiresAt, resendAt } = savedSession;
       const now = Date.now();
       
       if (now < expiresAt) {
@@ -38,7 +39,7 @@ const Login = () => {
         const remainingResend = Math.max(0, Math.floor((resendAt - now) / 1000));
         setResendTimer(remainingResend);
       } else {
-        localStorage.removeItem('otpSession');
+        appDB.remove('otpSession');
       }
     }
   }, []);
@@ -173,11 +174,11 @@ const Login = () => {
         setView('otp');
         setResendTimer(120);
         
-        localStorage.setItem('otpSession', JSON.stringify({
+        appDB.set('otpSession', {
           email,
           expiresAt: Date.now() + 5 * 60 * 1000,
           resendAt: Date.now() + 2 * 60 * 1000
-        }));
+        });
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to request password reset.');
@@ -197,7 +198,7 @@ const Login = () => {
         setResetToken(response.data.data.resetToken);
         setSuccessMsg('OTP verified! Please set a new password.');
         setView('reset');
-        localStorage.removeItem('otpSession');
+        appDB.remove('otpSession');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired OTP.');

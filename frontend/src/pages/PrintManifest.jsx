@@ -5,6 +5,7 @@ import { Download, ArrowLeft } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
+import appDB from "../utils/appDB";
 
 const _API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -38,7 +39,7 @@ const PrintManifest = () => {
   useEffect(() => {
     const fetchTrip = async () => {
       try {
-        const localTrips = JSON.parse(localStorage.getItem('mockTrips')) || [];
+        const localTrips = appDB.memGet('mockTrips') || [];
         const foundTrip = localTrips.find(t => t.id === id);
         if (foundTrip) {
           setTrip(foundTrip);

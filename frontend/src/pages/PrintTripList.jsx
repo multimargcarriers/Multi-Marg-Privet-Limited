@@ -4,6 +4,7 @@ import { Download, ArrowLeft } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
+import appDB from "../utils/appDB";
 
 const PrintTripList = () => {
   const navigate = useNavigate();
@@ -14,9 +15,9 @@ const PrintTripList = () => {
   const [tripListEntries, setTripListEntries] = useState([]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tripListEntries");
+    const saved = appDB.memGet("tripListEntries");
     if (saved) {
-      setTripListEntries(JSON.parse(saved));
+      setTripListEntries(saved);
     }
   }, []);
 

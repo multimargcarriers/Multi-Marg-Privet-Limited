@@ -4,6 +4,7 @@ import { Download, ArrowLeft } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
+import appDB from "../utils/appDB";
 
 
 const PrintSingleTrip = () => {
@@ -19,12 +20,12 @@ const PrintSingleTrip = () => {
 
   useEffect(() => {
     if (index === 'mis-print') {
-      const saved = localStorage.getItem("printSingleTripData");
-      if (saved) setTrip(JSON.parse(saved));
+      const saved = appDB.memGet("printSingleTripData");
+      if (saved) setTrip(saved);
     } else {
-      const saved = localStorage.getItem("tripListEntries");
+      const saved = appDB.memGet("tripListEntries");
       if (saved) {
-        const entries = JSON.parse(saved);
+        const entries = saved;
         if (entries[index]) {
           setTrip(entries[index]);
         }

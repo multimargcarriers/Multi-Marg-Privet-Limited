@@ -1,20 +1,21 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
+import appDB from '../utils/appDB';
 
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const { user, token } = useContext(AuthContext);
   const [incompleteItems, setIncompleteItems] = useState(() => {
-    const cached = localStorage.getItem('incompleteNotifications');
-    return cached ? JSON.parse(cached) : [];
+    const cached = appDB.memGet('incompleteNotifications');
+    return cached || [];
   });
   const [totalIncomplete, setTotalIncomplete] = useState(() => {
-    const cached = localStorage.getItem('totalIncompleteNotifications');
-    return cached ? parseInt(cached, 10) : 0;
+    const cached = appDB.memGet('totalIncompleteNotifications');
+    return cached ? (typeof cached === 'number' ? cached : parseInt(cached, 10)) : 0;
   });
-  const [loading, setLoading] = useState(!localStorage.getItem('incompleteNotifications'));
+  const [loading, setLoading] = useState(!appDB.memGet('incompleteNotifications'));
 
   const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -22,15 +23,15 @@ export const NotificationProvider = ({ children }) => {
     if (!user || !token) return; // Wait for user to be logged in
     
     try {
-      if (!localStorage.getItem('incompleteNotifications')) setLoading(true);
+      if (!appDB.memGet('incompleteNotifications')) setLoading(true);
       const res = await axios.get(`${API}/notifications/incomplete`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
         setIncompleteItems(res.data.data.items || []);
         setTotalIncomplete(res.data.data.total || 0);
-        localStorage.setItem('incompleteNotifications', JSON.stringify(res.data.data.items || []));
-        localStorage.setItem('totalIncompleteNotifications', (res.data.data.total || 0).toString());
+        appDB.set('incompleteNotifications', res.data.data.items || []);
+        appDB.set('totalIncompleteNotifications', res.data.data.total || 0);
       }
     } catch (error) {
       console.error("Error fetching incomplete items:", error);

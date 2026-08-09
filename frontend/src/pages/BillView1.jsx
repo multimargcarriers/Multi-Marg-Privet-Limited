@@ -6,6 +6,7 @@ import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
 import { useToast } from "../context/ToastContext";
 import html2pdf from "html2pdf.js";
+import appDB from "../utils/appDB";
 
 // Indian Currency Number to Words converter
 const numberToWordsIndian = (num) => {
@@ -79,8 +80,8 @@ const BillView1 = () => {
   // Option toggle for official company stamp
   const [includeStamp, setIncludeStamp] = useState(() => {
     try {
-      const saved = localStorage.getItem("bill_include_stamp");
-      return saved !== null ? JSON.parse(saved) : true;
+      const saved = appDB.memGet("bill_include_stamp");
+      return saved !== null ? saved : true;
     } catch (_e) {
       return true;
     }
@@ -89,15 +90,15 @@ const BillView1 = () => {
   const toggleStamp = (val) => {
     setIncludeStamp(val);
     try {
-      localStorage.setItem("bill_include_stamp", JSON.stringify(val));
+      appDB.set("bill_include_stamp", val);
     } catch (_e) {}
   };
 
   // Option toggle for official company background watermark
   const [showWatermark, setShowWatermark] = useState(() => {
     try {
-      const saved = localStorage.getItem("bill_show_watermark");
-      return saved !== null ? JSON.parse(saved) : true;
+      const saved = appDB.memGet("bill_show_watermark");
+      return saved !== null ? saved : true;
     } catch (_e) {
       return true;
     }
@@ -106,7 +107,7 @@ const BillView1 = () => {
   const toggleWatermark = (val) => {
     setShowWatermark(val);
     try {
-      localStorage.setItem("bill_show_watermark", JSON.stringify(val));
+      appDB.set("bill_show_watermark", val);
     } catch (_e) {}
   };
 

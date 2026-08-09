@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { SettingsContext } from "../context/SettingsContext";
+import appDB from "../utils/appDB";
 import {
   LayoutDashboard,
   Users,
@@ -212,10 +213,10 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   // Track accordion open/closed state for sections
   const [openSections, setOpenSections] = useState(() => {
     try {
-      const saved = localStorage.getItem("sidebar_open_sections");
-      if (saved) return JSON.parse(saved);
+      const saved = appDB.memGet("sidebar_open_sections");
+      if (saved) return saved;
     } catch (e) {
-      console.error("Failed to parse sidebar_open_sections from localStorage", e);
+      console.error("Failed to parse sidebar_open_sections from appDB", e);
     }
     return {
       Masters: true,
@@ -239,7 +240,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
           setOpenSections((prev) => {
             if (!prev[item.name]) {
               const updated = { ...prev, [item.name]: true };
-              localStorage.setItem("sidebar_open_sections", JSON.stringify(updated));
+              appDB.set("sidebar_open_sections", updated);
               return updated;
             }
             return prev;
@@ -257,7 +258,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         if (item.isHeader) allOpen[item.name] = true;
       });
       setOpenSections(allOpen);
-      localStorage.setItem("sidebar_open_sections", JSON.stringify(allOpen));
+      appDB.set("sidebar_open_sections", allOpen);
     };
 
     const handleCollapseAll = () => {
@@ -266,7 +267,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
         if (item.isHeader) allClosed[item.name] = false;
       });
       setOpenSections(allClosed);
-      localStorage.setItem("sidebar_open_sections", JSON.stringify(allClosed));
+      appDB.set("sidebar_open_sections", allClosed);
     };
 
     window.addEventListener("sidebar-expand-all", handleExpandAll);
@@ -280,7 +281,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const toggleSection = (sectionName) => {
     setOpenSections((prev) => {
       const updated = { ...prev, [sectionName]: !prev[sectionName] };
-      localStorage.setItem("sidebar_open_sections", JSON.stringify(updated));
+      appDB.set("sidebar_open_sections", updated);
       return updated;
     });
   };

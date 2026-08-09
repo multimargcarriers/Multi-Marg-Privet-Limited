@@ -11,6 +11,7 @@ import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import { AnimatePresence } from "framer-motion";
+import appDB from "../utils/appDB";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -246,12 +247,11 @@ const CreateBooking = () => {
     
     // Load draft if not in edit mode
     if (!id) {
-      const savedDraft = localStorage.getItem('bookingFormDraft');
+      const savedDraft = appDB.memGet('bookingFormDraft');
       if (savedDraft) {
         try {
-          const parsed = JSON.parse(savedDraft);
-          if (parsed) {
-            setFormData(prev => ({ ...prev, ...parsed }));
+          if (savedDraft) {
+            setFormData(prev => ({ ...prev, ...savedDraft }));
           }
         } catch (e) {
           console.error("Failed to parse booking draft", e);
@@ -265,7 +265,7 @@ const CreateBooking = () => {
   // Auto-save draft
   useEffect(() => {
     if (!isEditMode && formData) {
-      localStorage.setItem('bookingFormDraft', JSON.stringify(formData));
+      appDB.set('bookingFormDraft', formData);
     }
   }, [formData, isEditMode]);
 
@@ -378,7 +378,7 @@ const CreateBooking = () => {
       if (response.data.success) {
         addToast(`Booking ${isEditMode ? 'updated' : 'created'} successfully`, "success");
         if (!isEditMode) {
-          localStorage.removeItem('bookingFormDraft');
+          appDB.remove('bookingFormDraft');
         }
         navigate("/bookings");
       }
@@ -800,7 +800,7 @@ const CreateBooking = () => {
                 invoiceDetails: [{ invoiceNo: "", invoiceValue: "", invoiceDate: "", partNumber: "", ewayBill: "", quantity: "" }]
               });
               if (!isEditMode) {
-                localStorage.removeItem('bookingFormDraft');
+                appDB.remove('bookingFormDraft');
               }
             }}
           >

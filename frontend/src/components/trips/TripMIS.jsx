@@ -9,6 +9,7 @@ import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatte
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
+import appDB from "../../utils/appDB";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -39,7 +40,7 @@ const TripMIS = () => {
   }, [activeRemarksModal?.remarks]);
 
   const _handleShareWhatsApp = (item) => {
-    localStorage.setItem("printSingleTripData", JSON.stringify(item));
+    appDB.set("printSingleTripData", item);
     window.open('/print-single-trip/mis-print', '_blank');
 
     const totalBox = item.box || item.parcels?.reduce((s, p) => s + (parseInt(p.box) || 0), 0) || 0;
@@ -847,7 +848,7 @@ const TripMIS = () => {
                   )}
                   <button 
                     onClick={() => {
-                      localStorage.setItem("printSingleTripData", JSON.stringify(item));
+                      appDB.set("printSingleTripData", item);
                       window.open(`/print-single-trip/mis-print`, '_blank');
                     }}
                     className="action-btn action-btn-light"

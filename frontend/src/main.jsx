@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
+import appDB from './utils/appDB.js'
 
 // Add Axios Request Interceptor for Global Authorization
 axios.interceptors.request.use((config) => {
@@ -61,7 +62,7 @@ axios.interceptors.response.use(
           localStorage.setItem('token', refreshRes.data.token);
           
           if (refreshRes.data.data) {
-            localStorage.setItem('user', JSON.stringify(refreshRes.data.data));
+            appDB.set('user', refreshRes.data.data);
           }
           
           axios.defaults.headers.common['Authorization'] = 'Bearer ' + refreshRes.data.token;
@@ -211,11 +212,14 @@ axios.delete = async function (...args) { args[0] = rewriteUrl(args[0]); clearCa
 const originalPatch = axios.patch;
 axios.patch = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalPatch.apply(this, args); };
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// Boot: preload IndexedDB into memory, then render React
+appDB.preload().finally(() => {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+});
 
 if ('serviceWorker' in navigator) {
   import('virtual:pwa-register').then(({ registerSW }) => {

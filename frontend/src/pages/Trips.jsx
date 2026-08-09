@@ -15,6 +15,7 @@ import { formatAllCaps, } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
+import appDB from "../utils/appDB";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -76,15 +77,15 @@ const Trips = () => {
   };
   const [form, setForm] = useState(() => {
     try {
-      const saved = localStorage.getItem('manifestFormDraft');
-      if (saved) return JSON.parse(saved);
+      const saved = appDB.memGet('manifestFormDraft');
+      if (saved) return saved;
     } catch (_e) {}
     return initialFormState;
   });
   const [view, setView] = useState("manifest");
 
   useEffect(() => {
-    localStorage.setItem('manifestFormDraft', JSON.stringify(form));
+    appDB.set('manifestFormDraft', form);
   }, [form]);
 
   // Default view handling for restricted roles
@@ -132,7 +133,7 @@ const Trips = () => {
           setSuccess(false);
           setShowForm(false);
           setForm(initialFormState);
-          localStorage.removeItem('manifestFormDraft');
+          appDB.remove('manifestFormDraft');
         }, 2000);
       }
     } catch (err) {

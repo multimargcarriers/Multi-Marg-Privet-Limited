@@ -11,6 +11,7 @@ import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { SettingsContext } from '../context/SettingsContext';
 import { useDialog } from '../context/DialogContext';
 import { useToast } from '../context/ToastContext';
+import appDB from '../utils/appDB';
 
 // Helper to format bytes
 const formatBytes = (bytes, decimals = 2) => {
@@ -333,13 +334,15 @@ const Settings = () => {
         withCredentials: true,
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      // Clear local storage (except auth tokens)
+      // Clear IndexedDB cache (except nothing — full clear)
+      await appDB.clear();
+      // Clear localStorage (except auth tokens)
       const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
+      const userRaw = localStorage.getItem('user');
       localStorage.clear();
       sessionStorage.clear();
       if (token) localStorage.setItem('token', token);
-      if (user) localStorage.setItem('user', user);
+      if (userRaw) localStorage.setItem('user', userRaw);
       
       addToast("Cache cleared successfully!", "success");
       fetchStats();

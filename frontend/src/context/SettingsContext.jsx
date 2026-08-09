@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
+import appDB from '../utils/appDB';
 
 export const SettingsContext = createContext();
 
@@ -12,10 +13,10 @@ export const SettingsProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
   
   const [globalSettings, setGlobalSettings] = useState(() => {
-    const cached = localStorage.getItem('globalSettings');
+    const cached = appDB.memGet('globalSettings');
     if (cached) {
       try {
-        const parsed = JSON.parse(cached);
+        const parsed = cached;
         if (parsed.integrations && parsed.integrations.enableBulkDelete === undefined) {
           parsed.integrations.enableBulkDelete = false;
         }
@@ -79,7 +80,7 @@ export const SettingsProvider = ({ children }) => {
     };
   });
   
-  const [loadingSettings, setLoadingSettings] = useState(!localStorage.getItem('globalSettings'));
+  const [loadingSettings, setLoadingSettings] = useState(!appDB.memGet('globalSettings'));
 
   const fetchSettings = async () => {
     try {
@@ -97,13 +98,13 @@ export const SettingsProvider = ({ children }) => {
       
       if (response.data.success && response.data.data) {
         setGlobalSettings(response.data.data);
-        localStorage.setItem('globalSettings', JSON.stringify(response.data.data));
+        appDB.set('globalSettings', response.data.data);
       }
     } catch (err) {
       console.error('Failed to fetch global settings:', err);
       if (err.response && (err.response.status === 401 || err.response.status === 403)) {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        appDB.remove('user');
         window.location.href = '/';
       }
     } finally {
@@ -145,19 +146,19 @@ export const SettingsProvider = ({ children }) => {
 
   // Font size scale management (persisted in localStorage and user config)
   const [fontSize, setFontSizeState] = useState(() => {
-    const saved = localStorage.getItem('app_font_size');
-    if (saved) return parseInt(saved, 10);
+    const saved = appDB.memGet('app_font_size');
+    if (saved) return typeof saved === 'number' ? saved : parseInt(saved, 10);
     return globalSettings?.ui?.fontSize || 100;
   });
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}%`;
-    localStorage.setItem('app_font_size', fontSize.toString());
+    appDB.set('app_font_size', fontSize);
   }, [fontSize]);
 
   // Sync font size when globalSettings load
   useEffect(() => {
-    if (globalSettings?.ui?.fontSize && !localStorage.getItem('app_font_size')) {
+    if (globalSettings?.ui?.fontSize && !appDB.memGet('app_font_size')) {
       setFontSizeState(globalSettings.ui.fontSize);
     }
   }, [globalSettings?.ui?.fontSize]);

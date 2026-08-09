@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useRef, useContext } from 'r
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useToast } from './ToastContext';
+import appDB from '../utils/appDB';
 
 export const AuthContext = createContext();
 
@@ -38,12 +39,12 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         const cleanUser = normalizeUserData(res.data.data);
         setUser(cleanUser);
-        localStorage.setItem('user', JSON.stringify(cleanUser));
+        appDB.set('user', cleanUser);
         
         // Update token if the backend provided a fresh one (e.g. updated permissions)
         if (res.data.token) {
           setToken(res.data.token);
-          localStorage.setItem('token', res.data.token);
+          localStorage.setItem('token', res.data.token);  // token stays in localStorage for sync interceptor access
         }
       }
     } catch (e) {
@@ -57,26 +58,21 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const storedUser = appDB.memGet('user');
 
     if (storedToken) {
       setToken(storedToken);
       if (storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser);
-          const cleanUser = normalizeUserData(parsed);
-          setUser(cleanUser);
-          localStorage.setItem('user', JSON.stringify(cleanUser));
-        } catch (_e) {
-          console.error("Failed to parse user info");
-        }
+        const cleanUser = normalizeUserData(storedUser);
+        setUser(cleanUser);
+        appDB.set('user', cleanUser);
       }
       // Silently sync fresh data from DB in background
       fetchMe(storedToken).finally(() => setLoading(false));
 
       // Refresh token on window focus to handle IAM changes seamlessly
       const onFocus = () => {
-        const currentToken = localStorage.getItem('token');
+        const currentToken = localStorage.getItem('token');  // token stays in localStorage
         if (currentToken) fetchMe(currentToken);
       };
       window.addEventListener('focus', onFocus);
@@ -141,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     const cleanUser = normalizeUserData(userData);
     setUser(cleanUser);
     setToken(userToken);
-    localStorage.setItem('user', JSON.stringify(cleanUser));
+    appDB.set('user', cleanUser);
     localStorage.setItem('token', userToken);
 
     // Determine initial route based on permissions
@@ -151,7 +147,7 @@ export const AuthProvider = ({ children }) => {
     const savedRedirectUrl = localStorage.getItem('redirectUrl');
 
     if (savedRedirectUrl) {
-      localStorage.removeItem('redirectUrl');
+      localStorage.removeItem('redirectUrl');  // redirectUrl stays in localStorage
       navigate(savedRedirectUrl);
     } else if (hasDashboard) {
       navigate('/dashboard');
@@ -181,6 +177,9 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     
+    // Clear IndexedDB cache
+    appDB.clear();
+    // Clear localStorage (token, redirectUrl)
     localStorage.clear();
     sessionStorage.clear();
 
@@ -195,7 +194,7 @@ export const AuthProvider = ({ children }) => {
     const cleanUser = normalizeUserData(userData);
     setUser(cleanUser);
     if (userToken) setToken(userToken);
-    localStorage.setItem('user', JSON.stringify(cleanUser));
+    appDB.set('user', cleanUser);
     if (userToken) localStorage.setItem('token', userToken);
   };
 

@@ -9,6 +9,7 @@ import { formatAllCaps,  formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
+import appDB from "../../utils/appDB";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -656,7 +657,7 @@ const VendorMIS = () => {
                   )}
                   <button 
                     onClick={() => {
-                      localStorage.setItem("printSingleTripData", JSON.stringify(item));
+                      appDB.set("printSingleTripData", item);
                       window.open(`/print-vendor-trip/mis-print`, '_blank');
                     }}
                     className="action-btn action-btn-light"
