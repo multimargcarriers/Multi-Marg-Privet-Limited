@@ -88,6 +88,16 @@ const Trips = () => {
 
   useEffect(() => {
     appDB.set('manifestFormDraft', form);
+  }, [form]);
+
+  useEffect(() => {
+    fetchData();
+    clearBadge("trips");
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      if (trips.length === 0) setLoading(true);
       const [clientsRes, vendorsRes, citiesRes, tripsRes] = await Promise.all([
         axios.get(`${API}/clients`).catch(() => ({ data: { success: false } })),
         axios.get(`${API}/vendors`).catch(() => ({ data: { success: false } })),

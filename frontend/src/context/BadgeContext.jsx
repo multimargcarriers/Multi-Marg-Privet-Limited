@@ -58,7 +58,7 @@ export const BadgeProvider = ({ children }) => {
         if (isSuperAdmin || isAdmin || (hasPermission && hasPermission(permissionKey))) {
           setNotifications(prev => {
             const newNotif = {
-              id: (crypto.randomUUID && crypto.randomUUID()) || Math.random().toString(36).substring(2, 15),
+              id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
               module: data.module,
               message: `New ${data.module.charAt(0).toUpperCase() + data.module.slice(1)} entry created`,
               timestamp: Date.now(),
