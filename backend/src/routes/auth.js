@@ -32,7 +32,7 @@ const profileUpload = createUploadMiddleware("avatars", {
 router.post(
   "/login",
   [
-    body("email").isEmail().withMessage("Valid email is required"),
+    body("email").notEmpty().withMessage("Login ID is required"),
     body("password").notEmpty().withMessage("Password is required")
   ],
   asyncHandler(post_login_1)
@@ -79,7 +79,7 @@ router.put(
   asyncHandler(put_profile_2)
 );
 
-router.post('/forgot-password', [body('email').isEmail().withMessage('Valid email is required')], asyncHandler(forgot_password));
+router.post('/forgot-password', [body('email').notEmpty().withMessage('Login ID is required')], asyncHandler(forgot_password));
 router.post('/verify-otp', asyncHandler(verify_otp));
 router.post('/reset-password', asyncHandler(reset_password));
 

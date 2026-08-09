@@ -450,36 +450,34 @@ const Rates = () => {
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #e2e8f0", borderTop: "1px solid #e2e8f0", backgroundColor: "#f8fafc" }}>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "25%" }}>Client</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "15%" }}>Origin</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "15%" }}>Destination</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", width: "45%", textAlign: "center" }}>Rates & Charges</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", width: "60px" }}>Edit</th>
-                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center", width: "60px" }}>Delete</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", whiteSpace: "nowrap" }}>Client</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", whiteSpace: "nowrap" }}>Origin</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", borderRight: "1px solid #e2e8f0", textAlign: "center", whiteSpace: "nowrap" }}>Destination</th>
+                <th style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: "600", textAlign: "center" }}>Rates & Charges</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
+                  <td colSpan="4" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading...</td>
                 </tr>
               ) : currentData.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
+                  <td colSpan="4" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>No matching records found.</td>
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
                   <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
-                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "700", textTransform: "uppercase", textAlign: "center" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "700", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "top" }}>
                       {item.client}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "top" }}>
                       {item.origin}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center" }}>
+                    <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "top" }}>
                       {item.destination}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b" }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div style={{ backgroundColor: '#f8fafc', padding: '8px 10px', borderRadius: '4px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
                           <div style={{ fontWeight: '700', color: '#334155', marginBottom: '4px', fontSize: '0.85rem' }}>BASIC CHARGES</div>
@@ -522,39 +520,35 @@ const Rates = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px 12px", borderRight: "1px solid var(--border-color)", textAlign: "center" }}>
-                      <div style={{ display: "flex", justifyContent: "center" }}>
-                        <button 
-                          onClick={() => handleEditClick(item)} 
-                          className="btn btn-primary"
-                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px 12px", textAlign: "center" }}>
-                      <div style={{ display: "flex", justifyContent: "center" }}>
-                        {isSuperAdmin ? (
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                           <button 
-                            onClick={() => handleDelete(item.id)}
-                            className="btn btn-danger"
-                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
-                            title="Delete"
+                            onClick={() => handleEditClick(item)} 
+                            className="btn btn-primary"
+                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                            title="Edit"
                           >
-                            <Trash2 size={16} />
+                            <Edit size={16} />
                           </button>
-                        ) : (
-                          <button 
-                            disabled
-                            style={{ backgroundColor: "#fca5a5", border: "none", width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed" }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
+                          {isSuperAdmin ? (
+                            <button 
+                              onClick={() => handleDelete(item.id)}
+                              className="btn btn-danger"
+                              style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          ) : (
+                            <button 
+                              disabled
+                              style={{ backgroundColor: "#fca5a5", border: "none", width: "36px", height: "36px", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "white", cursor: "not-allowed", flexShrink: 0 }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

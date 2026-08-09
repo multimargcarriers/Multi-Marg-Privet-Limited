@@ -8,12 +8,12 @@ const FirestoreToMongoAdapter = require("./dbAdapter");
 const dns = require("dns");
 
 // Attempt to prevent ECONNREFUSED on some strict IPv6 setups for MongoDB Atlas
-// try {
-//   dns.setDefaultResultOrder("ipv4first");
-//   dns.setServers(["8.8.8.8", "8.8.4.4"]);
-// } catch (e) {
-//   console.warn("[MongoDB DNS] Failed to set DNS servers:", e.message);
-// }
+try {
+  dns.setDefaultResultOrder("ipv4first");
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+} catch (e) {
+  console.warn("[MongoDB DNS] Failed to set DNS servers:", e.message);
+}
 
 // Initialize MongoDB adapter wrapper
 const adapter = new FirestoreToMongoAdapter(null);

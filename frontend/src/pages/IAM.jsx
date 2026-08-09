@@ -234,7 +234,7 @@ const IAM = () => {
 
   const openModal = (user = null) => {
     if (user) {
-      setFormData({ employeeId: '', username: '', ...user, password: '' });
+      setFormData({ employeeId: '', ...user, username: (user.username || '').toLowerCase(), password: '' });
       if ((user.role === 'Client' || user.role === 'Vendor') && user.name) {
         const inList = user.role === 'Client' 
           ? clientsList.some(c => (c.name || c.clientName) === user.name)
@@ -860,7 +860,7 @@ const IAM = () => {
           renderRow={(u, index) => (
             <tr key={u.id || index}>
               <td><strong>{u.name}</strong></td>
-              <td style={{ color: '#64748b' }}>{u.username ? `@${u.username}` : <span style={{opacity: 0.5}}>-</span>}</td>
+              <td style={{ color: '#64748b' }}>{u.username ? `@${u.username.toLowerCase()}` : <span style={{opacity: 0.5}}>-</span>}</td>
               <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
               <td>{u.email}</td>
               <td>

@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User,  Shield,  Key,     LogOut, Globe, Clock,  CheckCircle, ChevronRight, LayoutGrid,   ShieldCheck, Monitor, History, Image as  X, IdCard, } from 'lucide-react';
+import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import IDCardFront from '../components/IDCardFront';
@@ -13,28 +13,26 @@ const Profile = () => {
   const { user, updateUser, token, logout } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { addToast } = useToast();
-  
+
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
-  const [username, setUsername] = useState(user?.username || '');
+  const [username, setUsername] = useState((user?.username || '').toLowerCase());
   const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || '');
-  const [newId, setNewId] = useState(user?.id || '');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
-  const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(user?.photo || null);
-  const [banner, setBanner] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(user?.banner || null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   const [defaultAssets, setDefaultAssets] = useState({ avatars: [], banners: [] });
   const [showGallery, setShowGallery] = useState(false);
   const [galleryType, setGalleryType] = useState('photo'); // 'photo' or 'banner'
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  
+
   useEffect(() => {
     const fetchDefaults = async () => {
       try {
@@ -53,10 +51,10 @@ const Profile = () => {
     };
     fetchDefaults();
   }, [token]);
-  
+
   const [activities, setActivities] = useState([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
-  
+
   useEffect(() => {
     if (activeTab === 'history') {
       const fetchActivities = async () => {
@@ -86,9 +84,8 @@ const Profile = () => {
       setName(user.name || '');
       setEmail(user.email || '');
       setEmployeeId(user.employeeId || '');
-      setUsername(user.username || '');
+      setUsername((user.username || '').toLowerCase());
       setBloodGroup(user.bloodGroup || '');
-      setNewId(user.id || '');
       const userPhoto = user.photo || user.avatar || user.picture || null;
       if (userPhoto) setPhotoPreview(userPhoto);
       if (user.banner || user.bannerUrl) setBannerPreview(user.banner || user.bannerUrl);
@@ -99,7 +96,7 @@ const Profile = () => {
     let src = photoPreview || user?.photo || user?.avatar || user?.picture;
     if (src) {
       if (typeof src === 'string' && src.includes('res.cloudinary.com')) {
-        src = src.toLowerCase();
+        // Cloudinary URLs are case-sensitive, do not lowercase them
       } else if (typeof src === 'string' && src.startsWith('/uploads/')) {
         src = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
       }
@@ -112,7 +109,7 @@ const Profile = () => {
     let src = bannerPreview || user?.banner || user?.bannerUrl;
     if (src) {
       if (typeof src === 'string' && src.includes('res.cloudinary.com')) {
-        src = src.toLowerCase();
+        // Cloudinary URLs are case-sensitive, do not lowercase them
       } else if (typeof src === 'string' && src.startsWith('/uploads/')) {
         src = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
       }
@@ -132,14 +129,13 @@ const Profile = () => {
         return;
       }
       setPhotoPreview(URL.createObjectURL(file));
-      setPhoto(file);
       setShowGallery(false);
-      
+
       try {
         setIsLoading(true);
         const formData = new FormData();
         formData.append('photo', file);
-        
+
         const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -168,14 +164,13 @@ const Profile = () => {
         return;
       }
       setBannerPreview(URL.createObjectURL(file));
-      setBanner(file);
       setShowGallery(false);
-      
+
       try {
         setIsLoading(true);
         const formData = new FormData();
         formData.append('banner', file);
-        
+
         const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -204,19 +199,17 @@ const Profile = () => {
   const handleSelectGallery = async (url) => {
     if (galleryType === 'photo') {
       setPhotoPreview(url);
-      setPhoto(url);
     } else {
       setBannerPreview(url);
-      setBanner(url);
     }
     setShowGallery(false);
-    
+
     try {
       setIsLoading(true);
       const formData = new FormData();
       if (galleryType === 'photo') formData.append('photoUrl', url);
       else formData.append('bannerUrl', url);
-      
+
       const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -241,34 +234,28 @@ const Profile = () => {
 
   const handleSubmit = async (e, skipConfirm = false) => {
     if (e && e.preventDefault) e.preventDefault();
-    
-    if (username !== (user.username || '') && !skipConfirm) {
+
+    if (username !== (user.username || '').toLowerCase() && !skipConfirm) {
       setShowConfirmDialog(true);
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const formData = new FormData();
       if (name !== user.name) formData.append('name', name);
       if (email !== user.email) formData.append('email', email);
       if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
       if (bloodGroup !== (user.bloodGroup || '')) formData.append('bloodGroup', bloodGroup);
-      
-      if (username !== (user.username || '')) {
-        formData.append('username', username);
+
+      if (username !== (user.username || '').toLowerCase()) {
+        formData.append('username', username.toLowerCase());
       }
-      
-      if (newId !== user.id) formData.append('newId', newId);
-      if (password) formData.append('password', password);
-      if (photo) {
-        if (typeof photo === 'string') formData.append('photoUrl', photo);
-        else formData.append('photo', photo);
-      }
-      if (banner) {
-        if (typeof banner === 'string') formData.append('bannerUrl', banner);
-        else formData.append('banner', banner);
+
+      if (password) {
+        formData.append('password', password);
+        if (currentPassword) formData.append('currentPassword', currentPassword);
       }
 
       let hasUpdates = false;
@@ -284,7 +271,8 @@ const Profile = () => {
       }
 
       const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
-        headers: { 'Authorization': `Bearer ${token}`
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -292,6 +280,7 @@ const Profile = () => {
         addToast("Profile updated successfully!", "success");
         updateUser(response.data.data.user, response.data.data.token);
         setPassword('');
+        setCurrentPassword('');
       } else {
         addToast(response.data?.message || "Failed to update profile", "error");
         if (response.status === 404 || response.status === 401) logout();
@@ -363,15 +352,15 @@ const Profile = () => {
           }
         }
       `}</style>
-      
+
       {/* Microsoft/LinkedIn-style Hero Banner */}
       <div style={{ height: '220px', background: getBannerUrl() ? `url(${getBannerUrl()}) center/cover no-repeat` : 'linear-gradient(135deg, #0078D4 0%, #00B4F0 100%)', position: 'relative' }}>
         <div style={{ width: "100%", margin: '0 auto', height: '100%', position: 'relative' }}>
           {/* Decorative Elements (only if no banner image) */}
           {!getBannerUrl() && <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%', opacity: 0.1, backgroundImage: 'radial-gradient(circle at 100% 50%, white 0%, transparent 70%)' }}></div>}
-          
+
           <div style={{ position: 'absolute', right: '2rem', top: '2rem', display: 'flex', gap: '0.5rem' }}>
-            <button 
+            <button
               onClick={() => openGallery('banner')}
               style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', backdropFilter: 'blur(4px)', transition: 'background 0.2s' }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.7)'}
@@ -385,17 +374,17 @@ const Profile = () => {
       </div>
 
       <div className="profile-container">
-        
+
         {/* Left Sidebar Profile & Nav */}
         <div className="profile-sidebar">
-          
+
           {/* Identity Card */}
           <div style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid var(--border-color)' }}>
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
-              <img 
-                src={getAvatarUrl()} 
-                alt="Profile" 
-                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+              <img
+                src={getAvatarUrl()}
+                alt="Profile"
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 onError={(e) => {
                   if (!e.currentTarget.src.includes('data:image')) {
                     e.currentTarget.onerror = null;
@@ -403,7 +392,7 @@ const Profile = () => {
                   }
                 }}
               />
-              <button 
+              <button
                 onClick={() => openGallery('photo')}
                 style={{ position: 'absolute', bottom: 0, right: 0, width: '36px', height: '36px', borderRadius: '50%', background: '#0078D4', border: 'none', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
                 title="Change Photo"
@@ -412,16 +401,16 @@ const Profile = () => {
               </button>
               <input type="file" ref={fileInputRef} onChange={handlePhotoChange} accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} />
             </div>
-            
+
             <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-dark)' }}>{user?.name || 'Administrator'}</h2>
             <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{user?.email || 'admin@multimarg.com'}</p>
-            
+
             {user?.employeeId && (
               <div style={{ margin: '0 auto 1.5rem auto', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.95rem', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
                 <span style={{ color: '#94a3b8', fontWeight: 500 }}>ID:</span> {user.employeeId}
               </div>
             )}
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: 'rgba(0, 120, 212, 0.1)', color: '#0078D4', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
                 <Shield size={14} /> {(user?.role === 'Admin' || !user?.role) ? 'Employee' : user.role} Account
@@ -435,10 +424,10 @@ const Profile = () => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <div 
+                <div
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={{ 
+                  style={{
                     padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
                     cursor: 'pointer', position: 'relative',
                     background: isActive ? 'var(--bg-color)' : 'transparent',
@@ -460,14 +449,14 @@ const Profile = () => {
 
         {/* Right Content Area */}
         <div className="profile-content">
-          
+
           {activeTab === 'overview' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <h1 style={{ fontSize: '2.2rem', fontWeight: 300, color: 'var(--text-dark)', margin: 0 }}>Welcome back, {user?.name?.split(' ')[0] || 'User'}</h1>
-              
+
               {/* Grid of Microsoft-style Cards */}
               <div className="grid-cards">
-                
+
                 <div onClick={() => setActiveTab('personal')} style={{ background: 'var(--surface-color)', borderRadius: '8px', padding: '2rem', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '220px', transition: 'transform 0.2s, box-shadow 0.2s' }} className="hover-lift">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                     <div style={{ padding: '0.75rem', background: 'rgba(16, 124, 65, 0.1)', borderRadius: '8px', color: '#107C41' }}><User size={28} /></div>
@@ -517,7 +506,7 @@ const Profile = () => {
 
               <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
                 <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  
+
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Full Name</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
@@ -573,13 +562,13 @@ const Profile = () => {
 
               <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
                 <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Key size={20} color="#0078D4" /> Password security</h3>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px' }}>
-                  <input type="password" placeholder="Current Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
                   <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
-                  
+
                   <div style={{ marginTop: '0.5rem' }}>
-                    <button onClick={handleSubmit} disabled={isLoading || !password} style={{ padding: '0.6rem 1.5rem', background: password ? '#0078D4' : '#E1DFDD', color: password ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.95rem', cursor: password ? 'pointer' : 'not-allowed', transition: 'background 0.2s' }}>
+                    <button onClick={handleSubmit} disabled={isLoading || !password || !currentPassword} style={{ padding: '0.6rem 1.5rem', background: (password && currentPassword) ? '#0078D4' : '#E1DFDD', color: (password && currentPassword) ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.95rem', cursor: (password && currentPassword) ? 'pointer' : 'not-allowed', transition: 'background 0.2s' }}>
                       Change password
                     </button>
                   </div>
@@ -663,7 +652,7 @@ const Profile = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', width: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-color)', padding: '3rem 1rem', borderRadius: '12px', boxShadow: '0 4px 24px rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-                
+
                 {/* --- FRONT OF ID CARD --- */}
                 <div className="id-card-scaler">
                   <IDCardFront user={user} avatarUrl={getAvatarUrl()} globalSettings={globalSettings} />
@@ -678,7 +667,7 @@ const Profile = () => {
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', width: '100%', justifyContent: 'center' }}>
-                <button 
+                <button
                   onClick={async (e) => {
                     const originalText = e.currentTarget.innerHTML;
                     e.currentTarget.innerHTML = 'PROCESSING...';
@@ -700,7 +689,7 @@ const Profile = () => {
                 >
                   Download Front
                 </button>
-                <button 
+                <button
                   onClick={async (e) => {
                     const originalText = e.currentTarget.innerHTML;
                     e.currentTarget.innerHTML = 'PROCESSING...';
@@ -728,9 +717,10 @@ const Profile = () => {
           )}
         </div>
       </div>
-      
+
       {/* Add specific custom CSS for this page locally */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .hover-lift:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
@@ -761,40 +751,40 @@ const Profile = () => {
             </div>
             <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: 'calc(90vh - 70px)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: galleryType === 'photo' ? 'repeat(auto-fit, minmax(80px, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', justifyItems: 'center' }}>
-              
-              {/* Custom Upload Option */}
-              <div 
-                onClick={galleryType === 'photo' ? handlePhotoClick : handleBannerClick}
-                style={{ 
-                  cursor: 'pointer', 
-                  borderRadius: galleryType === 'photo' ? '50%' : '8px',
-                  border: '2px dashed #cbd5e1',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                  aspectRatio: galleryType === 'photo' ? '1/1' : '21/9',
-                  background: '#f8fafc',
-                  color: '#64748b',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0078D4'; e.currentTarget.style.color = '#0078D4'; e.currentTarget.style.background = '#f0f9ff'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = '#f8fafc'; }}
-              >
-                <Camera size={galleryType === 'photo' ? 32 : 40} style={{ marginBottom: '0.5rem' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Custom</span>
-              </div>
 
-              {galleryType === 'photo' ? defaultAssets.avatars.map((url, idx) => (
-                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', width: '100%', aspectRatio: '1/1', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
-                  <img src={url} alt={`Avatar ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {/* Custom Upload Option */}
+                <div
+                  onClick={galleryType === 'photo' ? handlePhotoClick : handleBannerClick}
+                  style={{
+                    cursor: 'pointer',
+                    borderRadius: galleryType === 'photo' ? '50%' : '8px',
+                    border: '2px dashed #cbd5e1',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    aspectRatio: galleryType === 'photo' ? '1/1' : '21/9',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0078D4'; e.currentTarget.style.color = '#0078D4'; e.currentTarget.style.background = '#f0f9ff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = '#f8fafc'; }}
+                >
+                  <Camera size={galleryType === 'photo' ? 32 : 40} style={{ marginBottom: '0.5rem' }} />
+                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Upload Custom</span>
                 </div>
-              )) : defaultAssets.banners.map((url, idx) => (
-                <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', width: '100%', aspectRatio: '21/9', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
-                  <img src={url} alt={`Banner ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              ))}
+
+                {galleryType === 'photo' ? defaultAssets.avatars.map((url, idx) => (
+                  <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '50%', overflow: 'hidden', width: '100%', aspectRatio: '1/1', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                    <img src={url} alt={`Avatar ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )) : defaultAssets.banners.map((url, idx) => (
+                  <div key={idx} onClick={() => handleSelectGallery(url)} style={{ cursor: 'pointer', borderRadius: '8px', overflow: 'hidden', width: '100%', aspectRatio: '21/9', border: '3px solid transparent', transition: 'border-color 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0078D4'} onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}>
+                    <img src={url} alt={`Banner ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -814,7 +804,7 @@ const Profile = () => {
                 Are you sure you want to change your username? This will be used for your next login.
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button 
+                <button
                   onClick={() => setShowConfirmDialog(false)}
                   style={{ padding: '0.6rem 1.25rem', background: 'transparent', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#334155'; }}
@@ -822,7 +812,7 @@ const Profile = () => {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={() => { setShowConfirmDialog(false); handleSubmit(null, true); }}
                   style={{ padding: '0.6rem 1.25rem', background: '#0078D4', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#005a9e'; }}
