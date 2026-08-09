@@ -33,7 +33,6 @@ import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
-import VendorBalancesModal from "../components/VendorBalancesModal";
 import { BadgeContext } from "../context/BadgeContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
