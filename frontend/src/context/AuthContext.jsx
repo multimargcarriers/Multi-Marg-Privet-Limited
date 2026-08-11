@@ -178,7 +178,11 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     
     // Clear IndexedDB cache
-    appDB.clear();
+    try {
+      await appDB.clear();
+    } catch (err) {
+      console.error("Failed to clear appDB during logout", err);
+    }
     // Clear localStorage (token, redirectUrl)
     localStorage.clear();
     sessionStorage.clear();

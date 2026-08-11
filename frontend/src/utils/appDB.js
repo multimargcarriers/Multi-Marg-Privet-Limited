@@ -71,6 +71,13 @@ const MIGRATABLE_KEYS = [
   'mockTrips',
 ];
 
+const withTimeout = (promise, ms, errMsg) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errMsg)), ms))
+  ]);
+};
+
 /**
  * Preload all IndexedDB entries into the in-memory cache.
  * Also performs one-time migration from localStorage for existing users.
@@ -78,10 +85,10 @@ const MIGRATABLE_KEYS = [
  */
 async function preload() {
   try {
-    const db = await openDB();
+    const db = await withTimeout(openDB(), 2000, "IndexedDB open timeout");
 
     // Load all existing IndexedDB entries into memory
-    await new Promise((resolve, reject) => {
+    await withTimeout(new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const request = store.openCursor();
@@ -96,7 +103,7 @@ async function preload() {
         }
       };
       request.onerror = () => reject(request.error);
-    });
+    }), 3000, "IndexedDB read timeout");
 
     // One-time migration: if IndexedDB is empty but localStorage has data, migrate it
     const alreadyMigrated = memoryCache.has('__idb_migrated');
@@ -127,10 +134,10 @@ async function preload() {
           }
         }
         store.put(true, '__idb_migrated');
-        await new Promise((resolve, reject) => {
+        await withTimeout(new Promise((resolve, reject) => {
           tx.oncomplete = resolve;
           tx.onerror = () => reject(tx.error);
-        });
+        }), 3000, "IndexedDB migration timeout");
 
         // Remove migrated keys from localStorage (keep token, redirectUrl)
         for (const key of MIGRATABLE_KEYS) {
