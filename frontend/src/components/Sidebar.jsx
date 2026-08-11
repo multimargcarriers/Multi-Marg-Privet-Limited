@@ -22,7 +22,7 @@ import {
 
 
   Package,
-
+  MessageSquare,
   Shield,
   Activity,
   TrendingUp,
@@ -159,6 +159,12 @@ export const menuItems = [
     name: "Settings & Integrations",
     path: "/settings",
     icon: <Settings size={20} />,
+    permission: "superadmin"
+  },
+  {
+    name: "Contact Queries",
+    path: "/contact-submissions",
+    icon: <MessageSquare size={20} />,
     permission: "superadmin"
   },
   {

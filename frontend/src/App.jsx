@@ -50,6 +50,8 @@ import Tracking from "./pages/Tracking";
 import Settings from "./pages/Settings";
 import Quotes from "./pages/Quotes";
 import Trash from "./pages/Trash";
+import Contact from "./pages/Contact";
+import ContactSubmissions from "./pages/ContactSubmissions";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -78,6 +80,7 @@ function App() {
                 <BadgeProvider>
                   <Routes>
                     <Route path="/" element={<Login />} />
+                    <Route path="/contact" element={<Contact />} />
 
           {/* Protected Routes */}
           <Route element={<DashboardLayout />}>
@@ -96,6 +99,7 @@ function App() {
               <Route path="/logs" element={<SystemLogs />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/quotes" element={<Quotes />} />
+              <Route path="/contact-submissions" element={<ContactSubmissions />} />
             </Route>
 
             {/* Masters */}

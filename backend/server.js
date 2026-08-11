@@ -263,12 +263,14 @@ const settingsRoutes = require("./src/routes/settings");
 const tripMisRoutes = require("./src/routes/trip-mis");
 const vendorMisRoutes = require("./src/routes/vendor-mis");
 const trashRoutes = require("./src/routes/trash");
+const contactsRoutes = require("./src/routes/contacts");
 
 // Public Routes
 const publicTrackingRoutes = require("./src/routes/public/tracking");
 const publicBranchRoutes = require("./src/routes/public/branch");
 const publicPincodeRoutes = require("./src/routes/public/pincode");
 const publicQuoteRoutes = require("./src/routes/public/quote");
+const publicContactRoutes = require("./src/routes/public/contact");
 
 // ============================================================
 // Mount Public Routes
@@ -311,6 +313,7 @@ app.use("/api/public/tracking", publicTrackingRoutes);
 app.use("/api/public/branch", publicBranchRoutes);
 app.use("/api/public/pincode", publicPincodeRoutes);
 app.use("/api/public/quote", publicQuoteRoutes);
+app.use("/api/public/contact", publicContactRoutes);
 
 // ============================================================
 // Global Authentication & Auditing Lockdown
@@ -356,6 +359,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/trip-mis", tripMisRoutes);
 app.use("/api/vendor-mis", vendorMisRoutes);
 app.use("/api/trash", trashRoutes);
+app.use("/api/contacts", contactsRoutes);
 
 const quotesRoutes = require("./src/routes/quotes");
 app.use("/api/quotes", quotesRoutes);
