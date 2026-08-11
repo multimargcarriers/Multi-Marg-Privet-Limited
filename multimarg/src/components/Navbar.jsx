@@ -38,19 +38,20 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Services', path: '/services' },
-    { name: 'Industries', path: '/industries' },
-    { name: 'Track Shipment', path: '/track' },
     {
       name: 'Company',
       isDropdown: true,
       items: [
         { name: 'About Us', path: '/about' },
-        { name: 'Network', path: '/branches' },
+        { name: 'Network & Branches', path: '/branches' },
+        { name: 'Careers', path: '/careers' },
         { name: 'FAQ', path: '/faq' },
       ]
     },
-    { name: 'Get Quote', path: '/quote' },
+    { name: 'Services', path: '/services' },
+    { name: 'Industries', path: '/industries' },
+    { name: 'Track', path: '/track' },
+    { name: 'Contact', path: '/contact' },
   ];
 
   return (
@@ -66,7 +67,7 @@ const Navbar = () => {
       borderBottom: scrolled ? 'none' : '1px solid var(--border-color)'
     }}>
 
-      <div className="container" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', paddingTop: scrolled ? '0.5rem' : '1rem', paddingBottom: scrolled ? '0.5rem' : '1rem', transition: 'padding 0.3s ease', gap: '3rem' }}>
+      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: scrolled ? '0.5rem' : '1rem', paddingBottom: scrolled ? '0.5rem' : '1rem', transition: 'padding 0.3s ease', gap: '1rem' }}>
 
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101, textDecoration: 'none' }}>
@@ -182,9 +183,12 @@ const Navbar = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
               <PhoneCall size={18} />
-              <span>+91 5944-324033</span>
+              <a href="tel:+915944324033" style={{ color: 'inherit', textDecoration: 'none' }}>+91 5944-324033</a>
             </div>
-            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-red">
+            <Link to="/quote" className="btn btn-red" style={{ padding: '0.65rem 1.25rem', whiteSpace: 'nowrap', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.3)', fontWeight: '600' }}>
+              Get Quote
+            </Link>
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" style={{ fontWeight: '600', color: 'var(--text-main)', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>
               Login
             </a>
           </div>
@@ -208,7 +212,9 @@ const Navbar = () => {
             background: 'white', padding: '1rem 2rem 2rem 2rem',
             boxShadow: 'var(--shadow-md)',
             display: 'flex', flexDirection: 'column', gap: '1rem',
-            borderTop: '1px solid var(--border-color)'
+            borderTop: '1px solid var(--border-color)',
+            maxHeight: 'calc(100vh - 70px)',
+            overflowY: 'auto'
           }}
           className="mobile-menu"
         >
@@ -261,12 +267,12 @@ const Navbar = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', padding: '0.5rem 0' }}>
               <PhoneCall size={18} />
-              <span>+05944-324033</span>
+              <a href="tel:+915944324033" style={{ color: 'inherit', textDecoration: 'none' }}>+91 5944-324033</a>
             </div>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
-              Contact Us
+            <Link to="/quote" onClick={() => setMobileMenuOpen(false)} className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
+              Get Quote
             </Link>
-            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-red" style={{ width: '100%', justifyContent: 'center' }}>
+            <a href={import.meta.env.VITE_ADMIN_URL || "http://localhost:5173"} target="_blank" rel="noreferrer" className="btn btn-outline-red" style={{ width: '100%', justifyContent: 'center' }}>
               Login
             </a>
           </div>

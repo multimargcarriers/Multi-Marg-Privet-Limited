@@ -25,23 +25,23 @@ const Footer = () => {
           {/* Quick Links */}
           <div>
             <h4 style={{ color: 'white', fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '500' }}>Company</h4>
-            <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-              <li><Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Home</Link></li>
-              <li><Link to="/about" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> About Us</Link></li>
-              <li><Link to="/industries" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Industries We Serve</Link></li>
-              <li><Link to="/branches" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Network & Branches</Link></li>
-              <li><Link to="/careers" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1' }}><ArrowRight size={14} color="var(--primary-red)"/> Careers</Link></li>
+            <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem', listStyle: 'none', margin: 0 }}>
+              <li><Link to="/about" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> About Us</Link></li>
+              <li><Link to="/branches" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Network & Branches</Link></li>
+              <li><Link to="/careers" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Careers</Link></li>
+              <li><Link to="/faq" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> FAQ</Link></li>
+              <li><Link to="/contact" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Contact Us</Link></li>
             </ul>
           </div>
 
-          {/* Services */}
+          {/* Services & Tools */}
           <div>
-            <h4 style={{ color: 'white', fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '500' }}>Our Expertise</h4>
-            <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-              <li style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Road Logistics (FTL / PTL)</li>
-              <li style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Train Cargo Solutions</li>
-              <li style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Air Freight</li>
-              <li style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Secure Warehousing</li>
+            <h4 style={{ color: 'white', fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '500' }}>Services & Tools</h4>
+            <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '0.8rem', listStyle: 'none', margin: 0 }}>
+              <li><Link to="/services" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Our Services</Link></li>
+              <li><Link to="/industries" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Industries We Serve</Link></li>
+              <li><Link to="/track" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Track Shipment</Link></li>
+              <li><Link to="/quote" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#cbd5e1', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color='white'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}><ArrowRight size={14} color="var(--primary-red)"/> Request a Quote</Link></li>
             </ul>
           </div>
 
@@ -59,11 +59,10 @@ const Footer = () => {
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <Mail size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span>info@multimargcarriers.co.in</span>
+                <span><a href="mailto:info@multimargcarriers.co.in" style={{ color: '#cbd5e1', textDecoration: 'none' }}>info@multimargcarriers.co.in</a></span>
               </li>
             </ul>
-            
-          </div>
+          </div>  
         </div>
 
         {/* Full Width Footer Map */}
