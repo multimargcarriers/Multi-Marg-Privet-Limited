@@ -51,7 +51,8 @@ const Dashboard = () => {
       setSyncing(true);
       const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics/sync`);
       if (response.data.success) {
-        setStats(response.data.data);
+        addToast("Analytics synced successfully", "success");
+        await fetchStats(); // Re-fetch from GET /api/dashboard/stats to include recentActivity
       }
     } catch (error) {
       console.error('Error syncing stats:', error);

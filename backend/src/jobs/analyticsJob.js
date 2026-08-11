@@ -184,11 +184,23 @@ const runAnalyticsAggregation = async () => {
       revenue: revenueByMonth[key]
     }));
 
-    const topLeaders = [
-      { name: "Dhruv Kumar", role: "Marketing Head", branch: "Pantnagar", phone: "9045015097" },
-      { name: "Dharmendra Puri", role: "Operations Head", branch: "Delhi", phone: "7503112217" },
-      { name: "Akash Debnath", role: "IT Head", branch: "Jamshedpur", phone: "7209877637" }
-    ];
+    // Fetch Top Leaders (Users with role SuperAdmin, Admin, or Manager)
+    const leadersCursor = mongoDb.collection("users").find(
+      { role: { $in: ["SuperAdmin", "Admin", "Manager"] } },
+      { projection: { name: 1, role: 1, branch: 1, phone: 1 }, limit: 5 }
+    );
+    const topLeaders = [];
+    for await (const u of leadersCursor) {
+      topLeaders.push({
+        name: u.name || "Admin",
+        role: u.role || "Manager",
+        branch: u.branch || "HO",
+        phone: u.phone || "-"
+      });
+    }
+    if (topLeaders.length === 0) {
+      topLeaders.push({ name: "System Admin", role: "SuperAdmin", branch: "HO", phone: "-" });
+    }
 
     const summaryData = {
       // Analytics Page

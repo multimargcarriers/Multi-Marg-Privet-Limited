@@ -11,6 +11,7 @@ const {
 const {
   runAnalyticsAggregation
 } = require("../jobs/analyticsJob");
+const { delCache } = require("../config/redis");
 
 exports.getRoot_1 = async (req, res) => {
   const doc = await db.collection("analytics").doc("summary").get();
@@ -25,6 +26,7 @@ exports.getRoot_1 = async (req, res) => {
 
 exports.post_sync_2 = async (req, res) => {
   const data = await runAnalyticsAggregation();
+  await delCache("dashboard_stats");
   return success(res, "Analytics synced successfully", data);
 };
 
