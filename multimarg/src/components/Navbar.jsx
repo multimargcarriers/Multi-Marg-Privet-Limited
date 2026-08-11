@@ -280,10 +280,10 @@ const Navbar = () => {
       )}
 
       <style>{`
-        @media (min-width: 1024px) { 
+        @media (min-width: 1200px) { 
           .mobile-toggle, .mobile-menu { display: none !important; } 
         }
-        @media (max-width: 1023px) { 
+        @media (max-width: 1199px) { 
           .desktop-nav { display: none !important; } 
         }
         
