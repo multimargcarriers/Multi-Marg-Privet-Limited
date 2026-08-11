@@ -1,39 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail } from 'lucide-react';
+import { MapPin, Phone, Mail, Building } from 'lucide-react';
 
 const Branches = () => {
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
 
-  const regions = [
-    {
-      name: "North India Hub",
-      branches: [
-        { city: "Rudrapur, Uttarakhand", address: "LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153", phone: "+91 5944-324033", type: "Corporate Office" },
-        { city: "Chandigarh", address: "Phase 1, Industrial Area", phone: "+91-XXXXXXXXXX", type: "Branch Office" },
-        { city: "Jaipur", address: "VKI Area, Jaipur", phone: "+91-XXXXXXXXXX", type: "Branch Office" }
-      ]
-    },
-    {
-      name: "West India Hub",
-      branches: [
-        { city: "Mumbai", address: "Andheri East, Mumbai", phone: "+91-XXXXXXXXXX", type: "Regional Head" },
-        { city: "Ahmedabad", address: "Sarkhej, Ahmedabad", phone: "+91-XXXXXXXXXX", type: "Branch Office" },
-        { city: "Pune", address: "Chakan Industrial Area", phone: "+91-XXXXXXXXXX", type: "Branch Office" }
-      ]
-    },
-    {
-      name: "South India Hub",
-      branches: [
-        { city: "Bengaluru", address: "Peenya Industrial Area", phone: "+91-XXXXXXXXXX", type: "Regional Head" },
-        { city: "Chennai", address: "Guindy Industrial Estate", phone: "+91-XXXXXXXXXX", type: "Branch Office" },
-        { city: "Hyderabad", address: "Jeedimetla", phone: "+91-XXXXXXXXXX", type: "Branch Office" }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/public/branch`);
+        if (response.data.success) {
+          setBranches(response.data.data);
+        } else {
+          setError(response.data.message || 'Failed to load branches');
+        }
+      } catch (err) {
+        console.error("Error fetching branches:", err);
+        setError("Unable to connect to the server. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBranches();
+  }, []);
 
   return (
     <div style={{ paddingTop: '80px' }}>
@@ -65,76 +64,111 @@ const Branches = () => {
         </div>
       </section>
 
-      <section className="section-padding" style={{ backgroundColor: 'var(--bg-color)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--bg-color)', minHeight: '50vh' }}>
         <div className="container">
-          {regions.map((region, idx) => (
-            <div key={idx} style={{ marginBottom: '4rem' }}>
-              <motion.div 
-                initial="hidden" 
-                whileInView="visible" 
-                viewport={{ once: true }} 
-                variants={fadeInUp}
-              >
-                <h2 style={{ 
-                  fontSize: '2rem', 
-                  color: 'var(--primary-red)', 
-                  marginBottom: '2rem',
-                  borderBottom: '2px solid var(--border-color)',
-                  paddingBottom: '0.5rem',
-                  display: 'inline-block'
-                }}>
-                  {region.name}
-                </h2>
-              </motion.div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                {region.branches.map((branch, bIdx) => (
-                  <motion.div
-                    key={bIdx}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    variants={fadeInUp}
-                    transition={{ delay: bIdx * 0.1 }}
-                    style={{ 
-                      backgroundColor: 'white', 
-                      padding: '2rem', 
-                      borderRadius: '12px', 
-                      boxShadow: 'var(--shadow-sm)',
-                      border: '1px solid var(--border-color)',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease'
-                    }}
-                    whileHover={{ y: -5, boxShadow: 'var(--shadow-md)' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                      <h3 style={{ fontSize: '1.4rem', color: 'var(--primary-blue)', margin: 0 }}>{branch.city}</h3>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        padding: '0.25rem 0.75rem', 
-                        backgroundColor: branch.type === 'Corporate Office' ? 'var(--primary-red)' : 'var(--bg-light-grey)',
-                        color: branch.type === 'Corporate Office' ? 'white' : 'var(--text-light)',
-                        borderRadius: '20px',
-                        fontWeight: 600
-                      }}>
-                        {branch.type}
-                      </span>
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', color: 'var(--text-main)' }}>
-                        <MapPin size={20} color="var(--primary-red)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <span style={{ lineHeight: 1.5 }}>{branch.address}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-main)' }}>
-                        <Phone size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                        <span>{branch.phone}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+          
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+              <div style={{ width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid var(--primary-red)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <style>{`
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+              `}</style>
             </div>
-          ))}
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #fca5a5' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>Oops!</h3>
+              <p>{error}</p>
+            </div>
+          ) : branches.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'white', borderRadius: '12px', color: '#64748b', border: '1px solid #e2e8f0' }}>
+              <Building size={48} style={{ margin: '0 auto 1rem auto', opacity: 0.5 }} />
+              <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', color: '#334155' }}>No Branches Found</h3>
+              <p>We are currently updating our network data. Please check back later.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+              {branches.map((branch, bIdx) => (
+                <motion.div
+                  key={branch.id || bIdx}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeInUp}
+                  transition={{ delay: (bIdx % 6) * 0.1 }}
+                  style={{ 
+                    backgroundColor: 'white', 
+                    padding: '2.5rem', 
+                    borderRadius: '16px', 
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+                    border: '1px solid #e2e8f0',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  whileHover={{ y: -8, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
+                >
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: branch.code === 'HO' ? 'var(--primary-red)' : 'var(--primary-blue)' }}></div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.5rem', color: '#0f172a', margin: '0 0 0.25rem 0', fontWeight: '700' }}>{branch.branch}</h3>
+                      {branch.code && <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>Code: {branch.code}</span>}
+                    </div>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '0.35rem 0.85rem', 
+                      backgroundColor: branch.code === 'HO' ? '#fee2e2' : '#e0e7ff',
+                      color: branch.code === 'HO' ? '#991b1b' : '#3730a3',
+                      borderRadius: '20px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {branch.code === 'HO' ? 'Corporate' : 'Branch'}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1.5rem' }}>
+                    {branch.address && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', color: '#334155' }}>
+                        <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
+                          <MapPin size={18} />
+                        </div>
+                        <span style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{branch.address}</span>
+                      </div>
+                    )}
+                    
+                    {branch.name && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
+                        <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
+                          <Building size={18} />
+                        </div>
+                        <span style={{ fontWeight: '500', fontSize: '0.95rem' }}>{branch.name}</span>
+                      </div>
+                    )}
+
+                    {branch.phno && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
+                        <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
+                          <Phone size={18} />
+                        </div>
+                        <a href={`tel:${branch.phno.replace(/[^0-9+]/g, '')}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '0.95rem', fontWeight: '500' }}>{branch.phno}</a>
+                      </div>
+                    )}
+                    
+                    {branch.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
+                        <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
+                          <Mail size={18} />
+                        </div>
+                        <a href={`mailto:${branch.email}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '0.95rem' }}>{branch.email}</a>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
