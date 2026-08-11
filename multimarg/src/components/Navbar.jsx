@@ -80,7 +80,7 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Nav */}
-        <nav style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flex: 1 }} className="desktop-nav">
+        <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center', flex: 1 }} className="desktop-nav">
           {navLinks.map((link) => (
             link.isDropdown ? (
               <div
@@ -180,7 +180,7 @@ const Navbar = () => {
             )
           ))}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto', borderLeft: '1px solid var(--border-color)', paddingLeft: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-blue)', fontWeight: '700', whiteSpace: 'nowrap' }}>
               <PhoneCall size={18} />
               <a href="tel:+915944324033" style={{ color: 'inherit', textDecoration: 'none' }}>+91 5944-324033</a>
@@ -280,10 +280,10 @@ const Navbar = () => {
       )}
 
       <style>{`
-        @media (min-width: 1200px) { 
+        @media (min-width: 1350px) { 
           .mobile-toggle, .mobile-menu { display: none !important; } 
         }
-        @media (max-width: 1199px) { 
+        @media (max-width: 1349px) { 
           .desktop-nav { display: none !important; } 
         }
         
