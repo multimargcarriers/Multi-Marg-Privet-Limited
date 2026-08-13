@@ -1,9 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Truck, PackageSearch, Warehouse, Globe, Zap, Navigation } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 const Services = () => {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/cms/services`);
+        if (res.data.success) {
+          setServices(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching services:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
@@ -19,44 +39,13 @@ const Services = () => {
     }
   };
 
-  const services = [
-    {
-      icon: <Zap size={48} color="var(--primary-red)" />,
-      title: "Air Transport",
-      desc: "Sky-High Speed, Global Reach. Emphasizes fast and expansive nature of air transport, ensuring quick deliveries across long distances.",
-      features: ["Guaranteed delivery times", "Priority handling", "Global network"]
-    },
-    {
-      icon: <Truck size={48} color="var(--primary-red)" />,
-      title: "Road Transport",
-      desc: "On Time, Every Mile. Emphasizes reliability and punctuality, ensuring goods reach destination safely and on schedule.",
-      features: ["Point-to-point delivery", "Real-time tracking", "Extensive fleet"]
-    },
-    {
-      icon: <Globe size={48} color="var(--primary-red)" />,
-      title: "Import & Export",
-      desc: "Bridging Markets, Ensuring Quality Delivery. Emphasizes smooth global trade connections and dependable, high-standard service.",
-      features: ["Customs clearance", "International shipping", "Compliance support"]
-    },
-    {
-      icon: <Navigation size={48} color="var(--primary-red)" />,
-      title: "Rail Transport",
-      desc: "Efficient Rail, Reliable Logistics. Emphasizes efficiency and dependability for logistics, ensuring fast, safe, and reliable delivery of goods via rail.",
-      features: ["Cost-effective", "Bulk cargo", "Environmentally friendly"]
-    },
-    {
-      icon: <Warehouse size={48} color="var(--primary-red)" />,
-      title: "Warehousing",
-      desc: "Secure Storage, Seamless Supply. Emphasizes reliability of goods, ensuring efficient inventory management and easy access.",
-      features: ["Inventory management", "Cross-docking", "24/7 security"]
-    },
-    {
-      icon: <PackageSearch size={48} color="var(--primary-red)" />,
-      title: "Supply Chain Management",
-      desc: "Expert handling of transportation, storage, and distribution of goods, ensuring products move efficiently from suppliers to customers.",
-      features: ["End-to-end management", "Last-mile delivery", "Process optimization"]
+  const getIcon = (iconName) => {
+    const IconComponent = Icons[iconName];
+    if (IconComponent) {
+      return <IconComponent size={48} color="var(--primary-red)" />;
     }
-  ];
+    return <Icons.Package size={48} color="var(--primary-red)" />; // Fallback
+  };
 
   return (
     <div style={{ paddingTop: '80px' }}>
@@ -84,59 +73,63 @@ const Services = () => {
       {/* Services Grid */}
       <section className="section-padding">
         <div className="container">
-          <motion.div 
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2.5rem' }}
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-          >
-            {services.map((service, index) => (
-              <motion.div 
-                key={index}
-                variants={fadeInUp}
-                style={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '16px', 
-                  boxShadow: 'var(--shadow-md)',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  border: '1px solid var(--border-color)',
-                  transition: 'all 0.3s ease'
-                }}
-                whileHover={{ 
-                  y: -10, 
-                  boxShadow: 'var(--shadow-lg)',
-                  borderColor: 'var(--primary-red)'
-                }}
-              >
-                <div style={{ 
-                  height: '6px', 
-                  width: '100%', 
-                  background: 'linear-gradient(90deg, var(--primary-red) 0%, var(--primary-blue) 100%)' 
-                }} />
-                
-                <div style={{ padding: '2.5rem' }}>
-                  <div style={{ marginBottom: '1.5rem', display: 'inline-block', padding: '1rem', backgroundColor: 'var(--bg-light-grey)', borderRadius: '12px' }}>
-                    {service.icon}
-                  </div>
-                  <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '1rem' }}>{service.title}</h3>
-                  <p style={{ color: 'var(--text-light)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                    {service.desc}
-                  </p>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-light)' }}>
+              Loading services...
+            </div>
+          ) : services.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-light)' }}>
+              No services found.
+            </div>
+          ) : (
+            <motion.div 
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2.5rem' }}
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+            >
+              {services.map((service, index) => (
+                <motion.div 
+                  key={service.id || index}
+                  variants={fadeInUp}
+                  style={{ 
+                    backgroundColor: 'white', 
+                    borderRadius: '16px', 
+                    boxShadow: 'var(--shadow-md)',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    border: '1px solid var(--border-color)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  whileHover={{ 
+                    y: -10, 
+                    boxShadow: 'var(--shadow-lg)',
+                    borderColor: 'var(--primary-red)'
+                  }}
+                >
+                  <div style={{ 
+                    height: '6px', 
+                    width: '100%', 
+                    background: 'linear-gradient(90deg, var(--primary-red) 0%, var(--primary-blue) 100%)' 
+                  }} />
                   
-                  <ul style={{ padding: 0 }}>
-                    {service.features.map((feature, fIndex) => (
-                      <li key={fIndex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-red)' }} />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+                  <div style={{ padding: '2.5rem' }}>
+                    <div style={{ marginBottom: '1.5rem', display: 'inline-block', padding: '1rem', backgroundColor: 'var(--bg-light-grey)', borderRadius: '12px' }}>
+                      {getIcon(service.icon)}
+                    </div>
+                    <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '1rem' }}>{service.title}</h3>
+                    <p style={{ color: 'var(--text-main)', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '1rem' }}>
+                      {service.shortDescription}
+                    </p>
+                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                      {service.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </div>
       </section>
 

@@ -321,7 +321,7 @@ const POD = () => {
   const getFileUrl = (item) => {
     if (item.podUrl) return item.podUrl;
     if (item.cloudinaryUrl) return item.cloudinaryUrl;
-    return `${apiUrl}/api/uploads/pod/${item.fileName || item.filename}`;
+    return `${apiUrl}/uploads/pod/${item.fileName || item.filename}`;
   };
 
   return (

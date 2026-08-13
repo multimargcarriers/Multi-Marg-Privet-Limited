@@ -321,7 +321,7 @@ const UploadBox = () => {
   const getFileUrl = (item) => {
     if (item.boxUrl) return item.boxUrl;
     if (item.cloudinaryUrl) return item.cloudinaryUrl;
-    return `${apiUrl}/api/uploads/box/${item.fileName || item.filename}`;
+    return `${apiUrl}/uploads/box/${item.fileName || item.filename}`;
   };
 
   return (

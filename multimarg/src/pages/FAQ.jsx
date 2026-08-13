@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, HelpCircle, Package, Shield, Globe } from 'lucide-react';
-import RupeeIcon from '../components/RupeeIcon';
+import { ChevronDown } from 'lucide-react';
+import axios from 'axios';
 
 const FAQItem = ({ question, answer, isOpen, onClick }) => {
   return (
@@ -10,7 +10,9 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => {
       border: '1px solid #eaeaea', 
       borderRadius: '12px',
       overflow: 'hidden',
-      backgroundColor: 'white'
+      backgroundColor: 'white',
+      boxShadow: isOpen ? '0 10px 25px rgba(0,0,0,0.05)' : 'none',
+      transition: 'box-shadow 0.3s'
     }}>
       <button
         onClick={onClick}
@@ -57,65 +59,24 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => {
 
 const FAQ = () => {
   const [openIndex, setOpenIndex] = useState(0);
-  const [activeCategory, setActiveCategory] = useState('general');
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = [
-    { id: 'general', label: 'General', icon: <HelpCircle size={20} /> },
-    { id: 'shipping', label: 'Shipping & Freight', icon: <Package size={20} /> },
-    { id: 'customs', label: 'Customs & Duties', icon: <Globe size={20} /> },
-    { id: 'insurance', label: 'Insurance', icon: <Shield size={20} /> },
-  ];
-
-  const faqs = {
-    general: [
-      {
-        question: "What areas do you service?",
-        answer: "Multimarg Carriers provides extensive coverage across India. We also handle international freight forwarding, connecting major global ports and airports to seamless domestic distribution networks."
-      },
-      {
-        question: "How can I request a quote for my shipment?",
-        answer: "You can easily request a quote by visiting our 'Get Quote' page. Fill in the required details including origin, destination, weight, and dimensions, and our team will get back to you with a customized, competitive rate within 24 hours."
-      },
-      {
-        question: "Do you offer warehousing services?",
-        answer: "Yes, we offer secure, strategically located warehousing facilities for short-term and long-term storage, order fulfillment, and cross-docking services."
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/cms/faqs`);
+        if (res.data.success) {
+          setFaqs(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching FAQs:", err);
+      } finally {
+        setLoading(false);
       }
-    ],
-    shipping: [
-      {
-        question: "How do I track my shipment?",
-        answer: "You can track your shipment in real-time by entering your AWB, Container Number, or Booking Reference on our 'Track Shipment' page. The system will provide you with the latest status and location of your cargo."
-      },
-      {
-        question: "What types of freight do you handle?",
-        answer: "We handle a wide variety of freight including Full Truckload (FTL), Less Than Truckload (LTL), over-dimensional cargo, refrigerated goods, and hazardous materials (subject to proper certification)."
-      },
-      {
-        question: "What is the difference between FTL and LTL?",
-        answer: "FTL (Full Truckload) means your goods occupy an entire truck, which is faster and ideal for large shipments. LTL (Less Than Truckload) means your goods share space with other shipments, which is more cost-effective for smaller loads."
-      }
-    ],
-    customs: [
-      {
-        question: "Do you handle customs clearance?",
-        answer: "Yes, we have experienced in-house customs brokers who manage all necessary documentation, duties, and compliance requirements to ensure smooth and fast clearance of your import/export goods."
-      },
-      {
-        question: "What documents do I need for international shipping?",
-        answer: "Typically, you will need a Commercial Invoice, Packing List, Bill of Lading (or Air Waybill), and Certificate of Origin. Depending on the goods, specific permits or licenses may also be required."
-      }
-    ],
-    insurance: [
-      {
-        question: "Is my cargo insured during transit?",
-        answer: "Standard liability coverage is included, but it may not cover the full value of high-worth goods. We highly recommend purchasing comprehensive Cargo Insurance, which we can arrange for you at competitive rates."
-      },
-      {
-        question: "How do I file a claim in case of damage?",
-        answer: "In the rare event of damage, please note it on the delivery receipt and contact our support team immediately. You will need to provide photos of the damage and a formal claim letter within 7 days of delivery."
-      }
-    ]
-  };
+    };
+    fetchFaqs();
+  }, []);
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
@@ -139,7 +100,7 @@ const FAQ = () => {
             variants={fadeInUp}
             style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}
           >
-            <h1 style={{ fontSize: '3rem', marginBottom: '1.5rem', fontWeight: 800 }}>How Can We Help You?</h1>
+            <h1 style={{ fontSize: '3rem', marginBottom: '1.5rem', fontWeight: 800 }}>Frequently Asked Questions</h1>
             <p style={{ fontSize: '1.2rem', opacity: 0.9, lineHeight: 1.6 }}>
               Find answers to the most frequently asked questions about our logistics, shipping, and supply chain services.
             </p>
@@ -150,66 +111,24 @@ const FAQ = () => {
       {/* FAQ Section */}
       <section className="section-padding">
         <div className="container">
-          <div style={{ display: 'flex', flexDirection: 'column', md: { flexDirection: 'row' }, gap: '3rem' }}>
-            
-            {/* Sidebar / Categories */}
-            <div style={{ flex: '0 0 300px' }}>
-              <div style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '16px', 
-                padding: '1.5rem',
-                boxShadow: 'var(--shadow-md)',
-                position: 'sticky',
-                top: '100px'
-              }}>
-                <h3 style={{ marginBottom: '1.5rem', color: 'var(--primary-blue)', fontSize: '1.2rem' }}>Categories</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => {
-                        setActiveCategory(category.id);
-                        setOpenIndex(0);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        border: 'none',
-                        backgroundColor: activeCategory === category.id ? '#e8f4fd' : 'transparent',
-                        color: activeCategory === category.id ? 'var(--primary-blue)' : 'var(--text-light)',
-                        fontWeight: activeCategory === category.id ? 600 : 400,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        textAlign: 'left'
-                      }}
-                    >
-                      {category.icon}
-                      {category.label}
-                    </button>
-                  ))}
-                </div>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-light)' }}>
+                Loading FAQs...
               </div>
-            </div>
-
-            {/* FAQ List */}
-            <div style={{ flex: 1 }}>
+            ) : faqs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-light)' }}>
+                No FAQs available at the moment.
+              </div>
+            ) : (
               <motion.div
-                key={activeCategory}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <h2 style={{ marginBottom: '2rem', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {categories.find(c => c.id === activeCategory)?.icon}
-                  {categories.find(c => c.id === activeCategory)?.label} FAQs
-                </h2>
-                
-                {faqs[activeCategory].map((faq, index) => (
+                {faqs.map((faq, index) => (
                   <FAQItem 
-                    key={index}
+                    key={faq.id || index}
                     question={faq.question}
                     answer={faq.answer}
                     isOpen={openIndex === index}
@@ -217,8 +136,7 @@ const FAQ = () => {
                   />
                 ))}
               </motion.div>
-            </div>
-
+            )}
           </div>
         </div>
       </section>

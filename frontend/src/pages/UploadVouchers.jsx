@@ -90,7 +90,7 @@ const UploadVouchers = () => {
             <td>{item.filename}</td>
             <td>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
             <td>
-              <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/uploads/vouchers/${item.filename}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/uploads/vouchers/${item.filename}`, "_blank")} style={{ background: "transparent", border: "none", color: "var(--primary-color)", cursor: "pointer", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Eye size={16} /> View
               </button>
               {isSuperAdmin && (

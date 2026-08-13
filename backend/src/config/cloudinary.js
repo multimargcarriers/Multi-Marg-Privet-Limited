@@ -81,7 +81,8 @@ async function uploadFile(filePath, options = {}) {
     });
 
     // Keep local file on disk so local fallback URL remains valid if Cloudinary is unreachable or returning 404
-    /* if (!isDataOrRemote) {
+    // Wait, the new plan requires us to delete it to avoid disk space bloat.
+    if (!isDataOrRemote) {
       try {
         fs.unlinkSync(filePath);
       } catch (cleanupErr) {
@@ -90,7 +91,7 @@ async function uploadFile(filePath, options = {}) {
           cleanupErr.message,
         );
       }
-    } */
+    }
 
     return {
       success: true,

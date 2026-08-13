@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Building2,
+  Briefcase,
   MapPin,
   DollarSign,
   Truck,
@@ -30,7 +31,8 @@ import {
   ChevronDown,
   ChevronRight,
   Layers,
-  Trash2
+  Trash2,
+  Globe
 } from "lucide-react";
 
 export const menuItems = [
@@ -138,6 +140,20 @@ export const menuItems = [
     ],
   },
   {
+    name: "Website",
+    isHeader: true,
+    icon: <Globe size={18} />,
+    permission: "superadmin",
+    children: [
+      { name: "Quote Requests", path: "/quotes", icon: <FileText size={18} />, permission: "superadmin" },
+      { name: "Contact Queries", path: "/contact-submissions", icon: <MessageSquare size={18} />, permission: "superadmin" },
+      { name: "Job Applications", path: "/applications", icon: <Briefcase size={18} />, permission: "superadmin" },
+      { name: "Manage FAQs", path: "/cms/faqs", icon: <FileText size={18} />, permission: "superadmin" },
+      { name: "Manage Careers", path: "/cms/careers", icon: <Users size={18} />, permission: "superadmin" },
+      { name: "Manage Services", path: "/cms/services", icon: <Package size={18} />, permission: "superadmin" },
+    ],
+  },
+  {
     name: "IAM",
     path: "/iam",
     icon: <Shield size={20} />,
@@ -159,18 +175,6 @@ export const menuItems = [
     name: "Settings & Integrations",
     path: "/settings",
     icon: <Settings size={20} />,
-    permission: "superadmin"
-  },
-  {
-    name: "Contact Queries",
-    path: "/contact-submissions",
-    icon: <MessageSquare size={20} />,
-    permission: "superadmin"
-  },
-  {
-    name: "Quote Requests",
-    path: "/quotes",
-    icon: <FileText size={20} />,
     permission: "superadmin"
   },
   {

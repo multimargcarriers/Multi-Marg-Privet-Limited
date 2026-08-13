@@ -52,6 +52,10 @@ import Quotes from "./pages/Quotes";
 import Trash from "./pages/Trash";
 import Contact from "./pages/Contact";
 import ContactSubmissions from "./pages/ContactSubmissions";
+import ManageFAQ from "./pages/CMS/ManageFAQ";
+import ManageCareers from "./pages/CMS/ManageCareers";
+import ManageServices from "./pages/CMS/ManageServices";
+import JobApplications from "./pages/CMS/JobApplications";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -100,6 +104,10 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/quotes" element={<Quotes />} />
               <Route path="/contact-submissions" element={<ContactSubmissions />} />
+              <Route path="/cms/faqs" element={<ManageFAQ />} />
+              <Route path="/cms/careers" element={<ManageCareers />} />
+              <Route path="/cms/services" element={<ManageServices />} />
+              <Route path="/applications" element={<JobApplications />} />
             </Route>
 
             {/* Masters */}

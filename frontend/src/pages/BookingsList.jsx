@@ -348,7 +348,7 @@ const BookingsList = () => {
                         onClick={() => {
                           if (hasBox) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = hasBox.boxUrl || hasBox.cloudinaryUrl || `${apiUrl}/api/uploads/box/${hasBox.fileName || hasBox.filename}`;
+                            let fileUrl = hasBox.boxUrl || hasBox.cloudinaryUrl || `${apiUrl}/uploads/box/${hasBox.fileName || hasBox.filename}`;
                             navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
                           } else {
                             setSelectedBookingForBox(item);
@@ -366,7 +366,7 @@ const BookingsList = () => {
                         onClick={() => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || `${apiUrl}/api/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
+                            let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
                             navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                           } else {
                             setSelectedBookingForPod(item);

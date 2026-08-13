@@ -78,11 +78,12 @@ exports.put_id_4 = async (req, res) => {
   let fileName = req.body.fileName;
 
   if (req.files && req.files.voucher) {
-    const file = req.files.voucher;
-    const uploaded = await uploadFile(file.tempFilePath, "purchase_vouchers");
-    if (uploaded) {
+    const file = Array.isArray(req.files.voucher) ? req.files.voucher[0] : req.files.voucher;
+    const filePath = file.path || file.tempFilePath;
+    const uploaded = await uploadFile(filePath, { folder: "purchase_vouchers", resourceType: "auto" });
+    if (uploaded && uploaded.success) {
       cloudinaryUrl = uploaded.url;
-      cloudinaryPublicId = uploaded.public_id;
+      cloudinaryPublicId = uploaded.publicId;
       voucherUrl = uploaded.url;
     }
   } else if (req.body.fileData) {
