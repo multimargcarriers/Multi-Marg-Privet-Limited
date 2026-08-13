@@ -30,7 +30,7 @@ import {
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate } from '../utils/formatters';
+import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 
 const POD = () => {
@@ -319,8 +319,8 @@ const POD = () => {
   }, [podList, activeTab, tableSearch]);
 
   const getFileUrl = (item) => {
-    if (item.podUrl) return item.podUrl;
-    if (item.cloudinaryUrl) return item.cloudinaryUrl;
+    if (item.podUrl) return getSafeCloudinaryPdfUrl(item.podUrl);
+    if (item.cloudinaryUrl) return getSafeCloudinaryPdfUrl(item.cloudinaryUrl);
     return `${apiUrl}/uploads/pod/${item.fileName || item.filename}`;
   };
 

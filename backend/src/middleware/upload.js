@@ -88,7 +88,7 @@ function createUploadMiddleware(subDir = "general", options = {}) {
   const useFilter = options.strictTypes !== false;
 
   return multer({
-    storage: createStorage(subDir),
+    storage: options.useMemory ? multer.memoryStorage() : createStorage(subDir),
     limits: {
       fileSize: maxFileSize,
       files: maxFiles,

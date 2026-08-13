@@ -24,7 +24,7 @@ import { useDialog } from "../context/DialogContext";
 import { BadgeContext } from "../context/BadgeContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate, formatAmount } from '../utils/formatters';
+import { formatDate, formatAmount, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
@@ -948,7 +948,7 @@ const Purchase = () => {
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
-            const fileUrl = item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API}/uploads/${item.fileName}` : null);
+            const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
 
             return (
               <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>

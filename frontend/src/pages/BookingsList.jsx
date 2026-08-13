@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import RupeeIcon from '../components/RupeeIcon';
-import { formatDate } from '../utils/formatters';
+import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import CsvImportExport from "../components/CsvImportExport";
 import StatsPanel from "../components/StatsPanel";
 import PodEntryModal from "../components/pod/PodEntryModal";
@@ -349,6 +349,7 @@ const BookingsList = () => {
                           if (hasBox) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
                             let fileUrl = hasBox.boxUrl || hasBox.cloudinaryUrl || `${apiUrl}/uploads/box/${hasBox.fileName || hasBox.filename}`;
+                            fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
                             navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
                           } else {
                             setSelectedBookingForBox(item);
@@ -367,6 +368,7 @@ const BookingsList = () => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
                             let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
+                            fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
                             navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                           } else {
                             setSelectedBookingForPod(item);

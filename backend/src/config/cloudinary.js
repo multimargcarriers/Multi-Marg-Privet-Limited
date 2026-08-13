@@ -63,7 +63,11 @@ async function uploadFile(filePath, options = {}) {
     options.folder ||
     process.env.CLOUDINARY_UPLOAD_FOLDER ||
     "multimargcarriers";
-  const resourceType = options.resourceType || "auto";
+  const isPdf = typeof filePath === "string" && filePath.toLowerCase().includes(".pdf");
+  let resourceType = options.resourceType || "auto";
+  if (isPdf && resourceType === "auto") {
+    resourceType = "raw";
+  }
 
   try {
     const isDataOrRemote = typeof filePath === "string" && (filePath.startsWith("data:") || filePath.startsWith("http://") || filePath.startsWith("https://"));
@@ -122,6 +126,57 @@ async function uploadCompanyStamp(filePath) {
 }
 
 /**
+ * Upload a file buffer directly to Cloudinary using upload_stream
+ * @param {Buffer} buffer - File buffer
+ * @param {object} options - Upload options (folder, publicId, resourceType, originalName)
+ * @returns {Promise<object>}
+ */
+async function uploadStream(buffer, options = {}) {
+  if (!USE_CLOUDINARY) {
+    return { success: false, message: "Cloudinary not enabled" };
+  }
+
+  const folder = options.folder || process.env.CLOUDINARY_UPLOAD_FOLDER || "multimargcarriers";
+  
+  const isPdf = options.originalName && options.originalName.toLowerCase().endsWith('.pdf');
+  // PDFs must be uploaded as 'raw' so they retain their valid PDF binary format.
+  // Uploading them as 'image' corrupts the PDF viewer in the browser.
+  let resourceType = options.resourceType || "auto";
+  if (isPdf && resourceType === "auto") {
+    resourceType = "raw"; 
+  }
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: options.publicId,
+        resource_type: resourceType,
+        use_filename: true,
+        unique_filename: true,
+        filename_override: options.originalName
+      },
+      (error, result) => {
+        if (error) {
+          console.error("[Cloudinary] Stream upload error:", error.message);
+          return resolve({ success: false, message: error.message });
+        }
+        resolve({
+          success: true,
+          url: result.secure_url,
+          publicId: result.public_id,
+          format: result.format,
+          resourceType: result.resource_type,
+          bytes: result.bytes,
+        });
+      }
+    );
+    
+    stream.end(buffer);
+  });
+}
+
+/**
  * Upload a file buffer directly to Cloudinary (for base64/memory uploads)
  * @param {string} base64Data - Base64 encoded file data
  * @param {object} options - Upload options
@@ -138,10 +193,11 @@ async function uploadBase64(base64Data, options = {}) {
     "multimargcarriers";
 
   try {
+    const isPdf = typeof base64Data === "string" && base64Data.startsWith("data:application/pdf");
     const result = await cloudinary.uploader.upload(base64Data, {
       folder,
       public_id: options.publicId,
-      resource_type: "auto",
+      resource_type: isPdf ? "image" : "auto", // Ensure PDF is image so fl_attachment works
       use_filename: true,
       unique_filename: true,
       overwrite: false,
@@ -238,6 +294,7 @@ function getStatus() {
 module.exports = {
   initCloudinary,
   uploadFile,
+  uploadStream,
   uploadBase64,
   deleteFile,
   extractPublicIdFromUrl,

@@ -72,3 +72,20 @@ export const formatAmount = (value) => {
   if (isNaN(num)) return "-";
   return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+/**
+ * Cloudinary PDF URL handler.
+ * Previously this forced fl_attachment, but Cloudinary Free Tier now blocks
+ * fl_attachment on PDFs (returns 401 Unauthorized). We must return the raw URL.
+ */
+export const getSafeCloudinaryPdfUrl = (url) => {
+  if (!url || typeof url !== 'string') return url;
+  
+  // Strip fl_attachment if it somehow got saved in the database
+  if (url.includes('fl_attachment/')) {
+    return url.replace('fl_attachment/', '');
+  }
+  
+  return url;
+};
+

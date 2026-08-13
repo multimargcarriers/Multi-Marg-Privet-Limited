@@ -1,6 +1,5 @@
 const { db } = require("../config/database");
-const fs = require("fs");
-const { uploadFile } = require("../config/cloudinary");
+const { uploadStream } = require("../config/cloudinary");
 
 /**
  * Submit a new job application
@@ -19,25 +18,16 @@ const submitApplication = async (req, res) => {
 
     let resumeUrl = null;
     if (req.file) {
-      // Cloudinary strictly blocks PDF delivery on this account tier.
-      // To satisfy professional non-local storage requirements, we store the resume securely in a dedicated MongoDB collection.
-      const resumeBuffer = fs.readFileSync(req.file.path);
-      const resumeBase64 = resumeBuffer.toString("base64");
-      
-      const resumeRef = await db.collection("resumes").add({
-        data: resumeBase64,
-        contentType: req.file.mimetype,
-        originalName: req.file.originalname,
-        createdAt: new Date().toISOString()
+      // Memory storage is used, so file is in req.file.buffer
+      const uploadResult = await uploadStream(req.file.buffer, { 
+        folder: "applications",
+        originalName: req.file.originalname 
       });
       
-      resumeUrl = `/api/applications/resume/${resumeRef.id}`;
-      
-      // Clean up the temporary local file uploaded by multer
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (err) {
-        console.warn("[Applications] Could not delete temp file:", err.message);
+      if (uploadResult.success) {
+        resumeUrl = uploadResult.url;
+      } else {
+        console.error("[Applications] Cloudinary stream upload failed:", uploadResult.message);
       }
     }
 

@@ -3,6 +3,7 @@ import axios from "axios";
 import { Download, Trash2, Edit } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
+import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
 
 const JobApplications = () => {
   const { user } = useContext(AuthContext);
@@ -79,15 +80,10 @@ const JobApplications = () => {
     if (url.includes("res.cloudinary.com")) {
       const cloudIdx = url.indexOf("https://res.cloudinary.com");
       if (cloudIdx !== -1) {
-        url = url.substring(cloudIdx);
+        return url.substring(cloudIdx);
       }
     }
-    // Return direct URL if it's already a full HTTP link
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      return url;
-    }
-    // Fallback for old local files
-    return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${url}`;
+    return url;
   };
 
   return (

@@ -28,7 +28,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate } from '../utils/formatters';
+import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
@@ -1059,7 +1059,7 @@ const CashSheet = () => {
           pagination={true}
           renderRow={(item, index) => {
             const isIncome = item.type === "in" || item.type === "income";
-            const fileUrl = item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API}/uploads/${item.fileName}` : null);
+            const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
 
             return (
               <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>

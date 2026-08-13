@@ -8,6 +8,7 @@ const { createUploadMiddleware, handleMulterError } = require("../../middleware/
 // Restrict to documents and PDFs ideally, but upload middleware allows PDF by default in its ALLOWED_TYPES.documents
 const uploadResume = createUploadMiddleware("resumes", {
   maxFileSize: 10 * 1024 * 1024, // 10MB
+  useMemory: true, // Bypass disk storage in production
 });
 
 // Public route to submit job application

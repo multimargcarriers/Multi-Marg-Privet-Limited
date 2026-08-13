@@ -19,6 +19,7 @@ import {
 import { motion, } from "framer-motion";
 import PODImageStudioModal from "./PODImageStudioModal";
 import { useDialog } from "../../context/DialogContext";
+import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -291,7 +292,7 @@ const PodEntryModal = ({
               </div>
               {existingPod.cloudinaryUrl && (
                 <a 
-                  href={existingPod.cloudinaryUrl} 
+                  href={getSafeCloudinaryPdfUrl(existingPod.cloudinaryUrl)} 
                   target="_blank" 
                   rel="noreferrer"
                   style={{

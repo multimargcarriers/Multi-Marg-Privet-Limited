@@ -30,7 +30,7 @@ import {
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate } from '../utils/formatters';
+import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 
 const UploadBox = () => {
@@ -319,8 +319,8 @@ const UploadBox = () => {
   }, [boxList, activeTab, tableSearch]);
 
   const getFileUrl = (item) => {
-    if (item.boxUrl) return item.boxUrl;
-    if (item.cloudinaryUrl) return item.cloudinaryUrl;
+    if (item.boxUrl) return getSafeCloudinaryPdfUrl(item.boxUrl);
+    if (item.cloudinaryUrl) return getSafeCloudinaryPdfUrl(item.cloudinaryUrl);
     return `${apiUrl}/uploads/box/${item.fileName || item.filename}`;
   };
 
