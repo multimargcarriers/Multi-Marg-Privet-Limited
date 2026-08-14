@@ -201,6 +201,8 @@ axios.get = async function (url, config) {
 // Clear cache on mutations (POST, PUT, DELETE) — ensures writes are never stale
 const clearCache = () => { memCache.clear(); memCacheTimestamps.clear(); };
 
+window.addEventListener('sync-success-clear-cache', clearCache);
+
 const originalPost = axios.post;
 axios.post = async function (...args) { 
   if (!navigator.onLine) return syncManager.addRequest('post', rewriteUrl(args[0]), args[1]);

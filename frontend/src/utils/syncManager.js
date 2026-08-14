@@ -5,6 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 class SyncManager {
   constructor() {
     this.isSyncing = false;
+    
+    // Auto-poll every 10 seconds to ensure items sync even if 'online' event is missed
+    setInterval(() => {
+      if (navigator.onLine && this.getQueue().length > 0) {
+        this.syncAll();
+      }
+    }, 10000);
   }
 
   getQueue() {
@@ -60,6 +67,7 @@ class SyncManager {
     window.dispatchEvent(new CustomEvent('sync-started'));
 
     const remainingQueue = [...queue];
+    let syncedAny = false;
 
     for (const req of queue) {
       if (req.status === 'synced') continue;
@@ -79,6 +87,7 @@ class SyncManager {
         // Remove from queue on success
         const index = remainingQueue.findIndex(r => r.id === req.id);
         if (index > -1) remainingQueue.splice(index, 1);
+        syncedAny = true;
         
       } catch (error) {
         // If it's a 4xx error (validation), we probably can't automatically fix it.
@@ -95,7 +104,20 @@ class SyncManager {
 
     this.setQueue(remainingQueue);
     this.isSyncing = false;
+    
+    if (syncedAny) {
+      window.dispatchEvent(new CustomEvent('sync-success-clear-cache'));
+    }
+    
     window.dispatchEvent(new CustomEvent('sync-completed'));
+    
+    if (syncedAny && remainingQueue.length === 0) {
+      // Force a full UI reload so the freshly synced backend items are pulled correctly 
+      // with their actual server IDs and correct 'newest first' sorting.
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
   }
 }
 
