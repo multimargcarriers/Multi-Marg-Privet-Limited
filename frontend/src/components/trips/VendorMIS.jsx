@@ -373,9 +373,9 @@ const VendorMIS = () => {
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Mode</label>
                       <select className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} value={detail.mode} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].mode = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }}>
                           <option value="">Mode...</option>
-                          <option value="Air">Air</option>
-                          <option value="Road">Road</option>
-                          <option value="Train">Train</option>
+                          <option value="ROAD">Road</option>
+                          <option value="TRAIN">Train</option>
+                          <option value="FLIGHT">Flight</option>
                       </select>
                     </div>
                     <div>

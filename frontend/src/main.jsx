@@ -6,12 +6,45 @@ import App from './App.jsx'
 import appDB from './utils/appDB.js'
 import syncManager from './utils/syncManager.js'
 
-// Add Axios Request Interceptor for Global Authorization
+// Add Axios Request Interceptor for Global Authorization and Data Lowercasing
+const formatDataStringsToLowercase = (data) => {
+  if (Array.isArray(data)) {
+    return data.map(item => formatDataStringsToLowercase(item));
+  } else if (data !== null && typeof data === 'object') {
+    const formattedObj = {};
+    for (const key in data) {
+      if (Object.hasOwnProperty.call(data, key)) {
+        let value = data[key];
+        
+        if (typeof value === 'string' && !isTechnicalKey(key)) {
+          if (!key.toLowerCase().includes('address')) {
+            formattedObj[key] = value.toLowerCase();
+          } else {
+            formattedObj[key] = value;
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          formattedObj[key] = formatDataStringsToLowercase(value);
+        } else {
+          formattedObj[key] = value;
+        }
+      }
+    }
+    return formattedObj;
+  }
+  return data;
+};
+
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Format POST/PUT/PATCH payload strings to lowercase globally (except address & technical keys)
+  if (config.data && typeof config.data === 'object' && ['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+    config.data = formatDataStringsToLowercase(config.data);
+  }
+  
   return config;
 });
 
@@ -94,7 +127,7 @@ const isTechnicalKey = (key) => {
   if (lowerKey === 'id' || lowerKey === '_id' || lowerKey.endsWith('id') || lowerKey.endsWith('url') || lowerKey.endsWith('uri')) return true;
   const ignoreList = [
     'email', 'password', 'token', 'status', 'filename', 'createdat', 'updatedat', 
-    '__v', 'role', 'permission', 'type', 'mode', 'gstslab', 'size', 'mimetype', 'paymentmode'
+    '__v', 'role', 'permission', 'type', 'gstslab', 'size', 'mimetype', 'paymentmode'
   ];
   return ignoreList.includes(lowerKey);
 };

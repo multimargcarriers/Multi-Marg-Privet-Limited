@@ -529,12 +529,11 @@ const TripMIS = () => {
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Mode</label>
                       <select className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} value={parcel.mode} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].mode = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required>
-                          <option value="">Mode...</option>
-                          <option value="Air">Air</option>
-                          <option value="Road">Road</option>
-                          <option value="Express Road">Express Road</option>
-                          <option value="Train">Train</option>
-                          <option value="Surface">Surface</option>
+                          <option value="ROAD">Road</option>
+                          <option value="TRAIN">Train</option>
+                          <option value="FLIGHT">Flight</option>
+                          <option value="EXPRESS ROAD">Express Road</option>
+                          <option value="SURFACE">Surface</option>
                       </select>
                     </div>
                     <div>

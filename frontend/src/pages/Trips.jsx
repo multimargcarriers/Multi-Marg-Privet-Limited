@@ -223,7 +223,7 @@ const Trips = () => {
       <div className="header-flex no-print">
         <div>
           <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-            {view === 'manifest' ? 'Transport Bookings (Train / Air / Road)' : 
+            {view === 'manifest' ? 'Transport Bookings (TRAIN / AIR / ROAD)' : 
              view === 'bill' ? 'Trip Bill' : 'Trips'}
           </h3>
         </div>
@@ -249,7 +249,7 @@ const Trips = () => {
             </div>
           </div>
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
-            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Train / Air / Road</div>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>TRAIN / AIR / ROAD</div>
             <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
               <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainCount}</span>
               <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightCount}</span>
@@ -273,39 +273,40 @@ const Trips = () => {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-                {form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : form.mode === 'Flight' ? 'Flight No' : 'Trip No'}
+                {form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'FLIGHT' ? 'Flight No' : 'Trip No'}
                 <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
               </label>
-              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'Train' ? 'Train No' : form.mode === 'Road' ? 'Vehicle No' : form.mode === 'Flight' ? 'Flight No' : 'Trip No'}`} value={form.tripNo} onChange={e => setForm({ ...form, tripNo: formatAllCaps(e.target.value) })} required />
+              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'FLIGHT' ? 'Flight No' : 'Trip No'}`} value={form.tripNo} onChange={e => setForm({ ...form, tripNo: formatAllCaps(e.target.value) })} required />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value, ...(e.target.value !== 'Flight' ? { cdNo: '' } : {}) })} required>
+              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value, ...(e.target.value !== 'FLIGHT' ? { cdNo: '' } : {}) })} required>
                 <option value="">-- Select Mode --</option>
-                <option value="Train">Train</option>
-                <option value="Flight">Flight</option>
-                <option value="Road">Road</option>
+                <option value="ROAD">ROAD</option>
+                <option value="TRAIN">TRAIN</option>
+                <option value="FLIGHT">FLIGHT/AIR</option>
+                <option value="SURFACE">SURFACE</option>
               </select>
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Type<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <input type="text" list="type-options" className="form-control" placeholder="Select or Type" value={form.type || ""} onChange={e => setForm({ ...form, type: formatAllCaps(e.target.value) })} required />
               <datalist id="type-options">
-                {form.mode === 'Flight' && (
+                {form.mode === 'FLIGHT' && (
                   <>
                     <option value="GCR FLIGHT" />
                     <option value="PRIME FLIGHT" />
                     <option value="EXPRESS MODE" />
                   </>
                 )}
-                {form.mode === 'Train' && (
+                {form.mode === 'TRAIN' && (
                   <>
                     <option value="EXPRESS" />
                     <option value="SUPERFAST" />
                     <option value="PASSENGER" />
                   </>
                 )}
-                {form.mode === 'Road' && (
+                {form.mode === 'ROAD' && (
                   <>
                     <option value="FTL" />
                     <option value="PTL" />
@@ -334,7 +335,7 @@ const Trips = () => {
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>AWB No</label>
               <input type="text" className="form-control" placeholder="Enter AWB No" value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
             </div>
-            {form.mode === 'Flight' && (
+            {form.mode === 'FLIGHT' && (
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
                 <input type="text" className="form-control" placeholder="Enter CD No" value={form.cdNo} onChange={e => setForm({ ...form, cdNo: formatAllCaps(e.target.value) })} />

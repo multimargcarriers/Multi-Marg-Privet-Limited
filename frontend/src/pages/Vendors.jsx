@@ -353,9 +353,9 @@ const Vendors = () => {
                   <option value="Mini Truck" />
                   <option value="Pickup Truck" />
                   <option value="Heavy Truck" />
-                  <option value="Trailer" />
-                  <option value="Train" />
-                  <option value="Air" />
+                  <option value="ROAD" />
+                  <option value="TRAIN" />
+                  <option value="FLIGHT" />
                   <option value="Sea" />
                 </datalist>
               </div>

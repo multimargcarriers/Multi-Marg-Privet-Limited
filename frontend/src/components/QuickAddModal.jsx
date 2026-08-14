@@ -218,10 +218,10 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName, editingItem
                   </div>
                   <div style={{ gridColumn: "span 2" }}>
                     <label className="modal-label">Mode</label>
-                    <select className="modal-input" name="mode" value={formData.mode || "Road"} onChange={handleChange} required>
-                      <option value="Road">Road</option>
-                      <option value="Train">Train</option>
-                      <option value="Air">Air</option>
+                    <select className="modal-input" name="mode" value={formData.mode || "ROAD"} onChange={handleChange} required>
+                      <option value="ROAD">ROAD</option>
+                      <option value="TRAIN">TRAIN</option>
+                      <option value="FLIGHT">FLIGHT</option>
                     </select>
                   </div>
                 </>

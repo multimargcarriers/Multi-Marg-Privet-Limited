@@ -14,7 +14,7 @@ import { useToast } from '../context/ToastContext';
 import RupeeIcon from '../components/RupeeIcon';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
-const MODE_COLORS = { 'Air': '#3b82f6', 'Train': '#a21caf', 'Road': '#10b981', 'Unknown': '#64748b' };
+const MODE_COLORS = { 'AIR': '#3b82f6', 'FLIGHT': '#3b82f6', 'TRAIN': '#a21caf', 'ROAD': '#10b981', 'UNKNOWN': '#64748b' };
 
 const StatCard = ({ title, value, icon, subtitle }) => (
   <div className="analytics-stat-card">
