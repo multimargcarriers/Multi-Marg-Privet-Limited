@@ -1,10 +1,11 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { Bell, Menu, Plus, Minus, AlertCircle, Search, User, Settings, LogOut, Type } from 'lucide-react';
+import { Bell, Menu, Plus, Minus, AlertCircle, Search, User, Settings, LogOut, Type, Clock } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
 import { useNotification } from '../context/NotificationContext';
 import { BadgeContext } from '../context/BadgeContext';
+import { useSync } from '../context/SyncContext';
 import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
 import { } from '../context/ToastContext';
@@ -14,6 +15,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
   const { notifications, totalUnreadActivity, markAsRead } = useContext(BadgeContext);
   const { fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
+  const { syncQueue, isOnline, isSyncing } = useSync() || { syncQueue: [] };
   const [fontInputValue, setFontInputValue] = useState(fontSize ? fontSize.toString() : '100');
 
   useEffect(() => {
@@ -308,7 +310,37 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
 
         {/* Notifications (Admin, Super Admin, and those with activity permissions) */}
         {hasSidebar && (
-          <div style={{ position: 'relative' }} ref={dropdownRef}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }} ref={dropdownRef}>
+            
+            {/* Manual Sync Button for Offline Items */}
+            {syncQueue && syncQueue.length > 0 && (
+              <button 
+                onClick={() => {
+                  import('../utils/syncManager').then(m => m.default.syncAll());
+                }} 
+                style={{ 
+                  background: isSyncing ? '#f59e0b' : '#ef4444', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '20px', 
+                  padding: '0.3rem 0.75rem', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.4rem',
+                  cursor: (isSyncing || !isOnline) ? 'not-allowed' : 'pointer',
+                  opacity: (isSyncing || !isOnline) ? 0.7 : 1,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                }}
+                disabled={isSyncing || !isOnline}
+                title={!isOnline ? "Connect to internet to sync" : "Click to push offline items"}
+              >
+                <Clock size={14} className={isSyncing ? "spin-animation" : ""} /> 
+                {isSyncing ? "Syncing..." : `Sync ${syncQueue.length} Items`}
+              </button>
+            )}
+
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', position: 'relative', display: 'flex', alignItems: 'center' }}

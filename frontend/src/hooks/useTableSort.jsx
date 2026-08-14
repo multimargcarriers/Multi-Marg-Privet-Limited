@@ -9,6 +9,10 @@ const useTableSort = (data, defaultSort = "newest", config = {}) => {
     if (!data || !Array.isArray(data)) return [];
     
     return [...data].sort((a, b) => {
+      // Force offline pending items to the top always
+      if (a.isOfflinePending && !b.isOfflinePending) return -1;
+      if (!a.isOfflinePending && b.isOfflinePending) return 1;
+
       // Default dates fallback to 'createdAt' or 'date' if the configured key doesn't exist
       const dateA = new Date(a[dateKey] || a.date || a.createdAt || 0).getTime();
       const dateB = new Date(b[dateKey] || b.date || b.createdAt || 0).getTime();
