@@ -211,6 +211,29 @@ const clearCache = () => {
   forceFetchThreshold = Date.now(); 
 };
 
+// Global Optimistic Delete: instantly removes item from local cache
+const optimisticDelete = (idToDelete) => {
+  if (!idToDelete || idToDelete.length < 3) return; // Ignore clear/all routes
+  
+  const keys = Object.keys(appDB.memCache).filter(k => k.startsWith('GET_'));
+  
+  for (const key of keys) {
+    const cachedObj = appDB.memCache[key];
+    if (!cachedObj) continue;
+    
+    if (Array.isArray(cachedObj)) {
+      const newArr = cachedObj.filter(item => item.id !== idToDelete && item._id !== idToDelete);
+      if (newArr.length !== cachedObj.length) appDB.set(key, newArr);
+    } 
+    else if (cachedObj.data && Array.isArray(cachedObj.data)) {
+      const newArr = cachedObj.data.filter(item => item.id !== idToDelete && item._id !== idToDelete);
+      if (newArr.length !== cachedObj.data.length) {
+        appDB.set(key, { ...cachedObj, data: newArr });
+      }
+    }
+  }
+};
+
 window.addEventListener('sync-success-clear-cache', clearCache);
 
 const originalPost = axios.post;
@@ -228,10 +251,37 @@ axios.put = async function (...args) {
 };
 
 const originalDelete = axios.delete;
-axios.delete = async function (...args) { 
-  if (!navigator.onLine) return syncManager.addRequest('delete', rewriteUrl(args[0]), args[1]);
-  if (syncManager.getQueue().length > 0) await syncManager.syncAll();
-  args[0] = rewriteUrl(args[0]); clearCache(); return originalDelete.apply(this, args); 
+axios.delete = function (...args) { 
+  const url = rewriteUrl(args[0]);
+  const parts = url.split('?')[0].split('/');
+  const idToDelete = parts[parts.length - 1];
+  
+  // 1. Optimistically remove from all caches
+  optimisticDelete(idToDelete);
+  
+  // 2. Fire-and-forget background network execution
+  const backgroundExecution = async () => {
+    if (!navigator.onLine) {
+      return syncManager.addRequest('delete', url, args[1]);
+    }
+    if (syncManager.getQueue().length > 0) {
+      await syncManager.syncAll();
+    }
+    args[0] = url; 
+    try {
+      await originalDelete.apply(axios, args);
+    } catch (e) {
+      console.error("Background delete failed", e);
+    } finally {
+      // Clear cache AFTER background process finishes so next navigation fetches real DB state
+      clearCache(); 
+    }
+  };
+  
+  backgroundExecution().catch(e => console.error(e));
+  
+  // 3. Instantly resolve the promise to unblock the UI!
+  return Promise.resolve({ data: { success: true, message: "Deleted optimistically" } });
 };
 
 const originalPatch = axios.patch;
