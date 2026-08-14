@@ -23,7 +23,7 @@ import {
   FileCheck,
   Camera,
   Image as ImageIcon,
-
+  Clock
 
 
 } from "lucide-react";
@@ -32,9 +32,11 @@ import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
+import { useSync } from "../context/SyncContext";
 
 const UploadBox = () => {
   const { user } = useContext(AuthContext);
+  const { syncQueue } = useSync();
   const { confirm, alert: alertDialog } = useDialog();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
@@ -279,24 +281,35 @@ const UploadBox = () => {
   };
 
   // Stats Calculations
+  const displayBoxes = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/box'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...boxList];
+  }, [boxList, syncQueue]);
+
   const stats = useMemo(() => {
-    const total = boxList.length;
-    const verifiedCount = boxList.filter(p => (p.boxType === "VERIFIED" || p.bookingId || p.consignor !== "-" || p.origin !== "-")).length;
+    const total = displayBoxes.length;
+    const verifiedCount = displayBoxes.filter(p => (p.boxType === "VERIFIED" || p.bookingId || p.consignor !== "-" || p.origin !== "-")).length;
     const unknownCount = total - verifiedCount;
     
     // Uploaded today
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todayCount = boxList.filter(p => {
+    const todayCount = displayBoxes.filter(p => {
       const dt = p.uploadedAt || p.createdAt;
       return dt && dt.startsWith(todayStr);
     }).length;
 
     return { total, verifiedCount, unknownCount, todayCount };
-  }, [boxList]);
+  }, [displayBoxes]);
 
   // Table filtering
   const filteredBoxes = useMemo(() => {
-    return boxList.filter(item => {
+    return displayBoxes.filter(item => {
       // Tab filter
       const isVerified = (item.boxType === "VERIFIED" || item.bookingId || (item.origin && item.origin !== "-"));
       if (activeTab === "VERIFIED" && !isVerified) return false;
@@ -316,7 +329,7 @@ const UploadBox = () => {
         (item.remarks && String(item.remarks).toLowerCase().includes(q))
       );
     });
-  }, [boxList, activeTab, tableSearch]);
+  }, [displayBoxes, activeTab, tableSearch]);
 
   const getFileUrl = (item) => {
     if (item.boxUrl) return getSafeCloudinaryPdfUrl(item.boxUrl);
@@ -995,10 +1008,15 @@ const UploadBox = () => {
             const fileUrl = getFileUrl(item);
 
             return (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem" }}>
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                 {/* LR No */}
                 <td style={{ padding: "1rem", fontWeight: 700, color: "#0284c7", whiteSpace: "nowrap" }}>
-                  {item.lrNo}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {item.lrNo}
+                    {item.isOfflinePending && (
+                      <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                    )}
+                  </div>
                 </td>
 
                 {/* Box Type Badge */}
@@ -1070,6 +1088,7 @@ const UploadBox = () => {
                 {/* Proof Document Link / Preview */}
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <button
+                    disabled={item.isOfflinePending}
                     onClick={() => navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`)}
                     style={{
                       background: "#f0f9ff",
@@ -1079,10 +1098,11 @@ const UploadBox = () => {
                       borderRadius: "6px",
                       fontWeight: 600,
                       fontSize: "0.8rem",
-                      cursor: "pointer",
+                      cursor: item.isOfflinePending ? "not-allowed" : "pointer",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px"
+                      gap: "6px",
+                      opacity: item.isOfflinePending ? 0.5 : 1
                     }}
                   >
                     <Eye size={14} />
@@ -1108,22 +1128,25 @@ const UploadBox = () => {
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <a
-                      href={fileUrl}
-                      target="_blank"
+                      href={item.isOfflinePending ? "#" : fileUrl}
+                      target={item.isOfflinePending ? "_self" : "_blank"}
+                      onClick={(e) => { if (item.isOfflinePending) e.preventDefault(); }}
                       rel="noopener noreferrer"
                       style={{
                         color: "#475569",
                         padding: "4px",
                         display: "inline-flex",
                         alignItems: "center",
-                        textDecoration: "none"
+                        textDecoration: "none",
+                        opacity: item.isOfflinePending ? 0.5 : 1,
+                        cursor: item.isOfflinePending ? "not-allowed" : "pointer"
                       }}
                       title="Open in new tab"
                     >
                       <ExternalLink size={16} />
                     </a>
 
-                    {isSuperAdmin && (
+                    {isSuperAdmin && !item.isOfflinePending && (
                       <button 
                         onClick={() => handleDelete(item.id)}
                         style={{ 

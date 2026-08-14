@@ -22,7 +22,8 @@ import {
   Filter,
   TrendingUp,
   TrendingDown,
-  Wallet
+  Wallet,
+  Clock
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -34,11 +35,13 @@ import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import { BadgeContext } from "../context/BadgeContext";
+import { useSync } from "../context/SyncContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CashSheet = () => {
   const { user } = useContext(AuthContext);
+  const { syncQueue } = useSync();
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
@@ -59,8 +62,19 @@ const CashSheet = () => {
   const [filterPartyType, setFilterPartyType] = useState("All");
   const [filterType, setFilterType] = useState("All");
 
+  const displayEntries = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/cash'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...entries];
+  }, [entries, syncQueue]);
+
   const filteredEntries = useMemo(() => {
-    return entries.filter(e => {
+    return displayEntries.filter(e => {
       // 1. Party Type Filter
       if (filterPartyType !== "All" && e.partyType?.toLowerCase() !== filterPartyType.toLowerCase()) return false;
       
@@ -79,7 +93,7 @@ const CashSheet = () => {
       
       return true;
     });
-  }, [entries, filterSearch, filterPartyType, filterType]);
+  }, [displayEntries, filterSearch, filterPartyType, filterType]);
 
   const csvInputRef = useRef(null);
   const [importing, setImporting] = useState(false);
@@ -1062,10 +1076,13 @@ const CashSheet = () => {
             const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
 
             return (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> {item.date ? formatDate(item.date) : "-"}
+                    {item.isOfflinePending && (
+                      <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                    )}
                   </div>
                 </td>
                 
@@ -1106,6 +1123,7 @@ const CashSheet = () => {
                 <td style={{ padding: "1rem" }}>
                   {fileUrl ? (
                     <button
+                      disabled={item.isOfflinePending}
                       onClick={() => navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Cash%20Voucher%20Viewer`)}
                       style={{
                         background: "#f0f9ff",
@@ -1115,10 +1133,11 @@ const CashSheet = () => {
                         borderRadius: "6px",
                         fontWeight: 600,
                         fontSize: "0.8rem",
-                        cursor: "pointer",
+                        cursor: item.isOfflinePending ? "not-allowed" : "pointer",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "6px"
+                        gap: "6px",
+                        opacity: item.isOfflinePending ? 0.5 : 1
                       }}
                     >
                       <Eye size={14} />
@@ -1133,16 +1152,17 @@ const CashSheet = () => {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     {fileUrl && (
                       <a
-                        href={fileUrl}
-                        target="_blank"
+                        href={item.isOfflinePending ? "#" : fileUrl}
+                        target={item.isOfflinePending ? "_self" : "_blank"}
+                        onClick={(e) => { if (item.isOfflinePending) e.preventDefault(); }}
                         rel="noopener noreferrer"
-                        style={{ color: "#475569", padding: "4px", display: "inline-flex", textDecoration: "none" }}
+                        style={{ color: "#475569", padding: "4px", display: "inline-flex", textDecoration: "none", opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title="Open in new tab"
                       >
                         <ExternalLink size={16} />
                       </a>
                     )}
-                    {isSuperAdmin && (
+                    {isSuperAdmin && !item.isOfflinePending && (
                       <button 
                         onClick={() => handleEdit(item)}
                         style={{ background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", padding: "4px" }}
@@ -1151,7 +1171,7 @@ const CashSheet = () => {
                         <Edit3 size={16} />
                       </button>
                     )}
-                    {isSuperAdmin && (
+                    {isSuperAdmin && !item.isOfflinePending && (
                       <button 
                         onClick={() => handleDelete(item.id)}
                         style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", padding: "4px" }}

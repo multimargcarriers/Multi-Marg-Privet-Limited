@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Edit, Trash2, IndianRupee, Users, TrendingUp, Search } from "lucide-react";
+import { Edit, Trash2, IndianRupee, Users, TrendingUp, Search, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CreatableDropdown from "../components/CreatableDropdown";
+import { useSync } from "../context/SyncContext";
 
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -15,6 +16,7 @@ import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
 
 const Rates = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
@@ -196,7 +198,18 @@ const Rates = () => {
   };
 
   // Filter rates based on search query
-  const filteredRates = rates.filter(r => {
+  const displayRates = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/rates'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...rates];
+  }, [rates, syncQueue]);
+
+  const filteredRates = displayRates.filter(r => {
     const query = searchQuery.toLowerCase();
     return (
       (r.client || "").toLowerCase().includes(query) ||
@@ -467,9 +480,14 @@ const Rates = () => {
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
+                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                     <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "700", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "top" }}>
-                      {item.client}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                        {item.client}
+                        {item.isOfflinePending && (
+                          <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.95rem", color: "#1e293b", borderRight: "1px solid #e2e8f0", fontWeight: "600", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "top" }}>
                       {item.origin}
@@ -525,13 +543,14 @@ const Rates = () => {
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                           <button 
                             onClick={() => handleEditClick(item)} 
+                            disabled={item.isOfflinePending}
                             className="btn btn-primary"
-                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                            style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                             title="Edit"
                           >
                             <Edit size={16} />
                           </button>
-                          {isSuperAdmin ? (
+                          {isSuperAdmin && !item.isOfflinePending ? (
                             <button 
                               onClick={() => handleDelete(item.id)}
                               className="btn btn-danger"

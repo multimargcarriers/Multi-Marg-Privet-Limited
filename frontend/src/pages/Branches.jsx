@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { Edit, Trash2, Building, MapPin, CheckCircle, Search } from "lucide-react";
+import { Edit, Trash2, Building, MapPin, CheckCircle, Search, Clock } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";
-import {  formatTitleCase, formatPhoneNumber } from "../utils/formatters";
+import { useSync } from "../context/SyncContext";
+import { formatTitleCase, formatPhoneNumber } from "../utils/formatters";
 import CsvImportExport from "../components/CsvImportExport";
 import StatsPanel from "../components/StatsPanel";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
 
 const Branches = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
@@ -148,7 +150,18 @@ const Branches = () => {
   };
 
   // Filter and sort branches based on search query and latest first
-  const filteredBranches = branches.filter(b => {
+  const displayBranches = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/branches'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...branches];
+  }, [branches, syncQueue]);
+
+  const filteredBranches = displayBranches.filter(b => {
     const query = searchQuery.toLowerCase();
     return (
       (b.code || "").toLowerCase().includes(query) ||
@@ -205,9 +218,9 @@ const Branches = () => {
       </div>
 
       <StatsPanel stats={[
-        { label: "Total Branches", value: branches.length, color: "blue", icon: Building },
-        { label: "Unique Cities", value: new Set(branches.map(b => b.city)).size, color: "purple", icon: MapPin },
-        { label: "With Contact Info", value: branches.filter(b => b.phone && b.phone.trim() !== '').length, color: "green", icon: CheckCircle }
+        { label: "Total Branches", value: displayBranches.length, color: "blue", icon: Building },
+        { label: "Unique Cities", value: new Set(displayBranches.map(b => b.city)).size, color: "purple", icon: MapPin },
+        { label: "With Contact Info", value: displayBranches.filter(b => b.phone && b.phone.trim() !== '').length, color: "green", icon: CheckCircle }
       ]} />
 
       {/* Form Section */}
@@ -406,9 +419,14 @@ const Branches = () => {
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
+                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.code || "-"}</td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.branch || "-"}</td>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                      {item.branch || "-"}
+                      {item.isOfflinePending && (
+                        <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                      )}
+                    </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", textTransform: "uppercase" }}>{item.name || "-"}</td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", maxWidth: "250px", textTransform: "capitalize" }}>{item.address || "-"}</td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>{item.phno || "-"}</td>
@@ -417,8 +435,9 @@ const Branches = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
+                          disabled={item.isOfflinePending}
                           className="btn btn-primary"
-                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                           title="Edit"
                         >
                           <Edit size={16} />
@@ -427,7 +446,7 @@ const Branches = () => {
                     </td>
                     <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
-                        {isSuperAdmin ? (
+                        {isSuperAdmin && !item.isOfflinePending ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
                             className="btn btn-danger"

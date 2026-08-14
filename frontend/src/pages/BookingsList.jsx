@@ -17,8 +17,10 @@ import { BadgeContext } from "../context/BadgeContext";
 import { SettingsContext } from "../context/SettingsContext";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
+import { useSync } from "../context/SyncContext";
 
 const BookingsList = () => {
+  const { syncQueue } = useSync();
   const { user, hasPermission } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { clearBadge } = useContext(BadgeContext);
@@ -133,14 +135,25 @@ const BookingsList = () => {
     } catch (err) { console.error("Clear all bookings error", err); }
   };
 
+  const displayBookings = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/bookings'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...bookings];
+  }, [bookings, syncQueue]);
+
   const filtered = useMemo(() => {
-    return bookings.filter(b =>
+    return displayBookings.filter(b =>
       !search || (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
       (b.destination || "").toLowerCase().includes(search.toLowerCase())
     );
-  }, [bookings, search]);
+  }, [displayBookings, search]);
 
   const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "frieght" });
 
@@ -256,14 +269,14 @@ const BookingsList = () => {
             const hasBox = boxMap[item.awb || item.lrNo || item.id];
             const hasPodEntry = podMap[item.awb || item.lrNo || item.id];
             return (
-              <div key={item.id || index} className="booking-card">
+              <div key={item.id || index} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: item.isOfflinePending ? "2px dashed #f59e0b" : undefined }}>
                 
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
                   <div className="booking-card-header-left">
                     <h4 className="booking-client-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {item.client || item.consignor || "UNKNOWN CLIENT"}
-                      {String(item.id).startsWith("offline_") && (
+                      {item.isOfflinePending && (
                         <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
                       )}
                     </h4>
@@ -329,15 +342,19 @@ const BookingsList = () => {
                     {(() => {
                       const awbLower = String(awb).trim().toLowerCase();
                       const isDelivered = trackingMap[awbLower] === 'Delivered';
-                      const canModify = isSuperAdmin || !isDelivered;
+                      const canModify = (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
                       
                       return (
                         <>
                           {canModify && (
                             <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
                           )}
-                          <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} className="booking-action-btn" title="View Bills" style={{ color: '#8b5cf6' }}><Eye size={15} /></button>
-                          <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
+                          {!item.isOfflinePending && (
+                            <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} className="booking-action-btn" title="View Bills" style={{ color: '#8b5cf6' }}><Eye size={15} /></button>
+                          )}
+                          {!item.isOfflinePending && (
+                            <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
+                          )}
                           {canModify && (
                             <button onClick={() => handleDelete(item.id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
                           )}
@@ -348,6 +365,7 @@ const BookingsList = () => {
                   {canAccessPod && (
                     <div className="booking-actions-right">
                       <button 
+                        disabled={item.isOfflinePending}
                         onClick={() => {
                           if (hasBox) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -360,13 +378,14 @@ const BookingsList = () => {
                           }
                         }} 
                         className="booking-pod-btn"
-                        style={{ background: hasBox ? '#fef3c7' : '#fefce8', border: `1px solid ${hasBox ? '#fde68a' : '#fef08a'}`, color: hasBox ? '#d97706' : '#ca8a04' }}
+                        style={{ background: hasBox ? '#fef3c7' : '#fefce8', border: `1px solid ${hasBox ? '#fde68a' : '#fef08a'}`, color: hasBox ? '#d97706' : '#ca8a04', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasBox ? "View Box" : "Upload Box"}
                       >
                         {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
                         {hasBox ? "BOX" : "+ BOX"}
                       </button>
                       <button 
+                        disabled={item.isOfflinePending}
                         onClick={() => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -379,7 +398,7 @@ const BookingsList = () => {
                           }
                         }} 
                         className="booking-pod-btn"
-                        style={{ background: hasPodEntry ? '#ecfdf5' : '#e0f2fe', border: `1px solid ${hasPodEntry ? '#a7f3d0' : '#bae6fd'}`, color: hasPodEntry ? '#10b981' : '#0284c7' }}
+                        style={{ background: hasPodEntry ? '#ecfdf5' : '#e0f2fe', border: `1px solid ${hasPodEntry ? '#a7f3d0' : '#bae6fd'}`, color: hasPodEntry ? '#10b981' : '#0284c7', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasPodEntry ? "View POD" : "Upload POD"}
                       >
                         {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}

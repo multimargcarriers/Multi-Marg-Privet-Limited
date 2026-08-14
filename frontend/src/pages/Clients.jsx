@@ -4,6 +4,7 @@ import { Edit, Trash2, Users, ShieldCheck, AlertCircle, Search, Filter, Clock } 
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";
+import { useSync } from "../context/SyncContext";
 import { formatAllCaps, formatTitleCase } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
@@ -12,6 +13,7 @@ import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
 
 const Clients = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
@@ -165,7 +167,18 @@ const Clients = () => {
   };
 
   // Filter clients based on search query
-  const filteredClients = clients.filter(c => {
+  const displayClients = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/clients'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...clients];
+  }, [clients, syncQueue]);
+
+  const filteredClients = displayClients.filter(c => {
     const query = searchQuery.toLowerCase();
     const cName = c.name || "";
     
@@ -224,9 +237,9 @@ const Clients = () => {
       </div>
 
       <StatsPanel stats={[
-        { label: "Total Clients", value: clients.length, color: "blue", icon: Users },
-        { label: "With GST", value: clients.filter(c => c.gst && c.gst.trim() !== '').length, color: "green", icon: ShieldCheck },
-        { label: "Without GST", value: clients.filter(c => !c.gst || c.gst.trim() === '').length, color: "orange", icon: AlertCircle }
+        { label: "Total Clients", value: displayClients.length, color: "blue", icon: Users },
+        { label: "With GST", value: displayClients.filter(c => c.gst && c.gst.trim() !== '').length, color: "green", icon: ShieldCheck },
+        { label: "Without GST", value: displayClients.filter(c => !c.gst || c.gst.trim() === '').length, color: "orange", icon: AlertCircle }
       ]} />
 
       {/* Form Section */}
@@ -431,7 +444,7 @@ const Clients = () => {
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
+                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
                       MCPL{String(item.clientCode || "").replace(/^mcpl-?/i, "")}
                     </td>
@@ -467,8 +480,9 @@ const Clients = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
+                          disabled={item.isOfflinePending}
                           className="btn btn-primary"
-                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                           title="Edit"
                         >
                           <Edit size={16} />
@@ -477,7 +491,7 @@ const Clients = () => {
                     </td>
                     <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
-                        {isSuperAdmin ? (
+                        {isSuperAdmin && !item.isOfflinePending ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
                             className="btn btn-danger"

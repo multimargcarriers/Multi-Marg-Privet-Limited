@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download,     } from "lucide-react";
+import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
 
@@ -17,6 +17,7 @@ import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import appDB from "../utils/appDB";
 import { BadgeContext } from "../context/BadgeContext";
+import { useSync } from "../context/SyncContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -41,6 +42,7 @@ const Trips = () => {
 
   const { refreshNotifications } = useNotification();
   const { addToast } = useToast();
+  const { syncQueue } = useSync();
 
   const handleCreateNew = async (type, field, name, index = null) => {
     try {
@@ -193,14 +195,26 @@ const Trips = () => {
     setForm({ ...form, materialDetails: form.materialDetails.filter((_, i) => i !== index) });
   };
 
+  const displayTrips = useMemo(() => {
+    const pendingTrips = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/trips'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    // To show new items at top, you might want to unshift or sort, assuming pending are newest
+    return [...pendingTrips, ...trips];
+  }, [trips, syncQueue]);
+
   const tripsStats = useMemo(() => {
     return {
-      totalAmount: trips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
-      trainCount: trips.filter(t => t.mode?.toLowerCase() === 'train').length,
-      flightCount: trips.filter(t => t.mode?.toLowerCase() === 'flight').length,
-      roadCount: trips.filter(t => t.mode?.toLowerCase() === 'road').length,
+      totalAmount: displayTrips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
+      trainCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'train').length,
+      flightCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'flight').length,
+      roadCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'road').length,
     };
-  }, [trips]);
+  }, [displayTrips]);
 
   if (loading) return <TablePageSkeleton />;
 
@@ -226,7 +240,7 @@ const Trips = () => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }} className="no-print">
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #3b82f6" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trips</div>
-            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{trips.length}</div>
+            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{displayTrips.length}</div>
           </div>
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #10b981" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Freight</div>
@@ -500,10 +514,15 @@ const Trips = () => {
           pagination={true}
           defaultEntries={10}
           headers={["Trip No", "Mode", "Type", "Booking", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
-          data={trips}
+          data={displayTrips}
           renderRow={(item, index) => (
-            <tr key={item.id || index}>
-              <td className="font-semibold">{item.tripNo || "-"}</td>
+             <tr key={item.id || index} style={{ opacity: item.isOfflinePending ? 0.7 : 1 }}>
+              <td className="font-semibold">
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Offline Sync" />}
+                  {item.tripNo || "-"}
+                </div>
+              </td>
               <td style={{ textTransform: 'uppercase' }}>{item.mode || "-"}</td>
               <td style={{ textTransform: 'uppercase' }}>{item.type || "-"}</td>
               <td style={{ textTransform: 'uppercase' }}>{item.bookingType || "NORMAL"}</td>
@@ -524,18 +543,20 @@ const Trips = () => {
               <td>
                 <span style={{
                     padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
-                    background: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
-                    color: String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3'
+                    background: item.isOfflinePending ? '#fef3c7' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
+                    color: item.isOfflinePending ? '#b45309' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3',
+                    display: "inline-flex", alignItems: "center", gap: "4px"
                 }}>
-                  {item.approvalStatus || 'Approved'}
+                  {item.isOfflinePending && <Clock size={12} />}
+                  {item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved')}
                 </span>
               </td>
               <td>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
-                  <button onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Preview Manifest"><Eye size={16} /></button>
-                  <button onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Download Manifest"><Download size={16} /></button>
+                  <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
+                  <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
                   
-                  {isAdminOrSuperAdmin && (
+                  {isAdminOrSuperAdmin && !item.isOfflinePending && (
                     <>
                       {String(item.approvalStatus || 'Approved').toLowerCase() !== 'approved' && (
                         <button onClick={async () => {
@@ -583,7 +604,7 @@ const Trips = () => {
                       )}
                     </>
                   )}
-                  {isSuperAdmin && (
+                  {isSuperAdmin && !item.isOfflinePending && (
                     <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
                   )}
                 </div>

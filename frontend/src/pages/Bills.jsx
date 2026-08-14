@@ -2,14 +2,16 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 import { } from "../components/SkeletonLoader";
-import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle } from "lucide-react";
+import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle, Clock } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 import StatsPanel from "../components/StatsPanel";
+import { useSync } from "../context/SyncContext";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { formatDate, formatAmount } from '../utils/formatters';
 
 const Bills = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -50,6 +52,17 @@ const Bills = () => {
     }
   };
 
+  const displayBills = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/bills'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...bills];
+  }, [bills, syncQueue]);
+
   return (
     <div className="page-content">
       <div className="header-flex">
@@ -62,20 +75,25 @@ const Bills = () => {
       </div>
       
       <StatsPanel stats={[
-        { label: "Total Bills", value: bills.length, icon: FileText, color: "blue" },
-        { label: "Total Amount", value: "₹" + bills.reduce((sum, b) => sum + parseFloat(b.amount || b.total || 0), 0).toFixed(2), icon: IndianRupee, color: "green" },
-        { label: "Amount Paid", value: "₹" + bills.reduce((sum, b) => sum + parseFloat(b.paidAmount || 0), 0).toFixed(2), icon: CreditCard, color: "orange" },
-        { label: "Outstanding", value: "₹" + bills.reduce((sum, b) => sum + parseFloat((b.amount || b.total || 0) - (b.paidAmount || 0)), 0).toFixed(2), icon: AlertCircle, color: "red" }
+        { label: "Total Bills", value: displayBills.length, icon: FileText, color: "blue" },
+        { label: "Total Amount", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat(b.amount || b.total || 0), 0).toFixed(2), icon: IndianRupee, color: "green" },
+        { label: "Amount Paid", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat(b.paidAmount || 0), 0).toFixed(2), icon: CreditCard, color: "orange" },
+        { label: "Outstanding", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat((b.amount || b.total || 0) - (b.paidAmount || 0)), 0).toFixed(2), icon: AlertCircle, color: "red" }
       ]} />
 
       <Table
         pagination={true}
         loading={loading}
         headers={["Bill No", "Date", "Client", "Amount (₹)", "Status", "Actions"]}
-        data={bills}
+        data={displayBills}
         renderRow={(b, i) => (
-          <tr key={b.id || i}>
-            <td>{b.id}</td>
+          <tr key={b.id || i} style={{ opacity: b.isOfflinePending ? 0.7 : 1 }}>
+            <td>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {b.id}
+                {b.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
+              </div>
+            </td>
             <td>{formatDate(b.invoice_date || b.date || b.createdAt)}</td>
             <td>{b.client || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{formatAmount(b.amount || b.total)}</span></td>
@@ -93,18 +111,20 @@ const Bills = () => {
             </td>
             <td>
               <button
+                disabled={b.isOfflinePending}
                 onClick={() => window.location.href = `/bills/view1/${b.id}`}
                 style={{
                   background: "transparent",
                   border: "none",
                   color: "var(--primary-color)",
-                  cursor: "pointer",
+                  cursor: b.isOfflinePending ? "not-allowed" : "pointer",
                   fontWeight: "600",
+                  opacity: b.isOfflinePending ? 0.5 : 1
                 }}
               >
                 View
               </button>
-              {isSuperAdmin && (
+              {isSuperAdmin && !b.isOfflinePending && (
                 <button
                   onClick={() => handleDelete(b.id)}
                   style={{

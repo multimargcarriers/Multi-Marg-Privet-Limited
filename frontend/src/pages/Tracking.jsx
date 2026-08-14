@@ -8,6 +8,7 @@ import Table from "../components/Table";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
+import { useSync } from "../context/SyncContext";
 import "../index.css"; 
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -17,9 +18,21 @@ const Tracking = () => {
   const _navigate = useNavigate();
   const { confirm } = useDialog();
   const { addToast } = useToast();
+  const { syncQueue } = useSync();
   const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
 
   const [allUpdates, setAllUpdates] = useState([]);
+
+  const displayUpdates = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/tracking'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...allUpdates];
+  }, [allUpdates, syncQueue]);
 
   const [formData, setFormData] = useState({
     awb: "",
@@ -841,7 +854,7 @@ const Tracking = () => {
               </h5>
               
               {(() => {
-                const recent = allUpdates
+                const recent = displayUpdates
                   .filter(u => String(u.awb).toLowerCase() === formData.awb.trim().toLowerCase())
                   .sort((a,b) => new Date(b.date) - new Date(a.date));
                 
@@ -855,10 +868,11 @@ const Tracking = () => {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "200px", overflowY: "auto", paddingRight: "5px" }}>
                     {recent.map((entry, idx) => (
-                      <div key={entry.id || idx} style={{ background: "white", padding: "0.75rem", borderRadius: "6px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+                      <div key={entry.id || idx} style={{ background: "white", padding: "0.75rem", borderRadius: "6px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px rgba(0,0,0,0.02)", opacity: entry.isOfflinePending ? 0.7 : 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
                           <span style={{ color: getStatusColor(entry.status), fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
                             {getStatusIcon(entry.status)} {entry.status}
+                            {entry.isOfflinePending && <Clock size={12} color="#f59e0b" title="Pending Sync" />}
                           </span>
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                             <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>
@@ -902,16 +916,21 @@ const Tracking = () => {
           </h4>
           <Table 
             headers={isAdmin ? ["AWB / LR No", "Date", "Status", "Location", "Entered By", "Remarks", "Actions"] : ["AWB / LR No", "Date", "Status", "Location", "Remarks", "Actions"]} 
-            data={isAdmin ? allUpdates : allUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
+            data={isAdmin ? displayUpdates : displayUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
             pagination={true}
             defaultEntries={25}
             renderRow={(row, index) => {
-              const isDelivered = allUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
-              const canModify = isAdmin || !isDelivered;
+              const isDelivered = displayUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
+              const canModify = (isAdmin || !isDelivered) && !row.isOfflinePending;
               
               return (
-                <tr key={row.id || index}>
-                  <td style={{ fontWeight: 600, color: "#4f46e5" }}>{row.awb}</td>
+                <tr key={row.id || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
+                  <td style={{ fontWeight: 600, color: "#4f46e5" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      {row.awb}
+                      {row.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
+                    </div>
+                  </td>
                   <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
                   <td><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
                   <td>{row.location}</td>

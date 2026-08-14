@@ -11,8 +11,10 @@ import axios from "axios";
 import StatsPanel from "../components/StatsPanel";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
+import { useSync } from "../context/SyncContext";
 
 const Quotes = () => {
+  const { syncQueue } = useSync();
   const { token } = useContext(AuthContext);
   const { confirm } = useDialog();
   const [quotes, setQuotes] = useState([]);
@@ -64,8 +66,19 @@ const Quotes = () => {
     }
   };
 
+  const displayQuotes = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/quotes'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...quotes];
+  }, [quotes, syncQueue]);
+
   // Filter and search
-  const filtered = quotes.filter((q) => {
+  const filtered = displayQuotes.filter((q) => {
     const matchesSearch =
       !searchQuery ||
       q.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -226,11 +239,19 @@ const Quotes = () => {
                         borderBottom: "1px solid #e2e8f0",
                         backgroundColor: idx % 2 === 0 ? "white" : "#fafbfc",
                         transition: "background-color 0.2s",
+                        opacity: q.isOfflinePending ? 0.7 : 1
                       }}
                       onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f1f5f9")}
                       onMouseOut={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? "white" : "#fafbfc")}
                     >
-                      <td style={{ padding: "10px", fontSize: "0.8rem", color: "#4F46E5", fontWeight: "600" }}>{q.quoteRef || "-"}</td>
+                      <td style={{ padding: "10px", fontSize: "0.8rem", color: "#4F46E5", fontWeight: "600" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                          {q.quoteRef || "-"}
+                          {q.isOfflinePending && (
+                            <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                          )}
+                        </div>
+                      </td>
                       <td style={{ padding: "10px", fontSize: "0.8rem", fontWeight: "600" }}>
                         {q.name || "-"}
                         {q.email && <div style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: "400" }}>{q.email}</div>}

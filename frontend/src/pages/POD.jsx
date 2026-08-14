@@ -18,6 +18,7 @@ import {
   Calendar, 
   RefreshCw, 
   ExternalLink,
+  Clock,
 
 
   FileCheck,
@@ -32,9 +33,11 @@ import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
+import { useSync } from "../context/SyncContext";
 
 const POD = () => {
   const { user } = useContext(AuthContext);
+  const { syncQueue } = useSync();
   const { confirm, alert: alertDialog } = useDialog();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
@@ -279,24 +282,35 @@ const POD = () => {
   };
 
   // Stats Calculations
+  const displayPODs = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/pod'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...podList];
+  }, [podList, syncQueue]);
+
   const stats = useMemo(() => {
-    const total = podList.length;
-    const verifiedCount = podList.filter(p => (p.podType === "VERIFIED" || p.bookingId || p.consignor !== "-" || p.origin !== "-")).length;
+    const total = displayPODs.length;
+    const verifiedCount = displayPODs.filter(p => (p.podType === "VERIFIED" || p.bookingId || p.consignor !== "-" || p.origin !== "-")).length;
     const unknownCount = total - verifiedCount;
     
     // Uploaded today
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todayCount = podList.filter(p => {
+    const todayCount = displayPODs.filter(p => {
       const dt = p.uploadedAt || p.createdAt;
       return dt && dt.startsWith(todayStr);
     }).length;
 
     return { total, verifiedCount, unknownCount, todayCount };
-  }, [podList]);
+  }, [displayPODs]);
 
   // Table filtering
   const filteredPODs = useMemo(() => {
-    return podList.filter(item => {
+    return displayPODs.filter(item => {
       // Tab filter
       const isVerified = (item.podType === "VERIFIED" || item.bookingId || (item.origin && item.origin !== "-"));
       if (activeTab === "VERIFIED" && !isVerified) return false;
@@ -316,7 +330,7 @@ const POD = () => {
         (item.remarks && String(item.remarks).toLowerCase().includes(q))
       );
     });
-  }, [podList, activeTab, tableSearch]);
+  }, [displayPODs, activeTab, tableSearch]);
 
   const getFileUrl = (item) => {
     if (item.podUrl) return getSafeCloudinaryPdfUrl(item.podUrl);
@@ -995,10 +1009,15 @@ const POD = () => {
             const fileUrl = getFileUrl(item);
 
             return (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem" }}>
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                 {/* LR No */}
                 <td style={{ padding: "1rem", fontWeight: 700, color: "#0284c7", whiteSpace: "nowrap" }}>
-                  {item.lrNo}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {item.lrNo}
+                    {item.isOfflinePending && (
+                      <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                    )}
+                  </div>
                 </td>
 
                 {/* POD Type Badge */}
@@ -1070,6 +1089,7 @@ const POD = () => {
                 {/* Proof Document Link / Preview */}
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <button
+                    disabled={item.isOfflinePending}
                     onClick={() => navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`)}
                     style={{
                       background: "#f0f9ff",
@@ -1079,10 +1099,11 @@ const POD = () => {
                       borderRadius: "6px",
                       fontWeight: 600,
                       fontSize: "0.8rem",
-                      cursor: "pointer",
+                      cursor: item.isOfflinePending ? "not-allowed" : "pointer",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "6px"
+                      gap: "6px",
+                      opacity: item.isOfflinePending ? 0.5 : 1
                     }}
                   >
                     <Eye size={14} />
@@ -1108,22 +1129,25 @@ const POD = () => {
                 <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <a
-                      href={fileUrl}
-                      target="_blank"
+                      href={item.isOfflinePending ? "#" : fileUrl}
+                      target={item.isOfflinePending ? "_self" : "_blank"}
+                      onClick={(e) => { if (item.isOfflinePending) e.preventDefault(); }}
                       rel="noopener noreferrer"
                       style={{
                         color: "#475569",
                         padding: "4px",
                         display: "inline-flex",
                         alignItems: "center",
-                        textDecoration: "none"
+                        textDecoration: "none",
+                        opacity: item.isOfflinePending ? 0.5 : 1,
+                        cursor: item.isOfflinePending ? "not-allowed" : "pointer"
                       }}
                       title="Open in new tab"
                     >
                       <ExternalLink size={16} />
                     </a>
 
-                    {isSuperAdmin && (
+                    {isSuperAdmin && !item.isOfflinePending && (
                       <button 
                         onClick={() => handleDelete(item.id)}
                         style={{ 

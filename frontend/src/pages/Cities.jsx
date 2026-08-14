@@ -7,11 +7,13 @@ import { formatAllCaps } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
 import StatsPanel from "../components/StatsPanel";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, Clock } from "lucide-react";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
+import { useSync } from "../context/SyncContext";
 
 const Cities = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
@@ -101,7 +103,18 @@ const Cities = () => {
   };
 
   // Filter cities based on search query
-  const filteredCities = cities.filter(c => {
+  const displayCities = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/cities'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...cities];
+  }, [cities, syncQueue]);
+
+  const filteredCities = displayCities.filter(c => {
     const query = searchQuery.toLowerCase();
     const cName = c.city || c.name || "";
     return (
@@ -150,7 +163,7 @@ const Cities = () => {
       </div>
 
       <StatsPanel stats={[
-        { label: "Total Cities", value: cities.length, icon: MapPin, color: "blue" }
+        { label: "Total Cities", value: displayCities.length, icon: MapPin, color: "blue" }
       ]} />
 
       {/* ADD/EDIT FORM SECTION */}
@@ -279,8 +292,15 @@ const Cities = () => {
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>{item.city || item.name || "-"}</td>
+                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                        {item.city || item.name || "-"}
+                        {item.isOfflinePending && (
+                          <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
                       {item.short ? (
                         <span style={{ padding: "0.2rem 0.5rem", borderRadius: "12px", backgroundColor: "#e0e7ff", color: "#4f46e5", fontWeight: "600", fontSize: "0.75rem" }}>
@@ -292,8 +312,9 @@ const Cities = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
+                          disabled={item.isOfflinePending}
                           className="btn btn-primary"
-                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                           title="Edit"
                         >
                           <Edit size={16} />
@@ -302,7 +323,7 @@ const Cities = () => {
                     </td>
                     <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
-                        {isSuperAdmin ? (
+                        {isSuperAdmin && !item.isOfflinePending ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
                             className="btn btn-danger"

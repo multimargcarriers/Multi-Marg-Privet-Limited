@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Edit, Trash2, Truck, FileText, CheckCircle, Search, Filter } from "lucide-react";
+import { Edit, Trash2, Truck, FileText, CheckCircle, Search, Filter, Clock } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";
+import { useSync } from "../context/SyncContext";
 import { formatAllCaps, formatTitleCase, formatPhoneNumber } from "../utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
 import CsvImportExport from "../components/CsvImportExport";
@@ -12,6 +13,7 @@ import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
 
 const Vendors = () => {
+  const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
@@ -183,7 +185,18 @@ const Vendors = () => {
     }
   };
 
-  const filteredVendors = vendors.filter(v => {
+  const displayVendors = React.useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/vendors'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...vendors];
+  }, [vendors, syncQueue]);
+
+  const filteredVendors = displayVendors.filter(v => {
     const query = searchQuery.toLowerCase();
     const vName = v.name || "";
     
@@ -243,9 +256,9 @@ const Vendors = () => {
       </div>
 
       <StatsPanel stats={[
-        { label: "Total Vendors", value: vendors.length, color: "blue", icon: Truck },
-        { label: "With GST/PAN", value: vendors.filter(v => (v.gst && v.gst.trim() !== '') || (v.pan && v.pan.trim() !== '')).length, color: "green", icon: CheckCircle },
-        { label: "Pending KYC", value: vendors.filter(v => (!v.gst || v.gst.trim() === '') && (!v.pan || v.pan.trim() === '')).length, color: "orange", icon: FileText }
+        { label: "Total Vendors", value: displayVendors.length, color: "blue", icon: Truck },
+        { label: "With GST/PAN", value: displayVendors.filter(v => (v.gst && v.gst.trim() !== '') || (v.pan && v.pan.trim() !== '')).length, color: "green", icon: CheckCircle },
+        { label: "Pending KYC", value: displayVendors.filter(v => (!v.gst || v.gst.trim() === '') && (!v.pan || v.pan.trim() === '')).length, color: "orange", icon: FileText }
       ]} />
 
       {/* Form Section */}
@@ -507,12 +520,15 @@ const Vendors = () => {
                 </tr>
               ) : (
                 currentData.map((item, idx) => (
-                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white" }}>
+                  <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: "white", opacity: item.isOfflinePending ? 0.7 : 1 }}>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
                       MCPL{String(item.vendorCode || "").replace(/^mcpl-?/i, "")}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600" }}>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                       {formatAllCaps(item.name || "")}
+                      {item.isOfflinePending && (
+                        <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                      )}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
                       {formatAllCaps(item.gst || "NA")}
@@ -560,8 +576,9 @@ const Vendors = () => {
                       <div style={{ display: "flex", justifyContent: "center" }}>
                         <button 
                           onClick={() => handleEditClick(item)} 
+                          disabled={item.isOfflinePending}
                           className="btn btn-primary"
-                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: "36px", height: "36px", padding: "0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                           title="Edit"
                         >
                           <Edit size={16} />
@@ -570,7 +587,7 @@ const Vendors = () => {
                     </td>
                     <td style={{ padding: "16px 12px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "center" }}>
-                        {isSuperAdmin ? (
+                        {isSuperAdmin && !item.isOfflinePending ? (
                           <button 
                             onClick={() => handleDelete(item.id)}
                             className="btn btn-danger"

@@ -11,12 +11,14 @@ import {
   Calendar,
   IndianRupee,
   Receipt,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Table from "../components/Table";
 import { formatDate, formatAmount } from '../utils/formatters';
 import RupeeIcon from '../components/RupeeIcon';
+import { useSync } from "../context/SyncContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -25,6 +27,7 @@ const MiscBill = () => {
   const [loading, setLoading] = useState(true);
   const [_clients, _setClients] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { syncQueue } = useSync();
   
   const [isAdding, setIsAdding] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -119,12 +122,23 @@ const MiscBill = () => {
     }
   };
 
+  const displayBills = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/bills/misc'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...bills];
+  }, [bills, syncQueue]);
+
   const stats = useMemo(() => {
-    const totalBills = bills.length;
-    const totalAmount = bills.reduce((s, b) => s + parseFloat(b.total || b.amount || 0), 0);
-    const totalGst = bills.reduce((s, b) => s + parseFloat(b.gstAmount || 0), 0);
+    const totalBills = displayBills.length;
+    const totalAmount = displayBills.reduce((s, b) => s + parseFloat(b.total || b.amount || 0), 0);
+    const totalGst = displayBills.reduce((s, b) => s + parseFloat(b.gstAmount || 0), 0);
     return { totalBills, totalAmount, totalGst };
-  }, [bills]);
+  }, [displayBills]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
@@ -485,16 +499,21 @@ const MiscBill = () => {
       </div>
 
       {/* TABLE */}
-      {bills.length > 0 && (
+      {displayBills.length > 0 && (
         <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
           <Table
             headers={["Bill No", "Date", "Client", "Description", "Taxable", "GST", "Total"]}
-            data={bills}
+            data={displayBills}
             loading={loading}
             pagination={true}
             renderRow={(item, index) => (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
-                <td style={{ padding: "1rem", fontWeight: 700, color: "#f59e0b" }}>{item.billNo}</td>
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+                <td style={{ padding: "1rem", fontWeight: 700, color: "#f59e0b" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
+                    {item.billNo || "Pending"}
+                  </div>
+                </td>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> {item.date ? formatDate(item.date) : "-"}

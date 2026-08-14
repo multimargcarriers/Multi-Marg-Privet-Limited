@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
 import Table from "../components/Table";
-import { Eye, FileText, Search, Download, Trash2, Edit3, Upload, Filter, TrendingUp, TrendingDown, Wallet,  AlertCircle } from "lucide-react";
+import { Eye, FileText, Search, Download, Trash2, Edit3, Upload, Filter, TrendingUp, TrendingDown, Wallet, AlertCircle, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { AuthContext } from "../context/AuthContext";
@@ -9,6 +9,7 @@ import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
 import { SettingsContext } from "../context/SettingsContext";
 import { useSocketSync } from "../hooks/useSocketSync";
+import { useSync } from "../context/SyncContext";
 import { BadgeContext } from "../context/BadgeContext";
 import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
@@ -18,6 +19,7 @@ import useTableSort from "../hooks/useTableSort";
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
+  const { syncQueue } = useSync();
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
@@ -79,8 +81,19 @@ const AllBills = () => {
     }
   };
 
+  const displayBills = useMemo(() => {
+    const pending = (syncQueue || [])
+      .filter(req => req.method === 'post' && req.url.includes('/bills'))
+      .map(req => ({
+        ...req.data,
+        id: req.tempId,
+        isOfflinePending: true,
+      }));
+    return [...pending, ...bills];
+  }, [bills, syncQueue]);
+
   const filtered = useMemo(() => {
-    return bills.filter(b => {
+    return displayBills.filter(b => {
       // Search text filter
       if (search) {
         const query = search.toLowerCase();
@@ -120,7 +133,7 @@ const AllBills = () => {
 
       return true;
     });
-  }, [bills, search, filterStatus, fromDate, toDate, minPending, maxPending]);
+  }, [displayBills, search, filterStatus, fromDate, toDate, minPending, maxPending]);
 
   const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "amount" });
 
@@ -351,8 +364,15 @@ const AllBills = () => {
             const pendingAmt = totalAmt - receivedAmt;
             
             return (
-            <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9" }}>
-              <td style={{ padding: "1rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap" }}>{item.invoice || item.billNo || item.id?.slice(-6) || index + 1}</td>
+            <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+              <td style={{ padding: "1rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  {item.invoice || item.billNo || item.id?.slice(-6) || index + 1}
+                  {item.isOfflinePending && (
+                    <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                  )}
+                </div>
+              </td>
               <td style={{ padding: "1rem", color: "#334155", fontWeight: "500", whiteSpace: "nowrap" }}>{item.client || item.billedTo || "-"}</td>
               <td style={{ padding: "1rem", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#0ea5e9", fontWeight: "700" }}><RupeeIcon size={14} />&nbsp;{totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
               <td style={{ padding: "1rem", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#10b981", fontWeight: "700" }}><RupeeIcon size={14} />&nbsp;{receivedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
@@ -380,10 +400,10 @@ const AllBills = () => {
               </td>
               <td style={{ padding: "1rem" }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem' }}>
-                  <button onClick={() => window.open(`/bills/view1/${encodeURIComponent(encodeURIComponent(item.id))}`, "_blank")} style={{ background: "rgba(14, 165, 233, 0.1)", border: "none", color: "#0ea5e9", cursor: "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s" }} title="View Bill"><Eye size={16} /></button>
-                  <button onClick={() => navigate(`/bills/update?id=${encodeURIComponent(item.id)}`)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", cursor: "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s" }} title="Edit Bill"><Edit3 size={16} /></button>
-                  <button onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(encodeURIComponent(item.id))}/pdf?token=${localStorage.getItem('token')}`, "_blank")} style={{ background: "rgba(100, 116, 139, 0.1)", border: "none", color: "#64748b", cursor: "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s" }} title="Download PDF"><Download size={16} /></button>
-                  {isSuperAdmin && (
+                  <button disabled={item.isOfflinePending} onClick={() => window.open(`/bills/view1/${encodeURIComponent(encodeURIComponent(item.id))}`, "_blank")} style={{ background: "rgba(14, 165, 233, 0.1)", border: "none", color: "#0ea5e9", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="View Bill"><Eye size={16} /></button>
+                  <button disabled={item.isOfflinePending} onClick={() => navigate(`/bills/update?id=${encodeURIComponent(item.id)}`)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Bill"><Edit3 size={16} /></button>
+                  <button disabled={item.isOfflinePending} onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(encodeURIComponent(item.id))}/pdf?token=${localStorage.getItem('token')}`, "_blank")} style={{ background: "rgba(100, 116, 139, 0.1)", border: "none", color: "#64748b", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download PDF"><Download size={16} /></button>
+                  {isSuperAdmin && !item.isOfflinePending && (
                     <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "#ef4444", cursor: "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s" }} title="Delete Bill"><Trash2 size={16} /></button>
                   )}
                 </div>
