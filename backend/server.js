@@ -445,19 +445,22 @@ async function startServer() {
   });
 
   // Keep-alive self-ping to bypass Render 15-minute inactivity sleep
-  const RENDER_URL = "https://multi-marg-privet-limited.onrender.com/api/health";
-  setInterval(() => {
-    const https = require("https");
-    https.get(RENDER_URL, (res) => {
+  // Render requires external traffic to keep the instance awake. Pinging localhost won't work.
+  const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL;
+  if (KEEP_ALIVE_URL) {
+    setInterval(() => {
+      const https = require("https");
+      https.get(KEEP_ALIVE_URL, (res) => {
       if (res.statusCode === 200) {
         logger.info(`[Keep-Alive] Self-ping successful: ${res.statusCode}`);
       } else {
         logger.warn(`[Keep-Alive] Self-ping status code: ${res.statusCode}`);
       }
     }).on('error', (err) => {
-      logger.error(`[Keep-Alive] Self-ping error: ${err.message}`);
-    });
-  }, 14 * 60 * 1000); // Every 14 minutes
+        logger.error(`[Keep-Alive] Self-ping error: ${err.message}`);
+      });
+    }, 14 * 60 * 1000); // Every 14 minutes
+  }
 
   // Daily cleanup of expired trash items
   setInterval(async () => {
