@@ -143,7 +143,7 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
             );
           })}
 
-          {!exactMatch && query.trim() !== "" && query !== value && (
+          {!exactMatch && query.trim() !== "" && query !== value && navigator.onLine && (
             <div 
               onClick={() => {
                 if (onCreate) {
@@ -171,6 +171,21 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
               <Plus size={16} /> Add "{query.trim()}"
+            </div>
+          )}
+
+          {!exactMatch && query.trim() !== "" && query !== value && !navigator.onLine && (
+            <div 
+              style={{ 
+                padding: "0.75rem", 
+                color: "#ef4444", 
+                fontSize: "0.85rem",
+                textAlign: "center",
+                borderTop: filteredOptions.length > 0 ? "1px solid rgba(0, 0, 0, 0.05)" : "none",
+                marginTop: filteredOptions.length > 0 ? "4px" : "0",
+              }}
+            >
+              You cannot create new items while offline.
             </div>
           )}
 

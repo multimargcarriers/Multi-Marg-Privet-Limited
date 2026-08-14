@@ -148,10 +148,9 @@ axios.interceptors.response.use(
   }
 );
 
-// Global memory cache for instant UI with TTL
-const memCache = new Map();
-const memCacheTimestamps = new Map();
+// Persistent global cache using appDB for instant UI and offline support with TTL
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for cached data
+let forceFetchThreshold = 0;
 
 // URL rewriter to support access from mobile devices on local network
 const rewriteUrl = (url) => {
@@ -166,40 +165,51 @@ const rewriteUrl = (url) => {
 const originalGet = axios.get;
 axios.get = async function (url, config) {
   url = rewriteUrl(url);
-  const cacheKey = url;
+  const cacheKey = `GET_${url}`;
   const now = Date.now();
-  const cachedTimestamp = memCacheTimestamps.get(cacheKey) || 0;
+  const cachedData = appDB.memGet(cacheKey);
+  const cachedTimestamp = appDB.memGet(`${cacheKey}_timestamp`) || 0;
   const isStale = (now - cachedTimestamp) > CACHE_TTL_MS;
   
-  if (memCache.has(cacheKey) && !isStale) {
-    // Fresh cache — return instantly, no background fetch needed
-    return Promise.resolve({ data: memCache.get(cacheKey) });
+  // If offline, ALWAYS return cached data if available
+  if (!navigator.onLine && cachedData) {
+    return Promise.resolve({ data: cachedData });
   }
   
-  if (memCache.has(cacheKey) && isStale) {
-    // Stale cache — return instantly, background refresh + UI update
+  // If cache is fresh and not invalidated by a recent mutation
+  if (cachedData && cachedTimestamp >= forceFetchThreshold && !isStale) {
+    return Promise.resolve({ data: cachedData });
+  }
+  
+  // If cache is stale but not invalidated by mutation, return instant and fetch in background
+  if (cachedData && cachedTimestamp >= forceFetchThreshold && isStale) {
     originalGet.call(this, url, { ...config, params: { ...config?.params, _t: now } })
       .then(res => {
-        memCache.set(cacheKey, res.data);
-        memCacheTimestamps.set(cacheKey, Date.now());
-        // Notify components that fresh data is available
+        appDB.set(cacheKey, res.data);
+        appDB.set(`${cacheKey}_timestamp`, Date.now());
         window.dispatchEvent(new CustomEvent('cache-refreshed', { detail: { url: cacheKey } }));
       })
       .catch(() => {});
-      
-    // Return cached data instantly for zero-latency UI
-    return Promise.resolve({ data: memCache.get(cacheKey) });
+    return Promise.resolve({ data: cachedData });
   }
   
-  // First time fetch — no cache available
-  const res = await originalGet.call(this, url, { ...config, params: { ...config?.params, _t: now } });
-  memCache.set(cacheKey, res.data);
-  memCacheTimestamps.set(cacheKey, Date.now());
-  return res;
+  // First time fetch or forced refetch (due to mutation)
+  try {
+    const res = await originalGet.call(this, url, { ...config, params: { ...config?.params, _t: now } });
+    appDB.set(cacheKey, res.data);
+    appDB.set(`${cacheKey}_timestamp`, Date.now());
+    return res;
+  } catch (error) {
+    // Graceful fallback to cache if network request fails (e.g. suddenly offline)
+    if (cachedData) return Promise.resolve({ data: cachedData });
+    throw error;
+  }
 };
 
-// Clear cache on mutations (POST, PUT, DELETE) — ensures writes are never stale
-const clearCache = () => { memCache.clear(); memCacheTimestamps.clear(); };
+// Invalidate cache on mutations (POST, PUT, DELETE) — ensures next GET blocks for fresh data
+const clearCache = () => { 
+  forceFetchThreshold = Date.now(); 
+};
 
 window.addEventListener('sync-success-clear-cache', clearCache);
 
