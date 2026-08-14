@@ -246,5 +246,5 @@ async function clear(keepKeys = []) {
   }
 }
 
-const appDB = { preload, memGet, set, remove, clear };
+const appDB = { preload, memGet, set, remove, clear, memoryCache };
 export default appDB;

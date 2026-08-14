@@ -215,10 +215,10 @@ const clearCache = () => {
 const optimisticDelete = (idToDelete) => {
   if (!idToDelete || idToDelete.length < 3) return; // Ignore clear/all routes
   
-  const keys = Object.keys(appDB.memCache).filter(k => k.startsWith('GET_'));
+  const keys = Array.from(appDB.memoryCache.keys()).filter(k => k.startsWith('GET_'));
   
   for (const key of keys) {
-    const cachedObj = appDB.memCache[key];
+    const cachedObj = appDB.memGet(key);
     if (!cachedObj) continue;
     
     if (Array.isArray(cachedObj)) {
