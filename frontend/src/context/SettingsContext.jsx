@@ -42,7 +42,8 @@ export const SettingsProvider = ({ children }) => {
       defaultSidebarOpen: true,
       accordionSidebar: true,
       expandAllDropdowns: false,
-      fontSize: 100
+      fontSize: 100,
+      showManualSyncButton: false
     },
     security: {
       sessionTimeout: 60,

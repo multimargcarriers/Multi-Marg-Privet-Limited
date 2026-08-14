@@ -14,7 +14,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
   const { user, hasPermission } = useContext(AuthContext);
   const { totalIncomplete, incompleteItems, refreshNotifications } = useNotification();
   const { notifications, totalUnreadActivity, markAsRead } = useContext(BadgeContext);
-  const { fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
+  const { globalSettings, fontSize, changeFontSize, increaseFontSize, decreaseFontSize, resetFontSize } = useContext(SettingsContext);
   const { syncQueue, isOnline, isSyncing } = useSync() || { syncQueue: [] };
   const [fontInputValue, setFontInputValue] = useState(fontSize ? fontSize.toString() : '100');
 
@@ -313,7 +313,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1rem' }} ref={dropdownRef}>
             
             {/* Manual Sync Button for Offline Items */}
-            {syncQueue && syncQueue.length > 0 && (
+            {globalSettings?.ui?.showManualSyncButton && syncQueue && syncQueue.length > 0 && (
               <button 
                 onClick={() => {
                   import('../utils/syncManager').then(m => m.default.syncAll());

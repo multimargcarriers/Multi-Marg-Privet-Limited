@@ -73,13 +73,16 @@ class SyncManager {
       if (req.status === 'synced') continue;
 
       try {
+        // Strip out the offline temp ID before sending to the backend
+        const payloadToSend = { ...req.data };
+        if (req.method === 'post' && payloadToSend.id && typeof payloadToSend.id === 'string' && payloadToSend.id.startsWith('offline_')) {
+          delete payloadToSend.id;
+        }
+
         const config = {
           method: req.method,
           url: req.url,
-          data: req.data,
-          headers: {
-            'X-Offline-Sync': 'true'
-          }
+          data: payloadToSend
         };
 
         await axios(config);
