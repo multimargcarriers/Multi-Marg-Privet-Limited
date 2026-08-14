@@ -201,16 +201,28 @@ axios.get = async function (url, config) {
 const clearCache = () => { memCache.clear(); memCacheTimestamps.clear(); };
 
 const originalPost = axios.post;
-axios.post = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalPost.apply(this, args); };
+axios.post = async function (...args) { 
+  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  args[0] = rewriteUrl(args[0]); clearCache(); return originalPost.apply(this, args); 
+};
 
 const originalPut = axios.put;
-axios.put = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalPut.apply(this, args); };
+axios.put = async function (...args) { 
+  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  args[0] = rewriteUrl(args[0]); clearCache(); return originalPut.apply(this, args); 
+};
 
 const originalDelete = axios.delete;
-axios.delete = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalDelete.apply(this, args); };
+axios.delete = async function (...args) { 
+  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  args[0] = rewriteUrl(args[0]); clearCache(); return originalDelete.apply(this, args); 
+};
 
 const originalPatch = axios.patch;
-axios.patch = async function (...args) { args[0] = rewriteUrl(args[0]); clearCache(); return originalPatch.apply(this, args); };
+axios.patch = async function (...args) { 
+  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  args[0] = rewriteUrl(args[0]); clearCache(); return originalPatch.apply(this, args); 
+};
 
 // Boot: preload IndexedDB into memory, then render React
 appDB.preload().finally(() => {

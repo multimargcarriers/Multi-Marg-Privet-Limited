@@ -4,7 +4,7 @@ const os = require("os");
 
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
-const { getClient, getStatus: getRedisStatus, clearAllCache } = require("../config/redis");
+const { getClient, getStatus: getRedisStatus, clearAllCache, getOrSet, delCache } = require("../config/redis");
 const { uploadBase64, uploadCompanyStamp, deleteFile } = require("../config/cloudinary");
 const { cleanupOrphanCloudinaryFiles } = require("../services/cloudinaryCleanupService");
 const cloudinary = require("cloudinary").v2;
@@ -205,14 +205,15 @@ router.get("/config", async (req, res) => {
       return success(res, "Returning defaults due to db disconnected", defaultSettings);
     }
     const collection = db.mongoDb.collection("system_settings");
-    const settings = await collection.findOne({ type: "global_config" });
-    
-    if (!settings) {
-      // Initialize with defaults if none exists
-      const newSettings = { type: "global_config", ...defaultSettings };
-      await collection.insertOne(newSettings);
-      return success(res, "Global configuration fetched", newSettings);
-    }
+    const settings = await getOrSet("global_config", async () => {
+      const dbSettings = await collection.findOne({ type: "global_config" });
+      if (!dbSettings) {
+        const newSettings = { type: "global_config", ...defaultSettings };
+        await collection.insertOne(newSettings);
+        return newSettings;
+      }
+      return dbSettings;
+    }, 3600);
     
     // Ensure new sections exist in older documents
     if (!settings.system) settings.system = { ...defaultSettings.system };
@@ -267,6 +268,8 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
       { upsert: true }
     );
     
+    await delCache("global_config");
+    
     const updatedSettings = await collection.findOne({ type: "global_config" });
     return success(res, "Configuration updated successfully", updatedSettings);
   } catch (err) {
@@ -307,6 +310,8 @@ router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage")
       { $set: { "company.companyStampUrl": uploadResult.url } },
       { upsert: true }
     );
+
+    await delCache("global_config");
 
     const updatedSettings = await collection.findOne({ type: "global_config" });
     return success(res, "Stamp uploaded successfully", updatedSettings);

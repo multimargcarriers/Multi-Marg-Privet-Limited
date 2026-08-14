@@ -66,9 +66,13 @@ export const AuthProvider = ({ children }) => {
         const cleanUser = normalizeUserData(storedUser);
         setUser(cleanUser);
         appDB.set('user', cleanUser);
+        // Instantly unlock UI if cached data exists (0s cold start)
+        setLoading(false);
       }
       // Silently sync fresh data from DB in background
-      fetchMe(storedToken).finally(() => setLoading(false));
+      fetchMe(storedToken).finally(() => {
+        if (!storedUser) setLoading(false);
+      });
 
       // Refresh token on window focus to handle IAM changes seamlessly
       const onFocus = () => {
