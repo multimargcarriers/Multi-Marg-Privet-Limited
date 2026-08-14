@@ -216,24 +216,28 @@ window.addEventListener('sync-success-clear-cache', clearCache);
 const originalPost = axios.post;
 axios.post = async function (...args) { 
   if (!navigator.onLine) return syncManager.addRequest('post', rewriteUrl(args[0]), args[1]);
+  if (syncManager.getQueue().length > 0) await syncManager.syncAll();
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPost.apply(this, args); 
 };
 
 const originalPut = axios.put;
 axios.put = async function (...args) { 
   if (!navigator.onLine) return syncManager.addRequest('put', rewriteUrl(args[0]), args[1]);
+  if (syncManager.getQueue().length > 0) await syncManager.syncAll();
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPut.apply(this, args); 
 };
 
 const originalDelete = axios.delete;
 axios.delete = async function (...args) { 
   if (!navigator.onLine) return syncManager.addRequest('delete', rewriteUrl(args[0]), args[1]);
+  if (syncManager.getQueue().length > 0) await syncManager.syncAll();
   args[0] = rewriteUrl(args[0]); clearCache(); return originalDelete.apply(this, args); 
 };
 
 const originalPatch = axios.patch;
 axios.patch = async function (...args) { 
   if (!navigator.onLine) return syncManager.addRequest('patch', rewriteUrl(args[0]), args[1]);
+  if (syncManager.getQueue().length > 0) await syncManager.syncAll();
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPatch.apply(this, args); 
 };
 
