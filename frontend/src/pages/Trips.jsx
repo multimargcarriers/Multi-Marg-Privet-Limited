@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
@@ -193,6 +193,15 @@ const Trips = () => {
     setForm({ ...form, materialDetails: form.materialDetails.filter((_, i) => i !== index) });
   };
 
+  const tripsStats = useMemo(() => {
+    return {
+      totalAmount: trips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
+      trainCount: trips.filter(t => t.mode?.toLowerCase() === 'train').length,
+      flightCount: trips.filter(t => t.mode?.toLowerCase() === 'flight').length,
+      roadCount: trips.filter(t => t.mode?.toLowerCase() === 'road').length,
+    };
+  }, [trips]);
+
   if (loading) return <TablePageSkeleton />;
 
   return (
@@ -222,15 +231,15 @@ const Trips = () => {
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #10b981" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Freight</div>
             <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827", display: "flex", alignItems: "center" }}>
-              <RupeeIcon size={24} />{trips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              <RupeeIcon size={24} />{tripsStats.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
           </div>
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Train / Air / Road</div>
             <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
-              <span><span style={{ color: "#a21caf" }}>T:</span> {trips.filter(t => t.mode?.toLowerCase() === 'train').length}</span>
-              <span><span style={{ color: "#0ea5e9" }}>A:</span> {trips.filter(t => t.mode?.toLowerCase() === 'flight').length}</span>
-              <span><span style={{ color: "#f97316" }}>R:</span> {trips.filter(t => t.mode?.toLowerCase() === 'road').length}</span>
+              <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainCount}</span>
+              <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightCount}</span>
+              <span><span style={{ color: "#f97316" }}>R:</span> {tripsStats.roadCount}</span>
             </div>
           </div>
         </div>
@@ -488,6 +497,8 @@ const Trips = () => {
       {view === "manifest" && (
         <Table
           loading={loading}
+          pagination={true}
+          defaultEntries={10}
           headers={["Trip No", "Mode", "Type", "Booking", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
           data={trips}
           renderRow={(item, index) => (
