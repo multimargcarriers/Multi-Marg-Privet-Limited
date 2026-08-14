@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Plus, X } from "lucide-react";
 
-const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "Select or type to create...", _format }) => {
+const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "Select or type to create...", _format, id, name }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef(null);
@@ -58,6 +58,8 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
       <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
         <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: 12 }} />
         <input
+          id={id || name || `creatable-input-${Math.random().toString(36).substring(7)}`}
+          name={name || id || "creatableInput"}
           type="text"
           className="form-control"
           placeholder={placeholder}
