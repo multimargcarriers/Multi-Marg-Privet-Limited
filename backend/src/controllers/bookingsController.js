@@ -154,6 +154,9 @@ exports.postRoot_1 = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
   const booking = req.body;
+  const providedId = booking.id;
+  delete booking.id;
+
   booking.date = new Date().toISOString();
   booking.status = "Booked";
   booking.lrNumber = generateLRNumber();
@@ -198,15 +201,23 @@ exports.postRoot_1 = async (req, res) => {
     booking.clerk_name = req.user?.name || "Admin";
   }
   booking.createdBy_id = req.user?.id || null;
-  const docRef = await db.collection("bookings").add(booking);
   
-  const createdBooking = { id: docRef.id, ...booking };
+  let docRefId;
+  if (providedId && providedId.startsWith("offline_")) {
+    await db.collection("bookings").doc(providedId).set(booking);
+    docRefId = providedId;
+  } else {
+    const docRef = await db.collection("bookings").add(booking);
+    docRefId = docRef.id;
+  }
+  
+  const createdBooking = { id: docRefId, ...booking };
   // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
   emitDataUpdated("bookings", "create");
   return created(res, "Booking created successfully", {
-    id: docRef.id,
+    id: docRefId,
     ...booking
   });
 };

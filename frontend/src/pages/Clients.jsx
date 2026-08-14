@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { Edit, Trash2, Users, ShieldCheck, AlertCircle, Search, Filter } from "lucide-react";
+import { Edit, Trash2, Users, ShieldCheck, AlertCircle, Search, Filter, Clock } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { SettingsContext } from "../context/SettingsContext";
@@ -435,8 +435,11 @@ const Clients = () => {
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "500" }}>
                       MCPL{String(item.clientCode || "").replace(/^mcpl-?/i, "")}
                     </td>
-                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600" }}>
+                    <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                       {formatAllCaps(item.name || "")}
+                      {String(item.id).startsWith("offline_") && (
+                        <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
+                      )}
                     </td>
                     <td style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", borderRight: "1px solid #e2e8f0" }}>
                       {formatAllCaps(item.gst || "NA")}

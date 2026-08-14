@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -261,8 +261,11 @@ const BookingsList = () => {
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
                   <div className="booking-card-header-left">
-                    <h4 className="booking-client-name">
+                    <h4 className="booking-client-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {item.client || item.consignor || "UNKNOWN CLIENT"}
+                      {String(item.id).startsWith("offline_") && (
+                        <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
+                      )}
                     </h4>
                     <div className="booking-meta-row">
                       <span className="booking-meta-badge booking-meta-awb">AWB: {awb}</span>

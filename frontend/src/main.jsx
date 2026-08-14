@@ -4,6 +4,7 @@ import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
 import appDB from './utils/appDB.js'
+import syncManager from './utils/syncManager.js'
 
 // Add Axios Request Interceptor for Global Authorization
 axios.interceptors.request.use((config) => {
@@ -202,25 +203,25 @@ const clearCache = () => { memCache.clear(); memCacheTimestamps.clear(); };
 
 const originalPost = axios.post;
 axios.post = async function (...args) { 
-  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  if (!navigator.onLine) return syncManager.addRequest('post', rewriteUrl(args[0]), args[1]);
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPost.apply(this, args); 
 };
 
 const originalPut = axios.put;
 axios.put = async function (...args) { 
-  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  if (!navigator.onLine) return syncManager.addRequest('put', rewriteUrl(args[0]), args[1]);
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPut.apply(this, args); 
 };
 
 const originalDelete = axios.delete;
 axios.delete = async function (...args) { 
-  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  if (!navigator.onLine) return syncManager.addRequest('delete', rewriteUrl(args[0]), args[1]);
   args[0] = rewriteUrl(args[0]); clearCache(); return originalDelete.apply(this, args); 
 };
 
 const originalPatch = axios.patch;
 axios.patch = async function (...args) { 
-  if (!navigator.onLine) return Promise.reject(new Error("You are offline. Please check your internet connection."));
+  if (!navigator.onLine) return syncManager.addRequest('patch', rewriteUrl(args[0]), args[1]);
   args[0] = rewriteUrl(args[0]); clearCache(); return originalPatch.apply(this, args); 
 };
 

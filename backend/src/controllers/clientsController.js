@@ -36,14 +36,26 @@ exports.postRoot_2 = async (req, res) => {
     });
   }
   const newClient = req.body;
+  const providedId = newClient.id;
+  delete newClient.id; // Don't save it inside the object directly if standardizing
+
   newClient.status = "Active";
   newClient.createdAt = new Date().toISOString();
-  const docRef = await db.collection("clients").add(newClient);
+
+  let docRefId;
+  if (providedId && providedId.startsWith("offline_")) {
+    await db.collection("clients").doc(providedId).set(newClient);
+    docRefId = providedId;
+  } else {
+    const docRef = await db.collection("clients").add(newClient);
+    docRefId = docRef.id;
+  }
+
   await delCache(CACHE_KEY);
   return created(res, {
     message: "Client created successfully",
     data: {
-      id: docRef.id,
+      id: docRefId,
       ...newClient
     }
   });

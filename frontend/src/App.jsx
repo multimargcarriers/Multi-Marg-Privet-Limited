@@ -62,6 +62,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { DialogProvider } from "./context/DialogContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { BadgeProvider } from "./context/BadgeContext";
+import { SyncProvider } from "./context/SyncContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MaintenanceGuard from "./components/MaintenanceGuard";
 import "./index.css";
@@ -82,6 +83,7 @@ function App() {
             <DialogProvider>
               <NotificationProvider>
                 <BadgeProvider>
+                  <SyncProvider>
                   <Routes>
                     <Route path="/" element={<Login />} />
                     <Route path="/contact" element={<Contact />} />
@@ -191,6 +193,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
+                  </SyncProvider>
                 </BadgeProvider>
               </NotificationProvider>
             </DialogProvider>
