@@ -193,11 +193,17 @@ async function uploadBase64(base64Data, options = {}) {
     "multimargcarriers";
 
   try {
-    const isPdf = typeof base64Data === "string" && base64Data.startsWith("data:application/pdf");
+    const isPdf = (typeof base64Data === "string" && base64Data.includes("application/pdf")) || 
+                  (options.originalName && typeof options.originalName === "string" && options.originalName.toLowerCase().endsWith(".pdf"));
+    
+    // For PDFs, we must use 'raw' resource_type so it retains its binary format.
+    // We also MUST pass filename_override so Cloudinary knows the extension, 
+    // otherwise base64 uploads get a random string with Format: N/A.
     const result = await cloudinary.uploader.upload(base64Data, {
       folder,
       public_id: options.publicId,
-      resource_type: isPdf ? "image" : "auto", // Ensure PDF is image so fl_attachment works
+      resource_type: isPdf ? "raw" : "auto", 
+      filename_override: options.originalName,
       use_filename: true,
       unique_filename: true,
       overwrite: false,

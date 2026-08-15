@@ -347,18 +347,30 @@ const PODImageStudioModal = ({
             ) : (
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 {/* Image Preview Container */}
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "1rem" }}>
+                <div style={{ 
+                  flex: 1, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  overflow: "hidden", 
+                  padding: "1rem",
+                  minHeight: 0,
+                  maxHeight: "calc(95vh - 200px)"
+                }}>
                   <img
                     src={imageSrc}
                     alt="Captured POD"
                     style={{
-                      maxWidth: rotation % 180 === 0 ? "100%" : "auto",
-                      maxHeight: rotation % 180 === 0 ? "100%" : "auto",
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      width: "auto",
+                      height: "auto",
                       objectFit: "contain",
                       borderRadius: "8px",
                       boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
                       transform: `rotate(${rotation}deg)`,
-                      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      ...(rotation % 180 !== 0 ? { maxWidth: "70%", maxHeight: "70%" } : {})
                     }}
                   />
                 </div>

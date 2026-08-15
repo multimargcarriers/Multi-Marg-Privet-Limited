@@ -224,7 +224,8 @@ exports.post_generate_5 = async (req, res) => {
 
   const countSnap = await db.collection("bills").count().get();
   const totalBills = countSnap.data().count;
-  const billNo = invoiceNo || `MCPL/26-27/${String(totalBills + 1).padStart(4, "0")}`;
+  const { getCurrentFinancialYear } = require("../utils/financialYear");
+  const billNo = invoiceNo || `MCPL/${getCurrentFinancialYear()}/${String(totalBills + 1).padStart(4, "0")}`;
 
   let mode = firstBooking.mode || "Road";
   let sacCode = "996511";
@@ -334,7 +335,8 @@ exports.post_misc_6 = async (req, res) => {
   }
   const countSnap = await db.collection("bills").count().get();
   const totalBills = countSnap.data().count;
-  const billNo = `MCPL/26-27/${String(totalBills + 1).padStart(4, "0")}`;
+  const { getCurrentFinancialYear } = require("../utils/financialYear");
+  const billNo = `MCPL/${getCurrentFinancialYear()}/${String(totalBills + 1).padStart(4, "0")}`;
   const bill = {
     id: uuidv4(),
     billNo,

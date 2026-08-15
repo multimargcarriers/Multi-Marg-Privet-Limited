@@ -59,19 +59,11 @@ const PodEntryModal = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      const dataUrl = await fileToDataURL(file);
-      setSelectedFile({
-        name: file.name,
-        type: "pdf",
-        dataUrl
-      });
-    } else {
-      const dataUrl = await fileToDataURL(file);
-      setStudioSrc(dataUrl);
-      setStudioMode("editor");
-      setStudioOpen(true);
-    }
+    // We only allow images, so go directly to Studio Cropper
+    const dataUrl = await fileToDataURL(file);
+    setStudioSrc(dataUrl);
+    setStudioMode("editor");
+    setStudioOpen(true);
   };
 
   const handleOpenCamera = () => {
@@ -321,7 +313,7 @@ const PodEntryModal = ({
               ref={fileInputRef}
               type="file"
               onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".jpg,.jpeg,.png,.webp"
               style={{ display: "none" }}
             />
 
@@ -373,7 +365,7 @@ const PodEntryModal = ({
                   <ImageIcon size={26} color="#475569" />
                   <div>Gallery / Device File</div>
                   <span style={{ fontSize: "0.725rem", fontWeight: 500, color: "#64748b" }}>
-                    Browse Image or PDF
+                    Browse Image
                   </span>
                 </button>
               </div>
@@ -390,17 +382,11 @@ const PodEntryModal = ({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  {selectedFile.type === "pdf" ? (
-                    <div style={{ background: "#dcfce7", padding: "10px", borderRadius: "10px" }}>
-                      <FileText size={24} color="#16a34a" />
-                    </div>
-                  ) : (
-                    <img
-                      src={selectedFile.dataUrl}
-                      alt="POD Preview"
-                      style={{ width: "54px", height: "54px", objectFit: "cover", borderRadius: "8px", border: "1px solid #bbf7d0" }}
-                    />
-                  )}
+                  <img
+                    src={selectedFile.dataUrl}
+                    alt="POD Preview"
+                    style={{ width: "54px", height: "54px", objectFit: "cover", borderRadius: "8px", border: "1px solid #bbf7d0" }}
+                  />
                   <div>
                     <div style={{ fontWeight: 700, color: "#166534", fontSize: "0.95rem" }}>
                       {selectedFile.name}

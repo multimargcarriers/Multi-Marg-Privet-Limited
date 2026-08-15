@@ -125,6 +125,8 @@ const isTechnicalKey = (key) => {
   if (!key) return false;
   const lowerKey = key.toLowerCase();
   if (lowerKey === 'id' || lowerKey === '_id' || lowerKey.endsWith('id') || lowerKey.endsWith('url') || lowerKey.endsWith('uri')) return true;
+  // Skip keys that contain file/image/base64/cloudinary data to prevent corrupting binary data
+  if (lowerKey.includes('data') || lowerKey.includes('base64') || lowerKey.includes('image') || lowerKey.includes('cloudinary') || lowerKey.includes('file')) return true;
   const ignoreList = [
     'email', 'password', 'token', 'status', 'filename', 'createdat', 'updatedat', 
     '__v', 'role', 'permission', 'type', 'gstslab', 'size', 'mimetype', 'paymentmode'

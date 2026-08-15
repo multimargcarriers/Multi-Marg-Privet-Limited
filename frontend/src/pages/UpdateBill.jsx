@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Save,   Edit3, Trash2 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import CreatableDropdown from "../components/CreatableDropdown";
 
 import { formatDate } from '../utils/formatters';
@@ -16,6 +16,7 @@ const UpdateBill = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [saving, setSaving] = useState(false);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const billIdFromUrl = searchParams.get("id");
 
@@ -36,8 +37,12 @@ const UpdateBill = () => {
   });
 
   useEffect(() => {
+    if (!billIdFromUrl) {
+      navigate("/bills/all");
+      return;
+    }
     fetchBills();
-  }, []);
+  }, [billIdFromUrl, navigate]);
 
   const fetchBills = async () => {
     try {
@@ -64,24 +69,34 @@ const UpdateBill = () => {
     const dateFormatted = bill.createdAt ? new Date(bill.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     
     // Map items to UI keys
-    const mappedItems = bill.items && bill.items.length > 0 ? bill.items.map(bItem => ({
-      si: bItem.si,
-      lrNo: bItem.lrNo || bItem.awb || "204777",
-      lrDt: bItem.lrDt || bItem.awb_date || "30-05-2026",
-      ref: bItem.ref || bItem.refNo || "-",
-      org: bItem.org || bItem.origin || "DELHI",
-      dest: bItem.dest || bItem.destination || "PANTNAGAR",
-      pkg: bItem.pkg || bItem.box || "02",
-      wt: bItem.wt || bItem.weight || "550",
-      rate: bItem.rate || "0",
-      frg: bItem.frg || bItem.frieght || "0",
-      lr: bItem.lr || bItem.awb_charge || "0",
-      pick: bItem.pick || bItem.pickup || "0",
-      del: bItem.del || bItem.delivery || "0",
-      spl: bItem.spl || bItem.special_delivery || "0",
-      oth: bItem.oth || bItem.other_charge || "0",
-      total: bItem.total || "0.00"
-    })) : [
+    const mappedItems = bill.items && bill.items.length > 0 ? bill.items.map(bItem => {
+      const frg = parseFloat(bItem.frg || bItem.frieght || bItem.freight || 0);
+      const lr = parseFloat(bItem.lr || bItem.awb_charge || bItem.awb || 0);
+      const pick = parseFloat(bItem.pick || bItem.pickup || 0);
+      const del = parseFloat(bItem.del || bItem.delivery || 0);
+      const spl = parseFloat(bItem.spl || bItem.special_delivery || bItem.special || 0);
+      const oth = parseFloat(bItem.oth || bItem.other_charge || bItem.other || 0);
+      const itemSubtotal = frg + lr + pick + del + spl + oth;
+
+      return {
+        si: bItem.si,
+        lrNo: bItem.lrNo || bItem.awb || "204777",
+        lrDt: bItem.lrDt || bItem.awb_date || "30-05-2026",
+        ref: bItem.ref || bItem.refNo || "-",
+        org: bItem.org || bItem.origin || "DELHI",
+        dest: bItem.dest || bItem.destination || "PANTNAGAR",
+        pkg: bItem.pkg || bItem.box || bItem.packages || "02",
+        wt: bItem.wt || bItem.weight || bItem.charge_wt || "550",
+        rate: bItem.rate || "0",
+        frg: frg.toString(),
+        lr: lr.toString(),
+        pick: pick.toString(),
+        del: del.toString(),
+        spl: spl.toString(),
+        oth: oth.toString(),
+        total: bItem.total ? bItem.total : itemSubtotal.toFixed(2)
+      };
+    }) : [
       {
         si: 1,
         lrNo: bill.lrNo || "204777",
@@ -244,7 +259,7 @@ const UpdateBill = () => {
       await axios.put(`${API}/bills/${selectedBill.id}`, payload);
       addToast("Invoice updated successfully!", "success");
       setSelectedBill(null);
-      fetchBills();
+      navigate("/bills/all");
     } catch (err) {
       console.error("Update bill error", err);
       addToast("Failed to update invoice", "error");
@@ -327,7 +342,7 @@ const UpdateBill = () => {
               </h4>
               <button 
                 type="button" 
-                onClick={() => setSelectedBill(null)}
+                onClick={() => navigate('/bills/all')}
                 style={{ padding: "0.4rem 0.8rem", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem" }}
               >
                 Close Editor
@@ -546,7 +561,7 @@ const UpdateBill = () => {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-                <button type="button" onClick={() => setSelectedBill(null)} className="btn" style={{ padding: "0 1.5rem", height: 46 }}>
+                <button type="button" onClick={() => navigate('/bills/all')} className="btn" style={{ padding: "0 1.5rem", height: 46 }}>
                   Cancel
                 </button>
                 <button type="submit" disabled={saving} className="btn btn-primary" style={{ padding: "0 2rem", height: 46 }}>

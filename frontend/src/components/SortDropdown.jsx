@@ -4,6 +4,10 @@ import { ArrowUpDown } from 'lucide-react';
 const SortDropdown = ({ value, onChange, options = [] }) => {
   const getLabel = (opt) => {
     switch (opt) {
+      case "bill_desc": return "Bill No: Highest to Lowest";
+      case "bill_asc": return "Bill No: Lowest to Highest";
+      case "awb_desc": return "AWB No: Highest to Lowest";
+      case "awb_asc": return "AWB No: Lowest to Highest";
       case "newest": return "Newest First";
       case "oldest": return "Oldest First";
       case "amount_desc": return "Amount: High to Low";

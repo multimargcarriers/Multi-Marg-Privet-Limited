@@ -128,7 +128,7 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
             const name = opt.client || opt.name || opt.city || "";
             return (
               <div 
-                key={opt.id || idx}
+                key={opt.id || `opt-${idx}`}
                 onClick={() => handleSelect(name, opt)}
                 style={{ 
                   padding: "0.75rem", 

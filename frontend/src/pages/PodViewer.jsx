@@ -12,13 +12,17 @@ const PodViewer = () => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
+  const isSessionSource = queryParams.get("source") === "session";
+  const finalImageUrl = isSessionSource ? sessionStorage.getItem("tempPodData") : imageUrl;
+  const isPdf = finalImageUrl && (/\.pdf$/i.test(finalImageUrl) || finalImageUrl.startsWith("data:application/pdf"));
+
   useEffect(() => {
-    if (!imageUrl) {
+    if (!finalImageUrl) {
       navigate(-1);
     }
-  }, [imageUrl, navigate]);
+  }, [finalImageUrl, navigate]);
 
-  if (!imageUrl) return null;
+  if (!finalImageUrl) return null;
 
   return (
     <div style={{
@@ -58,51 +62,33 @@ const PodViewer = () => {
             <ArrowLeft size={20} />
             <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Back</span>
           </button>
-          <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>{title}</h2>
+          <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>{title}</h1>
         </div>
         
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <button
-            onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
-            style={actionButtonStyle}
-            title="Zoom Out"
-          >
-            <ZoomOut size={18} />
-          </button>
-          <span style={{ fontSize: "0.85rem", width: "40px", textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
-          <button
-            onClick={() => setZoom(z => Math.min(3, z + 0.25))}
-            style={actionButtonStyle}
-            title="Zoom In"
-          >
-            <ZoomIn size={18} />
-          </button>
-          <div style={{ width: "1px", height: "20px", background: "#475569", margin: "0 0.5rem" }} />
-          <button
-            onClick={() => setRotation(r => (r - 90 + 360) % 360)}
-            style={actionButtonStyle}
-            title="Rotate Left"
-          >
-            <RotateCcw size={18} />
-          </button>
-          <button
-            onClick={() => setRotation(r => (r + 90) % 360)}
-            style={actionButtonStyle}
-            title="Rotate Right"
-          >
-            <RotateCw size={18} />
-          </button>
-          <button
-            onClick={() => { setZoom(1); setRotation(0); }}
-            style={actionButtonStyle}
-            title="Reset"
-          >
-            <Maximize2 size={18} />
-          </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          {!isPdf && (
+            <>
+              <button onClick={() => setRotation(r => r - 90)} style={actionButtonStyle} title="Rotate Left">
+                <RotateCcw size={18} />
+              </button>
+              <button onClick={() => setRotation(r => r + 90)} style={actionButtonStyle} title="Rotate Right">
+                <RotateCw size={18} />
+              </button>
+              <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} style={actionButtonStyle} title="Zoom Out">
+                <ZoomOut size={18} />
+              </button>
+              <button onClick={() => setZoom(z => Math.min(3, z + 0.25))} style={actionButtonStyle} title="Zoom In">
+                <ZoomIn size={18} />
+              </button>
+              <button onClick={() => { setZoom(1); setRotation(0); }} style={actionButtonStyle} title="Reset">
+                <Maximize2 size={18} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Image Container */}
+      {/* Container */}
       <div style={{
         flex: 1,
         overflow: "auto",
@@ -111,18 +97,28 @@ const PodViewer = () => {
         justifyContent: "center",
         padding: "2rem"
       }}>
-        <img
-          src={imageUrl}
-          alt={title}
-          style={{
-            transform: `scale(${zoom}) rotate(${rotation}deg)`,
-            transition: "transform 0.2s ease",
-            maxWidth: rotation % 180 === 0 ? "100%" : "auto",
-            maxHeight: rotation % 180 === 0 ? "100%" : "auto",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-            objectFit: "contain"
-          }}
-        />
+        {isPdf ? (
+          <iframe 
+            src={finalImageUrl} 
+            title={title}
+            style={{ width: "100%", height: "100%", border: "none", backgroundColor: "white", borderRadius: "8px" }} 
+          />
+        ) : (
+          <img
+            src={finalImageUrl}
+            alt={title}
+            style={{
+              transform: `scale(${zoom}) rotate(${rotation}deg)`,
+              transition: "transform 0.2s ease",
+              maxWidth: rotation % 180 === 0 ? "100%" : "70%",
+              maxHeight: rotation % 180 === 0 ? "100%" : "70%",
+              width: "auto",
+              height: "auto",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+              objectFit: "contain"
+            }}
+          />
+        )}
       </div>
     </div>
   );

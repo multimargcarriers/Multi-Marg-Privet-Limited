@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { getCurrentFinancialYear, getFinancialYearOptions } from '../utils/financialYear';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -45,7 +46,7 @@ const GenerateBill = () => {
   };
 
   const [filters, setFilters] = useState({
-    invoicePrefix: "MCPL/26-27/",
+    invoicePrefix: `MCPL/${getCurrentFinancialYear()}/`,
     invoiceNo: "",
     invoiceDate: "",
     client: "",
@@ -78,7 +79,7 @@ const GenerateBill = () => {
             
             // Calculate max invoice number
             const inv = bill.billNo || bill.invoice || "";
-            const prefix = filters.invoicePrefix || "MCPL/26-27/";
+            const prefix = filters.invoicePrefix || `MCPL/${getCurrentFinancialYear()}/`;
             if (inv.startsWith(prefix)) {
               const numStr = inv.substring(prefix.length);
               const num = parseInt(numStr, 10);
@@ -361,8 +362,9 @@ const GenerateBill = () => {
             <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Invoice Prefix *</label>
               <select name="invoicePrefix" value={filters.invoicePrefix} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
-                <option value="MCPL/26-27/">MCPL/26-27/</option>
-                <option value="MCPL/25-26/">MCPL/25-26/</option>
+                {getFinancialYearOptions(2025, 2030).map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
               </select>
             </div>
             <div>

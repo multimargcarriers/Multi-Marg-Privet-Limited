@@ -23,6 +23,9 @@ const useTableSort = (data, defaultSort = "newest", config = {}) => {
       const nameA = (a[nameKey] || a.client || a.vendor || a.city || a.branch || "").toString().toLowerCase();
       const nameB = (b[nameKey] || b.client || b.vendor || b.city || b.branch || "").toString().toLowerCase();
 
+      const billNoA = (a.invoice || a.billNo || a.awb || a.consignment || a.lrNo || "").toString();
+      const billNoB = (b.invoice || b.billNo || b.awb || b.consignment || b.lrNo || "").toString();
+
       switch (sortOption) {
         case "newest":
           return dateB - dateA; // Descending
@@ -36,6 +39,12 @@ const useTableSort = (data, defaultSort = "newest", config = {}) => {
           return nameA.localeCompare(nameB);
         case "za":
           return nameB.localeCompare(nameA);
+        case "bill_desc":
+        case "awb_desc":
+          return billNoB.localeCompare(billNoA, undefined, { numeric: true, sensitivity: 'base' }) || (dateB - dateA);
+        case "bill_asc":
+        case "awb_asc":
+          return billNoA.localeCompare(billNoB, undefined, { numeric: true, sensitivity: 'base' }) || (dateA - dateB);
         default:
           return dateB - dateA; // Fallback to newest
       }

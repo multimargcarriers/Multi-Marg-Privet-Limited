@@ -135,7 +135,7 @@ const AllBills = () => {
     });
   }, [displayBills, search, filterStatus, fromDate, toDate, minPending, maxPending]);
 
-  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "amount" });
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "bill_desc", { nameKey: "client", amountKey: "amount" });
 
   const stats = useMemo(() => {
     let totalBilled = 0;
@@ -338,7 +338,7 @@ const AllBills = () => {
           <SortDropdown 
             value={sortOption} 
             onChange={setSortOption} 
-            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+            options={["bill_desc", "bill_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
           />
         </div>
 

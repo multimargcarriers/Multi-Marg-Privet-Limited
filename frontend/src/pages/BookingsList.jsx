@@ -11,6 +11,7 @@ import CsvImportExport from "../components/CsvImportExport";
 import StatsPanel from "../components/StatsPanel";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import BoxEntryModal from "../components/box/BoxEntryModal";
+import TrackingUpdateModal from "../components/TrackingUpdateModal";
 import { AnimatePresence } from "framer-motion";
 import { useSocketSync } from '../hooks/useSocketSync';
 import { BadgeContext } from "../context/BadgeContext";
@@ -38,6 +39,10 @@ const BookingsList = () => {
   const [podMap, setPodMap] = useState({});
   const [trackingMap, setTrackingMap] = useState({});
   const [copiedAwb, setCopiedAwb] = useState(null);
+
+  // Tracking modal state
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [selectedBookingForTracking, setSelectedBookingForTracking] = useState(null);
 
   const handleCopyAwb = (e, awbStr) => {
     e.stopPropagation();
@@ -191,7 +196,7 @@ const BookingsList = () => {
     );
   }, [displayBookings, search]);
 
-  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "newest", { nameKey: "client", amountKey: "frieght" });
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght" });
 
   // Pagination logic
   const totalPages = Math.ceil(sortedData.length / entriesPerPage);
@@ -272,10 +277,10 @@ const BookingsList = () => {
             />
           </div>
 
-          <SortDropdown
-            value={sortOption}
-            onChange={setSortOption}
-            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]}
+          <SortDropdown 
+            value={sortOption} 
+            onChange={setSortOption} 
+            options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
           />
 
           <div className="premium-filter-group">
@@ -316,7 +321,7 @@ const BookingsList = () => {
             const hasBox = boxMap[item.awb || item.lrNo || item.id];
             const hasPodEntry = podMap[item.awb || item.lrNo || item.id];
             return (
-              <div key={item.id || index} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: item.isOfflinePending ? "2px dashed #f59e0b" : undefined }}>
+              <div key={item.id || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: item.isOfflinePending ? "2px dashed #f59e0b" : undefined }}>
 
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
@@ -441,7 +446,10 @@ const BookingsList = () => {
                         {hasBox ? "BOX" : "+ BOX"}
                       </button>
                       <button
-                        onClick={() => navigate(`/tracking?awb=${awb}`)}
+                        onClick={() => {
+                          setSelectedBookingForTracking(item);
+                          setTrackingModalOpen(true);
+                        }}
                         className="booking-pod-btn"
                         style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#3b82f6', cursor: "pointer" }}
                         title="Update Shipment Tracking"
@@ -539,6 +547,7 @@ const BookingsList = () => {
       <AnimatePresence>
         {podModalOpen && (
           <PodEntryModal
+            key="pod-entry-modal"
             isOpen={podModalOpen}
             onClose={() => {
               setPodModalOpen(false);
@@ -553,6 +562,7 @@ const BookingsList = () => {
         )}
         {boxModalOpen && (
           <BoxEntryModal
+            key="box-entry-modal"
             isOpen={boxModalOpen}
             onClose={() => {
               setBoxModalOpen(false);
@@ -565,6 +575,22 @@ const BookingsList = () => {
             }}
           />
         )}
+        <TrackingUpdateModal
+          key="tracking-update-modal"
+          isOpen={trackingModalOpen}
+          onClose={() => {
+            setTrackingModalOpen(false);
+            setSelectedBookingForTracking(null);
+          }}
+          booking={selectedBookingForTracking}
+          onNavigateToTracking={(awb) => navigate(`/tracking?awb=${awb}`)}
+          onSuccess={() => {
+            // We can optionally refresh data here, 
+            // though bookings list doesn't actively display tracking statuses yet.
+            // If they are added later, fetchAllData() would refresh them.
+            fetchAllData(); 
+          }}
+        />
       </AnimatePresence>
     </div>
   );

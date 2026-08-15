@@ -80,7 +80,8 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
     }
     const countSnap = await db.collection("bills").count().get();
     const totalBills = countSnap.data().count;
-    billNo = `MCPL/26-27/${String(totalBills + 1).padStart(4, "0")}`;
+    const { getCurrentFinancialYear } = require("../utils/financialYear");
+    billNo = `MCPL/${getCurrentFinancialYear()}/${String(totalBills + 1).padStart(4, "0")}`;
   }
 
   const bill = {
