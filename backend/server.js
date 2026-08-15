@@ -74,13 +74,6 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:5175",
-      "https://multimarg.vercel.app",
-      "https://publicmultimarg.vercel.app",
-      "https://multimargcarriers.co.in",
-      "https://www.multimargcarriers.co.in",
-      "https://multimarg.com",
-      "https://www.multimarg.com",
-      "https://app.multimarg.com",
       process.env.FRONTEND_ORIGIN,
       process.env.PUBLIC_FRONTEND_ORIGIN
     ].filter(Boolean),
