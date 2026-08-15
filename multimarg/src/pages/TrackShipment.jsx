@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import SEOHead from '../components/SEOHead';
 
 const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
@@ -92,6 +93,12 @@ const TrackShipment = () => {
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
+      <SEOHead
+        title="Track Shipment — Real-time Consignment & AWB Tracking"
+        description="Track your Multimarg Carriers shipment live. Enter your AWB / consignment number or LR number to view real-time location updates, delivery status, and transit history."
+        keywords="track multimarg shipment, multimarg tracking, AWB tracking india, consignment tracking, LR status check, freight live tracking, multimarg courier tracking"
+        canonicalPath="/track"
+      />
       {/* Hero Section */}
       <section style={{ 
         background: 'linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%)', 

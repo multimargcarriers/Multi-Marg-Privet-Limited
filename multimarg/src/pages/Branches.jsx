@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Phone, Mail, User, ChevronDown } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const BranchCard = ({ branch, bIdx, fadeInUp }) => {
   const [expanded, setExpanded] = useState(false);
@@ -174,6 +175,12 @@ const Branches = () => {
 
   return (
     <div style={{ paddingTop: '80px' }}>
+      <SEOHead
+        title="Our Branches — Pan-India Branch Network & Logistics Offices"
+        description="Locate Multimarg Carriers branch offices and hubs across India. Connect with our local logistics teams for seamless transport, booking, and support."
+        keywords="multimarg branches, logistics offices india, transport branches, rudrapur logistics hub, pan india branch network, freight booking office"
+        canonicalPath="/branches"
+      />
       <section style={{ 
         backgroundColor: 'var(--primary-blue)', 
         color: 'white',

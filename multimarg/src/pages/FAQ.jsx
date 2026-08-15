@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import axios from 'axios';
+import SEOHead from '../components/SEOHead';
 
 const FAQItem = ({ question, answer, isOpen, onClick }) => {
   return (
@@ -85,6 +86,24 @@ const FAQ = () => {
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
+      <SEOHead
+        title="Frequently Asked Questions (FAQ) — Multimarg Carriers"
+        description="Find answers to common questions about Multimarg Carriers' logistics services, tracking, FTL/PTL booking, transit times, rates, and branch coverage."
+        keywords="multimarg faq, logistics questions, how to track multimarg shipment, FTL booking help, PTL shipping questions, transport rate inquiry"
+        canonicalPath="/faq"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": faqs.map(faq => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": faq.answer
+            }
+          }))
+        }}
+      />
       {/* Hero Section */}
       <section style={{ 
         background: 'linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%)', 

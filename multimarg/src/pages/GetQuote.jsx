@@ -9,6 +9,7 @@ import './GetQuote.css';
 import { useToast } from '../context/ToastContext';
 import RupeeIcon from '../components/RupeeIcon';
 import axios from 'axios';
+import SEOHead from '../components/SEOHead';
 
 const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
@@ -96,6 +97,12 @@ const GetQuote = () => {
 
   return (
     <div className="quote-page">
+      <SEOHead
+        title="Get a Quote — Instant Transport & Freight Rate Estimate"
+        description="Calculate instant shipping and transport quotes with Multimarg Carriers' smart rate calculator. Get transparent pricing for Full Truck Load (FTL) and Part Truck Load (PTL) across India."
+        keywords="multimarg quote, transport rate calculator, freight quote india, FTL rate estimate, PTL shipping cost, truck load price calculator"
+        canonicalPath="/quote"
+      />
       <div className="quote-bg-shape1"></div>
       <div className="quote-bg-shape2"></div>
       

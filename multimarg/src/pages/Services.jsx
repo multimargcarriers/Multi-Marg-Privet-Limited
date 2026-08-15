@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import SEOHead from '../components/SEOHead';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -49,6 +50,12 @@ const Services = () => {
 
   return (
     <div style={{ paddingTop: '80px' }}>
+      <SEOHead
+        title="Our Services — FTL, PTL, Warehousing & Express Delivery"
+        description="Explore Multimarg Carriers' comprehensive logistics services: Full Truck Load (FTL), Part Truck Load (PTL), express delivery, warehousing, last-mile delivery, and supply chain management across India."
+        keywords="logistics services, full truck load FTL, part truck load PTL, express delivery, warehousing services, last mile delivery, supply chain management, freight services india, cargo transport, multimarg services"
+        canonicalPath="/services"
+      />
       {/* Hero Section */}
       <section style={{ 
         backgroundColor: 'var(--bg-light-grey)',

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Car, ShoppingBag, Pill, Cpu, Factory, Hammer } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const Industries = () => {
   const fadeInUp = {
@@ -49,6 +50,12 @@ const Industries = () => {
 
   return (
     <div style={{ paddingTop: '80px' }}>
+      <SEOHead
+        title="Industries We Serve — Automotive, FMCG, Pharma, Electronics & More"
+        description="Multimarg Carriers provides specialized logistics solutions for Automotive, FMCG, Pharmaceuticals, Electronics, Manufacturing, and Construction industries across India."
+        keywords="industry logistics, automotive transport, FMCG logistics, pharma logistics india, electronics shipping, manufacturing logistics, construction materials transport, ecommerce logistics"
+        canonicalPath="/industries"
+      />
       <section style={{ 
         background: 'linear-gradient(rgba(11, 27, 61, 0.9), rgba(11, 27, 61, 0.9)), url("https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80") no-repeat center center / cover',
         color: 'white',

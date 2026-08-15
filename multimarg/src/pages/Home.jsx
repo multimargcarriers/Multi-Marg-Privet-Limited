@@ -4,6 +4,7 @@ import { Truck, MapPin, Package, Globe, ShieldCheck, Clock, Search, Navigation, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useDialog } from '../context/DialogContext';
+import SEOHead from '../components/SEOHead';
 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -127,6 +128,12 @@ const Home = () => {
 
   return (
     <div>
+      <SEOHead
+        title="India's Trusted Logistics & Transport Company"
+        description="Multimarg Carriers Pvt. Ltd. is India's leading logistics company offering Full Truck Load (FTL), Part Truck Load (PTL), express delivery, warehousing, and last-mile delivery. Headquartered in Rudrapur, Uttarakhand with pan-India coverage. Track shipments and get instant quotes."
+        keywords="multimarg home, logistics company india, transport services rudrapur, FTL PTL shipping, express delivery india, warehousing rudrapur, pan india logistics, truck transport, freight services, cargo delivery, supply chain solutions, multimarg carriers home"
+        canonicalPath="/"
+      />
       {/* Hero Section */}
       <section style={{ 
         position: 'relative', 

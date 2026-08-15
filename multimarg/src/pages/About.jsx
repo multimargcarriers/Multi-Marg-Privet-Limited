@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Target, Eye, ShieldCheck, Clock } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const About = () => {
   const fadeInUp = {
@@ -20,6 +21,12 @@ const About = () => {
 
   return (
     <div style={{ paddingTop: '80px' }}>
+      <SEOHead
+        title="About Us — Premier Logistics Partner Since 2020"
+        description="Learn about Multimarg Carriers Pvt. Ltd. — India's trusted logistics company founded in 2020. Our mission is to provide reliable, efficient, and cost-effective transport solutions across India with integrity and innovation."
+        keywords="about multimarg, multimarg history, logistics company rudrapur, transport company uttarakhand, multimarg mission, multimarg vision, multimarg carriers about, who is multimarg"
+        canonicalPath="/about"
+      />
       {/* Hero Section */}
       <section style={{ 
         background: 'linear-gradient(135deg, var(--primary-blue-dark) 0%, var(--primary-blue) 100%)', 

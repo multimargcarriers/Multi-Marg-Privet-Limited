@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SEOHead from '../components/SEOHead';
 
 const Privacy = () => {
   const fadeInUp = {
@@ -9,6 +10,12 @@ const Privacy = () => {
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
+      <SEOHead
+        title="Privacy Policy — Multimarg Carriers"
+        description="Privacy Policy for Multimarg Carriers Pvt. Ltd. Learn how we collect, use, protect, and handle your personal and shipping data securely."
+        keywords="multimarg privacy policy, data security, customer privacy logistics"
+        canonicalPath="/privacy"
+      />
       {/* Hero Section */}
       <section style={{ 
         backgroundColor: 'var(--primary-blue-dark)', 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Clock, ArrowRight, CheckCircle2, X } from 'lucide-react';
 import axios from 'axios';
+import SEOHead from '../components/SEOHead';
 
 const ApplyModal = ({ isOpen, onClose, job }) => {
   const [formData, setFormData] = useState({
@@ -326,6 +327,12 @@ const Careers = () => {
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
+      <SEOHead
+        title="Careers — Join the Multimarg Carriers Team"
+        description="Explore job openings and career opportunities at Multimarg Carriers Pvt. Ltd. Join India's fast-growing logistics and transport team in operations, fleet management, tech, and sales."
+        keywords="multimarg careers, logistics jobs india, transport careers rudrapur, supply chain jobs, fleet manager jobs, truck logistics jobs"
+        canonicalPath="/careers"
+      />
       <AnimatePresence>
         {isModalOpen && (
           <ApplyModal 

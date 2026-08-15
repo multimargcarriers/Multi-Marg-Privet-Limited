@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import SEOHead from '../components/SEOHead';
 
 const Terms = () => {
   const fadeInUp = {
@@ -9,6 +10,12 @@ const Terms = () => {
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
+      <SEOHead
+        title="Terms & Conditions — Multimarg Carriers"
+        description="Terms and Conditions of service for Multimarg Carriers Pvt. Ltd. Read our shipping rules, liability clauses, booking terms, and service agreements."
+        keywords="multimarg terms and conditions, shipping terms, carrier liability, logistics agreement"
+        canonicalPath="/terms"
+      />
       {/* Hero Section */}
       <section style={{ 
         backgroundColor: 'var(--primary-blue)', 

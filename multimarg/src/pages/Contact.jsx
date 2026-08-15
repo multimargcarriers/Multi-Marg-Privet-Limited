@@ -3,6 +3,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import SEOHead from '../components/SEOHead';
 
 const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: 'General Inquiry', message: '' });
@@ -38,6 +39,12 @@ const Contact = () => {
 
   return (
     <div style={{ paddingTop: '80px', backgroundColor: 'var(--bg-light-grey)', minHeight: '100vh' }}>
+      <SEOHead
+        title="Contact Us — Get in Touch with Multimarg Carriers"
+        description="Contact Multimarg Carriers Pvt. Ltd. for logistics inquiries, freight quotes, partnership opportunities, or branch details. Call +91 5944-324033 or email info@multimarg.com."
+        keywords="contact multimarg, multimarg phone number, multimarg email, multimarg address, rudrapur logistics contact, transport inquiry india"
+        canonicalPath="/contact"
+      />
       {/* Header */}
       <section style={{ 
         background: 'linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%)', 
