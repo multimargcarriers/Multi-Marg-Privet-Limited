@@ -51,6 +51,7 @@ const CreateBooking = () => {
     insuredBy: "",
     remarks: "",
     paymentMode: "",
+    dimensions: [{ length: "", breadth: "", height: "", boxCount: "" }],
   });
   const [clients, setClients] = useState([]);
   const [cities, setCities] = useState([]);
@@ -214,6 +215,8 @@ const CreateBooking = () => {
                }));
             }
 
+            b.dimensions = b.dimensions || [{ length: "", breadth: "", height: "", boxCount: "" }];
+ 
             setFormData(b);
           }
         } else {
@@ -359,6 +362,31 @@ const CreateBooking = () => {
     const updated = [...formData.invoiceDetails];
     updated[index][field] = value;
     setFormData({ ...formData, invoiceDetails: updated });
+  };
+  
+  const addDimensionRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      dimensions: [...(prev.dimensions || []), { length: "", breadth: "", height: "", boxCount: "" }]
+    }));
+  };
+
+  const removeDimensionRow = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      dimensions: (prev.dimensions || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateDimensionRow = (index, field, value) => {
+    setFormData(prev => {
+      const updated = [...(prev.dimensions || [])];
+      if (!updated[index]) {
+        updated[index] = { length: "", breadth: "", height: "", boxCount: "" };
+      }
+      updated[index][field] = value;
+      return { ...prev, dimensions: updated };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -703,6 +731,51 @@ const CreateBooking = () => {
             <label className="form-label" style={{ color: "#374151", fontWeight: "500" }}>Charge Weight<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <input type="number" step="0.01" className="form-control" name="charge_wt" placeholder="Enter the Charge Weight" value={formData.charge_wt} onChange={handleChange} required />
           </div>
+        </div>
+
+        <div style={{ marginTop: "1rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h5 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#1f2937", margin: 0 }}>Package Dimensions (Optional)</h5>
+            <button type="button" onClick={addDimensionRow} className="btn btn-outline-red" style={{ padding: "0.4rem 0.8rem", fontSize: "0.875rem", borderRadius: "6px" }}>
+              + Add Dimension
+            </button>
+          </div>
+          <table className="bilty-table" style={{ background: "white", borderRadius: "8px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc" }}>
+                <th style={{ padding: "8px", fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Length (cm)</th>
+                <th style={{ padding: "8px", fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Breadth (cm)</th>
+                <th style={{ padding: "8px", fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Height (cm)</th>
+                <th style={{ padding: "8px", fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>Box Count</th>
+                <th style={{ padding: "8px", width: "50px" }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(formData.dimensions || []).map((dim, i) => (
+                <tr key={i} style={{ borderTop: "1px solid #e2e8f0" }}>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" type="number" placeholder="L" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={dim.length} onChange={(e) => updateDimensionRow(i, "length", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" type="number" placeholder="B" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={dim.breadth} onChange={(e) => updateDimensionRow(i, "breadth", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" type="number" placeholder="H" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={dim.height} onChange={(e) => updateDimensionRow(i, "height", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input className="form-control" type="number" placeholder="Count" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={dim.boxCount} onChange={(e) => updateDimensionRow(i, "boxCount", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px", textAlign: "center" }}>
+                    {i > 0 && (
+                      <button type="button" onClick={() => removeDimensionRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem" }}>
+                        &times;
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "2rem" }}>

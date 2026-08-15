@@ -506,6 +506,18 @@ const PrintLR = () => {
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>VEHICLE NO.</td>
                   <td className="data-cell" style={{ width: "19%", textAlign: "center" }}>{booking.vehicleNo || "NA"}</td>
                 </tr>
+                {booking.dimensions && Array.isArray(booking.dimensions) && booking.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
+                  <tr>
+                    <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DIMENSIONS</td>
+                    <td className="data-cell" colSpan="5" style={{ fontSize: "0.75rem", lineHeight: "1.2", padding: "4px 8px" }}>
+                      {booking.dimensions.filter(d => d.length || d.breadth || d.height).map((d, idx) => (
+                        <span key={idx} style={{ marginRight: "16px", display: "inline-block" }}>
+                          <strong>{d.length || 0}</strong>x<strong>{d.breadth || 0}</strong>x<strong>{d.height || 0}</strong> cm ({d.boxCount || 0} Pcs)
+                        </span>
+                      ))}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -544,14 +556,14 @@ const PrintLR = () => {
             
             {/* Terms & Conditions (Left Side) */}
             <div style={{ flex: 1, borderRight: "1px solid #cbd5e1", borderBottom: "1px solid #cbd5e1" }}>
-               <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1" }}>4. Terms & Conditions</div>
+               <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1" }}>4. Carriage Declaration & Agreement</div>
                <div style={{ padding: "6px", fontSize: "0.65rem", color: "#475569", lineHeight: "1.2" }}>
                  <p style={{ margin: "0 0 2px", fontWeight: "600", color: "#0f172a" }}>Subject to Uttarakhand Jurisdiction.</p>
                  <ol style={{ paddingLeft: "15px", margin: 0 }}>
-                   <li>Consignment booked at owner's risk unless explicitly insured by carrier.</li>
-                   <li>Carrier is not responsible for leakage, breakage, or damage due to poor packaging.</li>
-                   <li>Demurrage will be charged if delivery is not taken within 7 days of arrival.</li>
-                   <li>Goods are delivered only against the original consignee copy.</li>
+                   <li>We declare that this consignment is booked in accordance with standard carriage regulations.</li>
+                   <li>For safety, please ensure goods are packed securely. Standard carrier liability applies.</li>
+                   <li>We appreciate your timely collection of deliveries to avoid demurrage charges.</li>
+                   <li>Goods are politely requested to be delivered upon presenting the original consignee copy.</li>
                  </ol>
                  <div style={{ marginTop: "6px" }}>
                    <span className="gray-cell" style={{ padding: "4px 8px", background: "#f1f5f9", borderRadius: "2px" }}>REMARKS:</span>

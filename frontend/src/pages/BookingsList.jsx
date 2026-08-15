@@ -346,6 +346,11 @@ const BookingsList = () => {
                       <span className="booking-meta-badge">{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</span>
                       <span className="booking-meta-badge">{(item.origin || "-")} → {(item.destination || "-")}</span>
                       {item.mode && <span className="booking-meta-badge">{item.mode}</span>}
+                      {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
+                        <span className="booking-meta-badge" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center' }}>
+                          Dims: {item.dimensions.filter(d => d.length || d.breadth || d.height).map((d, dIdx) => `${d.length || 0}x${d.breadth || 0}x${d.height || 0}cm (${d.boxCount || 0} Pcs)`).join(', ')}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="booking-card-header-right">
