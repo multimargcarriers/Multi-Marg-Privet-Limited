@@ -95,15 +95,16 @@ const InstallPWA = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             background: '#ffffff',
-            padding: '6px',
-            borderRadius: '12px',
-            border: '1px solid #f1f5f9',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+            padding: '8px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            width: '48px',
-            height: '48px'
+            width: '64px',
+            height: '64px',
+            flexShrink: 0
           }}>
             <img src="/mc.png" alt="Multimarg Carriers" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>

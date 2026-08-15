@@ -71,7 +71,7 @@ const Navbar = () => {
 
         {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101, textDecoration: 'none' }}>
-          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '40px' : '50px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
+          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '48px' : '62px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
           <div>
             <h1 className="brand-name">
               MULTIMARG <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
