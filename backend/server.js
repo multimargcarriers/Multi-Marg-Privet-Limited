@@ -43,27 +43,32 @@ initCloudinaryCleanupCron();
 // Security Middleware
 // ============================================================
 
-// Helmet - secure HTTP headers
+// Helmet - secure HTTP headers (ClickJacking, CSP, HSTS, MIME Sniffing, XSS)
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    contentSecurityPolicy: NODE_ENV === "production" ? {
+    contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://maps.googleapis.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://ui-avatars.com"],
-        connectSrc: ["'self'", "http://localhost:*", "https://*"]
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://ui-avatars.com", "https://*"],
+        connectSrc: ["'self'", "http://localhost:*", "https://*"],
+        frameAncestors: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"]
       }
-    } : false,
+    },
     hsts: {
       maxAge: 31536000,
       includeSubDomains: true,
       preload: true
     },
     xssFilter: true,
-    frameguard: { action: 'deny' }
+    noSniff: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    frameguard: { action: 'sameorigin' }
   }),
 );
 
