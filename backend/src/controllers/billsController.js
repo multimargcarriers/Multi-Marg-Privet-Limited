@@ -456,6 +456,15 @@ exports.delete_id_8 = async (req, res) => {
     }
   }
 
+  if (billData.pdfUrl) {
+    try {
+      const { deleteFile } = require("../config/cloudinary");
+      await deleteFile(billData.pdfUrl, "raw");
+    } catch (e) {
+      console.warn("Failed to delete Bill PDF from Cloudinary:", e.message);
+    }
+  }
+
   await db.collection("bills").doc(id).delete(req.user);
   if (billData.client) {
     await recalculatePartyPayments('Client', billData.client);

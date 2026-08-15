@@ -93,8 +93,8 @@ exports.deleteRoot_3 = async (req, res) => {
   const data = doc.data();
   if (data.cloudinaryPublicId || data.cloudinaryUrl) {
     try {
-      const { deleteFromCloudinary } = require("../utils/cloudinaryCleaner");
-      await deleteFromCloudinary(data.cloudinaryPublicId || data.cloudinaryUrl);
+      const { deleteFile } = require("../config/cloudinary");
+      await deleteFile(data.cloudinaryPublicId || data.cloudinaryUrl);
     } catch (e) {
       console.warn("Failed to delete Box image from Cloudinary:", e.message);
     }
