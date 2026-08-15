@@ -475,7 +475,7 @@ const BillView1 = () => {
               ADDRESS : LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153, UTTARAKHAND
             </p>
             <p style={{ margin: "0 0 2px 0", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
-              CONTACT : +91 5944-324033 &nbsp;&nbsp;|&nbsp;&nbsp; WEBSITE : www.multimargcarriers.co.in &nbsp;&nbsp;|&nbsp;&nbsp; EMAIL : info@multimargcarriers.co.in
+              CONTACT : +91 5944-324033 &nbsp;&nbsp;|&nbsp;&nbsp; WEBSITE : www.multimargcarriers.co.in &nbsp;&nbsp;|&nbsp;&nbsp; EMAIL : info@multimarg.com
             </p>
             <p style={{ margin: 0, color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
               GSTIN : 05AANCM3054E1ZN &nbsp;&nbsp;|&nbsp;&nbsp; PAN NO : AANCM3054E &nbsp;&nbsp;|&nbsp;&nbsp; CIN : U60300UR2020PTC010749

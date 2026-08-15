@@ -73,7 +73,7 @@ const Contact = () => {
             </div>
             <div>
               <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b', fontSize: '1.05rem', fontWeight: '600' }}>Email</h4>
-              <a href="mailto:info@multimargcarriers.co.in" style={{ margin: 0, color: '#4f46e5', lineHeight: '1.6', textDecoration: 'none', fontWeight: '500', fontSize: '0.95rem' }}>info@multimargcarriers.co.in</a>
+              <a href="mailto:info@multimarg.com" style={{ margin: 0, color: '#4f46e5', lineHeight: '1.6', textDecoration: 'none', fontWeight: '500', fontSize: '0.95rem' }}>info@multimarg.com</a>
             </div>
           </div>
         </div>

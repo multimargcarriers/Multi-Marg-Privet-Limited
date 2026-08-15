@@ -217,7 +217,7 @@ exports.post_google_login = async (req, res) => {
   if (snapshot.empty) {
     await logFailedGoogleLogin(req, { email: emailLower, reason: 'Account does not exist', name: name || 'Unknown', picture });
     return error(res, {
-      message: "Account does not exist. Please contact the administrator at info@multimargcarriers.co.in.",
+      message: "Account does not exist. Please contact the administrator at info@multimarg.com.",
       statusCode: 403,
     });
   }
@@ -299,7 +299,7 @@ exports.get_me = async (req, res) => {
   const docRef = db.collection("users").doc(userId);
   const doc = await docRef.get();
   if (!doc.exists) return error(res, {
-    message: "Account does not exist. Please contact the administrator at info@multimargcarriers.co.in.",
+    message: "Account does not exist. Please contact the administrator at info@multimarg.com.",
     statusCode: 404
   });
   const userData = { id: doc.id, ...doc.data() };
@@ -547,7 +547,7 @@ exports.put_profile_2 = async (req, res) => {
     empIdCheck.forEach(d => {
       if (d.id !== userId) taken = true;
     });
-    if (taken) return error(res, { message: "Employee ID already exists. Please contact the administrator at info@multimargcarriers.co.in.", statusCode: 400 });
+    if (taken) return error(res, { message: "Employee ID already exists. Please contact the administrator at info@multimarg.com.", statusCode: 400 });
   }
   if (photoUrl) updates.photo = typeof photoUrl === 'string' && photoUrl.includes('res.cloudinary.com') ? photoUrl.toLowerCase() : photoUrl;
   if (bannerUrl) updates.banner = typeof bannerUrl === 'string' && bannerUrl.includes('res.cloudinary.com') ? bannerUrl.toLowerCase() : bannerUrl;
@@ -651,7 +651,7 @@ exports.forgot_password = async (req, res) => {
     }
 
     if (snapshot.empty) {
-      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized. Please contact the company at info@multimargcarriers.co.in' });
+      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized. Please contact the company at info@multimarg.com' });
     }
 
     let userDoc = null;
@@ -666,7 +666,7 @@ exports.forgot_password = async (req, res) => {
     // Verify IAM Role - Only send OTP to Admins and Super Admins
     const role = (userData.role || "").toLowerCase().replace(/\s+/g, '');
     if (role !== 'admin' && role !== 'superadmin') {
-      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized for IAM access. Please contact the company at info@multimargcarriers.co.in' });
+      return res.status(403).json({ success: false, message: 'Access denied. You are not authorized for IAM access. Please contact the company at info@multimarg.com' });
     }
 
     // Generate 6 digit OTP
