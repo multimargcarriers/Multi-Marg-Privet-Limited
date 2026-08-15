@@ -486,25 +486,25 @@ const PrintLR = () => {
               <tbody>
                 <tr>
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>ORIGIN</td>
-                  <td className="data-cell" style={{ width: "25%" }}>{booking.origin?.toUpperCase()}</td>
+                  <td className="data-cell" style={{ width: "35%" }} colSpan="2">{booking.origin?.toUpperCase()}</td>
                   <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DESTINATION</td>
-                  <td className="data-cell" style={{ width: "25%" }}>{booking.destination?.toUpperCase()}</td>
-                  <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>PKG(S)</td>
-                  <td className="data-cell" style={{ width: "10%", textAlign: "center", fontSize: "1rem" }}>{String(booking.box || "0").padStart(2, '0')}</td>
+                  <td className="data-cell" style={{ width: "35%" }} colSpan="2">{booking.destination?.toUpperCase()}</td>
                 </tr>
                 <tr>
-                  <td className="gray-cell" style={{ textAlign: "center" }}>ACTUAL WT.</td>
-                  <td className="data-cell">{parseNum(booking.actual_wt).toFixed(2)} Kg</td>
-                  <td className="gray-cell" style={{ textAlign: "center" }}>CHARGE WT.</td>
-                  <td className="data-cell">{parseNum(booking.charge_wt).toFixed(2)} Kg</td>
-                  <td className="gray-cell" style={{ textAlign: "center" }}>INSURED BY</td>
-                  <td className="data-cell" style={{ textAlign: "center" }}>{booking.insuredBy || "NA"}</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>PKG(S)</td>
+                  <td className="data-cell" style={{ width: "18%", textAlign: "center", fontSize: "1rem", fontWeight: "700" }}>{String(booking.box || "0").padStart(2, '0')}</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>ACTUAL WT.</td>
+                  <td className="data-cell" style={{ width: "18%" }}>{parseNum(booking.actual_wt).toFixed(2)} Kg</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>CHARGE WT.</td>
+                  <td className="data-cell" style={{ width: "19%" }}>{parseNum(booking.charge_wt).toFixed(2)} Kg</td>
                 </tr>
                 <tr>
-                  <td className="gray-cell" style={{ textAlign: "center" }}>DESCRIPTION</td>
-                  <td className="data-cell" colSpan="3">{booking.description || "NA"}</td>
-                  <td className="gray-cell" style={{ textAlign: "center" }}>VEHICLE NO.</td>
-                  <td className="data-cell" style={{ textAlign: "center" }}>{booking.vehicleNo || "NA"}</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DESCRIPTION</td>
+                  <td className="data-cell" style={{ width: "18%" }}>{booking.description || "NA"}</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>INSURED BY</td>
+                  <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{booking.insuredBy || "NA"}</td>
+                  <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>VEHICLE NO.</td>
+                  <td className="data-cell" style={{ width: "19%", textAlign: "center" }}>{booking.vehicleNo || "NA"}</td>
                 </tr>
               </tbody>
             </table>
