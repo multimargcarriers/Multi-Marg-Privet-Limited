@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
@@ -16,6 +16,8 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 const Tracking = () => {
   const { user, hasPermission } = useContext(AuthContext);
   const _navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlAwb = searchParams.get('awb');
   const { confirm } = useDialog();
   const { addToast } = useToast();
   const { syncQueue } = useSync();
@@ -115,6 +117,13 @@ const Tracking = () => {
     fetchAllTrackings();
   }, []);
 
+  useEffect(() => {
+    if (urlAwb) {
+      setSearchAwb(urlAwb);
+      fetchTrackingHistory(urlAwb);
+    }
+  }, [urlAwb]);
+
   // Instant Search Effect (Debounced)
   useEffect(() => {
     if (!searchAwb.trim()) {
@@ -140,7 +149,7 @@ const Tracking = () => {
   };
 
   const getBookingAwb = (b) => {
-    return String(b.awb || b.consignment || b.awbNo || b.lrNumber || b.lrNo || b.lr_number || (b.id ? String(b.id).substring(0, 8).toUpperCase() : ""));
+    return String(b.awb || b.consignment || b.awbNo || b.lrNumber || b.lrNo || b.lr_number || (b.id ? String(b.id).slice(-6).toUpperCase() : ""));
   };
 
   const fetchTrackingHistory = async (awbToSearch) => {
@@ -159,12 +168,14 @@ const Tracking = () => {
       // If we found a matching booking with a fuller AWB string (like MMC-123 instead of 123), use it to fetch
       const actualAwbToSearch = match ? getBookingAwb(match) : awbToSearch;
 
-      const response = await axios.get(`${API}/tracking/${actualAwbToSearch}`);
+      // Call public endpoint which now returns both tracking history and the associated booking details (including invoices)
+      const response = await axios.get(`${API}/public/tracking/${actualAwbToSearch}`);
       let data = response.data.success ? response.data.data : [];
+      let bookingDetails = response.data.success ? response.data.booking : null;
 
       if (fullId && fullId !== actualAwbToSearch) {
           try {
-              const res2 = await axios.get(`${API}/tracking/${fullId}`);
+              const res2 = await axios.get(`${API}/public/tracking/${fullId}`);
               if (res2.data.success) {
                   const merged = [...data, ...res2.data.data];
                   merged.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -177,6 +188,8 @@ const Tracking = () => {
                       }
                   }
                   data = unique;
+                  // Merge booking details if they exist in the full ID fetch
+                  if (res2.data.booking) bookingDetails = res2.data.booking;
               }
           } catch(err) {
               console.error("Error fetching for full ID", err);
@@ -184,6 +197,9 @@ const Tracking = () => {
       }
 
       setTrackingHistory(data);
+      // Use the returned booking to populate the shipment details card, ignoring client-side bookingsList
+      // Fallback to local match if backend didn't return it for some reason
+      setSelectedSearchBooking(bookingDetails || match || null);
       setHasSearched(true);
       // Pre-fill form AWB if searching
       setFormData(prev => ({ ...prev, awb: awbToSearch }));
@@ -425,16 +441,16 @@ const Tracking = () => {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "2rem", alignItems: "start" }}>
+      <div className="tracking-layout">
         
         {/* LEFT COLUMN: TRACKING VIEWER */}
         <div className="glass-panel" style={{ padding: "0", overflow: "hidden", display: "flex", flexDirection: "column", height: "100%", minHeight: "500px" }}>
           
-          <div style={{ padding: "1.5rem", background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
+          <div className="tracking-panel-content" style={{ background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
             <h4 style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <Search size={18} color="#6366f1" /> Track Shipment
             </h4>
-                <form onSubmit={handleSearchSubmit} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", position: "relative" }}>
+                <form onSubmit={handleSearchSubmit} className="tracking-search-form">
               <div style={{ position: "relative", flex: 1 }}>
                 <label htmlFor="searchAwbInput" className="sr-only">Search AWB or LR Number</label>
                 <input 
@@ -472,7 +488,7 @@ const Tracking = () => {
                 style={{ 
                   background: "linear-gradient(135deg, #6366f1, #4f46e5)", 
                   color: "white", 
-                  padding: "0 1.2rem", 
+                  padding: "0.6rem 1.2rem", 
                   borderRadius: "8px",
                   fontWeight: "600",
                   display: "flex",
@@ -481,7 +497,8 @@ const Tracking = () => {
                   border: "none",
                   cursor: "pointer",
                   transition: "transform 0.1s ease, box-shadow 0.2s ease",
-                  boxShadow: "0 4px 6px rgba(99, 102, 241, 0.25)"
+                  boxShadow: "0 4px 6px rgba(99, 102, 241, 0.25)",
+                  minHeight: "44px"
                 }}
                 disabled={isSearching || !searchAwb.trim()}
               >
@@ -490,7 +507,7 @@ const Tracking = () => {
             </form>
           </div>
 
-          <div style={{ padding: "1.5rem", flex: 1, background: "#ffffff", overflowY: "auto" }}>
+          <div className="tracking-panel-content" style={{ flex: 1, background: "#ffffff", overflowY: "auto" }}>
             
             {!hasSearched ? (            
               <div style={{ 
@@ -556,7 +573,7 @@ const Tracking = () => {
                     <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <Package size={18} color="#0284c7" /> Shipment Overview
                     </h5>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", fontSize: "0.9rem" }}>
+                    <div className="tracking-overview-grid">
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
                         <div style={{ fontWeight: 700, color: "#0f172a" }}>
@@ -585,17 +602,56 @@ const Tracking = () => {
                   </div>
                 )}
 
-                <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+                {/* INVOICE DETAILS CARD */}
+                {selectedSearchBooking && (selectedSearchBooking.invoiceDetails?.length > 0 || selectedSearchBooking.parcels?.length > 0) && (
+                  <div style={{
+                    background: "white",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    marginBottom: "2rem",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                  }}>
+                    <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <FileText size={18} color="#0ea5e9" /> Attached Invoices
+                    </h5>
+                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                      <table style={{ width: "100%", fontSize: "0.85rem", borderCollapse: "collapse", minWidth: "500px" }}>
+                        <thead>
+                          <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                            <th style={{ padding: "0.5rem", textAlign: "left", color: "#64748b", fontWeight: 600 }}>INVOICE / PART</th>
+                            <th style={{ padding: "0.5rem", textAlign: "center", color: "#64748b", fontWeight: 600 }}>QTY</th>
+                            <th style={{ padding: "0.5rem", textAlign: "right", color: "#64748b", fontWeight: 600 }}>VALUE (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const parcels = selectedSearchBooking.invoiceDetails?.length > 0 
+                              ? selectedSearchBooking.invoiceDetails 
+                              : selectedSearchBooking.parcels || [];
+                            
+                            return parcels.map((parcel, idx) => (
+                              <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                <td style={{ padding: "0.5rem", fontWeight: 600, color: "#334155" }}>
+                                  {parcel.invoice || parcel.invoiceNo || parcel.part || parcel.partNumber || '-'}
+                                  {(parcel.eway || parcel.ewayBill) && <div style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 400 }}>Eway: {parcel.eway || parcel.ewayBill}</div>}
+                                </td>
+                                <td style={{ padding: "0.5rem", textAlign: "center", color: "#475569" }}>{parcel.quantity || parcel.qty || '-'}</td>
+                                <td style={{ padding: "0.5rem", textAlign: "right", fontWeight: 600, color: "#0f172a" }}>
+                                  {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
+                                </td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <div className="tracking-timeline-container">
                   {/* Vertical Line */}
-                  <div style={{ 
-                    position: "absolute", 
-                    left: "26px", 
-                    top: "10px", 
-                    bottom: "10px", 
-                    width: "2px", 
-                    background: "#e5e7eb", 
-                    zIndex: 0 
-                  }}></div>
+                  <div className="tracking-timeline-line"></div>
 
                 {trackingHistory.map((entry, index) => {
                   const isLatest = index === 0; 
@@ -604,7 +660,7 @@ const Tracking = () => {
                   const _canModify = isAdmin || !isDelivered;
 
                   return (
-                    <div key={entry.id} style={{ position: "relative", zIndex: 1, marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem", display: "flex", gap: "1.5rem" }}>
+                    <div key={entry.id} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem" }}>
                       
                       <div style={{ 
                         width: "44px", 
@@ -672,7 +728,7 @@ const Tracking = () => {
 
           <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: "0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             
-            <div style={{ padding: "1.5rem", background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
+            <div className="tracking-panel-content" style={{ background: "rgba(249, 250, 251, 0.5)", borderBottom: "1px solid rgba(229, 231, 235, 0.5)" }}>
               <h4 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#374151", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <PlusCircle size={20} color="#6366f1" /> Add Status Update
               </h4>

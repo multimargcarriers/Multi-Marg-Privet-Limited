@@ -62,15 +62,20 @@ router.get('/:awb', async (req, res) => {
     const bookingsSnapshot = await db.collection("bookings").get();
     bookingsSnapshot.forEach(doc => {
       const b = doc.data();
-      const bAwb = (b.awb || b.consignment || b.lrNo || "").toString().trim().toLowerCase();
-      if (lowercaseVariations.includes(bAwb)) {
+      const docId = doc.id;
+      const bAwb = (b.awb || b.consignment || b.awbNo || b.lrNumber || b.lrNo || b.lr_number || docId.slice(-6)).toString().trim().toLowerCase();
+      
+      const cleanSearch = baseAwb.toLowerCase();
+      if (bAwb === cleanSearch || bAwb.includes(cleanSearch) || lowercaseVariations.includes(bAwb) || docId.toLowerCase().includes(cleanSearch)) {
         booking = {
           origin: b.origin || null,
           destination: b.destination || null,
           client: b.client || b.clientName || null,
           consignor: b.consignor || null,
           consignee: b.consignee || null,
-          date: b.date || b.dispatch_date || null
+          date: b.date || b.dispatch_date || null,
+          invoiceDetails: b.invoiceDetails || [],
+          parcels: b.parcels || []
         };
       }
     });

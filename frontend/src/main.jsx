@@ -304,7 +304,11 @@ axios.delete = function (...args) {
     try {
       await originalDelete.apply(axios, args);
     } catch (e) {
-      console.error("Background delete failed", e);
+      if (e.response && e.response.status === 404) {
+        console.warn("Background delete: Item already deleted on server (404)");
+      } else {
+        console.error("Background delete failed", e);
+      }
     } finally {
       // Clear cache AFTER background process finishes so next navigation fetches real DB state
       clearCache(); 

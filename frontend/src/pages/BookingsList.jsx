@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -37,6 +37,14 @@ const BookingsList = () => {
   const [selectedBookingForPod, setSelectedBookingForPod] = useState(null);
   const [podMap, setPodMap] = useState({});
   const [trackingMap, setTrackingMap] = useState({});
+  const [copiedAwb, setCopiedAwb] = useState(null);
+
+  const handleCopyAwb = (e, awbStr) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(awbStr);
+    setCopiedAwb(awbStr);
+    setTimeout(() => setCopiedAwb(null), 2000);
+  };
 
   // Box modal state & lookup map
   const [boxModalOpen, setBoxModalOpen] = useState(false);
@@ -320,7 +328,16 @@ const BookingsList = () => {
                       )}
                     </h4>
                     <div className="booking-meta-row">
-                      <span className="booking-meta-badge">AWB: {awb}</span>
+                      <span className="booking-meta-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        AWB: {awb}
+                        <span 
+                          onClick={(e) => handleCopyAwb(e, awb)} 
+                          style={{ cursor: 'pointer', color: copiedAwb === awb ? '#10b981' : '#94a3b8', display: 'flex', alignItems: 'center' }} 
+                          title="Copy AWB"
+                        >
+                          {copiedAwb === awb ? <Check size={14} /> : <Copy size={14} />}
+                        </span>
+                      </span>
                       <span className="booking-meta-badge">{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</span>
                       <span className="booking-meta-badge">{(item.origin || "-")} → {(item.destination || "-")}</span>
                       {item.mode && <span className="booking-meta-badge">{item.mode}</span>}
@@ -389,7 +406,10 @@ const BookingsList = () => {
                             <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
                           )}
                           {!item.isOfflinePending && (
-                            <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
+                            <>
+                              <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="View Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
+                              <button onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")} className="booking-action-btn" title="Direct Download" style={{ color: '#0ea5e9' }}><Download size={15} /></button>
+                            </>
                           )}
                           {canModify && (
                             <button onClick={() => handleDelete(item.id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
@@ -419,6 +439,14 @@ const BookingsList = () => {
                       >
                         {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
                         {hasBox ? "BOX" : "+ BOX"}
+                      </button>
+                      <button
+                        onClick={() => navigate(`/tracking?awb=${awb}`)}
+                        className="booking-pod-btn"
+                        style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#3b82f6', cursor: "pointer" }}
+                        title="Update Shipment Tracking"
+                      >
+                        <Truck size={13} /> TRACK
                       </button>
                       <button
                         disabled={item.isOfflinePending}

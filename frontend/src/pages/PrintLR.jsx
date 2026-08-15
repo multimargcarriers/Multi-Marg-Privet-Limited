@@ -122,52 +122,20 @@ const PrintLR = () => {
     };
     fetchBooking();
   }, [id]);
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      window.close();
+      navigate("/bookings");
+    }
+  };
 
-  if (loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        Loading LR...
-      </div>
-    );
-  }
-
-  if (!booking) {
-    return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <h3>Booking not found.</h3>
-        <button className="btn btn-primary mt-3" onClick={() => navigate("/bookings")}>Go Back</button>
-      </div>
-    );
-  }
-
-  const parseNum = (val) => parseFloat(val || 0);
-
-  const isCredit = booking.paymentMode === "Credit";
-  
-  const printFreight = isCredit ? 0 : parseNum(booking.freight_charge);
-  const printAwb = isCredit ? 0 : parseNum(booking.awb_charge);
-  const printPickup = isCredit ? 0 : parseNum(booking.pickup_charge);
-  const printDelivery = isCredit ? 0 : parseNum(booking.delivery_charge);
-  const printPackaging = isCredit ? 0 : parseNum(booking.packaging_charge);
-  const printHandling = isCredit ? 0 : parseNum(booking.handling_charge);
-
-  const subTotal = printFreight + printAwb + printPickup + printDelivery + printPackaging + printHandling;
-
-  const gst = 0; // Customize if GST applies
-  const totalAmount = subTotal + gst;
-
-  const validInvoices = (booking.invoiceDetails || []).filter(inv => 
-    inv.invoiceNo || inv.invoiceValue || inv.partNumber || inv.ewayBill || (inv.quantity && inv.quantity !== "0")
-  );
-
-  const invoices = validInvoices.length > 0 
-    ? validInvoices 
-    : [{ invoiceNo: "NA", invoiceValue: "0", invoiceDate: null, partNumber: "NA", ewayBill: "NA", quantity: "0" }];
-
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = (onComplete) => {
     window.scrollTo(0, 0);
     
     const element = document.getElementById("bilty-content");
+    if (!element) return;
     
     // We will clone it and append to body to avoid ANY mobile viewport CSS constraints.
     const clone = element.cloneNode(true);
@@ -223,12 +191,72 @@ const PrintLR = () => {
       
       html2pdf().set(opt).from(clone).save().then(() => {
         document.body.removeChild(wrapper);
+        if (typeof onComplete === 'function') onComplete();
       }).catch(err => {
         console.error("PDF generation failed:", err);
         document.body.removeChild(wrapper);
+        if (typeof onComplete === 'function') onComplete();
       });
     }, 300);
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('download') === 'true' && booking) {
+      // Add a slight delay to ensure QR codes and canvas render completely
+      setTimeout(() => {
+        handleDownloadPDF(() => {
+          setTimeout(() => {
+            window.close();
+            // Fallback if window.close is blocked
+            navigate("/bookings");
+          }, 500);
+        });
+      }, 500);
+    }
+  }, [booking]);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        Loading LR...
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <h3>Booking not found.</h3>
+        <button className="btn btn-primary mt-3" onClick={() => navigate("/bookings")}>Go Back</button>
+      </div>
+    );
+  }
+
+  const parseNum = (val) => parseFloat(val || 0);
+
+  const isCredit = booking.paymentMode === "Credit";
+  
+  const printFreight = isCredit ? 0 : parseNum(booking.freight_charge);
+  const printAwb = isCredit ? 0 : parseNum(booking.awb_charge);
+  const printPickup = isCredit ? 0 : parseNum(booking.pickup_charge);
+  const printDelivery = isCredit ? 0 : parseNum(booking.delivery_charge);
+  const printPackaging = isCredit ? 0 : parseNum(booking.packaging_charge);
+  const printHandling = isCredit ? 0 : parseNum(booking.handling_charge);
+
+  const subTotal = printFreight + printAwb + printPickup + printDelivery + printPackaging + printHandling;
+
+  const gst = 0; // Customize if GST applies
+  const totalAmount = subTotal + gst;
+
+  const validInvoices = (booking.invoiceDetails || []).filter(inv => 
+    inv.invoiceNo || inv.invoiceValue || inv.partNumber || inv.ewayBill || (inv.quantity && inv.quantity !== "0")
+  );
+
+  const invoices = validInvoices.length > 0 
+    ? validInvoices 
+    : [{ invoiceNo: "NA", invoiceValue: "0", invoiceDate: null, partNumber: "NA", ewayBill: "NA", quantity: "0" }];
+
 
   return (
     <div style={{ background: "#e2e8f0", minHeight: "100vh", padding: "2rem" }} className="print-wrapper">
@@ -322,7 +350,7 @@ const PrintLR = () => {
       </style>
 
       <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
+        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={handleBack}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
         <div className="top-actions-container">
