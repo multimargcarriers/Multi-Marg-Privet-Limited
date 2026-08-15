@@ -120,11 +120,12 @@ const GenerateBill = () => {
             let foundDelivery = 0;
             let foundAwb = parseFloat(matchedRate.awbCharge || 0);
 
-            switch (bMode) {
-              case "Air": foundRate = parseFloat(matchedRate.airRate || 0); foundPickup = parseFloat(matchedRate.airPickup || 0); foundDelivery = parseFloat(matchedRate.airDelivery || 0); break;
-              case "Rail": foundRate = parseFloat(matchedRate.trainRate || 0); foundPickup = parseFloat(matchedRate.trainPickup || 0); foundDelivery = parseFloat(matchedRate.trainDelivery || 0); break;
-              case "Road": foundRate = parseFloat(matchedRate.roadRate || 0); foundPickup = parseFloat(matchedRate.roadPickup || 0); foundDelivery = parseFloat(matchedRate.roadDelivery || 0); break;
-              case "Road Express": foundRate = parseFloat(matchedRate.roadExpressRate || 0); foundPickup = parseFloat(matchedRate.roadExpressPickup || 0); foundDelivery = parseFloat(matchedRate.roadExpressDelivery || 0); break;
+            switch (bMode.toLowerCase()) {
+              case "air": foundRate = parseFloat(matchedRate.airRate || 0); foundPickup = parseFloat(matchedRate.airPickup || 0); foundDelivery = parseFloat(matchedRate.airDelivery || 0); break;
+              case "rail": 
+              case "train": foundRate = parseFloat(matchedRate.trainRate || 0); foundPickup = parseFloat(matchedRate.trainPickup || 0); foundDelivery = parseFloat(matchedRate.trainDelivery || 0); break;
+              case "road": foundRate = parseFloat(matchedRate.roadRate || 0); foundPickup = parseFloat(matchedRate.roadPickup || 0); foundDelivery = parseFloat(matchedRate.roadDelivery || 0); break;
+              case "road express": foundRate = parseFloat(matchedRate.roadExpressRate || 0); foundPickup = parseFloat(matchedRate.roadExpressPickup || 0); foundDelivery = parseFloat(matchedRate.roadExpressDelivery || 0); break;
             }
 
             if (rateValue === 0 && foundRate > 0) rateValue = foundRate;
@@ -193,11 +194,12 @@ const GenerateBill = () => {
         let foundDelivery = 0;
         let foundAwb = parseFloat(matchedRate.awbCharge || 0);
 
-        switch (effectiveMode) {
-          case "Air": foundRate = parseFloat(matchedRate.airRate || 0); foundPickup = parseFloat(matchedRate.airPickup || 0); foundDelivery = parseFloat(matchedRate.airDelivery || 0); break;
-          case "Rail": foundRate = parseFloat(matchedRate.trainRate || 0); foundPickup = parseFloat(matchedRate.trainPickup || 0); foundDelivery = parseFloat(matchedRate.trainDelivery || 0); break;
-          case "Road": foundRate = parseFloat(matchedRate.roadRate || 0); foundPickup = parseFloat(matchedRate.roadPickup || 0); foundDelivery = parseFloat(matchedRate.roadDelivery || 0); break;
-          case "Road Express": foundRate = parseFloat(matchedRate.roadExpressRate || 0); foundPickup = parseFloat(matchedRate.roadExpressPickup || 0); foundDelivery = parseFloat(matchedRate.roadExpressDelivery || 0); break;
+        switch (effectiveMode.toLowerCase()) {
+          case "air": foundRate = parseFloat(matchedRate.airRate || 0); foundPickup = parseFloat(matchedRate.airPickup || 0); foundDelivery = parseFloat(matchedRate.airDelivery || 0); break;
+          case "rail":
+          case "train": foundRate = parseFloat(matchedRate.trainRate || 0); foundPickup = parseFloat(matchedRate.trainPickup || 0); foundDelivery = parseFloat(matchedRate.trainDelivery || 0); break;
+          case "road": foundRate = parseFloat(matchedRate.roadRate || 0); foundPickup = parseFloat(matchedRate.roadPickup || 0); foundDelivery = parseFloat(matchedRate.roadDelivery || 0); break;
+          case "road express": foundRate = parseFloat(matchedRate.roadExpressRate || 0); foundPickup = parseFloat(matchedRate.roadExpressPickup || 0); foundDelivery = parseFloat(matchedRate.roadExpressDelivery || 0); break;
         }
 
         if (foundRate > 0) rateValue = foundRate;
@@ -284,7 +286,7 @@ const GenerateBill = () => {
     const bClient = (b.client || "").trim().toLowerCase();
     
     if (filterClient && bClient !== filterClient) match = false;
-    if (filters.mode && b.mode !== filters.mode) match = false;
+    if (filters.mode && (b.mode || "").toString().trim().toLowerCase() !== filters.mode.trim().toLowerCase()) match = false;
     return match;
   });
 
