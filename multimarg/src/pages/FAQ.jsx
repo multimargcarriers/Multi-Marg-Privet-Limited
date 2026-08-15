@@ -65,7 +65,7 @@ const FAQ = () => {
   useEffect(() => {
     const fetchFaqs = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/cms/faqs`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/cms/faqs`);
         if (res.data.success) {
           setFaqs(res.data.data);
         }

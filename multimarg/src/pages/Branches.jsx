@@ -155,7 +155,7 @@ const Branches = () => {
     const fetchBranches = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/public/branch`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/branch`);
         if (response.data.success) {
           setBranches(response.data.data);
         } else {

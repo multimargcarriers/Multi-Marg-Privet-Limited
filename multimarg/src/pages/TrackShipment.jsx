@@ -4,7 +4,7 @@ import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, Alert
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
-const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
+const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
 const getStatusIcon = (status) => {
   switch (status) {

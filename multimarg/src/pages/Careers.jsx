@@ -42,7 +42,7 @@ const ApplyModal = ({ isOpen, onClose, job }) => {
       data.append('jobTitle', job?.title || 'General Application');
       if (resume) data.append('resume', resume);
 
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/applications`, data, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/public/applications`, data, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -284,7 +284,7 @@ const Careers = () => {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/public/cms/careers`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/cms/careers`);
         if (res.data.success) {
           setJobs(res.data.data);
         }

@@ -35,6 +35,11 @@ const formatDataStringsToLowercase = (data) => {
 };
 
 axios.interceptors.request.use((config) => {
+  // Dynamically rewrite localhost to production VITE_API_URL if defined
+  if (config.url && config.url.includes("http://localhost:5000") && import.meta.env.VITE_API_URL) {
+    config.url = config.url.replace("http://localhost:5000", import.meta.env.VITE_API_URL);
+  }
+
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
