@@ -78,6 +78,9 @@ app.use(
       "https://publicmultimarg.vercel.app",
       "https://multimargcarriers.co.in",
       "https://www.multimargcarriers.co.in",
+      "https://multimarg.com",
+      "https://www.multimarg.com",
+      "https://app.multimarg.com",
       process.env.FRONTEND_ORIGIN,
       process.env.PUBLIC_FRONTEND_ORIGIN
     ].filter(Boolean),

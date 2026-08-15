@@ -429,7 +429,7 @@ const PrintLR = () => {
             <div style={{ width: "90px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <div style={{ padding: "3px", background: "white", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center", width: "auto", height: "auto" }}>
                 <QRCodeCanvas 
-                  value={`https://multimarg.vercel.app/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`} 
+                  value={`https://multimarg.com/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`} 
                   size={48} 
                   style={{ display: "block" }} 
                 />
