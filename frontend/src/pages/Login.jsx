@@ -54,22 +54,25 @@ const Login = () => {
     return () => clearInterval(interval);
   }, [resendTimer, view]);
   
-  const { login, user } = useContext(AuthContext);
+  const { login, user, loading: authLoading } = useContext(AuthContext);
   
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimargcarriers.co.in';
       const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
       
-      if (hasDashboard) {
-        navigate('/dashboard');
-      } else if (user.role === 'Client' || user.role === 'Vendor') {
-        navigate('/trips');
-      } else {
-        navigate('/profile');
-      }
+      const target = hasDashboard ? '/dashboard' : (user.role === 'Client' || user.role === 'Vendor' ? '/trips' : '/profile');
+      navigate(target, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  if (authLoading || user) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+      </div>
+    );
+  }
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
