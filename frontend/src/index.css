@@ -2049,8 +2049,16 @@ html, body {
 }
 
 /* Ensure action button groups in tables don't wrap */
-.table-responsive td div,
-.table-container td div {
+.table-responsive td.actions-cell div,
+.table-container td.actions-cell div,
+.table-responsive td.actions div,
+.table-container td.actions div,
+.table-responsive td .actions div,
+.table-container td .actions div,
+.table-responsive td .action-buttons,
+.table-container td .action-buttons,
+.table-responsive td .table-actions,
+.table-container td .table-actions {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
