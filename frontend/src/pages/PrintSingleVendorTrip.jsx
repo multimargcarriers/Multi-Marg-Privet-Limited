@@ -14,9 +14,10 @@ const PrintSingleTrip = () => {
   const { user } = useContext(AuthContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const [signName, setSignName] = useState(user?.name || "Admin");
-  const [scale, setScale] = useState(1);
-  const [trip, setTrip] = useState(null);
-  const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const handleBack = () => {
+    window.close();
+    navigate("/trips");
+  };
 
   useEffect(() => {
     if (index === 'mis-print') {
@@ -61,7 +62,7 @@ const PrintSingleTrip = () => {
     clone.style.zIndex = "-9999";
     clone.style.width = "1400px";
     clone.style.height = "990px";
-    
+
     const wrapper = document.createElement("div");
     wrapper.className = "print-wrapper";
     wrapper.style.position = "fixed";
@@ -82,7 +83,7 @@ const PrintSingleTrip = () => {
         html2canvas: { scale: 2, useCORS: true, width: 1400, height: 990, windowWidth: 1400, scrollY: 0, scrollX: 0 },
         jsPDF: { unit: 'px', format: [1400, 990], orientation: 'landscape' }
       };
-      
+
       html2pdf().set(opt).from(clone).save().then(() => {
         document.body.removeChild(wrapper);
       }).catch(err => {
@@ -92,7 +93,7 @@ const PrintSingleTrip = () => {
     }, 300);
   };
 
-  if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={() => navigate(-1)}>Go Back</button></div>;
+  if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={handleBack}>Go Back</button></div>;
 
   const grandTotal = parseFloat(trip?.totalAmount || 0);
   const totalDetailsAmount = (trip?.details || []).reduce((s, p) => s + (parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0), 0);
@@ -113,27 +114,46 @@ const PrintSingleTrip = () => {
           .print-container { position: absolute; left: 0; top: 0; width: 1400px !important; max-width: 1400px !important; min-width: 1400px !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
           .no-print { display: none !important; }
           .manifest-table th, .manifest-table td { border-color: #cbd5e1 !important; color: #0f172a !important; }
-          .section-header { background-color: #1e293b !important; color: white !important; }
-          .gray-cell { background-color: #f1f5f9 !important; }
+          .section-header { 
+             background-color: transparent !important;
+             color: #1e293b !important;
+             border-bottom: 1.5px solid #cbd5e1 !important;
+             padding-left: 2px !important;
+             padding-bottom: 2px !important;
+          }
+          .gray-cell { background-color: #f8fafc !important; color: #0f172a !important; font-weight: 700 !important; }
           .premium-border { border-color: #1e293b !important; }
         }
         .manifest-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center; }
         .manifest-table th, .manifest-table td { border: 1px solid #cbd5e1; padding: 4px 8px; color: #0f172a; text-align: center; }
-        .gray-cell { background-color: #f8fafc; color: #475569; font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; text-align: center; }
+        .gray-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; text-align: center; }
         .data-cell { font-weight: 600; color: #0f172a; font-size: 0.75rem; text-align: center; }
-        .section-header { background-color: #1e293b; color: #ffffff; padding: 6px 15px; font-weight: 600; font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; margin-top: 8px; }
+        .section-header {
+          background-color: transparent;
+          color: #1e293b;
+          padding: 6px 2px 4px;
+          font-weight: 700;
+          font-size: 0.9rem;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          display: flex;
+          align-items: center;
+          border-bottom: 1.5px solid #cbd5e1;
+          margin-top: 8px;
+          margin-bottom: 4px;
+        }
         .blue-text { color: #1e3a8a; }
         .premium-border { border: 2px solid #1e293b; }
       `}</style>
 
       <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
+        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={handleBack}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
         <div className="top-actions-container">
           {isSuperAdmin && (
-            <select 
-              className="form-control" 
+            <select
+              className="form-control"
               style={{ border: "1px solid #cbd5e1", height: "35px", fontSize: "0.85rem", width: "170px", padding: "0 5px", background: "white", borderRadius: "6px", outline: "none" }}
               value={printHeader}
               onChange={e => setPrintHeader(e.target.value)}
@@ -142,22 +162,22 @@ const PrintSingleTrip = () => {
               <option value="PRIME">Header: Prime Roadways</option>
             </select>
           )}
-          <input 
-            type="text" 
-            value={signName} 
-            onChange={(e) => setSignName(e.target.value)} 
+          <input
+            type="text"
+            value={signName}
+            onChange={(e) => setSignName(e.target.value)}
             disabled={user?.role !== 'Admin' && user?.role !== 'SuperAdmin'}
-            placeholder="Sign Name" 
-            style={{ 
-              padding: "8px 12px", 
-              border: "1px solid #cbd5e1", 
-              borderRadius: "6px", 
-              fontSize: "0.85rem", 
-              width: "160px", 
+            placeholder="Sign Name"
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+              width: "160px",
               outline: "none",
               background: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "#ffffff" : "#f1f5f9",
               cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
-            }} 
+            }}
           />
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
             <Download size={18} className="mr-2" /> Download Trip Receipt
@@ -167,18 +187,18 @@ const PrintSingleTrip = () => {
 
       <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
         <div style={{ width: `${1400 * scale}px`, height: `${990 * scale}px`, position: "relative", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
-          <div id="single-trip-content" className="print-container" style={{ 
+          <div id="single-trip-content" className="print-container" style={{
             width: "1400px", height: "990px", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
             <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
-              
+
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                 <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
+                <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
               </div>
-      
+
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
-                
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 2rem", borderBottom: "2px solid #1e293b" }}>
                   {printHeader === "PRIME" ? (
                     <>
@@ -229,92 +249,92 @@ const PrintSingleTrip = () => {
                 </div>
 
                 <div style={{ flex: 1, padding: "6px 20px" }}>
-                    
-                    <div className="section-header">1. Vendor & Info</div>
-                    <table className="manifest-table">
-                        <tbody>
-                            <tr>
-                                <td className="gray-cell" style={{ width: "12%" }}>VENDOR MIS ID</td>
-                                <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>{(trip.id || trip.tripNo || "-")}</td>
-                                <td className="gray-cell" style={{ width: "12%" }}>DATE</td>
-                                <td className="data-cell" style={{ width: "21%" }}>{trip.createdAt ? formatDate(trip.createdAt) : (trip.date ? formatDate(trip.date) : "-")}</td>
-                                <td className="gray-cell" style={{ width: "13%" }}>VENDOR NAME</td>
-                                <td className="data-cell" style={{ width: "21%", color: "#1e3a8a", fontSize: "0.85rem" }}>{(trip.vendorName || trip.clientName || "-").toUpperCase()}</td>
-                            </tr>
-                            <tr>
-                                <td className="gray-cell">STATUS</td>
-                                <td className="data-cell" style={{ fontWeight: "700" }}>{(trip.approvalStatus || trip.status || "-").toUpperCase()}</td>
-                                <td className="gray-cell"></td>
-                                <td className="data-cell"></td>
-                                <td className="gray-cell"></td>
-                                <td className="data-cell"></td>
-                            </tr>
-                        </tbody>
-                    </table>
 
-                    <div className="section-header">2. Vendor Trip Details</div>
-                    <table className="manifest-table" style={{ fontSize: "0.7rem", width: "100%" }}>
-                        <thead>
-                            <tr className="gray-cell" style={{ fontSize: "0.7rem" }}>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>DATE</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>VEHICLE NO</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>FROM</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>TO</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>HANDOVER TO</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>PARTICULAR</th>
-                                <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>MODE</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>AMOUNT</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>OTHERS</th>
-                                <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {trip.details && trip.details.length > 0 ? (
-                                trip.details.map((p, i) => (
-                                    <tr key={i}>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.from || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.to || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.handoverTo || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.particular || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px", whiteSpace: "nowrap" }}>
-                                            {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="10" style={{ textAlign: "center", padding: "10px" }} className="data-cell">No details available.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                        <tfoot>
-                            <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.7rem" }}>
-                                <td colSpan="7" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL:</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s,p)=>s+(parseFloat(p.amount)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s,p)=>s+(parseFloat(p.others)||0),0).toFixed(2)}</td>
-                                <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", color: "#10b981", padding: "6px 4px", whiteSpace: "nowrap" }}>
-                                    Rs. {totalDetailsAmount.toFixed(2)}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                  <div className="section-header">1. Vendor & Info</div>
+                  <table className="manifest-table">
+                    <tbody>
+                      <tr>
+                        <td className="gray-cell" style={{ width: "12%" }}>VENDOR MIS ID</td>
+                        <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>{(trip.id || trip.tripNo || "-")}</td>
+                        <td className="gray-cell" style={{ width: "12%" }}>DATE</td>
+                        <td className="data-cell" style={{ width: "21%" }}>{trip.createdAt ? formatDate(trip.createdAt) : (trip.date ? formatDate(trip.date) : "-")}</td>
+                        <td className="gray-cell" style={{ width: "13%" }}>VENDOR NAME</td>
+                        <td className="data-cell" style={{ width: "21%", color: "#1e3a8a", fontSize: "0.85rem" }}>{(trip.vendorName || trip.clientName || "-").toUpperCase()}</td>
+                      </tr>
+                      <tr>
+                        <td className="gray-cell">STATUS</td>
+                        <td className="data-cell" style={{ fontWeight: "700" }}>{(trip.approvalStatus || trip.status || "-").toUpperCase()}</td>
+                        <td className="gray-cell"></td>
+                        <td className="data-cell"></td>
+                        <td className="gray-cell"></td>
+                        <td className="data-cell"></td>
+                      </tr>
+                    </tbody>
+                  </table>
 
-                    <div className="section-header">3. Payment Summary</div>
-                    <table className="manifest-table">
-                        <tbody>
-                            <tr>
-                                <td className="gray-cell" style={{ width: "50%" }}>VENDOR GRAND TOTAL</td>
-                                <td className="data-cell" style={{ width: "50%", color: "#10b981", fontSize: "1.1rem" }}>
-                                    Rs. {displayTotal.toFixed(2)}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                  <div className="section-header">2. Vendor Trip Details</div>
+                  <table className="manifest-table" style={{ fontSize: "0.7rem", width: "100%" }}>
+                    <thead>
+                      <tr className="gray-cell" style={{ fontSize: "0.7rem" }}>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>DATE</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>VEHICLE NO</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>FROM</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>TO</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>HANDOVER TO</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>PARTICULAR</th>
+                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>MODE</th>
+                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>AMOUNT</th>
+                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>OTHERS</th>
+                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trip.details && trip.details.length > 0 ? (
+                        trip.details.map((p, i) => (
+                          <tr key={i}>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.from || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.to || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.handoverTo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.particular || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px", whiteSpace: "nowrap" }}>
+                              {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="10" style={{ textAlign: "center", padding: "10px" }} className="data-cell">No details available.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot>
+                      <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.7rem" }}>
+                        <td colSpan="7" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL:</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0).toFixed(2)}</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.others) || 0), 0).toFixed(2)}</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", color: "#10b981", padding: "6px 4px", whiteSpace: "nowrap" }}>
+                          Rs. {totalDetailsAmount.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+
+                  <div className="section-header">3. Payment Summary</div>
+                  <table className="manifest-table">
+                    <tbody>
+                      <tr>
+                        <td className="gray-cell" style={{ width: "50%" }}>VENDOR GRAND TOTAL</td>
+                        <td className="data-cell" style={{ width: "50%", color: "#10b981", fontSize: "1.1rem" }}>
+                          Rs. {displayTotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
                 </div>
 
@@ -330,7 +350,7 @@ const PrintSingleTrip = () => {
                       CLIENT / RECEIVER SIGNATURE
                     </div>
                   </div>
-                  
+
                   <div style={{ textAlign: "center", width: "250px" }}>
                     {(user?.role === 'Admin' || user?.role === 'SuperAdmin') ? (
                       <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "2rem", color: "#0f172a", height: "40px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "5px" }}>
@@ -347,7 +367,7 @@ const PrintSingleTrip = () => {
                     </div>
                   </div>
                 </div>
-                
+
               </div>
             </div>
           </div>

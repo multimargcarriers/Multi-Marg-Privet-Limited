@@ -44,7 +44,19 @@ exports.postRoot_2 = async (req, res) => {
   }
 
   if (!payload.tripNo || payload.tripNo.trim() === '') {
-    payload.tripNo = await getNextSequence('TRP');
+    const snapshot = await db.collection("vendor_mis").get();
+    let maxNum = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const tripNo = data.tripNo || '';
+      const match = tripNo.match(/^((VEH|VEN)-)?(\d+)(-(VEH|VEN))?$/);
+      if (match) {
+        const num = parseInt(match[3], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    const nextNum = maxNum + 1;
+    payload.tripNo = `VEN-${String(nextNum).padStart(4, '0')}`;
   }
 
   const docRef = await db.collection("vendor_mis").add(payload);

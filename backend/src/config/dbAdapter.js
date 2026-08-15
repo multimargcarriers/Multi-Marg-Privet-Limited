@@ -243,6 +243,58 @@ class FirestoreToMongoAdapter {
     return new CollectionReference(this.mongoDb, colName);
   }
 
+  async runTransaction(fn) {
+    const mongoDb = this.mongoDb;
+    const writes = [];
+    const transaction = {
+      get: async (docRef) => {
+        const doc = await mongoDb.collection(docRef.colName).findOne({
+          $or: [{ _id: docRef.id }, { id: docRef.id }]
+        });
+        if (doc) {
+          const data = { ...doc };
+          delete data._id;
+          return { exists: true, data: () => data };
+        } else {
+          return { exists: false, data: () => null };
+        }
+      },
+      update: (docRef, data) => {
+        writes.push({ type: 'update', docRef, data });
+      },
+      set: (docRef, data, options = {}) => {
+        writes.push({ type: 'set', docRef, data, options });
+      }
+    };
+    const result = await fn(transaction);
+    for (const op of writes) {
+      const colName = op.docRef.colName;
+      const id = op.docRef.id;
+      if (op.type === 'update') {
+        await mongoDb.collection(colName).updateOne(
+          { $or: [{ _id: id }, { id: id }] },
+          { $set: op.data }
+        );
+      } else if (op.type === 'set') {
+        if (op.options.merge) {
+          await mongoDb.collection(colName).updateOne(
+            { $or: [{ _id: id }, { id: id }] },
+            { $set: op.data },
+            { upsert: true }
+          );
+        } else {
+          const docData = { ...op.data, id, _id: id };
+          await mongoDb.collection(colName).replaceOne(
+            { $or: [{ _id: id }, { id: id }] },
+            docData,
+            { upsert: true }
+          );
+        }
+      }
+    }
+    return result;
+  }
+
   batch() {
     const mongoDb = this.mongoDb;
     return {

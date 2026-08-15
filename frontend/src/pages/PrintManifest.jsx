@@ -18,7 +18,10 @@ const PrintManifest = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
   const [signName, setSignName] = useState(user?.name || "Admin");
-  const [scale, setScale] = useState(1);
+  const handleBack = () => {
+    window.close();
+    navigate("/trips");
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -70,7 +73,7 @@ const PrintManifest = () => {
   }, [trip, location]);
 
   if (loading) return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>Loading Manifest...</div>;
-  if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={() => navigate("/trips")}>Go Back</button></div>;
+  if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={handleBack}>Go Back</button></div>;
 
   const handleDownloadPDF = () => {
     window.scrollTo(0, 0);
@@ -83,7 +86,7 @@ const PrintManifest = () => {
     clone.style.zIndex = "-9999";
     clone.style.width = "800px";
     clone.style.height = "1131px";
-    
+
     const wrapper = document.createElement("div");
     wrapper.className = "print-wrapper";
     wrapper.style.position = "fixed";
@@ -106,7 +109,7 @@ const PrintManifest = () => {
         html2canvas: { scale: 2, useCORS: true, width: 800, height: 1131, windowWidth: 800, scrollY: 0, scrollX: 0 },
         jsPDF: { unit: 'px', format: [800, 1131], orientation: 'portrait' }
       };
-      
+
       html2pdf().set(opt).from(clone).save().then(() => {
         document.body.removeChild(wrapper);
       }).catch(err => {
@@ -134,41 +137,59 @@ const PrintManifest = () => {
           .print-container { position: absolute; left: 0; top: 0; width: 800px !important; max-width: 800px !important; min-width: 800px !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
           .no-print { display: none !important; }
           .manifest-table th, .manifest-table td { border-color: #cbd5e1 !important; color: #0f172a !important; }
-          .section-header { background-color: #1e293b !important; color: white !important; }
-          .gray-cell { background-color: #f1f5f9 !important; }
+          .section-header { 
+             background-color: transparent !important;
+             color: #1e293b !important;
+             border-bottom: 1.5px solid #cbd5e1 !important;
+             padding-left: 2px !important;
+             padding-bottom: 2px !important;
+          }
+          .gray-cell { background-color: #f8fafc !important; color: #0f172a !important; font-weight: 700 !important; }
           .premium-border { border-color: #1e293b !important; }
         }
         .manifest-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
         .manifest-table th, .manifest-table td { border: 1px solid #cbd5e1; padding: 4px 8px; color: #0f172a; }
-        .gray-cell { background-color: #f8fafc; color: #475569; font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
+        .gray-cell { background-color: #f8fafc; color: #0f172a; font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
         .data-cell { font-weight: 600; color: #0f172a; font-size: 0.8rem; }
-        .section-header { background-color: #1e293b; color: #ffffff; padding: 4px 10px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; }
+        .section-header {
+          background-color: transparent;
+          color: #1e293b;
+          padding: 4px 2px 4px;
+          font-weight: 700;
+          font-size: 0.8rem;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          display: flex;
+          align-items: center;
+          border-bottom: 1.5px solid #cbd5e1;
+          margin-bottom: 4px;
+        }
         .manifest-section { margin-bottom: 0px; }
         .blue-text { color: #1e3a8a; }
         .premium-border { border: 2px solid #1e293b; }
       `}</style>
 
       <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
+        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={handleBack}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
         <div className="top-actions-container">
-          <input 
-            type="text" 
-            value={signName} 
-            onChange={(e) => setSignName(e.target.value)} 
+          <input
+            type="text"
+            value={signName}
+            onChange={(e) => setSignName(e.target.value)}
             disabled={user?.role !== 'Admin' && user?.role !== 'SuperAdmin'}
-            placeholder="Sign Name" 
-            style={{ 
-              padding: "8px 12px", 
-              border: "1px solid #cbd5e1", 
-              borderRadius: "6px", 
-              fontSize: "0.85rem", 
-              width: "160px", 
+            placeholder="Sign Name"
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+              width: "160px",
               outline: "none",
               background: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "#ffffff" : "#f1f5f9",
               cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
-            }} 
+            }}
           />
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
             <Download size={18} className="mr-2" /> Download PDF Manifest
@@ -178,18 +199,18 @@ const PrintManifest = () => {
 
       <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
         <div style={{ width: `${800 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
-          <div id="manifest-content" className="print-container" style={{ 
+          <div id="manifest-content" className="print-container" style={{
             width: "800px", height: "1131px", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
             <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
-              
+
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
+                <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
               </div>
-      
+
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
-                
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.5rem", borderBottom: "2px solid #1e293b" }}>
                   <div style={{ width: "120px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
                   <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
@@ -319,7 +340,7 @@ const PrintManifest = () => {
                       AUTHORIZED SIGNATURE
                     </div>
                   </div>
-                  
+
                   <div style={{ textAlign: "center", width: "200px" }}>
                     <div style={{ height: "40px", marginBottom: "5px" }}></div>
                     <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.75rem", fontWeight: "600", color: "#475569" }}>
@@ -327,7 +348,7 @@ const PrintManifest = () => {
                     </div>
                   </div>
                 </div>
-                
+
               </div>
             </div>
           </div>
