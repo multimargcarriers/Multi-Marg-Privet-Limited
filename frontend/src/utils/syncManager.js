@@ -115,11 +115,8 @@ class SyncManager {
     window.dispatchEvent(new CustomEvent('sync-completed'));
     
     if (syncedAny && remainingQueue.length === 0) {
-      // Force a full UI reload so the freshly synced backend items are pulled correctly 
-      // with their actual server IDs and correct 'newest first' sorting.
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Dispatch event for components to refresh data smoothly without full page reloads
+      window.dispatchEvent(new CustomEvent('sync-refresh-data'));
     }
   }
 }

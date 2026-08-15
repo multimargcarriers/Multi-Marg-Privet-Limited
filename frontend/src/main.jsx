@@ -344,8 +344,11 @@ appDB.preload().finally(() => {
   );
 });
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   import('virtual:pwa-register').then(({ registerSW }) => {
-    registerSW({ immediate: true })
-  }).catch(() => {})
+    registerSW({
+      onNeedRefresh() {},
+      onOfflineReady() {},
+    });
+  }).catch(() => {});
 }

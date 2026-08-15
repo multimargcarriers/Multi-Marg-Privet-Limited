@@ -6,8 +6,12 @@ import App from './App.jsx'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
-// Register the service worker for offline support and asset caching
-registerSW({ immediate: true })
+if (import.meta.env.PROD) {
+  registerSW({
+    onNeedRefresh() {},
+    onOfflineReady() {},
+  })
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
