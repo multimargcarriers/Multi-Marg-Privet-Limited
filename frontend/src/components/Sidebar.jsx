@@ -216,7 +216,7 @@ export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
     });
 };
 
-const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
+const Sidebar = ({ isOpen, setIsSidebarOpen, isMobile }) => {
   const { hasPermission, logout, user } = useContext(AuthContext);
   const { unreadCounts } = useContext(BadgeContext);
   const { globalSettings } = useContext(SettingsContext);
@@ -224,7 +224,8 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
   const [hoveredPopover, setHoveredPopover] = useState(null);
   const location = useLocation();
 
-  const isExpanded = isOpen || isHovered;
+  const effectiveIsMobile = isMobile !== undefined ? isMobile : (typeof window !== 'undefined' && window.innerWidth <= 1024);
+  const isExpanded = effectiveIsMobile ? isOpen : (isOpen || isHovered);
 
   // Track accordion open/closed state for sections
   const [openSections, setOpenSections] = useState(() => {
@@ -315,11 +316,13 @@ const Sidebar = ({ isOpen, setIsSidebarOpen }) => {
 
   return (
     <div 
-      className={`sidebar ${isExpanded ? 'open' : 'closed'}`}
-      onMouseEnter={() => setIsHovered(true)}
+      className={`sidebar ${isExpanded ? 'open' : 'closed'} ${effectiveIsMobile ? (isOpen ? 'mobile-open' : 'mobile-closed') : ''}`}
+      onMouseEnter={() => !effectiveIsMobile && setIsHovered(true)}
       onMouseLeave={() => {
-        setIsHovered(false);
-        setHoveredPopover(null);
+        if (!effectiveIsMobile) {
+          setIsHovered(false);
+          setHoveredPopover(null);
+        }
       }}
       style={{ overflowX: 'visible' }}
     >

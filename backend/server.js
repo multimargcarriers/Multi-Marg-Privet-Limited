@@ -419,13 +419,10 @@ async function initializeServices() {
   }
 }
 
-const migrateTrips = require("./src/utils/migrateTrips");
-
 async function startServer() {
   await initializeServices();
   initAnalyticsCron();
   initCloudinaryCleanupCron();
-  await migrateTrips();
 
   const server = app.listen(PORT, () => {
     // Initialize Socket.IO

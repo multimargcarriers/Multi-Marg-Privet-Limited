@@ -1516,6 +1516,24 @@ html, body {
 /* PREMIUM GLOBAL RESPONSIVE OVERRIDES                       */
 /* ========================================================= */
 
+/* Sidebar Mobile Backdrop Overlay */
+.sidebar-backdrop {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 180;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media screen and (max-width: 1024px) {
   /* Tables on tablets - enable momentum scrolling and hide overflow */
   .table-container, .table-responsive {
@@ -1533,7 +1551,47 @@ html, body {
   /* Grid layout overrides for tablet */
   .page-content div[style*="display: grid"],
   .page-content div[style*="display:grid"] {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* Sidebar Drawer on Mobile & Tablet */
+  .sidebar {
+    position: fixed !important;
+    top: var(--topbar-height) !important;
+    left: 0 !important;
+    height: calc(100vh - var(--topbar-height)) !important;
+    width: var(--sidebar-width) !important;
+    z-index: 190 !important;
+    transform: translateX(-100%) !important;
+    transition: transform var(--transition) !important;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.15) !important;
+  }
+  .sidebar.mobile-open,
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+  .sidebar.mobile-closed,
+  .sidebar.closed {
+    transform: translateX(-100%) !important;
+  }
+
+  /* Hide Right Sidebar on Tablet & Mobile */
+  .right-sidebar {
+    display: none !important;
+  }
+  
+  /* Reset Main Content Margins so Sidebar overlays instead of pushing layout */
+  .main-content,
+  .main-content.sidebar-open,
+  .main-content.sidebar-closed,
+  .main-content.no-sidebar {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  .page-content {
+    padding: 1.25rem !important;
   }
 }
 
@@ -1576,13 +1634,6 @@ html, body {
     font-size: 14px !important;
   }
 
-  /* Grid layout overrides for mobile */
-  .page-content div[style*="display: grid"],
-  .page-content div[style*="display:grid"] {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-  }
-
   /* Typographic scaling for mobile */
   h1, h2, h3 {
     font-size: clamp(1.2rem, 4vw, 1.8rem) !important;
@@ -1605,36 +1656,16 @@ html, body {
     margin: 0.5rem auto !important;
   }
   
-  /* Mobile inputs typography and spacing - DO NOT FORCE PADDING OR IT BREAKS ICONS */
+  /* Mobile inputs typography and spacing */
   input.form-control, select.form-control, textarea.form-control,
   input[type="text"], input[type="number"] {
     font-size: 16px !important; /* Prevents iOS Safari from auto-zooming */
   }
 
-  /* Force buttons inside forms to take full width */
+  /* Force buttons inside forms to take full width on mobile screens */
   form .btn, .modal-container .btn {
     width: 100%;
     margin-top: 0.5rem;
-  }
-  /* Sidebar Mobile Overlay */
-  .sidebar {
-    transform: translateX(-100%);
-    width: 260px !important; /* full width drawer */
-    box-shadow: 10px 0 30px rgba(0,0,0,0.1);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .sidebar.closed {
-    transform: translateX(-100%);
-  }
-  
-  /* Reset Main Content Margins so Sidebar overlays instead of pushes */
-  .main-content.sidebar-open,
-  .main-content.sidebar-closed,
-  .main-content.no-sidebar {
-    margin-left: 0 !important;
-    width: 100% !important;
   }
 }
 

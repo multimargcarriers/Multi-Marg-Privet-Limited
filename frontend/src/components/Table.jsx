@@ -72,7 +72,7 @@ const Table = ({ headers, data, renderRow, loading = false, pagination = false, 
           </div>
         </div>
       )}
-      <div className="table-container" style={{ border: "1px solid #f1f5f9", borderRadius: "8px", overflowX: "auto" }}>
+      <div className="table-container" style={{ border: "1px solid var(--border-color, #f1f5f9)", borderRadius: "8px", overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%" }}>
         <table className="table" style={{ width: "100%", minWidth, borderCollapse: "collapse" }}>
           <thead style={{ backgroundColor: "#f8fafc" }}>
             <tr>
