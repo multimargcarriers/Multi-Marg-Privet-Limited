@@ -31,7 +31,7 @@ const BookingsList = () => {
   const [bookings, setBookings] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  
+
   // POD modal state & lookup map
   const [podModalOpen, setPodModalOpen] = useState(false);
   const [selectedBookingForPod, setSelectedBookingForPod] = useState(null);
@@ -49,8 +49,8 @@ const BookingsList = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => { 
-    fetchAllData(); 
+  useEffect(() => {
+    fetchAllData();
     clearBadge("bookings");
   }, []);
 
@@ -63,9 +63,9 @@ const BookingsList = () => {
         axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/box`).catch(() => ({ data: { data: [] } })),
         axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/tracking`).catch(() => ({ data: { data: [] } }))
       ]);
-      
+
       if (bookingsRes.data.success) setBookings(bookingsRes.data.data || []);
-      
+
       // Build POD map
       if (podRes.data.success && Array.isArray(podRes.data.data)) {
         const map = {};
@@ -75,7 +75,7 @@ const BookingsList = () => {
         });
         setPodMap(map);
       }
-      
+
       // Build Box map
       if (boxRes.data.success && Array.isArray(boxRes.data.data)) {
         const map = {};
@@ -85,11 +85,11 @@ const BookingsList = () => {
         });
         setBoxMap(map);
       }
-      
+
       // Build Tracking map
       if (trackingRes.data.success && Array.isArray(trackingRes.data.data)) {
         const map = {};
-        const sorted = trackingRes.data.data.sort((a,b) => new Date(a.date) - new Date(b.date));
+        const sorted = trackingRes.data.data.sort((a, b) => new Date(a.date) - new Date(b.date));
         sorted.forEach(t => {
           if (t.awb) map[String(t.awb).trim().toLowerCase()] = t.status;
         });
@@ -112,7 +112,7 @@ const BookingsList = () => {
       cancelText: "Cancel"
     });
     if (!isConfirmed) return;
-    
+
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/${id}`);
       fetchAllData();
@@ -128,11 +128,39 @@ const BookingsList = () => {
       requireInput: "confirm"
     });
     if (!isConfirmed) return;
-    
+
     try {
       await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/clear/all`);
       fetchAllData();
     } catch (err) { console.error("Clear all bookings error", err); }
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+  const handleExportBookings = async () => {
+    try {
+      setIsExporting(true);
+      let exportUrl = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/csv/export/bookings`;
+      if (search) exportUrl += `?search=${encodeURIComponent(search)}`;
+      
+      const response = await axios.get(exportUrl, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bookings_export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      addToast("Export successful", "success");
+    } catch (err) {
+      console.error("Export failed:", err);
+      addToast("Failed to export data", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const displayBookings = useMemo(() => {
@@ -172,69 +200,80 @@ const BookingsList = () => {
 
   return (
     <div className="bookings-page-wrapper">
-      <div className="header-flex booking-header-flex">
-        <div>
-          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: '#1e293b' }}>ALL Bookings (LR)</h3>
-          <p className="text-muted">View bookings alongside their nested LR details in a grouped format.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', marginBottom: '1.5rem', gap: '1rem' }}>
+        {/* Left Side: Title / Refresh Button */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button 
+            className="page-header-btn page-header-btn-primary" 
+            onClick={fetchAllData}
+            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', fontWeight: 800, letterSpacing: '1px' }}
+          >
+            ALL&nbsp;&nbsp;&nbsp;AWB&nbsp;&nbsp;&nbsp;BOOKING
+          </button>
         </div>
-        <div className="page-header-actions">
-            <div className="booking-csv-manager-card">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking & LR CSV Manager</span>
-                <CsvImportExport moduleName="bookings" onImportSuccess={fetchAllData} searchQuery={search} />
-              </div>
-            </div>
-            {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
-              <button className="page-header-btn" style={{ color: "#dc2626", borderColor: "#fecaca" }} onClick={handleClearAll} title="Clear All Bookings">
-                <Trash2 size={14} /> Clear
-              </button>
-            )}
-            {(hasPermission("create_booking") || isSuperAdmin) && (
-              <button className="page-header-btn page-header-btn-primary" onClick={() => navigate("/bookings/create")}>
-                + New Booking
-              </button>
-            )}
+        
+        {/* Center Side: Main Action */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          {(hasPermission("create_booking") || isSuperAdmin) && (
+            <button 
+              className="page-header-btn page-header-btn-primary" 
+              onClick={() => navigate("/bookings/create")}
+              style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+            >
+              + New Booking
+            </button>
+          )}
+        </div>
+
+        {/* Right Side: Tools */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            className="page-header-btn page-header-btn-primary" 
+            onClick={handleExportBookings}
+            disabled={isExporting}
+            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+          >
+            {isExporting ? "EXPORTING..." : "EXPORT CSV"}
+          </button>
+          
+          {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
+            <button 
+              className="page-header-btn" 
+              style={{ color: "#dc2626", borderColor: "#fecaca", height: '42px', width: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }} 
+              onClick={handleClearAll} 
+              title="Clear All Bookings"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
 
-      <StatsPanel stats={[
-        { label: "Total Bookings", value: filtered.length, color: "blue", icon: Package },
-        { label: "Total Freight Value", value: "₹" + filtered.reduce((sum, b) => sum + parseFloat(b.freight_charge || b.freight || b.frieght || b.weight || 0), 0).toFixed(2), color: "green", icon: IndianRupee },
-        { label: "With LR Details", value: filtered.filter(b => (b.invoiceDetails && b.invoiceDetails.length > 0) || (b.parcels && b.parcels.length > 0)).length, color: "purple", icon: FileCheck },
-        { label: "Total Quantity (Pkgs)", value: filtered.reduce((sum, b) => {
-            const parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
-            return sum + parcels.reduce((pSum, p) => pSum + (parseInt(p.quantity, 10) || 0), 0);
-          }, 0), color: "orange", icon: Box },
-        { label: "E-way Bills Attached", value: filtered.reduce((sum, b) => {
-            const parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
-            return sum + parcels.filter(p => p.eway || p.ewayBill).length;
-          }, 0), color: "red", icon: FileText }
-      ]} />
       <div className="premium-filter-toolbar">
         <div className="premium-filter-grid">
-          
+
           <div className="premium-search-wrapper">
             <div className="premium-search-icon">
               <Search size={18} />
             </div>
-            <input 
+            <input
               className="premium-search-input"
-              placeholder="Search by client, LR no, origin, destination..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
+              placeholder="Search by client, LR no, origin, destination..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          <SortDropdown 
-            value={sortOption} 
-            onChange={setSortOption} 
-            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+          <SortDropdown
+            value={sortOption}
+            onChange={setSortOption}
+            options={["newest", "oldest", "amount_desc", "amount_asc", "az", "za"]}
           />
 
           <div className="premium-filter-group">
             <span className="premium-filter-label">Show</span>
-            <select 
-              value={entriesPerPage} 
+            <select
+              value={entriesPerPage}
               onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
               className="premium-filter-input"
               style={{ cursor: "pointer", width: "50px" }}
@@ -261,8 +300,8 @@ const BookingsList = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {currentEntries.map((item, index) => {
-            const displayParcels = item.invoiceDetails && item.invoiceDetails.length > 0 
-              ? item.invoiceDetails.filter(inv => inv.invoiceNo || inv.partNumber || inv.ewayBill || inv.invoiceValue) 
+            const displayParcels = item.invoiceDetails && item.invoiceDetails.length > 0
+              ? item.invoiceDetails.filter(inv => inv.invoiceNo || inv.partNumber || inv.ewayBill || inv.invoiceValue)
               : (item.parcels || []);
             const hasParcels = displayParcels.length > 0;
             const awb = item.awb || item.consignment || item.lrNo || item.id?.slice(-6);
@@ -270,7 +309,7 @@ const BookingsList = () => {
             const hasPodEntry = podMap[item.awb || item.lrNo || item.id];
             return (
               <div key={item.id || index} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: item.isOfflinePending ? "2px dashed #f59e0b" : undefined }}>
-                
+
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
                   <div className="booking-card-header-left">
@@ -281,10 +320,10 @@ const BookingsList = () => {
                       )}
                     </h4>
                     <div className="booking-meta-row">
-                      <span className="booking-meta-badge booking-meta-awb">AWB: {awb}</span>
+                      <span className="booking-meta-badge">AWB: {awb}</span>
                       <span className="booking-meta-badge">{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</span>
                       <span className="booking-meta-badge">{(item.origin || "-")} → {(item.destination || "-")}</span>
-                      {item.mode && <span className="booking-meta-badge booking-meta-mode">{item.mode}</span>}
+                      {item.mode && <span className="booking-meta-badge">{item.mode}</span>}
                     </div>
                   </div>
                   <div className="booking-card-header-right">
@@ -305,25 +344,25 @@ const BookingsList = () => {
                     <table className="booking-lr-table" style={{ width: '100%', whiteSpace: 'nowrap' }}>
                       <thead>
                         <tr>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INV DATE</th>
                           <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INVOICE</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INV DATE</th>
                           <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>PART</th>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>EWAY</th>
                           <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>QTY</th>
                           <th style={{ padding: '0.75rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>VALUE (₹)</th>
+                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>EWAY</th>
                         </tr>
                       </thead>
                       <tbody>
                         {displayParcels.map((parcel, pIdx) => (
                           <tr key={pIdx}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
                             <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
                             <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.part || parcel.partNumber || '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', color: '#0ea5e9', whiteSpace: 'nowrap' }}>{parcel.eway || parcel.ewayBill || '-'}</td>
                             <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.quantity || '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', color: '#10b981', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
                               {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
                             </td>
+                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.eway || parcel.ewayBill || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -343,14 +382,11 @@ const BookingsList = () => {
                       const awbLower = String(awb).trim().toLowerCase();
                       const isDelivered = trackingMap[awbLower] === 'Delivered';
                       const canModify = (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
-                      
+
                       return (
                         <>
                           {canModify && (
                             <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
-                          )}
-                          {!item.isOfflinePending && (
-                            <button onClick={() => navigate(`/bills?lr=${item.awb || item.lrNo || item.id}`)} className="booking-action-btn" title="View Bills" style={{ color: '#8b5cf6' }}><Eye size={15} /></button>
                           )}
                           {!item.isOfflinePending && (
                             <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
@@ -364,7 +400,7 @@ const BookingsList = () => {
                   </div>
                   {canAccessPod && (
                     <div className="booking-actions-right">
-                      <button 
+                      <button
                         disabled={item.isOfflinePending}
                         onClick={() => {
                           if (hasBox) {
@@ -376,7 +412,7 @@ const BookingsList = () => {
                             setSelectedBookingForBox(item);
                             setBoxModalOpen(true);
                           }
-                        }} 
+                        }}
                         className="booking-pod-btn"
                         style={{ background: hasBox ? '#fef3c7' : '#fefce8', border: `1px solid ${hasBox ? '#fde68a' : '#fef08a'}`, color: hasBox ? '#d97706' : '#ca8a04', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasBox ? "View Box" : "Upload Box"}
@@ -384,19 +420,32 @@ const BookingsList = () => {
                         {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
                         {hasBox ? "BOX" : "+ BOX"}
                       </button>
-                      <button 
+                      <button
                         disabled={item.isOfflinePending}
                         onClick={() => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
-                            fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
-                            navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                            let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || hasPodEntry.fileData || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
+                            // Prevent encoding massive base64 strings in URL parameters which causes 431 errors
+                            if (fileUrl.startsWith('data:')) {
+                              // If it's base64 data, we can store it in sessionStorage and pass a flag, 
+                              // or just let the viewer handle it if it supports data URIs (most do, but URL length might be an issue)
+                              try {
+                                sessionStorage.setItem('tempPodData', fileUrl);
+                                navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
+                              } catch (e) {
+                                // If quota exceeded, fallback to direct url (might break if too large)
+                                navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                              }
+                            } else {
+                              fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                              navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                            }
                           } else {
                             setSelectedBookingForPod(item);
                             setPodModalOpen(true);
                           }
-                        }} 
+                        }}
                         className="booking-pod-btn"
                         style={{ background: hasPodEntry ? '#ecfdf5' : '#e0f2fe', border: `1px solid ${hasPodEntry ? '#a7f3d0' : '#bae6fd'}`, color: hasPodEntry ? '#10b981' : '#0284c7', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasPodEntry ? "View POD" : "Upload POD"}
@@ -421,23 +470,23 @@ const BookingsList = () => {
             Showing <span>{indexOfFirst + 1}</span> to <span>{Math.min(indexOfLast, filtered.length)}</span> of <span>{filtered.length}</span> entries
           </div>
           <div className="booking-pagination-controls">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f8fafc' : '#fff', color: currentPage === 1 ? '#cbd5e1' : '#334155', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
             >
               <ChevronLeft size={16} />
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
               let pageNum;
               if (totalPages <= 5) pageNum = i + 1;
               else if (currentPage <= 3) pageNum = i + 1;
               else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
               else pageNum = currentPage - 2 + i;
-              
+
               return (
-                <button 
+                <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', border: pageNum === currentPage ? 'none' : '1px solid #cbd5e1', background: pageNum === currentPage ? 'var(--primary-color)' : '#fff', color: pageNum === currentPage ? '#fff' : '#334155', fontWeight: pageNum === currentPage ? 600 : 400, cursor: 'pointer' }}
@@ -446,9 +495,9 @@ const BookingsList = () => {
                 </button>
               );
             })}
-            
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || totalPages === 0}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', border: '1px solid #cbd5e1', background: (currentPage === totalPages || totalPages === 0) ? '#f8fafc' : '#fff', color: (currentPage === totalPages || totalPages === 0) ? '#cbd5e1' : '#334155', cursor: (currentPage === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer' }}
             >

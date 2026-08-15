@@ -58,15 +58,35 @@ exports.postRoot_2 = async (req, res) => {
   // Upload to Cloudinary if file data is provided
   if (fileData) {
     try {
-      const uploadResult = await uploadFile(fileData, {
-        folder: "multimarg/pod",
-        resourceType: "auto"
-      });
+      const { uploadStream, uploadBase64 } = require("../config/cloudinary");
+      let uploadResult = null;
+      
+      const base64Match = fileData.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (base64Match) {
+        const mimeType = base64Match[1];
+        const base64Str = base64Match[2];
+        const buffer = Buffer.from(base64Str, "base64");
+        
+        let ext = mimeType.split("/")[1] || "jpg";
+        if (ext === "jpeg") ext = "jpg";
+        
+        uploadResult = await uploadStream(buffer, {
+          folder: "multimarg/pod",
+          originalName: fileName || `POD_${lrNo}_${Date.now()}.${ext}`
+        });
+        console.log("[POD Controller] uploadStream result:", uploadResult);
+      } else {
+        // Fallback if not a standard data URI
+        console.log("[POD Controller] Regex did not match, using uploadBase64 fallback.");
+        uploadResult = await uploadBase64(fileData, { folder: "multimarg/pod" });
+        console.log("[POD Controller] uploadBase64 result:", uploadResult);
+      }
       if (uploadResult && uploadResult.url) {
         entry.cloudinaryUrl = uploadResult.url;
         entry.cloudinaryPublicId = uploadResult.publicId;
         entry.podUrl = uploadResult.url;
       } else {
+        console.error("[POD Controller] Upload failed, falling back to database base64 storage:", uploadResult?.message);
         entry.fileData = fileData;
       }
     } catch (uploadErr) {

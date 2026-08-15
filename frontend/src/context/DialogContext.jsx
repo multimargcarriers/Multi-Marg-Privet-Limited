@@ -40,8 +40,29 @@ export const DialogProvider = ({ children }) => {
     });
   }, []);
 
+  const alert = useCallback(({ title, message, confirmText = 'OK' }) => {
+    return new Promise((resolve) => {
+      setDialogState({
+        isOpen: true,
+        title,
+        message,
+        confirmText,
+        cancelText: null,
+        requireInput: null,
+        onConfirm: () => {
+          setDialogState((prev) => ({ ...prev, isOpen: false }));
+          resolve(true);
+        },
+        onCancel: () => {
+          setDialogState((prev) => ({ ...prev, isOpen: false }));
+          resolve(true);
+        },
+      });
+    });
+  }, []);
+
   return (
-    <DialogContext.Provider value={{ confirm }}>
+    <DialogContext.Provider value={{ confirm, alert }}>
       {children}
       <ConfirmDialog
         isOpen={dialogState.isOpen}

@@ -39,7 +39,6 @@ router.post(
   body("date").notEmpty().withMessage("Date is required"),
   body("mode").notEmpty().withMessage("Mode is required"),
   body("type").notEmpty().withMessage("Type is required"),
-  body("bookingType").notEmpty().withMessage("Booking type is required"),
   body("vendor").notEmpty().withMessage("Vendor is required"),
   body("origin").notEmpty().withMessage("Origin is required"),
   body("destination").notEmpty().withMessage("Destination is required"),

@@ -652,11 +652,11 @@ const CreateBooking = () => {
               <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
                 <th style={{ padding: "12px 8px", textAlign: "center", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "5%" }}>S.No.</th>
                 <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice No</th>
-                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Value</th>
                 <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Date</th>
                 <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Part Number</th>
-                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Eway Bill</th>
                 <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "15%" }}>Quantity</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Value</th>
+                <th style={{ padding: "12px 8px", textAlign: "left", fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Eway Bill</th>
               </tr>
             </thead>
             <tbody>
@@ -667,20 +667,20 @@ const CreateBooking = () => {
                     <input id={`invoiceNo-${i}`} aria-label="Invoice Number" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input id={`invoiceValue-${i}`} aria-label="Invoice Value" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "8px" }}>
                     <input id={`invoiceDate-${i}`} aria-label="Invoice Date" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
                     <input id={`partNumber-${i}`} aria-label="Part Number" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
-                    <input id={`ewayBill-${i}`} aria-label="E-way Bill" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
+                    <input id={`quantity-${i}`} aria-label="Quantity" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                  </td>
+                  <td style={{ padding: "8px" }}>
+                    <input id={`invoiceValue-${i}`} aria-label="Invoice Value" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
                   </td>
                   <td style={{ padding: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      <input id={`quantity-${i}`} aria-label="Quantity" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                      <input id={`ewayBill-${i}`} aria-label="E-way Bill" className="form-control" style={{ fontSize: "0.875rem", padding: "8px", width: "100%", margin: 0 }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
                       {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 8px" }}>&times;</button>}
                     </div>
                   </td>

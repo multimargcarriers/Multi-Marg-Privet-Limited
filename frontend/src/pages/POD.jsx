@@ -142,7 +142,7 @@ const POD = () => {
         origin.includes(q) ||
         destination.includes(q)
       );
-    }).slice(0, 10);
+    });
   }, [bookingsList, lrInput]);
 
   // Handle selecting an LR from the search dropdown

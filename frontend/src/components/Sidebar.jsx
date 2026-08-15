@@ -55,7 +55,7 @@ export const menuItems = [
         permission: "bookings",
         moduleKey: "bookings"
       },
-      { name: "ALL Train AIR Road Bookings", path: "/trips", icon: <Truck size={18} />, permission: "trips", moduleKey: "trips" },
+      { name: "Vendor Ship MIS", path: "/trips", icon: <Truck size={18} />, permission: "trips", moduleKey: "trips" },
       { name: "Vehicle Trip MIS", path: "/trip-mis", icon: <FileText size={18} />, permission: "tripmis" },
       { name: "Vendor Vehicle MIS", path: "/vendor-mis", icon: <Truck size={18} />, permission: "vendormis" },
       { name: "Tracking", path: "/tracking", icon: <MapPin size={18} /> },

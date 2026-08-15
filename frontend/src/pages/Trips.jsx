@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock } from "lucide-react";
+import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
 
@@ -11,7 +11,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
 
-import { formatAllCaps, } from "../utils/formatters";
+import { formatAllCaps, formatDate } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
@@ -39,6 +39,8 @@ const Trips = () => {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [modeFilter, setModeFilter] = useState("ROAD");
 
   const { refreshNotifications } = useNotification();
   const { addToast } = useToast();
@@ -74,9 +76,9 @@ const Trips = () => {
   };
 
   const initialFormState = {
-    tripNo: "", mode: "", type: "", bookingType: "Normal", date: "", awbNo: "", cdNo: "",
+    tripNo: "", vehicleNo: "", mode: "", type: "", date: "", awbNo: "", cdNo: "",
     vendor: "", origin: "", destination: "",
-    materialDetails: [{ clientName: "", lrNo: "", consignor: "", consignee: "", box: "", weight: "", chWeight: "", origin: "", destination: "", rate: "", freight: "", gst: "", amount: "" }],
+    materialDetails: [{ clientName: "", lrNo: "", box: "", weight: "", chWeight: "", origin: "", destination: "" }],
     specialInstruction: ""
   };
   const [form, setForm] = useState(() => {
@@ -122,17 +124,23 @@ const Trips = () => {
     setIsSubmitting(true);
     setSuccess(false);
 
-    // Calculate total amount
-    const totalAmount = form.materialDetails.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    const tripData = { ...form, totalAmount, approvalStatus: 'Pending' };
+    // Total amount no longer calculated here
+    const tripData = { ...form, totalAmount: 0, approvalStatus: 'Pending' };
 
     try {
-      const res = await axios.post(`${API}/trips`, tripData);
+      let res;
+      if (editId) {
+        res = await axios.put(`${API}/trips/${editId}`, tripData);
+      } else {
+        res = await axios.post(`${API}/trips`, tripData);
+      }
+      
       if (res.data.success) {
         setSuccess(true);
         setTimeout(() => {
           setSuccess(false);
           setShowForm(false);
+          setEditId(null);
           setForm(initialFormState);
           appDB.remove('manifestFormDraft');
         }, 2000);
@@ -142,6 +150,17 @@ const Trips = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEdit = (item) => {
+    setForm({
+      ...initialFormState,
+      ...item,
+      materialDetails: item.materialDetails?.length ? item.materialDetails : initialFormState.materialDetails
+    });
+    setEditId(item.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
@@ -163,32 +182,87 @@ const Trips = () => {
     window.open(`/print-manifest/${id}?download=true`, "_blank");
   };
 
+  const exportToCSV = () => {
+    const dataToExport = displayTrips.filter(t => {
+      if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
+      if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
+      if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
+      return false;
+    });
+
+    if (dataToExport.length === 0) {
+      addToast("No trips to export", "warning");
+      return;
+    }
+
+    const headers = ["SL Number", "Mode", "Date", "Vehicle No", "Type", "AWB No", "CD No", "Vendor", "Origin", "Destination", "Material Details", "Status"];
+    const rows = [];
+    dataToExport.forEach((item, index) => {
+      const isPending = item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved');
+      const formattedDate = item.date ? formatDate(item.date) : "-";
+      
+      if (item.materialDetails && item.materialDetails.length > 0) {
+        item.materialDetails.forEach((m, mIdx) => {
+          const matDetailsStr = `LR: ${m.lrNo || '-'} | Client: ${m.clientName || '-'} | Box: ${m.box || 0} | Wt: ${m.weight || 0} | ChWt: ${m.chWeight || 0}`;
+          
+          rows.push([
+            mIdx === 0 ? index + 1 : "",
+            mIdx === 0 ? (item.mode || "-") : "",
+            mIdx === 0 ? formattedDate : "",
+            mIdx === 0 ? (item.vehicleNo || "-") : "",
+            mIdx === 0 ? (item.type || "-") : "",
+            mIdx === 0 ? (item.awbNo || "-") : "",
+            mIdx === 0 ? (item.cdNo || "-") : "",
+            mIdx === 0 ? (item.vendor || "-") : "",
+            mIdx === 0 ? (item.origin || "-") : "",
+            mIdx === 0 ? (item.destination || "-") : "",
+            matDetailsStr,
+            mIdx === 0 ? isPending : ""
+          ]);
+        });
+      } else {
+        rows.push([
+          index + 1,
+          item.mode || "-",
+          formattedDate,
+          item.vehicleNo || "-",
+          item.type || "-",
+          item.awbNo || "-",
+          item.cdNo || "-",
+          item.vendor || "-",
+          item.origin || "-",
+          item.destination || "-",
+          "-",
+          isPending
+        ]);
+      }
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Vendor_Ship_MIS_${modeFilter}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    addToast("Export successful", "success");
+  };
+
   const updateMaterialRow = (index, field, value) => {
     const updated = [...form.materialDetails];
     updated[index][field] = value;
-    
-    if (field === 'chWeight' || field === 'rate') {
-      const chWeight = parseFloat(updated[index].chWeight) || 0;
-      const rate = parseFloat(updated[index].rate) || 0;
-      if (chWeight > 0 && rate > 0) {
-        const freight = chWeight * rate;
-        const gstAmount = freight * 0.18;
-        const total = freight + gstAmount;
-        updated[index].freight = freight.toFixed(2);
-        updated[index].gst = gstAmount.toFixed(2);
-        updated[index].amount = total.toFixed(2);
-      } else {
-        updated[index].freight = "";
-        updated[index].gst = "";
-        updated[index].amount = "";
-      }
-    }
-    
     setForm({ ...form, materialDetails: updated });
   };
 
   const addMaterialRow = () => {
-    setForm({ ...form, materialDetails: [...form.materialDetails, { clientName: "", lrNo: "", consignor: "", consignee: "", box: "", weight: "", chWeight: "", origin: "", destination: "", rate: "", freight: "", gst: "", amount: "" }] });
+    setForm({ ...form, materialDetails: [...form.materialDetails, { clientName: "", lrNo: "", box: "", weight: "", chWeight: "", origin: "", destination: "" }] });
   };
 
   const removeMaterialRow = (index) => {
@@ -207,53 +281,227 @@ const Trips = () => {
     return [...pendingTrips, ...trips];
   }, [trips, syncQueue]);
 
+  const calculateTotalChWeight = (tripsList, modeList) => {
+    return tripsList
+      .filter(t => modeList.includes((t.mode || "").toLowerCase()))
+      .reduce((total, t) => {
+        const tripChWeight = (t.materialDetails || []).reduce((sum, mat) => sum + (parseFloat(mat.chWeight) || 0), 0);
+        return total + tripChWeight;
+      }, 0);
+  };
+
   const tripsStats = useMemo(() => {
     return {
       totalAmount: displayTrips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
-      trainCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'train').length,
-      flightCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'flight').length,
-      roadCount: displayTrips.filter(t => t.mode?.toLowerCase() === 'road').length,
+      trainChWeight: calculateTotalChWeight(displayTrips, ['train', 'rail']),
+      flightChWeight: calculateTotalChWeight(displayTrips, ['air', 'flight']),
+      roadChWeight: calculateTotalChWeight(displayTrips, ['road']),
     };
   }, [displayTrips]);
 
   if (loading) return <TablePageSkeleton />;
 
+  const renderTripRow = (item, index) => (
+    <tr key={item.id || index} style={{ opacity: item.isOfflinePending ? 0.7 : 1 }}>
+     <td className="font-semibold">
+       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+         {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Offline Sync" />}
+         {index + 1}
+       </div>
+     </td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.mode || "-"}</td>
+     <td style={{ whiteSpace: 'nowrap' }}>{item.date ? formatDate(item.date) : "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.vehicleNo || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.type || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.awbNo || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.cdNo || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.vendor || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.origin || "-"}</td>
+     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.destination || "-"}</td>
+     <td style={{ padding: "6px" }}>
+       {item.materialDetails && item.materialDetails.length > 0 ? (
+          <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+            <table style={{ width: "100%", fontSize: "0.7rem", borderCollapse: "collapse", textAlign: "left" }}>
+              <thead style={{ background: "#f8fafc", position: "sticky", top: 0, zIndex: 1 }}>
+                <tr>
+                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>LR No</th>
+                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>Client</th>
+                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Box</th>
+                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Wt.</th>
+                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Ch.Wt.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.materialDetails.map((m, idx) => (
+                  <tr key={idx} style={{ borderBottom: idx < item.materialDetails.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                    <td style={{ padding: "6px 8px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap" }}>{m.lrNo || "-"}</td>
+                    <td style={{ padding: "6px 8px", color: "#334155", whiteSpace: "nowrap" }} title={m.clientName}>{m.clientName || "-"}</td>
+                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.box || "0"}</td>
+                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.weight || "0"}</td>
+                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center", fontWeight: "600" }}>{m.chWeight || "0"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+       ) : "-"}
+     </td>
+     <td>
+       <span style={{
+           padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
+           background: item.isOfflinePending ? '#fef3c7' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
+           color: item.isOfflinePending ? '#b45309' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3',
+           display: "inline-flex", alignItems: "center", gap: "4px"
+       }}>
+         {item.isOfflinePending && <Clock size={12} />}
+         {item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved')}
+       </span>
+     </td>
+     <td>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
+          <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
+          <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
+          <button disabled={item.isOfflinePending} onClick={() => handleEdit(item)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Trip"><Edit size={16} /></button>
+          
+          {isAdminOrSuperAdmin && !item.isOfflinePending && (
+           <>
+             {String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? (
+               <select
+                 value={item.approvalStatus || 'Approved'}
+                 onChange={async (e) => {
+                   const newStatus = e.target.value;
+                   if (newStatus === (item.approvalStatus || 'Approved')) return;
+                   try {
+                     const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: newStatus });
+                     if(res.data.success) {
+                        const newTrips = [...trips];
+                        const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                        if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = newStatus;
+                        setTrips(newTrips);
+                        addToast(`Status changed to ${newStatus}`, "success");
+                     }
+                   } catch(_e) { addToast("Error updating status", "error"); }
+                 }}
+                 className="action-btn"
+                 style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none", fontSize: "0.75rem" }}
+               >
+                 <option value="Approved">Approved</option>
+                 <option value="Pending">Pending</option>
+                 <option value="Rejected">Rejected</option>
+               </select>
+             ) : (
+               <>
+                 <button onClick={async () => {
+                   try {
+                     const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
+                     if(res.data.success) {
+                        const newTrips = [...trips];
+                        const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                        if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
+                        setTrips(newTrips);
+                        addToast("Trip Approved!", "success");
+                     }
+                   } catch(_e) { addToast("Error approving trip", "error"); }
+                 }} className="action-btn action-btn-success" style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                   <Check size={14} /> Approve
+                 </button>
+                 
+                 {item.approvalStatus !== 'Rejected' && (
+                   <button onClick={async () => {
+                     try {
+                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
+                       if(res.data.success) {
+                          const newTrips = [...trips];
+                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
+                          setTrips(newTrips);
+                          addToast("Trip Rejected", "success");
+                       }
+                     } catch(_e) { addToast("Error rejecting trip", "error"); }
+                   }} className="action-btn action-btn-danger" style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                     <X size={14} /> Reject
+                   </button>
+                 )}
+                 {item.approvalStatus !== 'Pending' && (
+                   <button onClick={async () => {
+                     try {
+                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
+                       if(res.data.success) {
+                          const newTrips = [...trips];
+                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
+                          setTrips(newTrips);
+                          addToast("Trip marked Pending", "success");
+                       }
+                     } catch(_e) { addToast("Error updating trip", "error"); }
+                   }} className="action-btn action-btn-warning" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                     <Clock size={14} /> Pending
+                   </button>
+                 )}
+               </>
+             )}
+           </>
+         )}
+         {isSuperAdmin && !item.isOfflinePending && (
+           <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
+         )}
+       </div>
+     </td>
+   </tr>
+  );
+
   return (
     <div>
-      <div className="header-flex no-print">
-        <div>
-          <h3 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", color: "#111827" }}>
-            {view === 'manifest' ? 'Transport Bookings (TRAIN / AIR / ROAD)' : 
-             view === 'bill' ? 'Trip Bill' : 'Trips'}
-          </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', marginBottom: '1.5rem', gap: '1rem' }} className="no-print">
+        {/* Left Side: Refresh */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button 
+            className="page-header-btn page-header-btn-primary" 
+            onClick={fetchData}
+            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', fontWeight: 800, letterSpacing: '1px' }}
+          >
+            REFRESH
+          </button>
         </div>
-        <div className="page-header-actions">
+        
+        {/* Center Side: Main Action */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           {!showForm && hasAccess('trips') && (
-            <button className="page-header-btn page-header-btn-primary" onClick={() => setShowForm(true)}>
-              <Plus size={18} /> New Manifest
+            <button 
+              className="page-header-btn page-header-btn-primary" 
+              onClick={() => setShowForm(true)}
+              style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+            >
+              + New Manifest
             </button>
           )}
+        </div>
+
+        {/* Right Side: Export */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
+          <button 
+            className="page-header-btn page-header-btn-primary" 
+            onClick={exportToCSV}
+            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+          >
+            EXPORT CSV
+          </button>
         </div>
       </div>
 
       {!showForm && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }} className="no-print">
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #3b82f6" }}>
-            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trips</div>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trip</div>
             <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{displayTrips.length}</div>
           </div>
-          <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #10b981" }}>
-            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Freight</div>
-            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827", display: "flex", alignItems: "center" }}>
-              <RupeeIcon size={24} />{tripsStats.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
+
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
-            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>TRAIN / AIR / ROAD</div>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>VENDOR SHIP WEIGHT</div>
             <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
-              <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainCount}</span>
-              <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightCount}</span>
-              <span><span style={{ color: "#f97316" }}>R:</span> {tripsStats.roadCount}</span>
+              <span><span style={{ color: "#f97316" }}>R:</span> {tripsStats.roadChWeight.toFixed(2)} KG</span>
+              <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainChWeight.toFixed(2)} KG</span>
+              <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightChWeight.toFixed(2)} KG</span>
             </div>
           </div>
         </div>
@@ -270,29 +518,32 @@ const Trips = () => {
 
       {showForm && (
         <form onSubmit={handleSave} className="glass-panel" style={{ padding: "2.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
-                {form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'FLIGHT' ? 'Flight No' : 'Trip No'}
-                <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-              </label>
-              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'FLIGHT' ? 'Flight No' : 'Trip No'}`} value={form.tripNo} onChange={e => setForm({ ...form, tripNo: formatAllCaps(e.target.value) })} required />
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value, ...(e.target.value !== 'FLIGHT' ? { cdNo: '' } : {}) })} required>
+              <select className="form-control" value={form.mode || ""} onChange={e => setForm({ ...form, mode: e.target.value, ...(e.target.value !== 'AIR' ? { cdNo: '' } : {}) })} required>
                 <option value="">-- Select Mode --</option>
                 <option value="ROAD">ROAD</option>
                 <option value="TRAIN">TRAIN</option>
-                <option value="FLIGHT">FLIGHT/AIR</option>
-                <option value="SURFACE">SURFACE</option>
+                <option value="AIR">AIR</option>
               </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
+                {form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'AIR' ? 'Flight No' : 'Vehicle/Flight No'}
+                <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+              </label>
+              <input type="text" className="form-control" placeholder={`Enter ${form.mode === 'TRAIN' ? 'Train No' : form.mode === 'ROAD' ? 'Vehicle No' : form.mode === 'AIR' ? 'Flight No' : 'Vehicle/Flight No'}`} value={form.vehicleNo} onChange={e => setForm({ ...form, vehicleNo: formatAllCaps(e.target.value) })} required />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Type<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <input type="text" list="type-options" className="form-control" placeholder="Select or Type" value={form.type || ""} onChange={e => setForm({ ...form, type: formatAllCaps(e.target.value) })} required />
               <datalist id="type-options">
-                {form.mode === 'FLIGHT' && (
+                {form.mode === 'AIR' && (
                   <>
                     <option value="GCR FLIGHT" />
                     <option value="PRIME FLIGHT" />
@@ -315,17 +566,6 @@ const Trips = () => {
                 )}
               </datalist>
             </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Booking Type<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <select className="form-control" value={form.bookingType || "Normal"} onChange={e => setForm({ ...form, bookingType: e.target.value })} required>
-                <option value="Normal">Normal</option>
-                <option value="Special">Special</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required />
-            </div>
           </div>
 
 
@@ -335,7 +575,7 @@ const Trips = () => {
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>AWB No</label>
               <input type="text" className="form-control" placeholder="Enter AWB No" value={form.awbNo} onChange={e => setForm({ ...form, awbNo: formatAllCaps(e.target.value) })} />
             </div>
-            {form.mode === 'FLIGHT' && (
+            {form.mode === 'AIR' && (
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>CD No</label>
                 <input type="text" className="form-control" placeholder="Enter CD No" value={form.cdNo} onChange={e => setForm({ ...form, cdNo: formatAllCaps(e.target.value) })} />
@@ -432,14 +672,6 @@ const Trips = () => {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Consignor</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignor} onChange={e => updateMaterialRow(i, "consignor", formatAllCaps(e.target.value))} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Consignee</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} value={mat.consignee} onChange={e => updateMaterialRow(i, "consignee", formatAllCaps(e.target.value))} />
-                  </div>
-                  <div>
                     <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Box</label>
                     <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" value={mat.box} onChange={e => updateMaterialRow(i, "box", e.target.value)} />
                   </div>
@@ -451,178 +683,72 @@ const Trips = () => {
                     <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Ch. Weight</label>
                     <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" step="0.01" value={mat.chWeight} onChange={e => updateMaterialRow(i, "chWeight", e.target.value)} />
                   </div>
-
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Rate</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px" }} type="number" step="0.01" value={mat.rate} onChange={e => updateMaterialRow(i, "rate", e.target.value)} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Freight</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", background: "#f3f4f6" }} type="number" step="0.01" value={mat.freight} readOnly title="Auto-calculated: Ch. Weight * Rate" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>GST (18%)</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", background: "#f3f4f6" }} type="number" step="0.01" value={mat.gst} readOnly title="Auto-calculated: Freight * 18%" />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Total Amount</label>
-                    <input className="form-control" style={{ fontSize: "0.875rem", padding: "8px", background: "#f3f4f6" }} type="number" step="0.01" value={mat.amount} readOnly title="Auto-calculated (Freight + 18% GST)" />
-                  </div>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="form-group" style={{ marginBottom: "2rem" }}>
-            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Special Instruction<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="text" className="form-control" placeholder="Enter the Special Instruction" value={form.specialInstruction} onChange={e => setForm({ ...form, specialInstruction: e.target.value })} required />
+            <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Special Instruction</label>
+            <input type="text" className="form-control" placeholder="Enter the Special Instruction" value={form.specialInstruction} onChange={e => setForm({ ...form, specialInstruction: e.target.value })} />
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
-            <button type="button" className="btn" onClick={() => setShowForm(false)} disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>
+            <button type="button" className="btn" onClick={() => { setShowForm(false); setEditId(null); setForm(initialFormState); }} disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>
               CANCEL
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>
-              {isSubmitting ? <><Loader2 size={18} className="spinner" /> Generating...</> : "ADD BOOKING"}
+              {isSubmitting ? <><Loader2 size={18} className="spinner" /> Saving...</> : editId ? "UPDATE TRIP" : "ADD TRIP"}
             </button>
           </div>
         </form>
       )}
 
-      {/* Tabs */}
-      <div className="glass-panel no-print" style={{ padding: "1rem", marginBottom: "2rem" }}>
+      {/* Mode Filter Tabs */}
+      <div className="glass-panel no-print" style={{ padding: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {[
-            { key: "manifest", label: "TRANSPORT BOOKINGS", icon: ClipboardList, permission: "trips" },
-            { key: "bill", label: "TRIP BILL", icon: FileText, permission: "trips" },
-          ].filter(tab => hasAccess(tab.permission)).map(({ key, label, icon: Icon }) => (
+            { key: "ROAD", label: "ROAD TRIP", color: "#10b981", icon: <Truck size={18} /> },
+            { key: "TRAIN", label: "TRAIN TRIP", color: "#a21caf", icon: <Train size={18} /> },
+            { key: "AIR", label: "AIR TRIP", color: "#0ea5e9", icon: <Plane size={18} /> },
+          ].map(({ key, label, color, icon }) => (
             <button key={key}
-              onClick={() => setView(key)}
+              onClick={() => setModeFilter(key)}
               style={{
-                flex: 1, padding: "0.75rem", borderRadius: 12, border: view === key ? "2px solid var(--primary-color)" : "1px solid rgba(0, 0, 0, 0.1)",
-                background: view === key ? "rgba(13, 110, 253, 0.05)" : "transparent", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+                flex: 1, padding: "0.75rem", borderRadius: 12, border: modeFilter === key ? `2px solid ${color}` : "1px solid rgba(0, 0, 0, 0.1)",
+                background: modeFilter === key ? `${color}10` : "transparent", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s"
               }}>
-              <Icon size={18} color={view === key ? "var(--primary-color)" : "var(--text-muted)"} />
-              <span style={{ color: view === key ? "var(--primary-color)" : "var(--text-dark)" }}>{label}</span>
+              {icon && React.cloneElement(icon, { color: modeFilter === key ? color : "var(--text-muted)" })}
+              <span style={{ color: modeFilter === key ? color : "var(--text-dark)" }}>{label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {view === "manifest" && (
+      <div className="glass-panel" style={{ padding: "1.5rem" }}>
+        <h4 style={{ marginBottom: "1rem", color: modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)', borderBottom: `2px solid ${modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)'}`, paddingBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", textTransform: 'uppercase' }}>
+           {modeFilter === 'ROAD' ? <Truck size={20} /> : modeFilter === 'TRAIN' ? <Train size={20} /> : modeFilter === 'AIR' ? <Plane size={20} /> : <ClipboardList size={20} />}
+           {`${modeFilter} TRIP`} ({displayTrips.filter(t => {
+             if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
+             if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
+             if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
+             return false;
+           }).length})
+        </h4>
         <Table
           loading={loading}
           pagination={true}
           defaultEntries={10}
-          headers={["Trip No", "Mode", "Type", "Booking", "Date", "Vendor", "Origin", "Destination", "Material Details", "Total Amount", "Status", "Actions"]}
-          data={displayTrips}
-          renderRow={(item, index) => (
-             <tr key={item.id || index} style={{ opacity: item.isOfflinePending ? 0.7 : 1 }}>
-              <td className="font-semibold">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Offline Sync" />}
-                  {item.tripNo || "-"}
-                </div>
-              </td>
-              <td style={{ textTransform: 'uppercase' }}>{item.mode || "-"}</td>
-              <td style={{ textTransform: 'uppercase' }}>{item.type || "-"}</td>
-              <td style={{ textTransform: 'uppercase' }}>{item.bookingType || "NORMAL"}</td>
-              <td>{item.date ? new Date(item.date).toLocaleDateString() : "-"}</td>
-              <td style={{ textTransform: 'uppercase' }}>{item.vendor || "-"}</td>
-              <td style={{ textTransform: 'uppercase' }}>{item.origin || "-"}</td>
-              <td style={{ textTransform: 'uppercase' }}>{item.destination || "-"}</td>
-              <td>
-                {item.materialDetails && item.materialDetails.length > 0 ? (
-                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxHeight: "100px", overflowY: "auto" }}>
-                    {item.materialDetails.map((m, idx) => (
-                      <div key={idx}>{m.lrNo} - {m.clientName}</div>
-                    ))}
-                  </div>
-                ) : "-"}
-              </td>
-              <td style={{ fontWeight: "600", color: "#10b981" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{item.totalAmount || "0.00"}</span></td>
-              <td>
-                <span style={{
-                    padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
-                    background: item.isOfflinePending ? '#fef3c7' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
-                    color: item.isOfflinePending ? '#b45309' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3',
-                    display: "inline-flex", alignItems: "center", gap: "4px"
-                }}>
-                  {item.isOfflinePending && <Clock size={12} />}
-                  {item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved')}
-                </span>
-              </td>
-              <td>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
-                  <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
-                  <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
-                  
-                  {isAdminOrSuperAdmin && !item.isOfflinePending && (
-                    <>
-                      {String(item.approvalStatus || 'Approved').toLowerCase() !== 'approved' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
-                            if(res.data.success) {
-                               const newTrips = [...trips];
-                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
-                               setTrips(newTrips);
-                               addToast("Trip Approved!", "success");
-                            }
-                          } catch(_e) { addToast("Error approving trip", "error"); }
-                        }} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Approve</button>
-                      )}
-                      
-                      {String(item.approvalStatus).toLowerCase() !== 'rejected' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
-                            if(res.data.success) {
-                               const newTrips = [...trips];
-                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
-                               setTrips(newTrips);
-                               addToast("Trip Rejected", "success");
-                            }
-                          } catch(_e) { addToast("Error rejecting trip", "error"); }
-                        }} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Reject</button>
-                      )}
-
-                      {String(item.approvalStatus).toLowerCase() !== 'pending' && (
-                        <button onClick={async () => {
-                          try {
-                            const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
-                            if(res.data.success) {
-                               const newTrips = [...trips];
-                               const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                               if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
-                               setTrips(newTrips);
-                               addToast("Trip set to Pending", "success");
-                            }
-                          } catch(_e) { addToast("Error moving to pending", "error"); }
-                        }} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600" }}>Pending</button>
-                      )}
-                    </>
-                  )}
-                  {isSuperAdmin && !item.isOfflinePending && (
-                    <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          )}
+          headers={["SL Number", "Mode", "Date", "Vehicle No", "Type", "AWB No", "CD No", "Vendor", "Origin", "Destination", "Material Details", "Status", "Actions"]}
+          data={displayTrips.filter(t => {
+            if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
+            if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
+            if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
+            return false;
+          })}
+          renderRow={renderTripRow}
         />
-      )}
-
-      {view === "bill" && (
-        <div className="glass-panel" style={{ padding: "2rem", textAlign: "center" }}>
-          <FileText size={48} style={{ color: "var(--text-muted)", marginBottom: "1rem" }} />
-          <h4>TRIP BILL</h4>
-          <p className="text-muted">Currently viewing the trip bill tab.</p>
-        </div>
-      )}
-
+      </div>
     </div>
   );
 };

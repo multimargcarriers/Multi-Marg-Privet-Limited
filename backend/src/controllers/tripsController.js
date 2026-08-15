@@ -48,7 +48,9 @@ exports.postRoot_2 = async (req, res) => {
   trip.approvalStatus = req.user?.role === 'Vendor' ? 'Pending' : 'Approved';
   
   if (!trip.tripNo || trip.tripNo.trim() === '') {
-    trip.tripNo = await getNextSequence('TRP');
+    const prefix = trip.mode ? String(trip.mode).toUpperCase() : 'TRP';
+    const seq = await getNextSequence(prefix);
+    trip.tripNo = seq.split('-')[1] || seq;
   }
   
   const docRef = await db.collection("trips").add(trip);

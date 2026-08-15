@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Download, ArrowLeft } from "lucide-react";
 
 import html2pdf from "html2pdf.js";
+import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
 import appDB from "../utils/appDB";
@@ -39,12 +40,14 @@ const PrintManifest = () => {
   useEffect(() => {
     const fetchTrip = async () => {
       try {
-        const localTrips = appDB.memGet('mockTrips') || [];
-        const foundTrip = localTrips.find(t => t.id === id);
-        if (foundTrip) {
-          setTrip(foundTrip);
-        } else {
-          console.error("Manifest not found locally");
+        const res = await axios.get(`${_API}/trips`);
+        if (res.data.success) {
+          const foundTrip = res.data.data.find(t => t.id === id);
+          if (foundTrip) {
+            setTrip(foundTrip);
+          } else {
+            console.error("Manifest not found on server");
+          }
         }
       } catch (err) {
         console.error("Failed to fetch manifest", err);
@@ -204,7 +207,7 @@ const PrintManifest = () => {
                 </div>
 
                 <div style={{ background: "#f8fafc", padding: "4px", textAlign: "center", borderBottom: "1px solid #cbd5e1" }}>
-                  <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP AIR / FLIGHT EXPRESS</h2>
+                  <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP {trip.mode || "NA"} {trip.type || ""}</h2>
                 </div>
 
                 <div className="manifest-section">
@@ -212,12 +215,16 @@ const PrintManifest = () => {
                   <table className="manifest-table">
                     <tbody>
                       <tr>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>FLIGHT NO.</td>
-                        <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem" }}>{(trip.tripNo || tripNo).toUpperCase()}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>SL NO.</td>
+                        <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem", fontWeight: "bold" }}>{(trip.tripNo || "-").toUpperCase()}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
                         <td className="data-cell" style={{ width: "15%" }}>{date}</td>
                         <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>
                         <td className="data-cell" style={{ width: "20%" }}>{(trip.mode || "NA").toUpperCase()}</td>
+                      </tr>
+                      <tr>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>{trip.mode === 'AIR' ? 'FLIGHT NO.' : trip.mode === 'TRAIN' ? 'TRAIN NO.' : 'VEHICLE NO.'}</td>
+                        <td className="data-cell" colSpan="5" style={{ fontSize: "1rem", fontWeight: "bold" }}>{(trip.vehicleNo || "NA").toUpperCase()}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -260,16 +267,14 @@ const PrintManifest = () => {
                   <table className="manifest-table">
                     <thead>
                       <tr className="gray-cell">
-                        <th style={{ width: "4%" }}>#</th>
-                        <th style={{ width: "16%" }}>Client</th>
-                        <th style={{ width: "10%" }}>LR No</th>
-                        <th style={{ width: "15%" }}>Consignor</th>
-                        <th style={{ width: "15%" }}>Consignee</th>
-                        <th style={{ width: "6%" }}>Box</th>
-                        <th style={{ width: "8%" }}>Wt.</th>
-                        <th style={{ width: "9%" }}>Type</th>
-                        <th style={{ width: "8%", textAlign: "right" }}>Amount</th>
-                        <th style={{ width: "9%" }}>P. Type</th>
+                        <th style={{ width: "5%" }}>#</th>
+                        <th style={{ width: "20%" }}>Client</th>
+                        <th style={{ width: "15%" }}>LR No</th>
+                        <th style={{ width: "15%" }}>Origin</th>
+                        <th style={{ width: "15%" }}>Destination</th>
+                        <th style={{ width: "10%" }}>Box</th>
+                        <th style={{ width: "10%" }}>Weight</th>
+                        <th style={{ width: "10%" }}>Ch. Wt.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -277,19 +282,17 @@ const PrintManifest = () => {
                         trip.materialDetails.map((mat, idx) => (
                           <tr key={idx}>
                             <td className="data-cell" style={{ textAlign: "center" }}>{idx + 1}</td>
-                            <td className="data-cell">{(mat.clientName || "-").substring(0, 15)}</td>
+                            <td className="data-cell">{(mat.clientName || "-").substring(0, 20)}</td>
                             <td className="data-cell">{mat.lrNo || "-"}</td>
-                            <td className="data-cell">{(mat.consignor || "-").substring(0, 15)}</td>
-                            <td className="data-cell">{(mat.consignee || "-").substring(0, 15)}</td>
+                            <td className="data-cell">{(mat.origin || "-").substring(0, 15)}</td>
+                            <td className="data-cell">{(mat.destination || "-").substring(0, 15)}</td>
                             <td className="data-cell" style={{ textAlign: "center" }}>{mat.box || "-"}</td>
                             <td className="data-cell" style={{ textAlign: "center" }}>{mat.weight || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.bookingType || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "right" }}>{parseFloat(mat.amount || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.paymentType || "-"}</td>
+                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.chWeight || "-"}</td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan="10" style={{ textAlign: "center", padding: "20px" }} className="data-cell">No shipment items available.</td></tr>
+                        <tr><td colSpan="8" style={{ textAlign: "center", padding: "20px" }} className="data-cell">No shipment items available.</td></tr>
                       )}
                     </tbody>
                   </table>

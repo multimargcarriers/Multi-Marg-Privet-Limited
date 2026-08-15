@@ -97,25 +97,27 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
           gap: '12px', 
           justifyContent: 'center' 
         }}>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: '1px solid #d1d5db',
-              background: '#ffffff',
-              color: '#374151',
-              fontSize: '1rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => e.target.style.background = '#f3f4f6'}
-            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-          >
-            {cancelText}
-          </button>
+          {cancelText && (
+            <button
+              onClick={onCancel}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                background: '#ffffff',
+                color: '#374151',
+                fontSize: '1rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => e.target.style.background = '#f3f4f6'}
+              onMouseOut={(e) => e.target.style.background = '#ffffff'}
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             onClick={onConfirm}
             disabled={isConfirmDisabled}
@@ -124,17 +126,17 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
               padding: '10px 16px',
               borderRadius: '8px',
               border: 'none',
-              background: isConfirmDisabled ? '#fca5a5' : '#ef4444',
+              background: isConfirmDisabled ? (cancelText ? '#fca5a5' : '#93c5fd') : (cancelText ? '#ef4444' : '#3b82f6'),
               color: '#ffffff',
               fontSize: '1rem',
               fontWeight: 500,
               cursor: isConfirmDisabled ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              boxShadow: isConfirmDisabled ? 'none' : '0 4px 6px -1px rgba(239, 68, 68, 0.2)',
+              boxShadow: isConfirmDisabled ? 'none' : `0 4px 6px -1px ${cancelText ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)'}`,
               opacity: isConfirmDisabled ? 0.7 : 1
             }}
-            onMouseOver={(e) => !isConfirmDisabled && (e.target.style.background = '#dc2626')}
-            onMouseOut={(e) => !isConfirmDisabled && (e.target.style.background = '#ef4444')}
+            onMouseOver={(e) => !isConfirmDisabled && (e.target.style.background = cancelText ? '#dc2626' : '#2563eb')}
+            onMouseOut={(e) => !isConfirmDisabled && (e.target.style.background = cancelText ? '#ef4444' : '#3b82f6')}
           >
             {confirmText}
           </button>

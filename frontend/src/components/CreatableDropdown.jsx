@@ -59,9 +59,11 @@ const CreatableDropdown = ({ options, value, onChange, onCreate, placeholder = "
         <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: 12 }} />
         <input
           id={id || name || `creatable-input-${Math.random().toString(36).substring(7)}`}
-          name={name || id || "creatableInput"}
+          name={name || `creatable-${Math.random().toString(36).substring(7)}`}
           type="text"
           className="form-control"
+          autoComplete="nope"
+          spellCheck="false"
           placeholder={placeholder}
           value={query}
           onChange={handleChange}

@@ -286,12 +286,12 @@ const Tracking = () => {
     if (!input || !input.trim()) return [];
     const query = input.toLowerCase();
     return bookingsList.filter(b => {
-      const lrStr = String(b.lrNo || b.biltyNo || b.id || "").toLowerCase();
+      const lrStr = String(b.awb || b.consignment || b.lrNo || b.biltyNo || b.id || "").toLowerCase();
       const clientStr = String(b.client || b.clientName || "").toLowerCase();
       const originStr = String(b.origin || "").toLowerCase();
       const destStr = String(b.destination || "").toLowerCase();
       return lrStr.includes(query) || clientStr.includes(query) || originStr.includes(query) || destStr.includes(query);
-    }).slice(0, 10);
+    });
   };
 
   const searchFilteredLRs = getFilteredBookings(searchAwb);
