@@ -9,6 +9,8 @@ const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
 const getStatusIcon = (status) => {
   switch (status) {
+    case 'Shipment Booked':
+    case 'Booked': return <Package size={20} />;
     case 'Picked Up': return <Package size={20} />;
     case 'In Transit': return <Truck size={20} />;
     case 'Out for Delivery': return <Truck size={20} />;
@@ -20,6 +22,8 @@ const getStatusIcon = (status) => {
 
 const getStatusColor = (status) => {
   switch (status) {
+    case 'Shipment Booked':
+    case 'Booked': return '#2563eb';
     case 'Picked Up': return '#3b82f6';
     case 'In Transit': return '#f59e0b';
     case 'Out for Delivery': return '#8b5cf6';
@@ -287,44 +291,71 @@ const TrackShipment = () => {
                   </div>
 
                   {/* Shipment Details Grid */}
-                  {trackingResult.booking && (
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-                      gap: '1.5rem' 
-                    }}>
-                      {trackingResult.booking.date && (
+                  {trackingResult.booking && (() => {
+                    const parseDateString = (dateStr) => {
+                      if (!dateStr) return "-";
+                      let parsed = new Date(dateStr);
+                      if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString('en-IN');
+                      const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+                      if (dmyMatch) {
+                        const day = parseInt(dmyMatch[1], 10);
+                        const month = parseInt(dmyMatch[2], 10) - 1;
+                        const year = parseInt(dmyMatch[3], 10);
+                        parsed = new Date(year, month, day);
+                        if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString('en-IN');
+                      }
+                      return dateStr;
+                    };
+
+                    return (
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gap: '1.5rem 2rem' 
+                      }}>
                         <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Booking Date</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{new Date(trackingResult.booking.date).toLocaleDateString('en-IN')}</p>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Origin</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.origin ? trackingResult.booking.origin.toUpperCase() : '-'}</p>
                         </div>
-                      )}
-                      <div>
-                        <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>From</p>
-                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', textTransform: 'uppercase' }}>
-                          <MapPin size={14} color="var(--primary-red)"/> {trackingResult.booking.origin || '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>To</p>
-                        <p style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem', textTransform: 'uppercase' }}>
-                          <MapPin size={14} color="var(--primary-blue)"/> {trackingResult.booking.destination || '-'}
-                        </p>
-                      </div>
-                      {trackingResult.booking.consignor && (
+                        <div>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Destination</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.destination ? trackingResult.booking.destination.toUpperCase() : '-'}</p>
+                        </div>
+
                         <div>
                           <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignor</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem', textTransform: 'uppercase' }}>{trackingResult.booking.consignor}</p>
+                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignor ? trackingResult.booking.consignor.toUpperCase() : '-'}</p>
                         </div>
-                      )}
-                      {trackingResult.booking.consignee && (
                         <div>
                           <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignee</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem', textTransform: 'uppercase' }}>{trackingResult.booking.consignee}</p>
+                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignee ? trackingResult.booking.consignee.toUpperCase() : '-'}</p>
                         </div>
-                      )}
-                    </div>
-                  )}
+
+                        <div>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Booking Date</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{parseDateString(trackingResult.booking.date)}</p>
+                        </div>
+                        <div>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Client</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.client ? trackingResult.booking.client.toUpperCase() : (trackingResult.booking.clientName ? trackingResult.booking.clientName.toUpperCase() : '-')}</p>
+                        </div>
+
+                        <div>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Package Count (Boxes)</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                            {(() => {
+                              const bVal = trackingResult.booking.box || trackingResult.booking.packages || trackingResult.booking.pkg || trackingResult.booking.pcs || trackingResult.booking.package_count || trackingResult.booking.boxCount;
+                              return bVal ? `${bVal} Pcs` : '-';
+                            })()}
+                          </p>
+                        </div>
+                        <div>
+                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Mode of Transport</p>
+                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.mode ? trackingResult.booking.mode.toUpperCase() : '-'}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* No booking data message */}
                   {!trackingResult.booking && (
