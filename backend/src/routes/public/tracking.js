@@ -68,12 +68,15 @@ router.get('/:awb', async (req, res) => {
       const cleanSearch = baseAwb.toLowerCase();
       if (bAwb === cleanSearch || bAwb.includes(cleanSearch) || lowercaseVariations.includes(bAwb) || docId.toLowerCase().includes(cleanSearch)) {
         booking = {
+          id: docId,
           origin: b.origin || null,
           destination: b.destination || null,
           client: b.client || b.clientName || null,
           consignor: b.consignor || null,
           consignee: b.consignee || null,
           date: b.date || b.dispatch_date || null,
+          mode: b.mode || null,
+          box: b.box || null,
           invoiceDetails: b.invoiceDetails || [],
           parcels: b.parcels || []
         };
@@ -81,6 +84,7 @@ router.get('/:awb', async (req, res) => {
     });
     
     if (booking) {
+      // 1. Shipment Booked milestone
       const hasBookedStatus = entries.some(e => e.status === "Booked" || e.status === "Shipment Booked");
       if (!hasBookedStatus) {
         entries.push({
@@ -92,8 +96,33 @@ router.get('/:awb', async (req, res) => {
           remarks: "Shipment details received and Lorry Receipt (LR) generated.",
           updatedAt: booking.date || new Date().toISOString()
         });
-        entries.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       }
+
+      // 2. Picked Up milestone
+      const hasPickedUpStatus = entries.some(e => e.status === "Picked Up" || e.status === "Shipment Picked Up");
+      if (!hasPickedUpStatus) {
+        let pickupDate = new Date().toISOString();
+        if (booking.date) {
+          try {
+            const dateObj = new Date(booking.date);
+            dateObj.setMinutes(dateObj.getMinutes() + 5);
+            pickupDate = dateObj.toISOString();
+          } catch (e) {
+            pickupDate = booking.date;
+          }
+        }
+        entries.push({
+          id: `picked-${booking.id || baseAwb}`,
+          awb: baseAwb,
+          status: "Picked Up",
+          location: booking.origin || "Origin",
+          date: pickupDate,
+          remarks: "Shipment packages received and loaded into transport vehicle.",
+          updatedAt: pickupDate
+        });
+      }
+
+      entries.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }
 
     return res.json({

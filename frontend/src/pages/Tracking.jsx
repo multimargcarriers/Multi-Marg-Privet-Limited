@@ -602,6 +602,14 @@ const Tracking = () => {
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
                         <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee || "-"}</div>
                       </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.box ? `${selectedSearchBooking.box} Pcs` : "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? selectedSearchBooking.mode.toUpperCase() : "-"}</div>
+                      </div>
                     </div>
                   </div>
                 )}

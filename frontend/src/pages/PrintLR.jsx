@@ -774,11 +774,7 @@ const PrintLR = () => {
                   font-weight: 600 !important;
                   color: #0f172a !important;
                 }
-                .pkg-value {
-                  font-size: 0.93rem !important;
-                  font-weight: 500 !important;
-                  color: #0f172a !important;
-                }
+
                 .section-header {
                   background-color: #1e293b !important;
                   color: #ffffff !important;
@@ -899,7 +895,7 @@ const PrintLR = () => {
                       </tr>
                       <tr>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>PKG(S)</td>
-                        <td className="pkg-value" style={{ width: "18%", textAlign: "center" }}>{String(booking.box || "0").padStart(2, '0')}</td>
+                        <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{String(booking.box || "0").padStart(2, '0')}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>ACTUAL WT.</td>
                         <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{parseNum(booking.actual_wt).toFixed(2)} Kg</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>CHARGE WT.</td>
