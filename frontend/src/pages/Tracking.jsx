@@ -602,9 +602,14 @@ const Tracking = () => {
                             : "-"}
                         </div>
                       </div>
-                      <div>
+                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.box ? `${selectedSearchBooking.box} Pcs` : "-"}</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {(() => {
+                            const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
+                            return bVal ? `${bVal} Pcs` : "-";
+                          })()}
+                        </div>
                       </div>
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>

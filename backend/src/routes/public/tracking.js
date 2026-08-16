@@ -76,7 +76,7 @@ router.get('/:awb', async (req, res) => {
           consignee: b.consignee || null,
           date: b.date || b.dispatch_date || null,
           mode: b.mode || null,
-          box: b.box || null,
+          box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount || null,
           invoiceDetails: b.invoiceDetails || [],
           parcels: b.parcels || []
         };

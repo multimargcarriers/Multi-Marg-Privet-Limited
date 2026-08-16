@@ -256,7 +256,9 @@ exports.getRoot_2 = async (req, res) => {
       consignor: b.consignor,
       consignee: b.consignee,
       date: b.date,
-      createdAt: b.createdAt
+      createdAt: b.createdAt,
+      mode: b.mode,
+      box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount
     }));
   } else {
     // Apply Row-Level Security
