@@ -212,12 +212,59 @@ const PrintLR = () => {
     
     setIsSendingEmail(true);
     setEmailStatus("sending");
-    setEmailStatusMsg("Generating PDF and sending email...");
+    setEmailStatusMsg("Generating Lorry Receipt PDF on browser...");
     
     try {
+      const element = document.getElementById("bilty-content");
+      if (!element) {
+        throw new Error("Lorry Receipt content not found");
+      }
+
+      // Clone and clean element for PDF printing
+      const clone = element.cloneNode(true);
+      clone.style.transform = "none";
+      clone.style.position = "static";
+      clone.style.margin = "0";
+      clone.style.height = "auto";
+      clone.style.maxHeight = "none";
+      clone.style.overflow = "visible";
+      clone.style.width = "750px";
+      clone.style.boxSizing = "border-box";
+      clone.style.padding = "0";
+
+      // Convert canvas elements (QR codes) to images
+      const originalCanvases = element.querySelectorAll("canvas");
+      const cloneCanvases = clone.querySelectorAll("canvas");
+      originalCanvases.forEach((origCanvas, idx) => {
+        if (cloneCanvases[idx]) {
+          try {
+            const dataUrl = origCanvas.toDataURL("image/png");
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.style.cssText = origCanvas.style.cssText || "display: block;";
+            if (origCanvas.style.width) img.style.width = origCanvas.style.width;
+            if (origCanvas.style.height) img.style.height = origCanvas.style.height;
+            cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
+          } catch (_e) {}
+        }
+      });
+
+      const opt = {
+        margin: [2, 2, 2, 2],
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, width: 750, windowWidth: 750 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ['avoid-all'] }
+      };
+
+      setEmailStatusMsg("Sending Lorry Receipt via email...");
+      const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
+      const pdfBase64 = dataUri.split(';base64,')[1];
+
       const response = await axios.post(`${API}/email/send-lr`, {
         lrId: id,
-        to: recipientEmail
+        to: recipientEmail,
+        pdfBase64
       });
       
       if (response.data.success) {
