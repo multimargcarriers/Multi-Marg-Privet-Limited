@@ -491,56 +491,31 @@ const BillView1 = () => {
       </div>
 
       {/* AWS Console-themed Send Email Panel */}
-      <div className="no-print" style={{
-        margin: "0.5rem 0 1rem 0",
-        padding: "0.75rem 1rem",
-        background: "#fafafa",
-        border: "1px solid #d5dbdb",
-        borderLeft: "4px solid #ec7211",
-        borderRadius: "2px",
-        fontFamily: "'Amazon Ember', 'Helvetica Neue', Roboto, sans-serif"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: "280px" }}>
-            <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16191f", textTransform: "uppercase", letterSpacing: "0.5px" }}>Send Invoice Email:</span>
+      <div className="no-print aws-email-panel">
+        <div className="aws-email-row">
+          <div className="aws-email-inputs">
+            <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16191f", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>Send Invoice Email:</span>
             
-            <div style={{ display: "flex", alignItems: "center", position: "relative", flex: 1, maxWidth: "450px" }}>
+            <div className="aws-email-field">
               <input
                 type="text"
                 placeholder="Recipient Email ID(s) (comma separated)"
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
                 disabled={isSendingEmail}
-                style={{
-                  width: "100%",
-                  padding: "4px 8px",
-                  fontSize: "0.8rem",
-                  border: "1px solid #aab7b8",
-                  borderRadius: "2px",
-                  outline: "none",
-                  height: "28px",
-                  fontFamily: "monospace"
-                }}
+                className="aws-email-input"
               />
             </div>
 
             <button
               onClick={handleSendEmail}
               disabled={isSendingEmail || !recipientEmail.trim()}
+              className="aws-email-btn"
               style={{
                 background: isSendingEmail ? "#eaeded" : "#ec7211",
                 color: isSendingEmail ? "#aab7b8" : "#ffffff",
-                border: "1px solid " + (isSendingEmail ? "#d5dbdb" : "#dd6b10"),
-                padding: "0 14px",
-                height: "28px",
-                fontSize: "0.78rem",
-                fontWeight: "700",
-                borderRadius: "2px",
-                cursor: isSendingEmail || !recipientEmail.trim() ? "not-allowed" : "pointer",
-                transition: "all 0.1s ease-in-out",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px"
+                borderColor: isSendingEmail ? "#d5dbdb" : "#dd6b10",
+                cursor: isSendingEmail || !recipientEmail.trim() ? "not-allowed" : "pointer"
               }}
             >
               {isSendingEmail ? (
@@ -551,7 +526,7 @@ const BillView1 = () => {
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.78rem" }}>
+          <div className="aws-email-stats">
             <span style={{ color: "#545b64", fontWeight: "600" }}>
               Sent Count: <strong style={{ color: "#16191f" }}>{emailSentCount}</strong>
             </span>
@@ -567,7 +542,8 @@ const BillView1 = () => {
                     borderRadius: "12px",
                     fontSize: "0.7rem",
                     fontWeight: "600",
-                    border: "1px solid #d5dbdb"
+                    border: "1px solid #d5dbdb",
+                    wordBreak: "break-all"
                   }}>
                     {mail}
                   </span>
@@ -583,6 +559,7 @@ const BillView1 = () => {
             marginTop: "6px",
             fontSize: "0.72rem",
             fontWeight: "700",
+            wordBreak: "break-word",
             color: emailStatus === "sending" ? "#0073bb" : emailStatus === "success" ? "#067f58" : "#d13212"
           }}>
             {emailStatus === "sending" ? "● " : emailStatus === "success" ? "✓ " : "❌ "}
@@ -591,9 +568,100 @@ const BillView1 = () => {
         )}
       </div>
 
-      {/* Print Styles Sheet */}
+      {/* Print & Responsive Styles Sheet */}
       <style>
         {`
+          .aws-email-panel {
+            margin: 0.5rem 0 1rem 0;
+            padding: 0.75rem 1rem;
+            background: #fafafa;
+            border: 1px solid #d5dbdb;
+            border-left: 4px solid #ec7211;
+            border-radius: 2px;
+            font-family: 'Amazon Ember', 'Helvetica Neue', Roboto, sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          .aws-email-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+          }
+          .aws-email-inputs {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1 1 320px;
+            min-width: 0;
+          }
+          .aws-email-field {
+            display: flex;
+            align-items: center;
+            flex: 1 1 200px;
+            min-width: 0;
+          }
+          .aws-email-input {
+            width: 100%;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border: 1px solid #aab7b8;
+            border-radius: 2px;
+            outline: none;
+            height: 30px;
+            font-family: monospace;
+            box-sizing: border-box;
+            background: #ffffff;
+          }
+          .aws-email-btn {
+            padding: 0 16px;
+            height: 30px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border-radius: 2px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            box-sizing: border-box;
+            transition: all 0.1s ease-in-out;
+          }
+          .aws-email-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            flex-wrap: wrap;
+          }
+
+          @media (max-width: 640px) {
+            .aws-email-inputs {
+              flex-direction: column;
+              align-items: stretch;
+              gap: 0.5rem;
+              width: 100%;
+            }
+            .aws-email-field {
+              width: 100%;
+            }
+            .aws-email-input {
+              height: 36px;
+              font-size: 0.85rem;
+            }
+            .aws-email-btn {
+              width: 100%;
+              height: 36px;
+              font-size: 0.85rem;
+            }
+            .aws-email-stats {
+              width: 100%;
+              justify-content: space-between;
+              margin-top: 0.25rem;
+            }
+          }
+
           .print-container,
           .print-container *,
           .print-container div,

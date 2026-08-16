@@ -475,10 +475,96 @@ const PrintLR = () => {
           .premium-border {
             border: 2px solid #1e293b;
           }
+
+          .lr-email-panel {
+            max-width: 800px;
+            margin: 0 auto 0.75rem;
+            background: #fafafa;
+            border-radius: 2px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d5dbdb;
+            border-left: 4px solid #ec7211;
+            box-sizing: border-box;
+            width: 100%;
+          }
+          .lr-email-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+          }
+          .lr-email-inputs {
+            flex: 1 1 350px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+          }
+          .lr-email-input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #aab7b8;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            outline: none;
+            box-sizing: border-box;
+            background: #ffffff;
+            color: #16191f;
+            height: 32px;
+            min-width: 0;
+          }
+          .lr-email-btn {
+            padding: 0 16px;
+            background: #ec7211;
+            color: white;
+            border: 1px solid #dd6b10;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 32px;
+            white-space: nowrap;
+            box-sizing: border-box;
+          }
+
+          @media (max-width: 640px) {
+            .lr-top-bar {
+              flex-direction: column;
+              align-items: stretch !important;
+            }
+            .top-actions-container {
+              width: 100%;
+              flex-direction: column;
+              align-items: stretch !important;
+            }
+            .top-actions-container input,
+            .top-actions-container button {
+              width: 100% !important;
+            }
+            .lr-email-inputs {
+              flex-direction: column;
+              align-items: stretch;
+              width: 100%;
+            }
+            .lr-email-input {
+              width: 100%;
+              height: 36px;
+              font-size: 0.85rem;
+            }
+            .lr-email-btn {
+              width: 100%;
+              height: 36px;
+              font-size: 0.85rem;
+            }
+          }
         `}
       </style>
 
-      <div className="no-print" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+      <div className="no-print lr-top-bar" style={{ maxWidth: "800px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
         <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={handleBack}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
@@ -507,16 +593,7 @@ const PrintLR = () => {
       </div>
 
       {/* Email Sending Card */}
-      <div className="no-print" style={{
-        maxWidth: "800px",
-        margin: "0 auto 0.75rem",
-        background: "#fafafa",
-        borderRadius: "2px",
-        padding: "0.75rem 1rem",
-        boxShadow: "none",
-        border: "1px solid #d5dbdb",
-        boxSizing: "border-box"
-      }}>
+      <div className="no-print lr-email-panel">
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", borderBottom: "1px solid #eaeded", paddingBottom: "0.5rem", marginBottom: "0.5rem" }}>
           <h4 style={{ margin: 0, color: "#16191f", fontSize: "0.85rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
             <span>✉️</span> Send LR Email
@@ -532,8 +609,8 @@ const PrintLR = () => {
           </div>
         </div>
         
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
-          <div style={{ flex: "1 1 350px", display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="lr-email-row">
+          <div className="lr-email-inputs">
             <span style={{ fontSize: "0.75rem", color: "#545b64", fontWeight: "700", whiteSpace: "nowrap" }}>
               To:
             </span>
@@ -542,17 +619,7 @@ const PrintLR = () => {
               value={recipientEmail}
               onChange={(e) => setRecipientEmail(e.target.value)}
               placeholder="e.g. client@company.com, transport@company.com"
-              style={{
-                flex: 1,
-                padding: "6px 10px",
-                border: "1px solid #aab7b8",
-                borderRadius: "2px",
-                fontSize: "0.8rem",
-                outline: "none",
-                boxSizing: "border-box",
-                background: "#ffffff",
-                color: "#16191f"
-              }}
+              className="lr-email-input"
               onFocus={(e) => {
                 e.target.style.borderColor = "#ec7211";
               }}
@@ -565,26 +632,12 @@ const PrintLR = () => {
           <button
             onClick={handleSendEmail}
             disabled={isSendingEmail}
+            className="lr-email-btn"
             style={{
-              padding: "6px 14px",
-              background: "#ec7211",
-              color: "white",
-              border: "1px solid #ec7211",
-              borderRadius: "2px",
-              fontSize: "0.8rem",
-              fontWeight: "600",
-              cursor: isSendingEmail ? "not-allowed" : "pointer",
-              transition: "background 0.1s",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              height: "30px"
-            }}
-            onMouseOver={(e) => {
-              if (!isSendingEmail) e.target.style.background = "#d45f0d";
-            }}
-            onMouseOut={(e) => {
-              if (!isSendingEmail) e.target.style.background = "#ec7211";
+              background: isSendingEmail ? "#eaeded" : "#ec7211",
+              color: isSendingEmail ? "#aab7b8" : "#ffffff",
+              borderColor: isSendingEmail ? "#d5dbdb" : "#dd6b10",
+              cursor: isSendingEmail ? "not-allowed" : "pointer"
             }}
           >
             {isSendingEmail ? (
@@ -613,6 +666,7 @@ const PrintLR = () => {
             display: "flex",
             alignItems: "center",
             gap: "6px",
+            wordBreak: "break-word",
             background: emailStatus === 'success' ? '#f0fdf4' : emailStatus === 'error' ? '#fef2f2' : '#f8fafc',
             color: emailStatus === 'success' ? '#15803d' : emailStatus === 'error' ? '#b91c1c' : '#475569',
             border: `1px solid ${emailStatus === 'success' ? '#bbf7d0' : emailStatus === 'error' ? '#fecaca' : '#e2e8f0'}`
@@ -640,7 +694,8 @@ const PrintLR = () => {
                 borderRadius: "2px",
                 fontSize: "0.7rem",
                 fontWeight: "500",
-                border: "1px solid #cbd5e1"
+                border: "1px solid #d5dbdb",
+                wordBreak: "break-all"
               }}>
                 {email}
               </span>
