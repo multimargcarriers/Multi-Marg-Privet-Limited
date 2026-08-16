@@ -9,7 +9,7 @@ import { formatDate } from "../utils/formatters";
 const UploadVouchers = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [voucherList, setVoucherList] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);

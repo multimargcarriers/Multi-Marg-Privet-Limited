@@ -8,7 +8,7 @@ import { useDialog } from "../../context/DialogContext";
 const ManageServices = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -12,7 +12,7 @@ exports.getTrash = async (req, res) => {
     }
 
     // Normal users only see their own deleted items
-    const isSuperAdmin = req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimargcarriers.co.in');
+    const isSuperAdmin = req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimarg.com');
     if (!isSuperAdmin && req.user) {
       query['deletedBy.id'] = req.user.id;
     }
@@ -41,7 +41,7 @@ exports.restoreTrash = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Trash item not found' });
     }
 
-    const isSuperAdmin = req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimargcarriers.co.in');
+    const isSuperAdmin = req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimarg.com');
     if (!isSuperAdmin && req.user && trashItem.deletedBy?.id !== req.user.id) {
       return res.status(403).json({ success: false, error: 'Access denied: You can only restore your own items' });
     }

@@ -26,7 +26,7 @@ const BookingsList = () => {
   const { globalSettings } = useContext(SettingsContext);
   const { clearBadge } = useContext(BadgeContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const canAccessPod = isSuperAdmin || user?.role === 'Admin' || user?.permissions?.includes('pod') || true;
 
   const [bookings, setBookings] = useState([]);

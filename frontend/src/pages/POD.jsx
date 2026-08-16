@@ -40,7 +40,7 @@ const POD = () => {
   const { syncQueue } = useSync();
   const { confirm, alert: alertDialog } = useDialog();
   const navigate = useNavigate();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || user?.role === 'admin';
 
   // Data states
   const [podList, setPodList] = useState([]);

@@ -26,8 +26,8 @@ const Trips = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
-  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const hasAccess = (perm) => isSuperAdmin || (user?.permissions || []).includes('all') || (user?.permissions || []).includes(perm);
 

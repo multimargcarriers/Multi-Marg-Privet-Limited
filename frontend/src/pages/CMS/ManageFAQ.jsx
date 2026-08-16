@@ -8,7 +8,7 @@ import { useDialog } from "../../context/DialogContext";
 const ManageFAQ = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);

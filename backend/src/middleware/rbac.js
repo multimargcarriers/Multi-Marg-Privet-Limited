@@ -16,7 +16,7 @@ const requirePermission = (requiredPermissions) => {
     }
 
     const role = (req.user.role || "").toLowerCase().replace(/\s+/g, '');
-    if (role === 'superadmin' || req.user.email === 'admin@multimargcarriers.co.in') {
+    if (role === 'superadmin' || req.user.email === 'admin@multimarg.com') {
       return next();
     }
 

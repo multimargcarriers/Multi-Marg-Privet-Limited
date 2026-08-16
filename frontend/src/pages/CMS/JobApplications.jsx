@@ -8,7 +8,7 @@ import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
 const JobApplications = () => {
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);

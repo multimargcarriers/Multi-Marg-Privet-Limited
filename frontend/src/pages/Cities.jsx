@@ -16,7 +16,7 @@ const Cities = () => {
   const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -58,7 +58,7 @@ const Login = () => {
   
   useEffect(() => {
     if (user && !authLoading) {
-      const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimargcarriers.co.in';
+      const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com';
       const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
       
       const target = hasDashboard ? '/dashboard' : (user.role === 'Client' || user.role === 'Vendor' ? '/trips' : '/profile');

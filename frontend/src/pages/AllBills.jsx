@@ -23,7 +23,7 @@ const AllBills = () => {
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [bills, setBills] = useState([]);
   const [search, setSearch] = useState("");

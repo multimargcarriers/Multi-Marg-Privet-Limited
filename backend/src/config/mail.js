@@ -1,16 +1,21 @@
 const nodemailer = require("nodemailer");
 
-// Use port 2525 specifically because Render free tier blocks 25, 465, and 587, but allows 2525.
-const smtpHost = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-const smtpPort = process.env.SMTP_PORT || 2525;
-const smtpUser = process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || 'b31e39001@smtp-brevo.com';
-const smtpPass = process.env.SMTP_PASS || process.env.BREVO_API_KEY;
-const senderEmail = process.env.SMTP_FROM || process.env.BREVO_SENDER_EMAIL || 'praveen.pr105@gmail.com';
+// Hostinger SMTP Configuration — set these in your .env file:
+// SMTP_HOST=smtp.hostinger.com
+// SMTP_PORT=465
+// SMTP_USER=your-email@yourdomain.com
+// SMTP_PASS=your-email-password
+// SMTP_FROM=your-email@yourdomain.com
+const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+const senderEmail = process.env.SMTP_FROM || smtpUser;
 
 const transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
-  secure: smtpPort == 465, // true for 465, false for other ports
+  secure: smtpPort === 465,
   auth: {
     user: smtpUser,
     pass: smtpPass

@@ -21,7 +21,7 @@ const Tracking = () => {
   const { confirm } = useDialog();
   const { addToast } = useToast();
   const { syncQueue } = useSync();
-  const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
+  const isAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || user?.role === 'admin';
 
   const [allUpdates, setAllUpdates] = useState([]);
 

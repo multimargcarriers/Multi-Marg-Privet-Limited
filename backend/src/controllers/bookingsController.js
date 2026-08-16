@@ -332,7 +332,7 @@ exports.delete_id_5 = async (req, res) => {
 exports.delete_clear_all_6 = async (req, res) => {
   // Optional safety check: Ensure user is SuperAdmin
   const role = (req.user?.role || "").toLowerCase().replace(/\s+/g, '');
-  if (role !== 'superadmin' && req.user?.email !== 'admin@multimargcarriers.co.in') {
+  if (role !== 'superadmin' && req.user?.email !== 'admin@multimarg.com') {
     return error(res, "Forbidden: Only SuperAdmins can clear all bookings.", 403);
   }
 

@@ -13,7 +13,7 @@ const PrintSingleTrip = () => {
   const navigate = useNavigate();
   const _location = useLocation();
   const { user } = useContext(AuthContext);
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);
   const [trip, setTrip] = useState(null);

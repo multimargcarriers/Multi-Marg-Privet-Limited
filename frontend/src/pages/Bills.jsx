@@ -14,7 +14,7 @@ const Bills = () => {
   const { syncQueue } = useSync();
   const { user } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);

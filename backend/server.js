@@ -81,7 +81,7 @@ app.use(
       "http://localhost:5175",
       "https://multimarg.com",
       "https://www.multimarg.com",
-      "https://soft.multimargcarriers.co.in",
+      "https://soft.multimarg.com",
       process.env.FRONTEND_ORIGIN,
       process.env.PUBLIC_FRONTEND_ORIGIN
     ].filter(Boolean),

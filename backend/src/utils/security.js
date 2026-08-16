@@ -7,7 +7,7 @@ const filterByAccess = (documents, user, collectionType = "bookings") => {
   const role = (user.role || "").toLowerCase().replace(/\s+/g, '');
   
   // Admins see everything
-  if (role === 'superadmin' || role === 'admin' || user.email === 'admin@multimargcarriers.co.in') {
+  if (role === 'superadmin' || role === 'admin' || user.email === 'admin@multimarg.com') {
     return documents;
   }
 

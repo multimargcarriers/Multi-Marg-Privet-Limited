@@ -21,7 +21,7 @@ const matchClientUser = (data, user) => {
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   
   // Cache the full collection, then filter per-user in memory (fast)
@@ -51,7 +51,7 @@ exports.postRoot_2 = async (req, res) => {
   payload.creatorRole = user.role;
   payload.creatorName = user.name || user.email || 'Unknown';
   
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   // Non-admins have their entries marked as 'Pending' automatically
   if (!isAdmin) {
@@ -94,7 +94,7 @@ exports.put_id_3 = async (req, res) => {
   
   const existingData = doc.data();
   
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
 
   if (isClient) {
@@ -138,7 +138,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip MIS entry not found", 404);
   
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
   if (user && (user.role === 'Client' || user.role?.toLowerCase() === 'client')) {
     return error(res, "Clients are not authorized to delete entries.", 403);
   }
@@ -166,7 +166,7 @@ exports.addRemark_5 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   const isClientMatch = isClient && matchClientUser(existingData, user);
 

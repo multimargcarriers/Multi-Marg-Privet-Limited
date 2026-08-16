@@ -7,7 +7,7 @@ const CACHE_KEY = "vendor_mis";
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   // Cache full collection, filter per-user in memory
   const allRecords = await getOrSet(CACHE_KEY, async () => {
@@ -34,7 +34,7 @@ exports.postRoot_2 = async (req, res) => {
   payload.creatorRole = user.role;
   payload.creatorName = user.name || user.email || 'Unknown';
 
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   // Non-admins have their entries marked as 'Pending' automatically
   if (!isAdmin) {
@@ -77,7 +77,7 @@ exports.put_id_3 = async (req, res) => {
 
   const existingData = doc.data();
 
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   // Non-admins cannot update approvalStatus
   if (!isAdmin && req.body.approvalStatus && req.body.approvalStatus !== existingData.approvalStatus) {
@@ -110,7 +110,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   if (!isAdmin && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to delete this entry.", 403);
@@ -136,7 +136,7 @@ exports.addRemark_5 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimargcarriers.co.in');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   if (!isAdmin && existingData.createdBy !== user.id) {
     return error(res, "You are not authorized to comment on this entry.", 403);

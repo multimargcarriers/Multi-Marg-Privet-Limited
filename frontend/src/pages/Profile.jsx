@@ -14,7 +14,7 @@ const Profile = () => {
   const { globalSettings } = useContext(SettingsContext);
   const { addToast } = useToast();
 
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');

@@ -42,7 +42,7 @@ const Purchase = () => {
   const { clearBadge } = useContext(BadgeContext);
   const { confirm, alert: alertDialog } = useDialog();
   const navigate = useNavigate();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || user?.role === 'admin';
 
   // Data states
   const [purchases, setPurchases] = useState([]);

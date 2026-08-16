@@ -27,7 +27,7 @@ const Trash = () => {
   const { confirm } = useDialog();
   const { addToast } = useToast();
   const { user } = React.useContext(AuthContext);
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
   const fetchTrash = async () => {
     setLoading(true);

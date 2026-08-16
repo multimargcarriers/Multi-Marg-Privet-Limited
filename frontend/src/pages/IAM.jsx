@@ -94,7 +94,7 @@ const IAM = () => {
   const { token, user: currentUser, updateUser } = useContext(AuthContext);
   const { confirm } = useDialog();
   const { addToast } = useToast();
-  const isSuperAdmin = currentUser?.role === 'SuperAdmin' || currentUser?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = currentUser?.role === 'SuperAdmin' || currentUser?.email === 'admin@multimarg.com';
   
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

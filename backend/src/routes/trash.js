@@ -4,7 +4,7 @@ const { getTrash, restoreTrash, forceDeleteTrash, clearTrash } = require('../con
 const { authenticateToken } = require('../middleware/auth');
 
 const requireSuperAdmin = (req, res, next) => {
-  if (req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimargcarriers.co.in')) {
+  if (req.user && (req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimarg.com')) {
     next();
   } else {
     res.status(403).json({ success: false, error: 'Access denied: SuperAdmin only' });

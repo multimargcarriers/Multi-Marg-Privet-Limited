@@ -46,7 +46,7 @@ const CashSheet = () => {
   const { clearBadge } = useContext(BadgeContext);
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in' || user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || user?.role === 'admin';
 
   // Data states
   const [entries, setEntries] = useState([]);

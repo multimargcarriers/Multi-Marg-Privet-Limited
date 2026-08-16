@@ -17,7 +17,7 @@ const Vendors = () => {
   const { user } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const canBulkDelete = isSuperAdmin && globalSettings?.integrations?.enableBulkDelete;
 
   const [vendors, setVendors] = useState([]);

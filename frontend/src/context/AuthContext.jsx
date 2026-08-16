@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', userToken);
 
     // Determine initial route based on permissions
-    const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimargcarriers.co.in';
+    const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimarg.com';
     const hasDashboard = isSuperAdmin || (userData.permissions && (userData.permissions.includes('all') || userData.permissions.includes('dashboard')));
     
     const savedRedirectUrl = localStorage.getItem('redirectUrl');
@@ -209,7 +209,7 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (moduleName) => {
     if (!user) return false;
     // Fallback for stale localStorage data
-    if (user.role === 'SuperAdmin' || user.email === 'admin@multimargcarriers.co.in') return true;
+    if (user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com') return true;
     
     if (user.permissions && (user.permissions.includes('all') || user.permissions.includes(moduleName))) {
       return true;
