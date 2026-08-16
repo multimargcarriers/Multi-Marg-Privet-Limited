@@ -211,9 +211,9 @@ const PrintManifest = () => {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
-        <div style={{ width: `${780 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
+        <div style={{ width: `${750 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
           <div id="manifest-content" className="print-container" style={{
-            width: "780px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
+            width: "750px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "8px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
             <style>
