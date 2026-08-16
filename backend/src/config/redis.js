@@ -11,7 +11,17 @@ const USE_REDIS = process.env.USE_REDIS === "true";
 const invalidationTimestamps = new Map();
 
 const getRedisUrl = () => {
-  if (process.env.REDIS_URL) return process.env.REDIS_URL;
+  const url = process.env.REDIS_URL;
+  if (
+    url &&
+    typeof url === "string" &&
+    url.trim() !== "" &&
+    url !== "undefined" &&
+    url !== "null" &&
+    (url.startsWith("redis://") || url.startsWith("rediss://"))
+  ) {
+    return url;
+  }
   const host = process.env.REDIS_HOST || "127.0.0.1";
   const port = process.env.REDIS_PORT || 6379;
   const password = process.env.REDIS_PASSWORD;
