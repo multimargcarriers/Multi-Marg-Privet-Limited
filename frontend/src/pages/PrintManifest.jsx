@@ -211,9 +211,9 @@ const PrintManifest = () => {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
-        <div style={{ width: `${800 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
+        <div style={{ width: `${780 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
           <div id="manifest-content" className="print-container" style={{
-            width: "800px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
+            width: "780px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
             <style>
@@ -260,7 +260,7 @@ const PrintManifest = () => {
                 .premium-border { border: 2px solid #1e293b !important; }
               `}
             </style>
-            <div className="premium-border" style={{ height: "auto", minHeight: "0", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="premium-border" style={{ height: "auto", minHeight: "1010px", position: "relative", display: "flex", flexDirection: "column" }}>
 
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
