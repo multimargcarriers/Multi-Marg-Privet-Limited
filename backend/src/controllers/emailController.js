@@ -54,7 +54,7 @@ const { sendEmail } = require("../config/mail");
 const { generatePDF } = require("../utils/pdfGenerator");
 
 exports.post_send_lr = async (req, res) => {
-  const { lrId, to, pdfBase64 } = req.body;
+  const { lrId, to, pdfBase64, filename } = req.body;
   if (!lrId) return error(res, "LR ID is required", 400);
   if (!to) return error(res, "Recipient email is required", 400);
 
@@ -64,10 +64,19 @@ exports.post_send_lr = async (req, res) => {
     if (!bookingDoc.exists) return error(res, "Booking not found", 404);
     
     const booking = { id: bookingDoc.id, ...bookingDoc.data() };
-    const lrNumber = booking.lrNumber || booking.awb || lrId;
+    const lrNumber = (booking.lrNumber || booking.awb || lrId).toString().toUpperCase();
     const date = booking.date ? new Date(booking.date).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN");
     
-    // --- 1. Generate PDF ---
+    // --- 1. Construct standard filename: AWB Route BilledTo ---
+    const awb = String(booking.consignment || booking.awb || booking.lrNumber || lrId).trim().toUpperCase();
+    const origin = String(booking.origin || booking.from || "").trim().toUpperCase();
+    const dest = String(booking.destination || booking.to || "").trim().toUpperCase();
+    const routeStr = (origin && dest) ? `${origin} TO ${dest}` : (origin || dest || "");
+    const billedToName = String(booking.client || booking.billedTo || "").trim().toUpperCase();
+    
+    const finalFilename = filename || `${awb}${routeStr ? " - " + routeStr : ""}${billedToName ? " - " + billedToName : ""}.pdf`;
+
+    // --- 2. Generate PDF ---
     let pdfBuffer;
     if (pdfBase64) {
       pdfBuffer = Buffer.from(pdfBase64, 'base64');
@@ -76,33 +85,57 @@ exports.post_send_lr = async (req, res) => {
       pdfBuffer = await generatePDF(pdfHtml);
     }
 
-    // --- 2. Compile responsive, professional HTML email ---
+    // --- 3. Compile responsive, professional HTML email in UPPERCASE ---
     let invoiceRowsHtml = "";
     let parcels = (booking.invoiceDetails && booking.invoiceDetails.length > 0) ? booking.invoiceDetails : (booking.parcels || []);
     if (parcels && parcels.length > 0) {
       invoiceRowsHtml += `
         <tr>
-          <td colspan="2" style="background-color: #f1f5f9; padding: 12px 16px; font-weight: bold; color: #232F3E; font-size: 15px; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #cbd5e1; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            Invoice & Material Details
+          <td colspan="2" style="background-color: #f1f5f9; padding: 12px 16px; font-weight: bold; color: #232F3E; font-size: 15px; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #cbd5e1; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-transform: uppercase;">
+            INVOICE & MATERIAL DETAILS
           </td>
         </tr>
       `;
       parcels.forEach((inv, index) => {
-        const invNo = inv.invoiceNo || inv.invoice || "";
-        const invVal = inv.invoiceValue || inv.value || "";
-        const partNo = inv.partNumber || inv.part || "";
-        const eway = inv.ewayBill || inv.eway || "";
+        const invNo = String(inv.invoiceNo || inv.invoice || "").toUpperCase();
+        const invVal = String(inv.invoiceValue || inv.value || "").toUpperCase();
+        const partNo = String(inv.partNumber || inv.part || "").toUpperCase();
+        const eway = String(inv.ewayBill || inv.eway || "").toUpperCase();
         invoiceRowsHtml += `
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; ${index === parcels.length - 1 ? 'border-bottom: 1px solid #e2e8f0;' : ''}">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Invoice #${index + 1}:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">
-              ${invNo || "-"} ${invVal ? `(Value: Rs. ${invVal})` : ""}
-              ${partNo ? `<br><span style="font-size: 12px; color: #64748b; font-weight: normal;">Part Number: ${partNo}</span>` : ""}
-              ${eway ? `<br><span style="font-size: 12px; color: #64748b; font-weight: normal;">E-Way Bill: ${eway}</span>` : ""}
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">INVOICE #${index + 1}:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">
+              ${invNo || "-"} ${invVal ? `(VALUE: RS. ${invVal})` : ""}
+              ${partNo ? `<br><span style="font-size: 12px; color: #64748b; font-weight: normal; text-transform: uppercase;">PART NUMBER: ${partNo}</span>` : ""}
+              ${eway ? `<br><span style="font-size: 12px; color: #64748b; font-weight: normal; text-transform: uppercase;">E-WAY BILL: ${eway}</span>` : ""}
             </td>
           </tr>
         `;
       });
+    }
+
+    // --- 3. Compile responsive, professional HTML email in UPPERCASE with AWS theme and logo banner ---
+    const path = require('path');
+    const fs = require('fs');
+
+    const attachments = [
+      {
+        filename: finalFilename,
+        content: pdfBuffer
+      }
+    ];
+
+    let logoSrc = "cid:companylogo";
+    const logoPath = path.join(__dirname, "../../../frontend/public/mc.png");
+    if (fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: 'logo.png',
+        path: logoPath,
+        cid: 'companylogo'
+      });
+    } else {
+      // Fallback hosted logo url if local file not found
+      logoSrc = "https://soft.multimargcarriers.co.in/mc.png";
     }
 
     const emailHtml = `<!DOCTYPE html>
@@ -110,78 +143,109 @@ exports.post_send_lr = async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lorry Receipt - Multi Marg Carriers</title>
+  <title>LORRY RECEIPT - MULTI MARG CARRIERS</title>
+  <style>
+    .no-transform, .no-transform *, a, a *, .lowercase, .lowercase * {
+      text-transform: none !important;
+      text-transform: lowercase !important;
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
-  <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 650px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; border-collapse: collapse; width: 100%; box-sizing: border-box;">
-    <!-- Header -->
+<body style="margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; text-transform: uppercase;">
+  <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 650px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; border-collapse: collapse; width: 100%; box-sizing: border-box; text-transform: uppercase;">
+    <!-- AWS Professional Header Banner -->
     <tr>
-      <td style="background: linear-gradient(135deg, #232F3E 0%, #0f151c 100%); padding: 35px 25px; text-align: center; border-bottom: 4px solid #FF9900;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;">MULTIMARG CARRIERS</h1>
-        <p style="color: #FF9900; font-size: 12px; margin: 6px 0 0 0; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;">Transport & Logistics Services</p>
+      <td style="background-color: #232F3E; padding: 25px 30px; border-bottom: 4px solid #ec7211;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <!-- Logo & Brand -->
+            <td style="vertical-align: middle; text-align: left;">
+              <table cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td style="padding-right: 15px; vertical-align: middle;">
+                    <img src="${logoSrc}" alt="LOGO" style="width: 55px; height: auto; display: block; border-radius: 2px;" />
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1; text-transform: uppercase;">MULTIMARG CARRIERS</h1>
+                    <p style="color: #ec7211; font-size: 11px; margin: 4px 0 0 0; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.1;">TRANSPORT & LOGISTICS SERVICES</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+            <!-- Contact Details -->
+            <td style="vertical-align: middle; text-align: right; color: #aab7b8; font-size: 11px; line-height: 1.5; font-weight: 600;">
+              <div style="margin-bottom: 2px; text-transform: uppercase;">
+                EMAIL: <span style="text-transform: lowercase !important; color: #ffffff;"><a href="mailto:info@multimarg.com" style="color: #ffffff; text-decoration: none; text-transform: lowercase !important;">info@multimarg.com</a></span>
+              </div>
+              <div style="text-transform: uppercase;">
+                WEBSITE: <span style="text-transform: lowercase !important; color: #ffffff;"><a href="https://multimarg.com" target="_blank" style="color: #ffffff; text-decoration: none; text-transform: lowercase !important;">multimarg.com</a></span>
+              </div>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
     <!-- Content Body -->
     <tr>
       <td style="padding: 40px 30px;">
-        <h2 style="color: #232F3E; margin-top: 0; font-size: 20px; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">Lorry Receipt (LR) Consignment Details</h2>
-        <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
-          Dear Team/Client,<br><br>
-          We are pleased to share the details of your booking with <strong>Multi Marg Carriers Private Limited</strong>. The official Lorry Receipt / Builty (PDF) has been attached to this email for your records.
+        <h2 style="color: #232F3E; margin-top: 0; font-size: 20px; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; text-transform: uppercase;">LORRY RECEIPT (LR) CONSIGNMENT DETAILS</h2>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 25px; text-transform: uppercase;">
+          DEAR TEAM/CLIENT,<br><br>
+          WE ARE PLEASED TO SHARE THE DETAILS OF YOUR BOOKING WITH <strong>MULTIMARG CARRIERS PRIVATE LIMITED</strong>. THE OFFICIAL LORRY RECEIPT / BUILTY (PDF) HAS BEEN ATTACHED TO THIS EMAIL FOR YOUR RECORDS.
         </p>
 
         <!-- Summary Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 30px; width: 100%;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 30px; width: 100%; text-transform: uppercase;">
           <tr>
-            <td colspan="2" style="background-color: #f8fafc; padding: 12px 16px; border-radius: 8px 8px 0 0; font-weight: bold; color: #232F3E; font-size: 15px; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-              Consignment Info
+            <td colspan="2" style="background-color: #f8fafc; padding: 12px 16px; border-radius: 8px 8px 0 0; font-weight: bold; color: #232F3E; font-size: 15px; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-transform: uppercase;">
+              CONSIGNMENT INFO
             </td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; width: 40%; font-weight: 500; vertical-align: top;">LR/AWB Number:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 700; word-break: break-all;">${lrNumber}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; width: 40%; font-weight: 500; vertical-align: top; text-transform: uppercase;">LR/AWB NUMBER:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 700; word-break: break-all; text-transform: uppercase;">${lrNumber}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Booking Date:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${date}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">BOOKING DATE:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-transform: uppercase;">${date}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Billed To:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">${booking.client || booking.billedTo || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">BILLED TO:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${billedToName}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Consignor:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">${booking.consignor || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">CONSIGNOR:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${(booking.consignor || "-").toUpperCase()}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Consignee:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">${booking.consignee || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">CONSIGNEE:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${(booking.consignee || "-").toUpperCase()}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Origin:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">${booking.origin || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">ORIGIN:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${origin}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Destination:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word;">${booking.destination || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">DESTINATION:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${dest}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">No of Boxes:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600;">${booking.box || "-"}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">NO OF BOXES:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-transform: uppercase;">${String(booking.box || "-").toUpperCase()}</td>
           </tr>
           <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top;">Actual Weight:</td>
-            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-size: 14px; font-weight: 600;">${booking.actual_wt || booking.weight || "-"} kg</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">ACTUAL WEIGHT:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-size: 14px; font-weight: 600; text-transform: uppercase;">${String(booking.actual_wt || booking.weight || "-").toUpperCase()} KG</td>
           </tr>
           ${invoiceRowsHtml}
         </table>
 
         <!-- Call to Action -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; text-transform: uppercase;">
           <tr>
-            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center;">
-              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600;">
-                📎 Attachment: LR_${lrNumber}.pdf has been attached to this email.
+            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center; text-transform: uppercase;">
+              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600; text-transform: uppercase;">
+                📎 ATTACHMENT: ${finalFilename.toUpperCase()} HAS BEEN ATTACHED TO THIS EMAIL.
               </p>
             </td>
           </tr>
@@ -190,10 +254,10 @@ exports.post_send_lr = async (req, res) => {
     </tr>
     <!-- Footer -->
     <tr>
-      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0;">
-        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0;">
-          &copy; ${new Date().getFullYear()} <strong>Multi Marg Carriers Pvt. Ltd.</strong>. All rights reserved.<br>
-          Dhanbad District, Jharkhand, India.
+      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; text-transform: uppercase;">
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; text-transform: uppercase;">
+          &copy; ${new Date().getFullYear()} <strong>MULTIMARG CARRIERS PVT. LTD.</strong>. ALL RIGHTS RESERVED.<br>
+          DHANBAD DISTRICT, JHARKHAND, INDIA.
         </p>
       </td>
     </tr>
@@ -201,19 +265,14 @@ exports.post_send_lr = async (req, res) => {
 </body>
 </html>`;
 
-    // --- 3. Send email with PDF attachment ---
+    // --- 4. Send email with PDF attachment ---
     const recipients = to.split(",").map(e => e.trim()).filter(Boolean);
-    const subject = `Lorry Receipt - LR No: ${lrNumber} (Multi Marg Carriers)`;
+    const subject = `LORRY RECEIPT - LR NO: ${lrNumber} (MULTI MARG CARRIERS)`.toUpperCase();
     await sendEmail({
       to: recipients.join(", "),
       subject,
       htmlContent: emailHtml,
-      attachments: [
-        {
-          filename: `LR_${lrNumber}.pdf`,
-          content: pdfBuffer
-        }
-      ]
+      attachments
     });
 
     // --- 4. Update tracking fields in MongoDB ---

@@ -261,10 +261,18 @@ const PrintLR = () => {
       const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
       const pdfBase64 = dataUri.split(';base64,')[1];
 
+      const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
+      const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
+      const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();
+      const routeStr = (origin && dest) ? `${origin} TO ${dest}` : (origin || dest || "");
+      const clientName = (booking?.consignee || booking?.consignor || booking?.clientName || booking?.client || "").toString().trim().toUpperCase();
+      const filename = `${awb}${routeStr ? " - " + routeStr : ""}${clientName ? " - " + clientName : ""}.pdf`;
+
       const response = await axios.post(`${API}/email/send-lr`, {
         lrId: id,
         to: recipientEmail,
-        pdfBase64
+        pdfBase64,
+        filename
       });
       
       if (response.data.success) {
