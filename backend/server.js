@@ -13,7 +13,6 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
 const hpp = require("hpp");
 
 // Load environment variables
@@ -107,9 +106,6 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Data Sanitization against NoSQL query injection
 // app.use(mongoSanitize()); // Disabled: Incompatible with Express 5 (req.query is read-only)
-
-// Data Sanitization against XSS
-// app.use(xss()); // Disabled: Incompatible with Express 5 (req.query is read-only)
 
 // Prevent Parameter Pollution
 app.use(hpp());
