@@ -53,7 +53,7 @@ async function checkChromiumAvailability() {
     console.log('✅ Puppeteer Chromium is available — vector PDF generation enabled');
   } catch (e) {
     chromiumAvailable = false;
-    console.warn(`⚠️ Puppeteer Chromium not available: ${e.message} — PDF generation will fail. Install chromium-browser on this server.`);
+    console.log(`⚠️ Puppeteer Chromium not available: ${e.message} — PDF generation will fail. Install chromium-browser on this server.`);
   }
   return chromiumAvailable;
 }

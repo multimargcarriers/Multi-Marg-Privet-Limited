@@ -54,7 +54,7 @@ async function initRedis() {
     });
 
     client.on("error", (err) => {
-      console.error("[Redis] Connection error:", err.message);
+      console.log("[Redis] Connection error:", err.message);
       isConnected = false;
     });
 
@@ -70,8 +70,8 @@ async function initRedis() {
     await client.connect();
     return client;
   } catch (error) {
-    console.warn("[Redis] Failed to connect:", error.message);
-    console.warn("[Redis] Continuing without caching layer.");
+    console.log("[Redis] Failed to connect:", error.message);
+    console.log("[Redis] Continuing without caching layer.");
     isConnected = false;
     return null;
   }
@@ -111,7 +111,7 @@ async function getCache(key) {
     }
     return null;
   } catch (error) {
-    console.warn(`[Redis] Get cache error for key "${key}":`, error.message);
+    console.log(`[Redis] Get cache error for key "${key}":`, error.message);
     return null;
   }
 }
@@ -132,7 +132,7 @@ async function setCache(key, value, ttlSeconds = 300) {
   try {
     await client.setEx(key, ttlSeconds, JSON.stringify(value));
   } catch (error) {
-    console.warn(`[Redis] Set cache error for key "${key}":`, error.message);
+    console.log(`[Redis] Set cache error for key "${key}":`, error.message);
   }
 }
 
@@ -149,7 +149,7 @@ function delCache(key) {
   if (!client || !isConnected) return Promise.resolve();
   
   return client.del(key).catch(error => {
-    console.warn(`[Redis] Del cache error for key "${key}":`, error.message);
+    console.log(`[Redis] Del cache error for key "${key}":`, error.message);
   });
 }
 
@@ -170,7 +170,7 @@ function invalidatePattern(pattern) {
       });
     }
   }).catch(error => {
-    console.warn(`[Redis] Invalidate pattern error for "${pattern}":`, error.message);
+    console.log(`[Redis] Invalidate pattern error for "${pattern}":`, error.message);
   });
 }
 
@@ -199,7 +199,7 @@ async function getOrSet(key, fetchFn, ttlSeconds = 300) {
       return data;
     }
 
-    await setCache(key, data, ttlSeconds).catch(err => console.warn(err));
+    await setCache(key, data, ttlSeconds).catch(err => console.log(err));
   }
   return data;
 }
@@ -223,7 +223,7 @@ async function closeRedis() {
       await client.quit();
       console.log("[Redis] Connection closed gracefully");
     } catch (error) {
-      console.warn("[Redis] Error closing connection:", error.message);
+      console.log("[Redis] Error closing connection:", error.message);
     }
   }
 }
@@ -238,7 +238,7 @@ async function clearAllCache() {
       await client.flushDb();
       console.log("[Redis] Flushed DB");
     } catch (error) {
-      console.warn("[Redis] Error flushing DB:", error.message);
+      console.log("[Redis] Error flushing DB:", error.message);
     }
   }
 }
