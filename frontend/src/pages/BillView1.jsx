@@ -80,6 +80,45 @@ const BillView1 = () => {
   const [bill, setBill] = useState(null);
   const [uploading, setUploading] = useState(false);
   
+  // Email states
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState("idle");
+  const [emailStatusMsg, setEmailStatusMsg] = useState("");
+  const [emailSentCount, setEmailSentCount] = useState(0);
+  const [emailSentTo, setEmailSentTo] = useState([]);
+
+  useEffect(() => {
+    if (bill) {
+      setEmailSentCount(bill.emailSentCount || 0);
+      setEmailSentTo(bill.emailSentTo || []);
+    }
+  }, [bill]);
+
+  useEffect(() => {
+    if (bill && clients.length > 0) {
+      const clientName = typeof bill.client === 'string' ? bill.client : (bill.client?.name || bill.clientName || bill.customerName || "");
+      const bName = String(clientName || "").trim().toLowerCase();
+      
+      const matched = clients.find(c => {
+        const cName = String(c.name || "").trim().toLowerCase();
+        const codeLower = String(c.clientCode || "").trim().toLowerCase();
+        if (cName === bName || codeLower === bName) return true;
+        
+        const cNameClean = cName.replace(/[^a-z0-9]/g, '');
+        const bNameClean = bName.replace(/[^a-z0-9]/g, '');
+        if (cNameClean.length > 5 && bNameClean.length > 5) {
+          if (cNameClean.includes(bNameClean) || bNameClean.includes(cNameClean)) return true;
+        }
+        return false;
+      });
+
+      if (matched && matched.email) {
+        setRecipientEmail(matched.email);
+      }
+    }
+  }, [bill, clients]);
+  
   // Option toggle for official company stamp
   const [includeStamp, setIncludeStamp] = useState(() => {
     try {
@@ -203,6 +242,90 @@ const BillView1 = () => {
     } catch (err) {
       console.error("Puppeteer PDF generation error:", err);
       addToast("Failed to generate PDF via backend", "error");
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!recipientEmail || !recipientEmail.trim()) {
+      alert("Please enter a valid recipient email address.");
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    setEmailStatus("sending");
+    setEmailStatusMsg("Generating Tax Invoice PDF on browser...");
+    
+    try {
+      const element = document.getElementById("bill-content");
+      if (!element) {
+        throw new Error("Tax Invoice content not found");
+      }
+
+      // Clone and clean element for PDF printing
+      const clone = element.cloneNode(true);
+      clone.style.transform = "none";
+      clone.style.position = "static";
+      clone.style.margin = "0";
+      clone.style.width = "940px";
+      clone.style.boxSizing = "border-box";
+      clone.style.padding = "0";
+
+      // Convert canvas elements to images if any
+      const originalCanvases = element.querySelectorAll("canvas");
+      const cloneCanvases = clone.querySelectorAll("canvas");
+      originalCanvases.forEach((origCanvas, idx) => {
+        if (cloneCanvases[idx]) {
+          try {
+            const dataUrl = origCanvas.toDataURL("image/png");
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.style.cssText = origCanvas.style.cssText || "display: block;";
+            if (origCanvas.style.width) img.style.width = origCanvas.style.width;
+            if (origCanvas.style.height) img.style.height = origCanvas.style.height;
+            cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
+          } catch (_e) {}
+        }
+      });
+
+      const opt = {
+        margin: [2, 2, 2, 2],
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false, width: 940, windowWidth: 940 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ['avoid-all'] }
+      };
+
+      setEmailStatusMsg("Sending Tax Invoice via email...");
+      const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
+      const pdfBase64 = dataUri.split(';base64,')[1];
+
+      const clientName = typeof billData?.client === 'string' ? billData.client : (billData?.client?.name || billData?.clientName || billData?.customerName || "");
+      const billNo = (billData?.invoice || billData?.billNo || billData?.invoiceNo || id).toString().replace(/[\/\\]/g, "_");
+      const filename = `${billNo}${clientName ? " - " + clientName.toUpperCase() : ""}.pdf`;
+
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/email/send-bill`, {
+        billId: id,
+        to: recipientEmail,
+        pdfBase64,
+        filename
+      });
+      
+      if (response.data.success) {
+        setEmailStatus("success");
+        setEmailStatusMsg("Email successfully sent with attachment!");
+        setEmailSentCount(prev => prev + 1);
+        setEmailSentTo(prev => Array.from(new Set([...prev, ...recipientEmail.split(",").map(e => e.trim())])));
+        addToast("Tax Invoice emailed successfully!", "success");
+      } else {
+        throw new Error(response.data.message || "Failed to send email");
+      }
+    } catch (err) {
+      console.error("Failed to email Tax Invoice:", err);
+      setEmailStatus("error");
+      setEmailStatusMsg(`Error: ${err.message || "Failed to send email"}`);
+      addToast(err.message || "Failed to email Tax Invoice", "error");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -366,6 +489,107 @@ const BillView1 = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* AWS Console-themed Send Email Panel */}
+      <div className="no-print" style={{
+        margin: "0.5rem 0 1rem 0",
+        padding: "0.75rem 1rem",
+        background: "#fafafa",
+        border: "1px solid #d5dbdb",
+        borderLeft: "4px solid #ec7211",
+        borderRadius: "2px",
+        fontFamily: "'Amazon Ember', 'Helvetica Neue', Roboto, sans-serif"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: "280px" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16191f", textTransform: "uppercase", letterSpacing: "0.5px" }}>Send Invoice Email:</span>
+            
+            <div style={{ display: "flex", alignItems: "center", position: "relative", flex: 1, maxWidth: "450px" }}>
+              <input
+                type="text"
+                placeholder="Recipient Email ID(s) (comma separated)"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                disabled={isSendingEmail}
+                style={{
+                  width: "100%",
+                  padding: "4px 8px",
+                  fontSize: "0.8rem",
+                  border: "1px solid #aab7b8",
+                  borderRadius: "2px",
+                  outline: "none",
+                  height: "28px",
+                  fontFamily: "monospace"
+                }}
+              />
+            </div>
+
+            <button
+              onClick={handleSendEmail}
+              disabled={isSendingEmail || !recipientEmail.trim()}
+              style={{
+                background: isSendingEmail ? "#eaeded" : "#ec7211",
+                color: isSendingEmail ? "#aab7b8" : "#ffffff",
+                border: "1px solid " + (isSendingEmail ? "#d5dbdb" : "#dd6b10"),
+                padding: "0 14px",
+                height: "28px",
+                fontSize: "0.78rem",
+                fontWeight: "700",
+                borderRadius: "2px",
+                cursor: isSendingEmail || !recipientEmail.trim() ? "not-allowed" : "pointer",
+                transition: "all 0.1s ease-in-out",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+            >
+              {isSendingEmail ? (
+                <>
+                  <span className="spinner-border spinner-border-sm" style={{ width: "12px", height: "12px", borderWidth: "1.5px", display: "inline-block", borderRadius: "50%", borderStyle: "solid", borderColor: "#aab7b8 transparent #aab7b8 transparent", animation: "spin 0.8s linear infinite" }} /> Sending...
+                </>
+              ) : "Send Invoice"}
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.78rem" }}>
+            <span style={{ color: "#545b64", fontWeight: "600" }}>
+              Sent Count: <strong style={{ color: "#16191f" }}>{emailSentCount}</strong>
+            </span>
+            {emailSentTo.length > 0 && (
+              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ color: "#879196" }}>|</span>
+                <span style={{ color: "#545b64", fontWeight: "600" }}>Sent To:</span>
+                {emailSentTo.map((mail, idx) => (
+                  <span key={idx} style={{
+                    padding: "2px 6px",
+                    background: "#eaeded",
+                    color: "#44494f",
+                    borderRadius: "12px",
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    border: "1px solid #d5dbdb"
+                  }}>
+                    {mail}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Status log lines */}
+        {emailStatus !== "idle" && (
+          <div style={{
+            marginTop: "6px",
+            fontSize: "0.72rem",
+            fontWeight: "700",
+            color: emailStatus === "sending" ? "#0073bb" : emailStatus === "success" ? "#067f58" : "#d13212"
+          }}>
+            {emailStatus === "sending" ? "● " : emailStatus === "success" ? "✓ " : "❌ "}
+            {emailStatusMsg}
+          </div>
+        )}
       </div>
 
       {/* Print Styles Sheet */}

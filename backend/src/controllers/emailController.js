@@ -298,3 +298,199 @@ exports.post_send_lr = async (req, res) => {
   }
 };
 
+exports.post_send_bill = async (req, res) => {
+  const { billId, to, pdfBase64, filename } = req.body;
+  if (!billId) return error(res, "Bill ID is required", 400);
+  if (!to) return error(res, "Recipient email is required", 400);
+
+  try {
+    const billRef = db.collection("bills").doc(billId);
+    const billDoc = await billRef.get();
+    if (!billDoc.exists) return error(res, "Bill not found", 404);
+    
+    const bill = { id: billDoc.id, ...billDoc.data() };
+    const billNo = (bill.billNo || bill.invoice || bill.invoiceNo || billId).toString().toUpperCase();
+    const date = bill.date ? new Date(bill.date).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN");
+    
+    // --- 1. Construct standard filename: BillNo Client ---
+    const clientName = typeof bill.client === 'string' ? bill.client : (bill.client?.name || bill.clientName || bill.customerName || "");
+    const finalClient = String(clientName || "").trim().toUpperCase();
+    const cleanBillNo = billNo.replace(/[\/\\]/g, "_");
+    
+    const finalFilename = filename || `${cleanBillNo}${finalClient ? " - " + finalClient : ""}.pdf`;
+
+    // --- 2. Generate PDF (Fallback only) ---
+    let pdfBuffer;
+    if (pdfBase64) {
+      pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    } else {
+      const pdfHtml = `<!DOCTYPE html><html><body><h1>TAX INVOICE</h1><p>Invoice No: ${billNo}</p><p>Client: ${finalClient}</p></body></html>`;
+      pdfBuffer = await generatePDF(pdfHtml);
+    }
+
+    // --- 3. Compile responsive, professional HTML email in UPPERCASE with AWS theme and logo banner ---
+    const path = require('path');
+    const fs = require('fs');
+
+    const attachments = [
+      {
+        filename: finalFilename,
+        content: pdfBuffer
+      }
+    ];
+
+    let logoSrc = "cid:companylogo";
+    const logoPath = path.join(__dirname, "../../../frontend/public/mc.png");
+    if (fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: 'logo.png',
+        path: logoPath,
+        cid: 'companylogo'
+      });
+    } else {
+      logoSrc = "https://soft.multimargcarriers.co.in/mc.png";
+    }
+
+    const emailHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TAX INVOICE - MULTI MARG CARRIERS</title>
+  <style>
+    .no-transform, .no-transform *, a, a *, .lowercase, .lowercase * {
+      text-transform: none !important;
+      text-transform: lowercase !important;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; text-transform: uppercase;">
+  <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 650px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; border-collapse: collapse; width: 100%; box-sizing: border-box; text-transform: uppercase;">
+    <!-- AWS Professional Header Banner -->
+    <tr>
+      <td style="background-color: #232F3E; padding: 25px 30px; border-bottom: 4px solid #ec7211;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <!-- Logo & Brand -->
+            <td style="vertical-align: middle; text-align: left;">
+              <table cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td style="padding-right: 15px; vertical-align: middle;">
+                    <img src="${logoSrc}" alt="LOGO" style="width: 55px; height: auto; display: block; border-radius: 2px;" />
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1; text-transform: uppercase;">MULTIMARG CARRIERS</h1>
+                    <p style="color: #ec7211; font-size: 11px; margin: 4px 0 0 0; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.1;">TRANSPORT & LOGISTICS SERVICES</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+            <!-- Contact Details -->
+            <td style="vertical-align: middle; text-align: right; color: #aab7b8; font-size: 11px; line-height: 1.5; font-weight: 600;">
+              <div style="margin-bottom: 2px; text-transform: uppercase;">
+                EMAIL: <span style="text-transform: lowercase !important; color: #ffffff;"><a href="mailto:info@multimarg.com" style="color: #ffffff; text-decoration: none; text-transform: lowercase !important;">info@multimarg.com</a></span>
+              </div>
+              <div style="text-transform: uppercase;">
+                WEBSITE: <span style="text-transform: lowercase !important; color: #ffffff;"><a href="https://multimarg.com" target="_blank" style="color: #ffffff; text-decoration: none; text-transform: lowercase !important;">multimarg.com</a></span>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <!-- Content Body -->
+    <tr>
+      <td style="padding: 40px 30px;">
+        <h2 style="color: #232F3E; margin-top: 0; font-size: 20px; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; text-transform: uppercase;">TAX INVOICE DETAILS</h2>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 25px; text-transform: uppercase;">
+          DEAR TEAM/CLIENT,<br><br>
+          WE ARE PLEASED TO SHARE THE TAX INVOICE DETAILS OF YOUR LOGISTICS TRANSACTIONS WITH <strong>MULTIMARG CARRIERS PRIVATE LIMITED</strong>. THE OFFICIAL INVOICE (PDF) HAS BEEN ATTACHED TO THIS EMAIL FOR YOUR RECORDS AND PAYMENT PROCESSING.
+        </p>
+
+        <!-- Summary Card -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-bottom: 30px; width: 100%; text-transform: uppercase;">
+          <tr>
+            <td colspan="2" style="background-color: #f8fafc; padding: 12px 16px; border-radius: 8px 8px 0 0; font-weight: bold; color: #232F3E; font-size: 15px; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; text-transform: uppercase;">
+              INVOICE SUMMARY
+            </td>
+          </tr>
+          <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; width: 40%; font-weight: 500; vertical-align: top; text-transform: uppercase;">INVOICE NUMBER:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 700; word-break: break-all; text-transform: uppercase;">${billNo}</td>
+          </tr>
+          <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">INVOICE DATE:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-transform: uppercase;">${date}</td>
+          </tr>
+          <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">CLIENT NAME:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; word-break: break-word; text-transform: uppercase;">${finalClient}</td>
+          </tr>
+          <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">SAC CODE:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-size: 14px; font-weight: 600; text-transform: uppercase;">${(bill.sacCode || "996511").toUpperCase()}</td>
+          </tr>
+          <tr style="border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; font-weight: 500; vertical-align: top; text-transform: uppercase;">TOTAL AMOUNT PAYABLE:</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; color: #d32f2f; font-size: 14px; font-weight: 700; text-transform: uppercase;">RS. ${parseFloat(bill.totalPayable || bill.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        </table>
+
+        <!-- Call to Action -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; text-transform: uppercase;">
+          <tr>
+            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center; text-transform: uppercase;">
+              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600; text-transform: uppercase;">
+                📎 ATTACHMENT: ${finalFilename.toUpperCase()} HAS BEEN ATTACHED TO THIS EMAIL.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <!-- Footer -->
+    <tr>
+      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; text-transform: uppercase;">
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; text-transform: uppercase;">
+          &copy; ${new Date().getFullYear()} <strong>MULTIMARG CARRIERS PVT. LTD.</strong>. ALL RIGHTS RESERVED.<br>
+          DHANBAD DISTRICT, JHARKHAND, INDIA.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    // --- 4. Send email with PDF attachment ---
+    const recipients = to.split(",").map(e => e.trim()).filter(Boolean);
+    const subject = `TAX INVOICE - BILL NO: ${billNo} (MULTI MARG CARRIERS)`.toUpperCase();
+    await sendEmail({
+      to: recipients.join(", "),
+      subject,
+      htmlContent: emailHtml,
+      attachments
+    });
+
+    // --- 5. Update tracking fields in MongoDB ---
+    const emailSentCount = (bill.emailSentCount || 0) + 1;
+    const emailSentTo = Array.from(new Set([...(bill.emailSentTo || []), ...recipients]));
+    
+    await billRef.update({
+      emailSentCount,
+      emailSentTo,
+      emailedAt: new Date().toISOString()
+    });
+
+    return success(res, "Invoice email sent successfully with attachment", {
+      billId,
+      billNo,
+      to: recipients,
+      emailSentCount,
+      emailSentTo
+    });
+  } catch (err) {
+    console.log("[EMAIL ERROR] Failed to send bill:", err);
+    return error(res, `Failed to send email: ${err.message}`, 500);
+  }
+};
+
