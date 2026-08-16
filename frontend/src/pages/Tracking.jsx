@@ -277,6 +277,8 @@ const Tracking = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case "Shipment Booked":
+      case "Booked": return <Package size={20} />;
       case "Picked Up": return <Package size={20} />;
       case "In Transit": return <Truck size={20} />;
       case "Out for Delivery": return <MapPin size={20} />;
@@ -288,6 +290,8 @@ const Tracking = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case "Shipment Booked":
+      case "Booked": return "#2563eb"; 
       case "Picked Up": return "#3b82f6"; 
       case "In Transit": return "#f59e0b"; 
       case "Out for Delivery": return "#8b5cf6"; 

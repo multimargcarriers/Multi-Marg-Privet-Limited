@@ -29,7 +29,7 @@ export const downloadViaPuppeteer = async ({
   clone.style.overflow = "visible";
   clone.style.width = landscape ? "1120px" : "750px";
   clone.style.boxSizing = "border-box";
-  clone.style.padding = "0";
+  clone.style.padding = element.style.padding || "0";
 
   // Convert canvas elements (QR codes, signatures) into <img> PNG Data URLs
   const originalCanvases = element.querySelectorAll("canvas");

@@ -79,6 +79,22 @@ router.get('/:awb', async (req, res) => {
         };
       }
     });
+    
+    if (booking) {
+      const hasBookedStatus = entries.some(e => e.status === "Booked" || e.status === "Shipment Booked");
+      if (!hasBookedStatus) {
+        entries.push({
+          id: `booked-${booking.id || baseAwb}`,
+          awb: baseAwb,
+          status: "Shipment Booked",
+          location: booking.origin || "Origin",
+          date: booking.date || new Date().toISOString(),
+          remarks: "Shipment details received and Lorry Receipt (LR) generated.",
+          updatedAt: booking.date || new Date().toISOString()
+        });
+        entries.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      }
+    }
 
     return res.json({
       success: true,

@@ -47,6 +47,8 @@ const CreateBooking = () => {
     delivery_charge: "",
     packaging_charge: "",
     handling_charge: "",
+    insurance_charge: "",
+    fuel_surcharge: "",
     description: "",
     insuredBy: "",
     remarks: "",
@@ -185,6 +187,8 @@ const CreateBooking = () => {
             b.delivery_charge = b.delivery_charge || b.deliveryCharge || "";
             b.packaging_charge = b.packaging_charge || b.packagingCharge || b.pkgCharge || "";
             b.handling_charge = b.handling_charge || b.handlingCharge || "";
+            b.insurance_charge = b.insurance_charge || b.insuranceCharge || "";
+            b.fuel_surcharge = b.fuel_surcharge || b.fuelSurcharge || "";
             
             b.type_of_delivery = b.type_of_delivery || b.deliveryType || "Door";
             b.clerk_name = b.clerk_name || b.clerkName || "Admin";
@@ -339,6 +343,8 @@ const CreateBooking = () => {
         delivery_charge: 0,
         packaging_charge: 0,
         handling_charge: 0,
+        insurance_charge: 0,
+        fuel_surcharge: 0,
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -823,6 +829,17 @@ const CreateBooking = () => {
             <input type="number" step="0.01" className="form-control" name="handling_charge" placeholder="₹" value={formData.handling_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Insurance Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="insurance_charge" placeholder="₹" value={formData.insurance_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Fuel Surcharge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
+            <input type="number" step="0.01" className="form-control" name="fuel_surcharge" placeholder="₹" value={formData.fuel_surcharge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+          <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Insured By<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <select className="form-control" name="insuredBy" value={formData.insuredBy} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }}>
               <option value="">-- Insured By --</option>
@@ -832,6 +849,8 @@ const CreateBooking = () => {
               <option value="Owner">Owner</option>
             </select>
           </div>
+          <div style={{ visibility: "hidden" }} />
+          <div style={{ visibility: "hidden" }} />
           <div style={{ visibility: "hidden" }} />
         </div>
 
@@ -881,6 +900,8 @@ const CreateBooking = () => {
                 delivery_charge: "",
                 packaging_charge: "",
                 handling_charge: "",
+                insurance_charge: "",
+                fuel_surcharge: "",
                 remarks: "",
                 paymentMode: "",
                 insuredBy: "",

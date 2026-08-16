@@ -98,13 +98,13 @@ const PrintLR = () => {
             const clientsList = clientsRes.data.data || [];
             const searchClient = String(b.client || b.billedTo || "").trim().toLowerCase();
             const searchConsignor = String(b.consignor || "").trim().toLowerCase();
-            
+
             let matchedClient = clientsList.find(c => {
               const nameLower = String(c.name || "").trim().toLowerCase();
               const codeLower = String(c.clientCode || "").trim().toLowerCase();
               return searchClient && (nameLower === searchClient || codeLower === searchClient);
             });
-            
+
             if (!matchedClient && searchConsignor) {
               matchedClient = clientsList.find(c => {
                 const nameLower = String(c.name || "").trim().toLowerCase();
@@ -128,6 +128,8 @@ const PrintLR = () => {
           b.delivery_charge = b.delivery_charge || b.deliveryCharge || "";
           b.packaging_charge = b.packaging_charge || b.packagingCharge || b.pkgCharge || "";
           b.handling_charge = b.handling_charge || b.handlingCharge || "";
+          b.insurance_charge = b.insurance_charge || b.insuranceCharge || "";
+          b.fuel_surcharge = b.fuel_surcharge || b.fuelSurcharge || "";
 
           b.type_of_delivery = b.type_of_delivery || b.deliveryType || "Door";
           b.clerk_name = b.clerk_name || b.clerkName || "Admin";
@@ -215,11 +217,11 @@ const PrintLR = () => {
       alert("Please enter a valid recipient email address.");
       return;
     }
-    
+
     setIsSendingEmail(true);
     setEmailStatus("sending");
     setEmailStatusMsg("Generating Lorry Receipt PDF on browser...");
-    
+
     try {
       const element = document.getElementById("bilty-content");
       if (!element) {
@@ -251,7 +253,7 @@ const PrintLR = () => {
             if (origCanvas.style.width) img.style.width = origCanvas.style.width;
             if (origCanvas.style.height) img.style.height = origCanvas.style.height;
             cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
-          } catch (_e) {}
+          } catch (_e) { }
         }
       });
 
@@ -281,7 +283,7 @@ const PrintLR = () => {
         pdfBase64,
         filename
       });
-      
+
       if (response.data.success) {
         setEmailStatus("success");
         setEmailStatusMsg("Email successfully sent with attachment!");
@@ -342,8 +344,10 @@ const PrintLR = () => {
   const printDelivery = isCredit ? 0 : parseNum(booking.delivery_charge);
   const printPackaging = isCredit ? 0 : parseNum(booking.packaging_charge);
   const printHandling = isCredit ? 0 : parseNum(booking.handling_charge);
+  const printInsurance = isCredit ? 0 : parseNum(booking.insurance_charge);
+  const printFuel = isCredit ? 0 : parseNum(booking.fuel_surcharge);
 
-  const subTotal = printFreight + printAwb + printPickup + printDelivery + printPackaging + printHandling;
+  const subTotal = printFreight + printAwb + printPickup + printDelivery + printPackaging + printHandling + printInsurance + printFuel;
 
   const gst = 0; // Customize if GST applies
   const totalAmount = subTotal + gst;
@@ -608,7 +612,7 @@ const PrintLR = () => {
             )}
           </div>
         </div>
-        
+
         <div className="lr-email-row">
           <div className="lr-email-inputs">
             <span style={{ fontSize: "0.75rem", color: "#545b64", fontWeight: "700", whiteSpace: "nowrap" }}>
@@ -628,7 +632,7 @@ const PrintLR = () => {
               }}
             />
           </div>
-          
+
           <button
             onClick={handleSendEmail}
             disabled={isSendingEmail}
@@ -650,7 +654,7 @@ const PrintLR = () => {
                 display: "inline-block",
                 animation: "spin 1s linear infinite"
               }} />
-            ) : "🚀"} 
+            ) : "🚀"}
             {isSendingEmail ? "Sending..." : "Send LR Mail"}
           </button>
         </div>
@@ -702,7 +706,7 @@ const PrintLR = () => {
             ))}
           </div>
         )}
-        
+
         {/* CSS Keyframes for Spinner */}
         <style>
           {`
@@ -723,7 +727,7 @@ const PrintLR = () => {
             background: "white",
             color: "#0f172a",
             boxSizing: "border-box",
-            padding: "8px",
+            padding: "19px",
             overflow: "hidden",
             transform: `scale(${scale})`,
             transformOrigin: "top left",
@@ -739,7 +743,7 @@ const PrintLR = () => {
                 .bilty-table {
                   width: 100% !important;
                   border-collapse: collapse !important;
-                  font-size: 0.75rem !important;
+                  font-size: 0.7rem !important;
                   table-layout: fixed !important;
                 }
                 .bilty-table th, .bilty-table td {
@@ -752,20 +756,35 @@ const PrintLR = () => {
                   color: #0f172a !important;
                   font-weight: 700 !important;
                   text-transform: uppercase !important;
-                  font-size: 0.7rem !important;
+                  font-size: 0.65rem !important;
                   letter-spacing: 0.5px !important;
                 }
                 .data-cell {
+                  font-weight: 400 !important;
+                  color: #0f172a !important;
+                  font-size: 0.58rem !important;
+                }
+                .awb-value {
+                  color: #ef4444 !important;
+                  font-size: 1rem !important;
+                  font-weight: 700 !important;
+                }
+                .date-mode-value {
+                  font-size: 0.8rem !important;
                   font-weight: 600 !important;
                   color: #0f172a !important;
-                  font-size: 0.8rem !important;
+                }
+                .pkg-value {
+                  font-size: 0.93rem !important;
+                  font-weight: 500 !important;
+                  color: #0f172a !important;
                 }
                 .section-header {
                   background-color: #1e293b !important;
                   color: #ffffff !important;
                   padding: 4px 10px !important;
                   font-weight: 600 !important;
-                  font-size: 0.8rem !important;
+                  font-size: 0.73rem !important;
                   letter-spacing: 1px !important;
                   text-transform: uppercase !important;
                   display: flex !important;
@@ -779,9 +798,9 @@ const PrintLR = () => {
               `}
             </style>
 
-            <div className="premium-border" style={{ height: "auto", minHeight: "1020px", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="premium-border" style={{ height: "auto", minHeight: "960px", position: "relative", display: "flex", flexDirection: "column" }}>
               {/* Professional Logo Watermark */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "120px" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center", paddingTop: "200px" }}>
                 <img src="/mc.png" alt="Watermark" style={{ width: "100%", opacity: 0.15 }} />
               </div>
 
@@ -802,7 +821,7 @@ const PrintLR = () => {
                       <span>|</span>
                       <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
                       <span>|</span>
-                      <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
+                      <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>www.multimarg.com</a>
                     </div>
                     <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.3" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
@@ -816,8 +835,8 @@ const PrintLR = () => {
                     <div style={{ padding: "3px", background: "#ffffff", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center" }}>
                       <img
                         id="lr-qr-code"
-                        data-qr-value={`${import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com"}/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`}
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com") + "/track?awb=" + (booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)))}`}
+                        data-qr-value={`https://multimarg.com/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent("https://multimarg.com/track?awb=" + (booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)))}`}
                         alt="SCAN TO TRACK"
                         style={{ width: "52px", height: "52px", display: "block" }}
                       />
@@ -828,15 +847,15 @@ const PrintLR = () => {
 
                 {/* AWB Details */}
                 <div className="bilty-section">
-                  <table className="bilty-table">
+                  <table className="bilty-table" style={{ fontSize: "0.75rem" }}>
                     <tbody>
                       <tr>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>AWB NO.</td>
-                        <td className="data-cell" style={{ width: "25%", color: "#ef4444", fontSize: "1rem", whiteSpace: "nowrap" }}>{booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
-                        <td className="data-cell" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
-                        <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>
-                        <td className="data-cell" style={{ width: "10%" }}>{(booking.mode && (booking.mode.toLowerCase() === 'rail' || booking.mode.toLowerCase() === 'train') ? 'TRAIN' : booking.mode?.toUpperCase())}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center", fontSize: "0.7rem" }}>AWB NO.</td>
+                        <td className="awb-value" style={{ width: "25%", whiteSpace: "nowrap" }}>{booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
+                        <td className="gray-cell" style={{ width: "15%", textAlign: "center", fontSize: "0.7rem" }}>DATE</td>
+                        <td className="date-mode-value" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
+                        <td className="gray-cell" style={{ width: "10%", textAlign: "center", fontSize: "0.7rem" }}>MODE</td>
+                        <td className="date-mode-value" style={{ width: "10%" }}>{(booking.mode && (booking.mode.toLowerCase() === 'rail' || booking.mode.toLowerCase() === 'train') ? 'TRAIN' : booking.mode?.toUpperCase())}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -874,21 +893,21 @@ const PrintLR = () => {
                     <tbody>
                       <tr>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>ORIGIN</td>
-                        <td className="data-cell" style={{ width: "35%" }} colSpan="2">{booking.origin?.toUpperCase()}</td>
+                        <td className="data-cell" style={{ width: "35%", textAlign: "center" }} colSpan="2">{booking.origin?.toUpperCase()}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DESTINATION</td>
-                        <td className="data-cell" style={{ width: "35%" }} colSpan="2">{booking.destination?.toUpperCase()}</td>
+                        <td className="data-cell" style={{ width: "35%", textAlign: "center" }} colSpan="2">{booking.destination?.toUpperCase()}</td>
                       </tr>
                       <tr>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>PKG(S)</td>
-                        <td className="data-cell" style={{ width: "18%", textAlign: "center", fontSize: "1rem", fontWeight: "700" }}>{String(booking.box || "0").padStart(2, '0')}</td>
+                        <td className="pkg-value" style={{ width: "18%", textAlign: "center" }}>{String(booking.box || "0").padStart(2, '0')}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>ACTUAL WT.</td>
-                        <td className="data-cell" style={{ width: "18%" }}>{parseNum(booking.actual_wt).toFixed(2)} Kg</td>
+                        <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{parseNum(booking.actual_wt).toFixed(2)} Kg</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>CHARGE WT.</td>
-                        <td className="data-cell" style={{ width: "19%" }}>{parseNum(booking.charge_wt).toFixed(2)} Kg</td>
+                        <td className="data-cell" style={{ width: "19%", textAlign: "center" }}>{parseNum(booking.charge_wt).toFixed(2)} Kg</td>
                       </tr>
                       <tr>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DESCRIPTION</td>
-                        <td className="data-cell" style={{ width: "18%" }}>{booking.description || "NA"}</td>
+                        <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{booking.description || "NA"}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>INSURED BY</td>
                         <td className="data-cell" style={{ width: "18%", textAlign: "center" }}>{booking.insuredBy || "NA"}</td>
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>VEHICLE NO.</td>
@@ -938,10 +957,10 @@ const PrintLR = () => {
                     {/* Optional Dimensions Table (Compact and inside left column) */}
                     {booking.dimensions && Array.isArray(booking.dimensions) && booking.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
                       <div style={{ borderBottom: "1px solid #cbd5e1" }}>
-                        <div className="section-header" style={{ fontSize: "0.7rem", borderTop: "none", borderLeft: "none", borderRight: "none" }}>Package Dimensions (Optional)</div>
+                        <div className="section-header" style={{ fontSize: "0.65rem", borderTop: "none", borderLeft: "none", borderRight: "none" }}>Package Dimensions (Optional)</div>
                         <table className="bilty-table" style={{ border: "none", width: "100%", textAlign: "center" }}>
                           <thead>
-                            <tr className="gray-cell" style={{ fontSize: "0.65rem" }}>
+                            <tr className="gray-cell" style={{ fontSize: "0.6rem" }}>
                               <th style={{ textAlign: "center", padding: "3px", borderTop: "none", borderLeft: "none" }}>L (cm)</th>
                               <th style={{ textAlign: "center", padding: "3px", borderTop: "none" }}>B (cm)</th>
                               <th style={{ textAlign: "center", padding: "3px", borderTop: "none" }}>H (cm)</th>
@@ -950,11 +969,11 @@ const PrintLR = () => {
                           </thead>
                           <tbody>
                             {booking.dimensions.filter(d => d.length || d.breadth || d.height || d.boxCount).map((d, idx) => (
-                              <tr key={idx} style={{ fontSize: "0.65rem" }}>
+                              <tr key={idx} style={{ fontSize: "0.6rem" }}>
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px", borderLeft: "none" }}>{d.length || "0"}</td>
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px" }}>{d.breadth || "0"}</td>
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px" }}>{d.height || "0"}</td>
-                                <td className="data-cell" style={{ textAlign: "center", padding: "3px", fontWeight: "700", borderRight: "none" }}>{d.boxCount || "0"}</td>
+                                <td className="data-cell" style={{ textAlign: "center", padding: "3px", fontWeight: "400", borderRight: "none" }}>{d.boxCount || "0"}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -964,21 +983,21 @@ const PrintLR = () => {
 
                     {/* Shortened Carriage Declaration */}
                     <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                      <div className="section-header" style={{ borderTop: "none", borderLeft: "none", borderRight: "none", borderBottom: "1px solid #cbd5e1" }}>4. Carriage Declaration & Agreement</div>
+                      <div className="section-header" style={{ borderTop: "none", borderLeft: "none", borderRight: "none", borderBottom: "1px solid #cbd5e1" }}>4. Declaration</div>
                       <table className="bilty-table" style={{ border: "none", width: "100%", borderCollapse: "collapse" }}>
                         <tbody>
                           <tr>
-                            <td className="gray-cell" style={{ borderLeft: "none", borderTop: "none", borderBottom: "none", width: "30%", fontSize: "0.65rem", padding: "4px 8px" }}>Jurisdiction</td>
-                            <td className="data-cell" style={{ borderRight: "none", borderTop: "none", borderBottom: "none", fontSize: "0.65rem", padding: "4px 8px" }}>Subject to Uttarakhand Jurisdiction.</td>
+                            <td style={{ borderLeft: "none", borderTop: "none", borderBottom: "none", width: "12%", fontSize: "0.54rem", textTransform: "none", fontWeight: "400", padding: "2px 4px", color: "#475569" }}>Note</td>
+                            <td style={{ borderRight: "none", borderTop: "none", borderBottom: "none", fontSize: "0.64rem", fontWeight: "400", padding: "2px 4px", textTransform: "none", color: "#0f172a" }}>Quantity and quality not checked. We are not responsible for leakage and damage.</td>
                           </tr>
                         </tbody>
                       </table>
 
                       {/* Dedicated full-width spacious Remarks block */}
-                      <div style={{ borderTop: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "0.7rem", flex: 1, background: "#f8fafc" }}>
-                        <div style={{ fontWeight: "700", color: "#475569", textTransform: "uppercase", fontSize: "0.6rem", marginBottom: "3px" }}>Special Remarks / Instructions</div>
-                        <div style={{ color: "#0f172a", fontWeight: "600", minHeight: "45px", lineHeight: "1.3", wordBreak: "break-word" }}>
-                          {booking.remarks || "No special instructions."}
+                      <div style={{ borderTop: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "0.65rem", flex: 1, background: "#f8fafc" }}>
+                        <div style={{ fontWeight: "700", color: "#475569", textTransform: "uppercase", fontSize: "0.73rem", marginBottom: "3px" }}>Special Remarks / Instructions</div>
+                        <div style={{ color: "#0f172a", fontWeight: "600", fontSize: "0.73rem", minHeight: "45px", lineHeight: "1.3", wordBreak: "break-word" }}>
+                          {booking.remarks || "NA"}
                         </div>
                       </div>
                     </div>
@@ -990,24 +1009,36 @@ const PrintLR = () => {
                     <table className="bilty-table" style={{ border: "none" }}>
                       <tbody>
                         <tr>
-                          <td className="gray-cell" style={{ borderLeft: "none", borderTop: "none" }}>Freight</td>
+                          <td className="gray-cell" style={{ borderLeft: "none", borderTop: "none" }}>Freight Charge</td>
                           <td className="data-cell" style={{ textAlign: "right", borderRight: "none", borderTop: "none" }}><RupeeIcon size={11} />{printFreight.toFixed(2)}</td>
                         </tr>
                         <tr>
-                          <td className="gray-cell" style={{ borderLeft: "none" }}>AWB / Docket</td>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Awb Charge</td>
                           <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printAwb.toFixed(2)}</td>
                         </tr>
                         <tr>
-                          <td className="gray-cell" style={{ borderLeft: "none" }}>Pickup</td>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Pickup Charge</td>
                           <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printPickup.toFixed(2)}</td>
                         </tr>
                         <tr>
-                          <td className="gray-cell" style={{ borderLeft: "none" }}>Delivery</td>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Delivery Charge</td>
                           <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printDelivery.toFixed(2)}</td>
                         </tr>
                         <tr>
-                          <td className="gray-cell" style={{ borderLeft: "none" }}>Handling & Pkg</td>
-                          <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{(printHandling + printPackaging).toFixed(2)}</td>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Packaging Charge</td>
+                          <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printPackaging.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Handling Charge</td>
+                          <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printHandling.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Insurance Charge</td>
+                          <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printInsurance.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                          <td className="gray-cell" style={{ borderLeft: "none" }}>Fuel Surcharge</td>
+                          <td className="data-cell" style={{ textAlign: "right", borderRight: "none" }}><RupeeIcon size={11} />{printFuel.toFixed(2)}</td>
                         </tr>
                         <tr>
                           <td className="gray-cell" style={{ borderLeft: "none" }}>GST</td>
@@ -1049,7 +1080,7 @@ const PrintLR = () => {
                   <div style={{ textAlign: "center", width: "180px" }}>
                     <div style={{ height: "30px", marginBottom: "3px" }}></div>
                     <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "3px", fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>
-                      RECEIVER'S SIGNATURE
+                      RECEIVER'S SIGNATURE WITH STAMP
                     </div>
                   </div>
                 </div>

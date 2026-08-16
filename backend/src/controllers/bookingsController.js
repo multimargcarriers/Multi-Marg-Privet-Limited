@@ -35,12 +35,14 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
   const delivery = parseFloat(booking.delivery_charge || 0);
   const packaging = parseFloat(booking.packaging_charge || 0);
   const handling = parseFloat(booking.handling_charge || 0);
+  const insurance = parseFloat(booking.insurance_charge || booking.insuranceCharge || 0);
+  const fuel = parseFloat(booking.fuel_surcharge || booking.fuelSurcharge || 0);
   const gstin = booking.gstin || booking.consignee_gstin || booking.consignor_gstin || "";
   const clientStateCode = gstin ? gstin.substring(0, 2) : "";
   
   const applyGst = true;
   const gstRate = applyGst ? 18 : 0;
-  const taxable = freight + awb + pickup + delivery + packaging + handling;
+  const taxable = freight + awb + pickup + delivery + packaging + handling + insurance + fuel;
   const gstAmt = taxable * gstRate / 100;
   
   let cgst = 0, sgst = 0, igst = 0;
@@ -114,7 +116,9 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
     pickupCharge: pickup,
     deliveryCharge: delivery,
     specialCharge: packaging + handling,
-    otherCharge: 0,
+    otherCharge: insurance + fuel,
+    insuranceCharge: insurance,
+    fuelSurcharge: fuel,
     invoiceDetails: booking.invoiceDetails || [],
     items: [
       {
@@ -132,7 +136,7 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
         pick: pickup,
         del: delivery,
         spl: packaging + handling,
-        oth: 0,
+        oth: insurance + fuel,
         total: taxable.toFixed(2)
       }
     ]
