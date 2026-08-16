@@ -579,6 +579,22 @@ const Tracking = () => {
                     </h5>
                     <div className="tracking-overview-grid">
                       <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Origin</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Destination</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
+                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
+                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}</div>
+                      </div>
+                      <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
                         <div style={{ fontWeight: 700, color: "#0f172a" }}>
                           {selectedSearchBooking.date || selectedSearchBooking.dispatch_date 
@@ -587,24 +603,14 @@ const Tracking = () => {
                         </div>
                       </div>
                       <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Route</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin || "-"} &rarr; {selectedSearchBooking.destination || "-"}</div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.box ? `${selectedSearchBooking.box} Pcs` : "-"}</div>
                       </div>
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.client || selectedSearchBooking.clientName || "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
-                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor || "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
-                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee || "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.box ? `${selectedSearchBooking.box} Pcs` : "-"}</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                        </div>
                       </div>
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
