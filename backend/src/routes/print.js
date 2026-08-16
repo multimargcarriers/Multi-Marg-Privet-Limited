@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
-const { generatePDF } = require("../utils/pdfGenerator");
+const { generatePDF, checkChromiumAvailability } = require("../utils/pdfGenerator");
 const { 
   get_lr_id_1, 
   get_lr_id_pdf_2, 
@@ -12,6 +12,9 @@ const {
   get_trip_bill_trip_client_6 
 } = require('../controllers/printController');
 const { requirePermission } = require("../middleware/rbac");
+
+// Check Chromium availability on first load
+checkChromiumAvailability();
 
 // Puppeteer Backend PDF Generation API Route
 router.post(
@@ -23,6 +26,7 @@ router.post(
     const pdfBuffer = await generatePDF(html, { landscape });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
     res.send(pdfBuffer);
   })
 );

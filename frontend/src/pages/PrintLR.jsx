@@ -306,7 +306,7 @@ const PrintLR = () => {
             font-size: 0.75rem;
           }
           .bilty-table th, .bilty-table td {
-            border: 1px solid #cbd5e1;
+            border: 1.5px solid #64748b;
             padding: 4px 8px;
             color: #0f172a;
           }
@@ -401,7 +401,7 @@ const PrintLR = () => {
                   table-layout: fixed !important;
                 }
                 .bilty-table th, .bilty-table td {
-                  border: 1px solid #cbd5e1 !important;
+                  border: 1.5px solid #64748b !important;
                   padding: 4px 8px !important;
                   color: #0f172a !important;
                 }
@@ -439,8 +439,8 @@ const PrintLR = () => {
 
             <div className="premium-border" style={{ height: "auto", minHeight: "1020px", position: "relative", display: "flex", flexDirection: "column" }}>
               {/* Professional Logo Watermark */}
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.1 }} />
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center", paddingBottom: "120px" }}>
+                <img src="/mc.png" alt="Watermark" style={{ width: "100%", opacity: 0.15 }} />
               </div>
 
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
@@ -453,17 +453,16 @@ const PrintLR = () => {
 
                   {/* Company Details */}
                   <div style={{ textAlign: "center", flex: 1, padding: "0 6px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.2rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0", fontSize: "0.62rem", fontWeight: "600", color: "#334155", lineHeight: "1.2" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "0", fontSize: "0.58rem", fontWeight: "500", color: "#475569", lineHeight: "1.2", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "8px", margin: "0", fontSize: "0.58rem", fontWeight: "600", color: "#334155", lineHeight: "1.2" }}>
+                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <p style={{ margin: "0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.3", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.3" }}>
                       <span>Contact: +91 5944-324033</span>
                       <span>|</span>
                       <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
                       <span>|</span>
                       <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "8px", margin: "0", fontSize: "0.58rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.2" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.3" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
                       <span>|</span>
                       <span>PAN: AANCM3054E1ZN</span>

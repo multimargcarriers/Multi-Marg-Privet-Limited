@@ -109,7 +109,7 @@ const PrintTripList = () => {
           .premium-border { border-color: #1e293b !important; }
         }
         .manifest-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        .manifest-table th, .manifest-table td { border: 1px solid #cbd5e1; padding: 4px 6px; color: #0f172a; word-wrap: break-word; }
+        .manifest-table th, .manifest-table td { border: 1.5px solid #64748b; padding: 4px 6px; color: #0f172a; word-wrap: break-word; }
         .gray-cell { background-color: #f8fafc; color: #475569; font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
         .data-cell { font-weight: 600; color: #0f172a; font-size: 0.8rem; }
         .section-header { background-color: #1e293b; color: #ffffff; padding: 4px 10px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; }
@@ -119,7 +119,7 @@ const PrintTripList = () => {
       `}</style>
 
       <div className="no-print" style={{ maxWidth: "1122px", margin: "0 auto 1rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-        <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
+        <button className="btn" style={{ background: "white", border: "1.5px solid #64748b", color: "#475569", fontWeight: 600 }} onClick={() => navigate(-1)}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
         <div className="top-actions-container">
@@ -131,7 +131,7 @@ const PrintTripList = () => {
             placeholder="Sign Name" 
             style={{ 
               padding: "8px 12px", 
-              border: "1px solid #cbd5e1", 
+              border: "1.5px solid #64748b", 
               borderRadius: "6px", 
               fontSize: "0.85rem", 
               width: "160px", 
@@ -164,7 +164,7 @@ const PrintTripList = () => {
                   table-layout: fixed !important;
                 }
                 .manifest-table th, .manifest-table td {
-                  border: 1px solid #cbd5e1 !important;
+                  border: 1.5px solid #64748b !important;
                   padding: 4px 8px !important;
                   color: #0f172a !important;
                 }
@@ -198,8 +198,8 @@ const PrintTripList = () => {
             </style>
             <div className="premium-border" style={{ height: "auto", minHeight: "0", position: "relative", display: "flex", flexDirection: "column" }}>
               
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 2, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                 <img src="/mc.png" alt="Watermark" style={{ width: "40%", opacity: 0.1 }} />
               </div>
       
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
@@ -208,7 +208,7 @@ const PrintTripList = () => {
                   <div style={{ width: "145px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
                   <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
                     <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.5rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+
                     <p style={{ margin: "2px 0 2px", fontSize: "0.75rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
                     <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "4px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
                       <span>Contact: +91 5944-324033</span><span>|</span><a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a><span>|</span><a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>

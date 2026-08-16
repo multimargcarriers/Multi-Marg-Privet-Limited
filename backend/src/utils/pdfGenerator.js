@@ -41,8 +41,68 @@ try {
   console.error("Failed to load fab.png stamp:", e);
 }
 
+// --- Chromium availability check (runs once at startup) ---
+let chromiumAvailable = null; // null = not checked yet, true/false after check
+
+async function checkChromiumAvailability() {
+  if (chromiumAvailable !== null) return chromiumAvailable;
+  try {
+    const browser = await launchBrowser();
+    await browser.close();
+    chromiumAvailable = true;
+    console.log('✅ Puppeteer Chromium is available — vector PDF generation enabled');
+  } catch (e) {
+    chromiumAvailable = false;
+    console.warn('⚠️ Puppeteer Chromium not available — PDF generation will fail. Install chromium-browser on this server.');
+  }
+  return chromiumAvailable;
+}
+
+function getExecutablePath() {
+  const possibleExecutablePaths = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    process.env.CHROME_BIN,
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium'
+  ].filter(Boolean);
+
+  return possibleExecutablePaths.find(p => fs.existsSync(p)) || undefined;
+}
+
+function launchBrowser() {
+  const executablePath = getExecutablePath();
+  return puppeteer.launch({
+    headless: "new",
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--disable-translate',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-default-browser-check',
+      '--font-render-hinting=none'
+    ],
+    ...(executablePath ? { executablePath } : {})
+  });
+}
+
 /**
- * Generates a PDF buffer from an HTML string using Puppeteer.
+ * Generates an optimized vector PDF buffer from an HTML string using Puppeteer.
+ * - Text is fully selectable and searchable
+ * - File size is minimal (vector, not raster)
+ * - All local images are embedded as base64
  * @param {string} htmlContent - The HTML string to convert to PDF.
  * @param {Object} options - PDF generation options.
  * @returns {Promise<Buffer>} - The generated PDF buffer.
@@ -109,37 +169,21 @@ async function generatePDF(htmlContent, options = {}) {
       return imgTag;
     });
 
-    // Detect system Chrome/Chromium executable on Linux/Cloud deployment servers
-    const possibleExecutablePaths = [
-      process.env.PUPPETEER_EXECUTABLE_PATH,
-      process.env.CHROME_BIN,
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/google-chrome',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-      '/snap/bin/chromium'
-    ].filter(Boolean);
-
-    let executablePath = possibleExecutablePaths.find(p => fs.existsSync(p));
-
-    const launchArgs = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process'
-    ];
-
     // Launch headless browser
-    browser = await puppeteer.launch({
-      headless: "new",
-      args: launchArgs,
-      ...(executablePath ? { executablePath } : {})
-    });
-
+    browser = await launchBrowser();
     const page = await browser.newPage();
+
+    // Block unnecessary resources for faster rendering and smaller output
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      // Block videos, media, and websockets - not needed for PDF
+      if (['media', 'websocket', 'manifest', 'other'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
 
     if (options.landscape) {
       await page.setViewport({ width: 1400, height: 990 });
@@ -153,23 +197,23 @@ async function generatePDF(htmlContent, options = {}) {
       timeout: 30000
     });
 
-    // Generate PDF
+    // Generate optimized PDF
     const pdfBuffer = await page.pdf({
       format: options.format || 'A4',
       landscape: !!options.landscape,
       printBackground: true,
       preferCSSPageSize: true,
       margin: options.margin || {
-        top: '4mm',
-        bottom: '4mm',
-        left: '4mm',
-        right: '4mm'
+        top: '3mm',
+        bottom: '3mm',
+        left: '3mm',
+        right: '3mm'
       }
     });
 
     return pdfBuffer;
   } catch (error) {
-    console.error('Error generating PDF with Puppeteer:', error);
+    console.error('Error generating PDF with Puppeteer:', error.message);
     throw error;
   } finally {
     if (browser) {
@@ -179,5 +223,6 @@ async function generatePDF(htmlContent, options = {}) {
 }
 
 module.exports = {
-  generatePDF
+  generatePDF,
+  checkChromiumAvailability
 };
