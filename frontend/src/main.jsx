@@ -129,12 +129,42 @@ axios.interceptors.response.use(
 const isTechnicalKey = (key) => {
   if (!key) return false;
   const lowerKey = key.toLowerCase();
-  if (lowerKey === 'id' || lowerKey === '_id' || lowerKey.endsWith('id') || lowerKey.endsWith('url') || lowerKey.endsWith('uri')) return true;
-  // Skip keys that contain file/image/base64/cloudinary data to prevent corrupting binary data
-  if (lowerKey.includes('data') || lowerKey.includes('base64') || lowerKey.includes('image') || lowerKey.includes('cloudinary') || lowerKey.includes('file')) return true;
+  
+  // Skip ID, URL, URI, and Link keys
+  if (lowerKey === 'id' || lowerKey === '_id' || lowerKey.endsWith('id') || lowerKey.endsWith('url') || lowerKey.endsWith('uri') || lowerKey.includes('link')) return true;
+  
+  // Skip keys that contain file/image/base64/cloudinary/binary data to prevent corruption
+  if (
+    lowerKey.includes('data') || 
+    lowerKey.includes('base64') || 
+    lowerKey.includes('image') || 
+    lowerKey.includes('cloudinary') || 
+    lowerKey.includes('file') || 
+    lowerKey.includes('photo') || 
+    lowerKey.includes('logo') || 
+    lowerKey.includes('stamp') || 
+    lowerKey.includes('signature') || 
+    lowerKey.includes('sign') || 
+    lowerKey.includes('avatar') || 
+    lowerKey.includes('banner') || 
+    lowerKey.includes('path')
+  ) return true;
+
+  // Skip security, credentials, account, and authentication keys
+  if (
+    lowerKey.includes('password') || 
+    lowerKey.includes('email') || 
+    lowerKey.includes('token') || 
+    lowerKey.includes('role') || 
+    lowerKey.includes('permission') || 
+    lowerKey.includes('key') || 
+    lowerKey.includes('auth') || 
+    lowerKey.includes('secret')
+  ) return true;
+
   const ignoreList = [
-    'email', 'password', 'token', 'status', 'filename', 'createdat', 'updatedat', 
-    '__v', 'role', 'permission', 'type', 'gstslab', 'size', 'mimetype', 'paymentmode'
+    'status', 'filename', 'createdat', 'updatedat', 
+    '__v', 'type', 'gstslab', 'size', 'mimetype', 'paymentmode'
   ];
   return ignoreList.includes(lowerKey);
 };
