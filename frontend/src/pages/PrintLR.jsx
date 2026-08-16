@@ -437,7 +437,7 @@ const PrintLR = () => {
               `}
             </style>
 
-            <div className="premium-border" style={{ height: "auto", minHeight: "1090px", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="premium-border" style={{ height: "auto", minHeight: "1020px", position: "relative", display: "flex", flexDirection: "column" }}>
               {/* Professional Logo Watermark */}
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.1 }} />
@@ -445,25 +445,25 @@ const PrintLR = () => {
 
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
                 {/* Header Section */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 1.25rem", borderBottom: "2px solid #1e293b" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", borderBottom: "2px solid #1e293b" }}>
                   {/* Logo */}
-                  <div style={{ width: "135px", flexShrink: 0 }}>
+                  <div style={{ width: "100px", flexShrink: 0 }}>
                     <img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} />
                   </div>
 
                   {/* Company Details */}
-                  <div style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0", fontSize: "0.78rem", fontWeight: "600", color: "#334155", lineHeight: "1.3" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.3" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.3" }}>
+                  <div style={{ textAlign: "center", flex: 1, padding: "0 6px", minWidth: 0 }}>
+                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.2rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <p style={{ margin: "0", fontSize: "0.62rem", fontWeight: "600", color: "#334155", lineHeight: "1.2" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                    <p style={{ margin: "0", fontSize: "0.58rem", fontWeight: "500", color: "#475569", lineHeight: "1.2", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "8px", margin: "0", fontSize: "0.58rem", fontWeight: "600", color: "#334155", lineHeight: "1.2" }}>
                       <span>Contact: +91 5944-324033</span>
                       <span>|</span>
                       <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
                       <span>|</span>
                       <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.3" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "8px", margin: "0", fontSize: "0.58rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.2" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
                       <span>|</span>
                       <span>PAN: AANCM3054E1ZN</span>
@@ -471,17 +471,17 @@ const PrintLR = () => {
                   </div>
 
                   {/* QR Code & Tracking */}
-                  <div style={{ width: "105px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ padding: "4px", background: "#ffffff", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center" }}>
+                  <div style={{ width: "80px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ padding: "3px", background: "#ffffff", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center" }}>
                       <img
                         id="lr-qr-code"
                         data-qr-value={`${import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com"}/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`}
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com") + "/track?awb=" + (booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)))}`}
                         alt="SCAN TO TRACK"
-                        style={{ width: "64px", height: "64px", display: "block" }}
+                        style={{ width: "52px", height: "52px", display: "block" }}
                       />
                     </div>
-                    <div style={{ fontSize: "0.55rem", fontWeight: "800", color: "#1e3a8a", marginTop: "3px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
+                    <div style={{ fontSize: "0.48rem", fontWeight: "800", color: "#1e3a8a", marginTop: "2px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
                   </div>
                 </div>
 
@@ -682,41 +682,39 @@ const PrintLR = () => {
                 </div>
 
                 {/* Signatures */}
-                <div style={{ flex: 1 }}></div> {/* Spacer to push signatures to bottom if needed */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "10px 1.5rem", height: "70px" }}>
+                <div style={{ flex: 1 }}></div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "4px 1.5rem", height: "50px" }}>
                   <div style={{ textAlign: "center", width: "230px" }}>
                     {(user?.role === 'Admin' || user?.role === 'SuperAdmin') ? (
-                      <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.8rem", color: "#0f172a", height: "40px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "5px" }}>
+                      <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.6rem", color: "#0f172a", height: "30px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "3px" }}>
                         {signName}
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.85rem", color: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "40px", marginBottom: "5px", fontWeight: "600" }}>
+                      <div style={{ fontSize: "0.8rem", color: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "30px", marginBottom: "3px", fontWeight: "600" }}>
                         <span>Digitally signed by</span>
                         <span>Multimarg Private Limited</span>
                       </div>
                     )}
-                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.75rem", fontWeight: "600", color: "#475569" }}>
+                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "3px", fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>
                       AUTHORIZED SIGNATURE
                     </div>
                   </div>
-
                   <div style={{ textAlign: "center", width: "180px" }}>
-                    <div style={{ height: "40px", marginBottom: "5px" }}></div>
-                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.75rem", fontWeight: "600", color: "#475569" }}>
+                    <div style={{ height: "30px", marginBottom: "3px" }}></div>
+                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "3px", fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>
                       DRIVER'S SIGNATURE
                     </div>
                   </div>
-
                   <div style={{ textAlign: "center", width: "180px" }}>
-                    <div style={{ height: "40px", marginBottom: "5px" }}></div>
-                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.75rem", fontWeight: "600", color: "#475569" }}>
+                    <div style={{ height: "30px", marginBottom: "3px" }}></div>
+                    <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "3px", fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>
                       RECEIVER'S SIGNATURE
                     </div>
                   </div>
                 </div>
 
                 {/* Footer Copies */}
-                <div style={{ background: "#1e293b", color: "white", padding: "6px 1.5rem", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: "600", letterSpacing: "1px", marginTop: "auto" }}>
+                <div style={{ background: "#1e293b", color: "white", padding: "5px 1.5rem", display: "flex", justifyContent: "space-between", fontSize: "0.7rem", fontWeight: "600", letterSpacing: "1px" }}>
                   <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}><input type="checkbox" style={{ marginRight: "6px", accentColor: "#1e3a8a" }} /> CONSIGNOR COPY</label>
                   <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}><input type="checkbox" style={{ marginRight: "6px", accentColor: "#1e3a8a" }} /> CONSIGNEE COPY</label>
                   <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}><input type="checkbox" style={{ marginRight: "6px", accentColor: "#1e3a8a" }} defaultChecked /> ACCOUNTS COPY</label>
