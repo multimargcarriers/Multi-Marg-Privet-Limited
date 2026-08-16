@@ -143,7 +143,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
             <Menu size={24} />
           </button>
         )}
-        <img src="/mc.png" alt="Logo" className="topbar-logo" style={{ height: '35px', filter: 'brightness(0) invert(1)' }} />
+        <img src="/mc.png?v=2" alt="Logo" className="topbar-logo" style={{ height: '52px', filter: 'invert(1) grayscale(1) contrast(1.5)', mixBlendMode: 'screen' }} />
         {/* Global Search (Available for all roles) */}
         <div 
           className="topbar-search"
