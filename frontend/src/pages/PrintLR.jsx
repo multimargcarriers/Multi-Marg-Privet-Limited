@@ -453,17 +453,17 @@ const PrintLR = () => {
 
                   {/* Company Details */}
                   <div style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0 0 1px", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0 0 1px", fontSize: "0.78rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "1px 0", fontSize: "0.72rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155" }}>
+                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <p style={{ margin: "0", fontSize: "0.78rem", fontWeight: "600", color: "#334155", lineHeight: "1.3" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                    <p style={{ margin: "0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.3" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.3" }}>
                       <span>Contact: +91 5944-324033</span>
                       <span>|</span>
                       <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
                       <span>|</span>
                       <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.3" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
                       <span>|</span>
                       <span>PAN: AANCM3054E1ZN</span>
