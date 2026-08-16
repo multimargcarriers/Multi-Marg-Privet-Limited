@@ -447,44 +447,55 @@ const PrintLR = () => {
       {/* Email Sending Card */}
       <div className="no-print" style={{
         maxWidth: "800px",
-        margin: "0 auto 1.5rem",
-        background: "white",
-        borderRadius: "12px",
-        padding: "1.5rem",
-        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        border: "1px solid #e2e8f0"
+        margin: "0 auto 0.75rem",
+        background: "#fafafa",
+        borderRadius: "2px",
+        padding: "0.75rem 1rem",
+        boxShadow: "none",
+        border: "1px solid #d5dbdb",
+        boxSizing: "border-box"
       }}>
-        <h4 style={{ margin: "0 0 1rem 0", color: "#1e293b", fontSize: "1.1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>📧</span> Send Lorry Receipt via Email
-        </h4>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", borderBottom: "1px solid #eaeded", paddingBottom: "0.5rem", marginBottom: "0.5rem" }}>
+          <h4 style={{ margin: 0, color: "#16191f", fontSize: "0.85rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            <span>✉️</span> Send LR Email
+          </h4>
+          <div style={{ fontSize: "0.75rem", color: "#545b64", fontWeight: "600" }}>
+            Status: {emailSentCount > 0 ? (
+              <span style={{ color: "#1d8102" }}>
+                Sent ({emailSentCount} time{emailSentCount > 1 ? 's' : ''})
+              </span>
+            ) : (
+              <span style={{ color: "#ec7211" }}>Not Sent</span>
+            )}
+          </div>
+        </div>
         
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
-          <div style={{ flex: "1 1 300px" }}>
-            <label style={{ display: "block", fontSize: "0.8rem", color: "#475569", fontWeight: "600", marginBottom: "0.5rem" }}>
-              Recipient Email(s) <span style={{ color: "#64748b", fontWeight: "normal" }}>(comma-separated)</span>
-            </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+          <div style={{ flex: "1 1 350px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "0.75rem", color: "#545b64", fontWeight: "700", whiteSpace: "nowrap" }}>
+              To:
+            </span>
             <input
               type="text"
               value={recipientEmail}
               onChange={(e) => setRecipientEmail(e.target.value)}
               placeholder="e.g. client@company.com, transport@company.com"
               style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: "1px solid #cbd5e1",
-                borderRadius: "8px",
-                fontSize: "0.9rem",
+                flex: 1,
+                padding: "6px 10px",
+                border: "1px solid #aab7b8",
+                borderRadius: "2px",
+                fontSize: "0.8rem",
                 outline: "none",
                 boxSizing: "border-box",
-                transition: "border-color 0.2s, box-shadow 0.2s"
+                background: "#ffffff",
+                color: "#16191f"
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#1e293b";
-                e.target.style.boxShadow = "0 0 0 3px rgba(30, 41, 59, 0.1)";
+                e.target.style.borderColor = "#ec7211";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "#cbd5e1";
-                e.target.style.boxShadow = "none";
+                e.target.style.borderColor = "#aab7b8";
               }}
             />
           </div>
@@ -493,31 +504,31 @@ const PrintLR = () => {
             onClick={handleSendEmail}
             disabled={isSendingEmail}
             style={{
-              padding: "10px 20px",
-              background: "#1e293b",
+              padding: "6px 14px",
+              background: "#ec7211",
               color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "0.9rem",
+              border: "1px solid #ec7211",
+              borderRadius: "2px",
+              fontSize: "0.8rem",
               fontWeight: "600",
               cursor: isSendingEmail ? "not-allowed" : "pointer",
-              transition: "background 0.2s, transform 0.1s",
+              transition: "background 0.1s",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
-              height: "40px"
+              gap: "6px",
+              height: "30px"
             }}
             onMouseOver={(e) => {
-              if (!isSendingEmail) e.target.style.background = "#0f172a";
+              if (!isSendingEmail) e.target.style.background = "#d45f0d";
             }}
             onMouseOut={(e) => {
-              if (!isSendingEmail) e.target.style.background = "#1e293b";
+              if (!isSendingEmail) e.target.style.background = "#ec7211";
             }}
           >
             {isSendingEmail ? (
               <span className="spinner" style={{
-                width: "16px",
-                height: "16px",
+                width: "12px",
+                height: "12px",
                 border: "2px solid rgba(255, 255, 255, 0.3)",
                 borderTop: "2px solid white",
                 borderRadius: "50%",
@@ -532,14 +543,14 @@ const PrintLR = () => {
         {/* Email status messages */}
         {emailStatus !== 'idle' && (
           <div style={{
-            marginTop: "12px",
-            padding: "10px 14px",
-            borderRadius: "8px",
-            fontSize: "0.85rem",
+            marginTop: "8px",
+            padding: "6px 10px",
+            borderRadius: "2px",
+            fontSize: "0.75rem",
             fontWeight: "500",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
+            gap: "6px",
             background: emailStatus === 'success' ? '#f0fdf4' : emailStatus === 'error' ? '#fef2f2' : '#f8fafc',
             color: emailStatus === 'success' ? '#15803d' : emailStatus === 'error' ? '#b91c1c' : '#475569',
             border: `1px solid ${emailStatus === 'success' ? '#bbf7d0' : emailStatus === 'error' ? '#fecaca' : '#e2e8f0'}`
@@ -549,46 +560,31 @@ const PrintLR = () => {
           </div>
         )}
 
-        {/* Tracking metrics */}
-        <div style={{
-          marginTop: "16px",
-          paddingTop: "12px",
-          borderTop: "1px solid #f1f5f9",
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "10px"
-        }}>
-          <div style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "500" }}>
-            Status: {emailSentCount > 0 ? (
-              <span style={{ color: "#15803d", fontWeight: "700" }}>
-                Sent Already ({emailSentCount} time{emailSentCount > 1 ? 's' : ''})
+        {/* Recipient list */}
+        {emailSentTo && emailSentTo.length > 0 && (
+          <div style={{
+            marginTop: "6px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px",
+            alignItems: "center"
+          }}>
+            <span style={{ fontSize: "0.7rem", color: "#545b64", fontWeight: "700" }}>Sent history:</span>
+            {emailSentTo.map((email, idx) => (
+              <span key={idx} style={{
+                background: "#eaeded",
+                color: "#16191f",
+                padding: "1px 6px",
+                borderRadius: "2px",
+                fontSize: "0.7rem",
+                fontWeight: "500",
+                border: "1px solid #cbd5e1"
+              }}>
+                {email}
               </span>
-            ) : (
-              <span style={{ color: "#f59e0b", fontWeight: "700" }}>Not Sent Yet</span>
-            )}
+            ))}
           </div>
-          
-          {emailSentTo && emailSentTo.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
-              <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: "600" }}>Sent to:</span>
-              {emailSentTo.map((email, idx) => (
-                <span key={idx} style={{
-                  background: "#f1f5f9",
-                  color: "#475569",
-                  padding: "2px 8px",
-                  borderRadius: "20px",
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                  border: "1px solid #cbd5e1"
-                }}>
-                  {email}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
         
         {/* CSS Keyframes for Spinner */}
         <style>
