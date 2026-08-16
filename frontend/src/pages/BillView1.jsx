@@ -77,7 +77,11 @@ const BillView1 = () => {
   const { globalSettings } = useContext(SettingsContext);
   const { addToast } = useToast();
   const [bill, setBill] = useState(null);
+  const [clients, setClients] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [sheetHeight, setSheetHeight] = useState(1150);
+  const containerRef = React.useRef(null);
   
   // Email states
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -87,37 +91,6 @@ const BillView1 = () => {
   const [emailSentCount, setEmailSentCount] = useState(0);
   const [emailSentTo, setEmailSentTo] = useState([]);
 
-  useEffect(() => {
-    if (bill) {
-      setEmailSentCount(bill.emailSentCount || 0);
-      setEmailSentTo(bill.emailSentTo || []);
-    }
-  }, [bill]);
-
-  useEffect(() => {
-    if (bill && clients.length > 0) {
-      const clientName = typeof bill.client === 'string' ? bill.client : (bill.client?.name || bill.clientName || bill.customerName || "");
-      const bName = String(clientName || "").trim().toLowerCase();
-      
-      const matched = clients.find(c => {
-        const cName = String(c.name || "").trim().toLowerCase();
-        const codeLower = String(c.clientCode || "").trim().toLowerCase();
-        if (cName === bName || codeLower === bName) return true;
-        
-        const cNameClean = cName.replace(/[^a-z0-9]/g, '');
-        const bNameClean = bName.replace(/[^a-z0-9]/g, '');
-        if (cNameClean.length > 5 && bNameClean.length > 5) {
-          if (cNameClean.includes(bNameClean) || bNameClean.includes(cNameClean)) return true;
-        }
-        return false;
-      });
-
-      if (matched && matched.email) {
-        setRecipientEmail(matched.email);
-      }
-    }
-  }, [bill, clients]);
-  
   // Option toggle for official company stamp
   const [includeStamp, setIncludeStamp] = useState(() => {
     try {
@@ -152,10 +125,36 @@ const BillView1 = () => {
     } catch (_e) {}
   };
 
-  const [clients, setClients] = useState([]);
-  const [scale, setScale] = useState(1);
-  const [sheetHeight, setSheetHeight] = useState(1150);
-  const containerRef = React.useRef(null);
+  useEffect(() => {
+    if (bill) {
+      setEmailSentCount(bill.emailSentCount || 0);
+      setEmailSentTo(bill.emailSentTo || []);
+    }
+  }, [bill]);
+
+  useEffect(() => {
+    if (bill && clients.length > 0) {
+      const clientName = typeof bill.client === 'string' ? bill.client : (bill.client?.name || bill.clientName || bill.customerName || "");
+      const bName = String(clientName || "").trim().toLowerCase();
+      
+      const matched = clients.find(c => {
+        const cName = String(c.name || "").trim().toLowerCase();
+        const codeLower = String(c.clientCode || "").trim().toLowerCase();
+        if (cName === bName || codeLower === bName) return true;
+        
+        const cNameClean = cName.replace(/[^a-z0-9]/g, '');
+        const bNameClean = bName.replace(/[^a-z0-9]/g, '');
+        if (cNameClean.length > 5 && bNameClean.length > 5) {
+          if (cNameClean.includes(bNameClean) || bNameClean.includes(cNameClean)) return true;
+        }
+        return false;
+      });
+
+      if (matched && matched.email) {
+        setRecipientEmail(matched.email);
+      }
+    }
+  }, [bill, clients]);
 
   useEffect(() => {
     const handleResize = () => {

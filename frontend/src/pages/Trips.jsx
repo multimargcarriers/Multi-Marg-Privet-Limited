@@ -46,6 +46,20 @@ const Trips = () => {
   const { addToast } = useToast();
   const { syncQueue } = useSync();
 
+  const initialFormState = {
+    tripNo: "", vehicleNo: "", mode: "", type: "", date: "", awbNo: "", cdNo: "",
+    vendor: "", origin: "", destination: "",
+    materialDetails: [{ clientName: "", lrNo: "", box: "", weight: "", chWeight: "", origin: "", destination: "" }],
+    specialInstruction: ""
+  };
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = appDB.memGet('manifestFormDraft');
+      if (saved) return saved;
+    } catch (_e) {}
+    return initialFormState;
+  });
+
   const handleCreateNew = async (type, field, name, index = null) => {
     try {
       const endpoint = `${API}/${type === 'city' ? 'cities' : type + 's'}`;
@@ -75,19 +89,6 @@ const Trips = () => {
     }
   };
 
-  const initialFormState = {
-    tripNo: "", vehicleNo: "", mode: "", type: "", date: "", awbNo: "", cdNo: "",
-    vendor: "", origin: "", destination: "",
-    materialDetails: [{ clientName: "", lrNo: "", box: "", weight: "", chWeight: "", origin: "", destination: "" }],
-    specialInstruction: ""
-  };
-  const [form, setForm] = useState(() => {
-    try {
-      const saved = appDB.memGet('manifestFormDraft');
-      if (saved) return saved;
-    } catch (_e) {}
-    return initialFormState;
-  });
   const [view, setView] = useState("manifest");
 
   useEffect(() => {

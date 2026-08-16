@@ -32,6 +32,17 @@ const GenerateBill = () => {
   const [modalType, setModalType] = useState("");
   const [modalInitialName, setModalInitialName] = useState("");
 
+  const [filters, setFilters] = useState({
+    invoicePrefix: `MCPL/${getCurrentFinancialYear()}/`,
+    invoiceNo: "",
+    invoiceDate: "",
+    client: "",
+    mode: "",
+    fromDate: "",
+    toDate: "",
+    gst: ""
+  });
+
   const handleCreateNew = (type, name) => {
     setModalType(type);
     setModalInitialName(name);
@@ -44,17 +55,6 @@ const GenerateBill = () => {
       setFilters({ ...filters, client: data.name || data.client });
     }
   };
-
-  const [filters, setFilters] = useState({
-    invoicePrefix: `MCPL/${getCurrentFinancialYear()}/`,
-    invoiceNo: "",
-    invoiceDate: "",
-    client: "",
-    mode: "",
-    fromDate: "",
-    toDate: "",
-    gst: ""
-  });
 
   useEffect(() => { 
     fetchData(); 
