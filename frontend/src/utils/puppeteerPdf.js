@@ -138,67 +138,86 @@ export const downloadViaPuppeteer = async ({
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const token = localStorage.getItem("token");
+  const finalFilename = safeFilename.toLowerCase().endsWith(".pdf") ? safeFilename : `${safeFilename}.pdf`;
 
-  const res = await axios.post(
-    `${API_URL}/api/print/generate-pdf`,
-    { html: fullHTML, filename: safeFilename, landscape },
-    { 
-      responseType: "blob",
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    }
-  );
-
-  // res.data is ALREADY the raw PDF Blob object from Axios
-  const blob = res.data instanceof Blob 
-    ? res.data 
-    : new Blob([res.data], { type: "application/pdf" });
-    
-  const url = window.URL.createObjectURL(blob);
-
-  // Strict boolean check so SyntheticEvents don't trigger autoPrint
-  const isAutoPrint = autoPrint === true;
-
-  if (isAutoPrint) {
-    // Print via hidden iframe
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.src = url;
-    document.body.appendChild(iframe);
-
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-      } catch (err) {
-        console.error("Print error:", err);
+  try {
+    const res = await axios.post(
+      `${API_URL}/api/print/generate-pdf`,
+      { html: fullHTML, filename: safeFilename, landscape },
+      { 
+        responseType: "blob",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       }
+    );
+
+    // res.data is ALREADY the raw PDF Blob object from Axios
+    const blob = res.data instanceof Blob 
+      ? res.data 
+      : new Blob([res.data], { type: "application/pdf" });
+      
+    const url = window.URL.createObjectURL(blob);
+
+    // Strict boolean check so SyntheticEvents don't trigger autoPrint
+    const isAutoPrint = autoPrint === true;
+
+    if (isAutoPrint) {
+      // Print via hidden iframe
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (err) {
+          console.error("Print error:", err);
+        }
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          window.URL.revokeObjectURL(url);
+        }, 5000);
+      };
+    } else {
+      // Direct file download to user's Downloads folder
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = finalFilename;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      
       setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
         }
         window.URL.revokeObjectURL(url);
       }, 5000);
-    };
-  } else {
-    // Direct file download to user's Downloads folder
-    const finalFilename = safeFilename.toLowerCase().endsWith(".pdf") ? safeFilename : `${safeFilename}.pdf`;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = finalFilename;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-      window.URL.revokeObjectURL(url);
-    }, 5000);
+    }
+  } catch (err) {
+    console.warn("Backend PDF generation failed or not available on deployment server, executing client-side html2pdf.js fallback:", err);
+    try {
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+      const opt = {
+        margin: landscape ? [3, 3, 3, 3] : [3, 3, 3, 3],
+        filename: finalFilename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: landscape ? "landscape" : "portrait" }
+      };
+      await html2pdf().set(opt).from(clone).save();
+    } catch (fallbackErr) {
+      console.error("Both backend and client-side PDF generation failed:", fallbackErr);
+      alert("Failed to download PDF. Please try again.");
+    }
   }
 };

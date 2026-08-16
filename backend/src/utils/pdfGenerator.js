@@ -109,10 +109,34 @@ async function generatePDF(htmlContent, options = {}) {
       return imgTag;
     });
 
+    // Detect system Chrome/Chromium executable on Linux/Cloud deployment servers
+    const possibleExecutablePaths = [
+      process.env.PUPPETEER_EXECUTABLE_PATH,
+      process.env.CHROME_BIN,
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium'
+    ].filter(Boolean);
+
+    let executablePath = possibleExecutablePaths.find(p => fs.existsSync(p));
+
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process'
+    ];
+
     // Launch headless browser
     browser = await puppeteer.launch({
       headless: "new",
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: launchArgs,
+      ...(executablePath ? { executablePath } : {})
     });
 
     const page = await browser.newPage();
