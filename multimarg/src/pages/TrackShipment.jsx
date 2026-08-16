@@ -449,7 +449,7 @@ const TrackShipment = () => {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4b5563', fontSize: '0.95rem' }}>
                               <MapPin size={14} color="#9ca3af" />
-                              <span style={{ fontWeight: 500 }}>{entry.location || 'Location not provided'}</span>
+                              <span style={{ fontWeight: 500, textTransform: 'uppercase' }}>{entry.location || 'Location not provided'}</span>
                             </div>
                             {entry.remarks && (
                               <div style={{ 

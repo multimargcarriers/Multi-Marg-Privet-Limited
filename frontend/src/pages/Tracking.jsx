@@ -667,7 +667,7 @@ const Tracking = () => {
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#4b5563", fontSize: "0.95rem" }}>
                           <MapPin size={15} color="#9ca3af" />
-                          <span style={{ fontWeight: "500" }}>{entry.location || "Location not provided"}</span>
+                          <span style={{ fontWeight: "500", textTransform: "uppercase" }}>{entry.location || "Location not provided"}</span>
                           {isAdmin && (
                             <span style={{ marginLeft: "auto", background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px", fontSize: "0.8rem", color: "#475569" }}>
                               By: {entry.enteredBy || "Admin"}
