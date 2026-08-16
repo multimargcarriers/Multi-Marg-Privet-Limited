@@ -386,7 +386,7 @@ const UpdateBill = () => {
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Mode</label>
                   <select className="form-control" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
                     <option value="Road">Road</option>
-                    <option value="Rail">Rail</option>
+                    <option value="Train">Train</option>
                     <option value="Air">Air</option>
                     <option value="Sea">Sea</option>
                   </select>

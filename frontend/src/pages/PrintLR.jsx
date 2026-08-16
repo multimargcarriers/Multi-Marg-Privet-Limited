@@ -151,6 +151,13 @@ const PrintLR = () => {
             else b.insuredBy = fallback || "";
           }
 
+          if (b.mode) {
+            const lm = b.mode.toLowerCase();
+            if (lm === "rail" || lm === "train") {
+              b.mode = "Train";
+            }
+          }
+
           let parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
           if (parcels && parcels.length > 0) {
             b.invoiceDetails = parcels.map(p => ({
@@ -774,7 +781,7 @@ const PrintLR = () => {
                         <td className="gray-cell" style={{ width: "15%", textAlign: "center" }}>DATE</td>
                         <td className="data-cell" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
                         <td className="gray-cell" style={{ width: "10%", textAlign: "center" }}>MODE</td>
-                        <td className="data-cell" style={{ width: "10%" }}>{booking.mode?.toUpperCase()}</td>
+                        <td className="data-cell" style={{ width: "10%" }}>{(booking.mode && (booking.mode.toLowerCase() === 'rail' || booking.mode.toLowerCase() === 'train') ? 'TRAIN' : booking.mode?.toUpperCase())}</td>
                       </tr>
                     </tbody>
                   </table>

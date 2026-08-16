@@ -398,7 +398,7 @@ const GenerateBill = () => {
               <select name="mode" value={filters.mode} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
                 <option value="">-- All Modes --</option>
                 <option value="Road">Road</option>
-                <option value="Rail">Rail</option>
+                <option value="Train">Train</option>
                 <option value="Air">Air</option>
                 <option value="Sea">Sea</option>
               </select>

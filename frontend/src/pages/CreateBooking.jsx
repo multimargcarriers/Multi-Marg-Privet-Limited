@@ -144,7 +144,7 @@ const CreateBooking = () => {
             if (b.mode) {
                const lowerMode = b.mode.toLowerCase();
                if (lowerMode === "road") b.mode = "Road";
-               else if (lowerMode === "rail" || lowerMode === "train") b.mode = "Rail";
+               else if (lowerMode === "rail" || lowerMode === "train") b.mode = "Train";
                else if (lowerMode === "air") b.mode = "Air";
                else if (lowerMode === "sea") b.mode = "Sea";
             }
@@ -294,6 +294,7 @@ const CreateBooking = () => {
             delivery = parseFloat(rate.airDelivery || 0);
             break;
           case "Rail":
+          case "Train":
             rateValue = parseFloat(rate.trainRate || 0);
             pickup = parseFloat(rate.trainPickup || 0);
             delivery = parseFloat(rate.trainDelivery || 0);
@@ -545,7 +546,7 @@ const CreateBooking = () => {
             <select className="form-control" name="mode" value={formData.mode} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }}>
               <option value="">-- Mode --</option>
               <option value="Road">Road</option>
-              <option value="Rail">Rail</option>
+              <option value="Train">Train</option>
               <option value="Air">Air</option>
               <option value="Sea">Sea</option>
             </select>

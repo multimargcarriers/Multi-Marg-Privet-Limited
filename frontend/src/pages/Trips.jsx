@@ -550,13 +550,6 @@ const Trips = () => {
                     <option value="EXPRESS MODE" />
                   </>
                 )}
-                {form.mode === 'TRAIN' && (
-                  <>
-                    <option value="EXPRESS" />
-                    <option value="SUPERFAST" />
-                    <option value="PASSENGER" />
-                  </>
-                )}
                 {form.mode === 'ROAD' && (
                   <>
                     <option value="FTL" />
