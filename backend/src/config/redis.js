@@ -40,7 +40,18 @@ async function initRedis() {
 
   try {
     const url = getRedisUrl();
-    client = redis.createClient({ url });
+    client = redis.createClient({
+      url,
+      socket: {
+        reconnectStrategy: (retries) => {
+          // Stop reconnecting after 3 attempts to prevent process hang
+          if (retries > 3) {
+            return new Error("[Redis] Max connection retries reached");
+          }
+          return 1000; // Retry after 1 second
+        }
+      }
+    });
 
     client.on("error", (err) => {
       console.error("[Redis] Connection error:", err.message);

@@ -34,9 +34,7 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Initialize Crons
-initAnalyticsCron();
-initCloudinaryCleanupCron();
+
 
 // ============================================================
 // Security Middleware
@@ -411,7 +409,9 @@ async function initializeServices() {
   } catch (err) {
     logger.warn("MongoDB initialization failed (continuing without DB):", err.message);
   }
-  
+}
+
+async function initializeBackgroundServices() {
   if (process.env.USE_REDIS === "true") {
     try {
       const redisModule = require("./src/config/redis");
@@ -436,11 +436,11 @@ async function initializeServices() {
 }
 
 async function startServer() {
+  // 1. Initialize MongoDB (usually fast)
   await initializeServices();
-  initAnalyticsCron();
-  initCloudinaryCleanupCron();
 
-  const server = app.listen(PORT, () => {
+  // 2. Start listening immediately (guarantees calling listen() within Hostinger's 3-second limit)
+  const server = app.listen(PORT, async () => {
     // Initialize Socket.IO
     socketUtil.init(server);
 
@@ -449,16 +449,12 @@ async function startServer() {
     logger.info(`  Environment: ${NODE_ENV}`);
     logger.info(`  Server: http://localhost:${PORT}`);
     logger.info(`  API: http://localhost:${PORT}/api`);
-    logger.info(
-      `  Redis: ${process.env.USE_REDIS === "true" ? "Enabled" : "Disabled"}`,
-    );
-    logger.info(
-      `  Cloudinary: ${process.env.USE_CLOUDINARY === "true" ? "Enabled" : "Disabled"}`,
-    );
-    logger.info(
-      `  Database: MongoDB`,
-    );
     logger.info(`========================================`);
+
+    // 3. Initialize background services & crons asynchronously
+    await initializeBackgroundServices();
+    initAnalyticsCron();
+    initCloudinaryCleanupCron();
   });
 
 
