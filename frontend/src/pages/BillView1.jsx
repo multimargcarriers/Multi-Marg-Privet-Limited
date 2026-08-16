@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useContext, } from "react";
-import { useParams, useLocation } from "react-router-dom";
-import { Printer, Cloud, Download, CheckSquare, Square,  } from "lucide-react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { Printer, Cloud, Download, CheckSquare, Square, ArrowLeft } from "lucide-react";
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
 import { useToast } from "../context/ToastContext";
 import html2pdf from "html2pdf.js";
 import appDB from "../utils/appDB";
+import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
+import { formatDate } from "../utils/formatters";
 
 // Indian Currency Number to Words converter
 const numberToWordsIndian = (num) => {
@@ -69,6 +71,7 @@ const numberToWordsIndian = (num) => {
 };
 
 const BillView1 = () => {
+  const navigate = useNavigate();
   const { id: paramId } = useParams();
   const searchParams = new URLSearchParams(useLocation().search);
   const id = paramId || searchParams.get("id");
@@ -112,6 +115,44 @@ const BillView1 = () => {
   };
 
   const [clients, setClients] = useState([]);
+  const [scale, setScale] = useState(1);
+  const [sheetHeight, setSheetHeight] = useState(1150);
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const horizontalMargin = window.innerWidth < 600 ? 16 : 32;
+        const availWidth = containerWidth - horizontalMargin;
+        setScale(Math.min(1, Math.max(0.2, availWidth / 940)));
+      } else {
+        const screenW = window.innerWidth;
+        const horizontalMargin = screenW < 600 ? 32 : 48;
+        setScale(Math.min(1, Math.max(0.2, (screenW - horizontalMargin) / 940)));
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    const timer = setTimeout(handleResize, 150);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const measureHeight = () => {
+      const el = document.getElementById("bill-content");
+      if (el) {
+        setSheetHeight(el.scrollHeight || 1150);
+      }
+    };
+    measureHeight();
+    const timer = setTimeout(measureHeight, 300);
+    return () => clearTimeout(timer);
+  }, [bill, scale, includeStamp, showWatermark]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -147,43 +188,22 @@ const BillView1 = () => {
     }
   };
 
-  const handleDownloadLocalPDF = () => {
-    window.scrollTo(0, 0);
-    const element = document.getElementById("bill-content");
+  const handleDownloadLocalPDF = async (autoPrint = false) => {
+    const clientName = typeof billData?.client === 'string' ? billData.client : (billData?.client?.name || billData?.clientName || billData?.customerName || "");
+    const billNo = (billData?.invoice || billData?.billNo || billData?.invoiceNo || id).toString().replace(/[\/\\]/g, "_");
+    const filename = `${billNo}${clientName ? " - " + clientName.toUpperCase() : ""}.pdf`;
     
-    // Temporarily remove shadow for cleaner PDF
-    const originalShadow = element.style.boxShadow;
-    const originalBorder = element.style.border;
-    element.style.boxShadow = "none";
-    element.style.border = "none";
-
-    const width = element.offsetWidth || 940;
-    const height = element.offsetHeight + 10; // Extra padding so nothing cuts off
-    
-    const nameStr = (billData?.client?.name || billData?.customerName || billData?.clientName) ? ` - ${(billData.client?.name || billData.customerName || billData.clientName).toUpperCase()}` : '';
-    const opt = {
-      margin:       0,
-      filename:     `BILL ${billData.billNo || id}${nameStr}.pdf`,
-      image:        { type: 'jpeg', quality: 1 },
-      html2canvas:  { 
-        scale: 2, 
-        useCORS: true, 
-        scrollY: 0,
-        scrollX: 0
-      },
-      jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: 'css', avoid: 'tr' }
-    };
-    
-    html2pdf().set(opt).from(element).save().then(() => {
-      // Restore styles after generation
-      element.style.boxShadow = originalShadow;
-      element.style.border = originalBorder;
-    }).catch(err => {
-      console.error("PDF generation failed:", err);
-      element.style.boxShadow = originalShadow;
-      element.style.border = originalBorder;
-    });
+    try {
+      await downloadViaPuppeteer({
+        elementId: "bill-content",
+        filename,
+        landscape: false,
+        autoPrint
+      });
+    } catch (err) {
+      console.error("Puppeteer PDF generation error:", err);
+      addToast("Failed to generate PDF via backend", "error");
+    }
   };
 
   // Mock / Fallback Bill Data formatted to match Tax Invoice exact layout
@@ -288,93 +308,61 @@ const BillView1 = () => {
     : (billData.gstin || "");
 
   return (
-    <div>
+    <div ref={containerRef} style={{ width: "100%", overflowX: "hidden", boxSizing: "border-box" }}>
       {/* Top Controls Bar (Hidden during Print) */}
-      <div className="no-print" style={{ marginBottom: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", background: "var(--panel-solid-bg)", padding: "1rem 1.5rem", borderRadius: "10px", border: "1px solid var(--border-color)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-          <div>
-            <h3 style={{ fontSize: "1.4rem", margin: "0 0 0.25rem 0", color: "var(--text-dark)" }}>Tax Invoice View</h3>
-            <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Invoice ID: {billData.billNo || id}</p>
-          </div>
-
-          {/* Stamp Toggle Control Option */}
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", background: "rgba(0, 0, 0, 0.03)", padding: "0.5rem 1rem", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-            <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--text-dark)" }}>Official Stamp:</span>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
-                type="button"
-                onClick={() => toggleStamp(true)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                  padding: "0.4rem 0.85rem",
-                  borderRadius: "6px",
-                  border: includeStamp ? "1.5px solid #0D5C96" : "1px solid #ccc",
-                  background: includeStamp ? "rgba(13, 92, 150, 0.12)" : "#fff",
-                  color: includeStamp ? "#0D5C96" : "#666",
-                  fontWeight: includeStamp ? "700" : "500",
-                  cursor: "pointer",
-                  fontSize: "0.85rem"
-                }}
-              >
-                {includeStamp ? <CheckSquare size={16} /> : <Square size={16} />} Yes (With Stamp)
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleStamp(false)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                  padding: "0.4rem 0.85rem",
-                  borderRadius: "6px",
-                  border: !includeStamp ? "1.5px solid #dc2626" : "1px solid #ccc",
-                  background: !includeStamp ? "rgba(220, 38, 38, 0.1)" : "#fff",
-                  color: !includeStamp ? "#dc2626" : "#666",
-                  fontWeight: !includeStamp ? "700" : "500",
-                  cursor: "pointer",
-                  fontSize: "0.85rem"
-                }}
-              >
-                {!includeStamp ? <CheckSquare size={16} /> : <Square size={16} />} No (Without Stamp)
-              </button>
+      <div className="no-print" style={{ marginBottom: "1rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", background: "var(--panel-solid-bg)", padding: "0.75rem 1rem", borderRadius: "10px", border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600, padding: "6px 12px", fontSize: "0.85rem" }} onClick={() => navigate(-1)}>
+              <ArrowLeft size={16} className="mr-1" /> Back
+            </button>
+            <div>
+              <h3 style={{ fontSize: "1.15rem", margin: 0, color: "var(--text-dark)", lineHeight: 1.2 }}>Tax Invoice View</h3>
+              <p className="text-muted" style={{ margin: 0, fontSize: "0.78rem" }}>Invoice ID: {billData.billNo || id}</p>
             </div>
           </div>
 
-          {/* Watermark Toggle Control Option */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: "rgba(0, 0, 0, 0.03)", padding: "0.5rem 1rem", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-            <span style={{ fontSize: "0.9rem", fontWeight: "600", color: "var(--text-dark)" }}>Watermark:</span>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
+            {/* Stamp Toggle Control Option */}
+            <button
+              type="button"
+              onClick={() => toggleStamp(!includeStamp)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "6px 14px", borderRadius: "6px",
+                border: includeStamp ? "1.5px solid #10b981" : "1.5px solid #cbd5e1",
+                background: includeStamp ? "#ecfdf5" : "#ffffff",
+                color: includeStamp ? "#047857" : "#64748b",
+                fontWeight: "700", cursor: "pointer", fontSize: "0.85rem",
+                boxShadow: includeStamp ? "0 2px 4px rgba(16, 185, 129, 0.15)" : "none"
+              }}
+            >
+              {includeStamp ? <CheckSquare size={16} color="#047857" /> : <Square size={16} color="#64748b" />} Official Stamp: {includeStamp ? "YES (Included)" : "NO (Hidden)"}
+            </button>
+
+            {/* Watermark Toggle Control Option */}
             <button
               type="button"
               onClick={() => toggleWatermark(!showWatermark)}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.35rem",
-                padding: "0.4rem 0.85rem",
-                borderRadius: "6px",
-                border: showWatermark ? "1.5px solid #0D5C96" : "1px solid #ccc",
-                background: showWatermark ? "rgba(13, 92, 150, 0.12)" : "#fff",
-                color: showWatermark ? "#0D5C96" : "#666",
-                fontWeight: showWatermark ? "700" : "500",
-                cursor: "pointer",
-                fontSize: "0.85rem"
+                display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "6px 10px", borderRadius: "6px",
+                border: showWatermark ? "1.5px solid #0D5C96" : "1px solid #cbd5e1",
+                background: showWatermark ? "rgba(13, 92, 150, 0.1)" : "#fff",
+                color: showWatermark ? "#0D5C96" : "#64748b",
+                fontWeight: "600", cursor: "pointer", fontSize: "0.8rem"
               }}
             >
-              {showWatermark ? <CheckSquare size={16} /> : <Square size={16} />} {showWatermark ? "On" : "Off"}
+              {showWatermark ? <CheckSquare size={14} /> : <Square size={14} />} Watermark: {showWatermark ? "On" : "Off"}
             </button>
-          </div>
 
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button className="btn" style={{ padding: "0 1rem", height: "42px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981" }} onClick={handleDownloadLocalPDF}>
-              <Download size={16} /> Download PDF
+            {/* Action Buttons */}
+            <button className="btn" style={{ padding: "6px 12px", fontSize: "0.8rem", background: "#10b981", color: "white", border: "none", fontWeight: 600 }} onClick={() => handleDownloadLocalPDF(false)}>
+              <Download size={14} className="mr-1" /> PDF
             </button>
-            <button className="btn" style={{ padding: "0 1rem", height: "42px" }} onClick={handleUploadCloudinary} disabled={uploading}>
-              <Cloud size={16} /> {uploading ? "Saving..." : "Save to Cloud"}
+            <button className="btn" style={{ padding: "6px 12px", fontSize: "0.8rem", background: "#0288d1", color: "white", border: "none", fontWeight: 600 }} onClick={handleUploadCloudinary} disabled={uploading}>
+              <Cloud size={14} className="mr-1" /> {uploading ? "Saving..." : "Cloud"}
             </button>
-            <button className="btn btn-primary" style={{ padding: "0 1.5rem", height: "42px" }} onClick={() => window.print()}>
-              <Printer size={16} /> Print Invoice
+            <button className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "0.8rem", background: "#1e293b", color: "white", border: "none", fontWeight: 600 }} onClick={() => handleDownloadLocalPDF(true)}>
+              <Printer size={14} className="mr-1" /> Print
             </button>
           </div>
         </div>
@@ -383,6 +371,25 @@ const BillView1 = () => {
       {/* Print Styles Sheet */}
       <style>
         {`
+          .print-container,
+          .print-container *,
+          .print-container div,
+          .print-container div:has(> table) {
+            max-width: none !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            box-sizing: border-box !important;
+          }
+          .print-container table,
+          .tax-invoice-sheet table {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            border-collapse: collapse !important;
+          }
+
           @media print {
             @page {
               size: A4;
@@ -407,14 +414,28 @@ const BillView1 = () => {
               padding: 0 !important;
               width: 100% !important;
               max-width: 100% !important;
+              transform: none !important;
             }
           }
         `}
       </style>
 
       {/* Premium Executive Tax Invoice Printable Document Sheet */}
-      <div id="bill-content">
-        <div>
+      <div style={{ display: "flex", justifyContent: "center", width: "100%", paddingBottom: "2rem" }}>
+        <div style={{ width: `${940 * scale}px`, height: `${sheetHeight * scale}px`, position: "relative" }}>
+          <div id="bill-content" className="print-container" style={{
+            width: "940px",
+            height: `${sheetHeight}px`,
+            background: "white",
+            color: "#0f172a",
+            boxSizing: "border-box",
+            overflow: "hidden",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            position: "absolute",
+            top: 0,
+            left: 0
+          }}>
           <div 
                 className="tax-invoice-sheet"
                 style={{
@@ -464,8 +485,8 @@ const BillView1 = () => {
 
         {/* Header Section */}
         <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "0.75rem", justifyContent: "space-between" }}>
-          <div style={{ width: "120px", flexShrink: 0 }}>
-            <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: "72px", objectFit: "contain" }} />
+          <div style={{ width: "145px", flexShrink: 0 }}>
+            <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: "88px", width: "100%", objectFit: "contain" }} />
           </div>
           <div style={{ flex: 1, textAlign: "center", padding: "0 1rem" }}>
             <h1 style={{ margin: "0 0 4px 0", color: "#0C4A6E", fontSize: "1.85rem", fontWeight: "900", letterSpacing: "0.5px" }}>
@@ -475,13 +496,13 @@ const BillView1 = () => {
               ADDRESS : LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153, UTTARAKHAND
             </p>
             <p style={{ margin: "0 0 2px 0", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
-              CONTACT : +91 5944-324033 &nbsp;&nbsp;|&nbsp;&nbsp; WEBSITE : www.multimargcarriers.co.in &nbsp;&nbsp;|&nbsp;&nbsp; EMAIL : info@multimarg.com
+              CONTACT : +91 5944-324033 &nbsp;&nbsp;|&nbsp;&nbsp; WEBSITE : <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "#0288D1", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a> &nbsp;&nbsp;|&nbsp;&nbsp; EMAIL : <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "#0288D1", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
             </p>
             <p style={{ margin: 0, color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
               GSTIN : 05AANCM3054E1ZN &nbsp;&nbsp;|&nbsp;&nbsp; PAN NO : AANCM3054E &nbsp;&nbsp;|&nbsp;&nbsp; CIN : U60300UR2020PTC010749
             </p>
           </div>
-          <div style={{ minWidth: "120px" }}></div>
+          <div style={{ minWidth: "145px" }}></div>
         </div>
 
         {/* Title */}
@@ -518,7 +539,7 @@ const BillView1 = () => {
               <div style={{ fontWeight: "800", color: "#0C4A6E" }}>{billData.invoice || billData.billNo || billData.invoiceNo || "MCPL/26-27/0159"}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Date:</div>
-              <div style={{ fontWeight: "700", color: "#0F172A" }}>{billData.invoice_date ? new Date(billData.invoice_date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.date ? new Date(billData.date).toLocaleDateString("en-GB").replace(/\//g, "-") : (billData.lrDate ? String(billData.lrDate).replace(/\//g, "-") : "30-07-2026"))}</div>
+              <div style={{ fontWeight: "700", color: "#0F172A" }}>{formatDate(billData.invoice_date || billData.date || billData.lrDate || new Date())}</div>
 
               <div style={{ fontWeight: "800", color: "#334155" }}>Mode:</div>
               <div style={{ fontWeight: "700", color: "#0F172A", textTransform: "uppercase" }}>{billData.mode || "Road"}</div>
@@ -535,49 +556,52 @@ const BillView1 = () => {
             </div>
           </div>
 
-          {/* LR / Items Table Grid (EXACT 16 COLUMNS PRESERVED 1:1) */}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.76rem" }}>
+          {/* LR / Items Table Grid (EXACT 16 COLUMNS OPTIMIZED FOR ALL DATA) */}
+          <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.74rem" }}>
             <thead>
               <tr style={{ background: "#FFFFFF", color: "#000000", borderBottom: "1.5px solid #000000" }}>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "25px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>SI</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>LR NO</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "65px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>LR DT</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>REF</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "55px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>ORG</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "65px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>DEST</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "35px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>PKG</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>WT</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>RATE</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "50px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>FREIGHT</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "50px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>AWB CHG</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>PICK</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>DEL</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "45px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>SPL</th>
-                <th style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #334155", width: "40px", textAlign: "center", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>OTH</th>
-                <th style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", fontSize: "0.6rem", whiteSpace: "nowrap" }}>TOTAL</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "3%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>SI</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "8%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>LR NO</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "8%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>LR DT</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "13%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>REF</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "8%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>ORG</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "12%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>DEST</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>PKG</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>WT</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>RATE</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "7%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>FREIGHT</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>AWB</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>PCK</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>DEL</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "3.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>SPL</th>
+                <th style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #334155", width: "3.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem" }}>OTH</th>
+                <th style={{ padding: "0.35rem 0.25rem", width: "10%", textAlign: "right", fontWeight: "800", fontSize: "0.58rem" }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
-              {itemsList.map((item, idx) => (
-                <tr key={idx} style={{ pageBreakInside: "avoid", borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.si || idx + 1}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrNo || item.awb}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lrDt || item.awb_date}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.ref}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.org || item.origin}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.dest || item.destination}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pkg || item.box}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.wt || item.weight}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.rate}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.frg || item.frieght}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.lr || item.awb_charge}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.pick || item.pickup}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.del || item.delivery}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.spl || item.special_delivery}</td>
-                  <td style={{ padding: "0.4rem 0.2rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.oth || item.other_charge}</td>
-                  <td style={{ padding: "0.4rem 0.4rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem", whiteSpace: "nowrap" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
-                </tr>
-              ))}
+              {itemsList.map((item, idx) => {
+                const refVal = item.ref || item.invoiceNo || item.invoiceNumber || item.invoice_number || (Array.isArray(item.invoiceDetails) ? item.invoiceDetails.map(i => i.invoiceNo || i.invoiceNumber).filter(Boolean).join(", ") : "") || "-";
+                return (
+                  <tr key={idx} style={{ pageBreakInside: "avoid", borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.si || idx + 1}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.lrNo || item.awb}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{formatDate(item.lrDt || item.awb_date || item.date)}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{refVal}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.org || item.origin}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.dest || item.destination}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pkg || item.box}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.wt || item.weight}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.rate}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.frg || item.frieght}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.lr || item.awb_charge}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pick || item.pickup}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.del || item.delivery}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.spl || item.special_delivery}</td>
+                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.oth || item.other_charge}</td>
+                    <td style={{ padding: "0.35rem 0.25rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -655,15 +679,11 @@ const BillView1 = () => {
                   {/* Stamp Slot: Conditional based on includeStamp toggle & custom uploaded stamp image */}
                   <div style={{ height: "105px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0.25rem 0" }}>
                     {includeStamp ? (
-                      (globalSettings?.company?.companyStampUrl) ? (
-                        <img 
-                          src={globalSettings?.company?.companyStampUrl} 
-                          alt="Official Company Stamp" 
-                          style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain', transform: 'rotate(-4deg)' }} 
-                        />
-                      ) : (
-                        <CompanyStamp size={105} />
-                      )
+                      <img 
+                        src={globalSettings?.company?.companyStampUrl || "/fab.png"} 
+                        alt="Official Company Stamp" 
+                        style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain' }} 
+                      />
                     ) : (
                       <div style={{ height: "65px" }}></div>
                     )}
@@ -683,13 +703,14 @@ const BillView1 = () => {
 
               {/* Bottom Footer Note */}
               <div style={{ textAlign: "center", fontSize: "0.85rem", fontWeight: "700", color: "#0C4A6E", marginTop: "1rem", letterSpacing: "1px" }}>
-                ❖ Thank You For Your Business ❖
+                {"❖ Thank You For Your Business ❖"}
               </div>
 
           {/* Close tax-invoice-sheet */}
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

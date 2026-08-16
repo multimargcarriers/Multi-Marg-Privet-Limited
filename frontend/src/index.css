@@ -1833,21 +1833,22 @@ html, body {
 /* ========================================================= */
 
 @media screen and (max-width: 768px) {
-  /* Ensure all tables are scrollable horizontally */
-  .table-container,
-  .table-responsive,
-  div:has(> table) {
+  /* Ensure all data tables are scrollable horizontally (excluding print/bilty document views) */
+  .table-container:not(.print-container),
+  .table-responsive:not(.print-container),
+  div:has(> table:not(.bilty-table)):not(.print-container):not(.print-wrapper) {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     max-width: 100vw !important;
   }
 
-  table {
+  table:not(.bilty-table):not(.print-container table) {
     min-width: 600px;
   }
 
-  /* Compact table cells */
-  table th, table td {
+  /* Compact table cells for data tables */
+  table:not(.bilty-table):not(.print-container table) th, 
+  table:not(.bilty-table):not(.print-container table) td {
     white-space: nowrap !important;
     padding: 0.5rem 0.6rem !important;
     font-size: 0.8rem !important;

@@ -177,7 +177,15 @@ const formatDataStrings = (data) => {
 // Add Axios Response Interceptor for Global Data Capitalization
 axios.interceptors.response.use(
   (response) => {
-    // Only format JSON responses
+    // Only format JSON responses (skip Blobs, ArrayBuffers, and binary data)
+    if (
+      response.request?.responseType === 'blob' || 
+      response.request?.responseType === 'arraybuffer' || 
+      response.data instanceof Blob ||
+      response.data instanceof ArrayBuffer
+    ) {
+      return response;
+    }
     if (response.data && typeof response.data === 'object') {
       response.data = formatDataStrings(response.data);
     }

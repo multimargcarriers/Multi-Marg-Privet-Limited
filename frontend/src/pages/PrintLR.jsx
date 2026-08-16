@@ -7,6 +7,7 @@ import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { formatDate } from "../utils/formatters";
+import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -18,18 +19,29 @@ const PrintLR = () => {
   const { user } = useContext(AuthContext);
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);
+  const containerRef = React.useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 850) {
-        setScale((window.innerWidth - 32) / 800); // 32px for padding
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const horizontalMargin = window.innerWidth < 600 ? 16 : 32;
+        const availWidth = containerWidth - horizontalMargin;
+        setScale(Math.min(1, Math.max(0.2, availWidth / 800)));
       } else {
-        setScale(1);
+        const screenW = window.innerWidth;
+        const horizontalMargin = screenW < 600 ? 32 : 48;
+        setScale(Math.min(1, Math.max(0.2, (screenW - horizontalMargin) / 800)));
       }
     };
+
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const timer = setTimeout(handleResize, 150);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -131,73 +143,26 @@ const PrintLR = () => {
     }
   };
 
-  const handleDownloadPDF = (onComplete) => {
-    window.scrollTo(0, 0);
+  const handleDownloadPDF = async (onComplete, autoPrint = false) => {
+    const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
+    const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
+    const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();
+    const routeStr = (origin && dest) ? `${origin} TO ${dest}` : (origin || dest || "");
+    const clientName = (booking?.consignee || booking?.consignor || booking?.clientName || booking?.client || "").toString().trim().toUpperCase();
+    const filename = `${awb}${routeStr ? " - " + routeStr : ""}${clientName ? " - " + clientName : ""}.pdf`;
 
-    const element = document.getElementById("bilty-content");
-    if (!element) return;
-
-    // We will clone it and append to body to avoid ANY mobile viewport CSS constraints.
-    const clone = element.cloneNode(true);
-    clone.style.transform = "none";
-    clone.style.position = "fixed"; // Fixed to avoid scrolling
-    clone.style.top = "0";
-    clone.style.left = "0";
-    clone.style.zIndex = "-9999";
-    clone.style.width = "800px";
-    clone.style.height = "1131px";
-
-    // Create a wrapper to strictly contain the clone
-    const wrapper = document.createElement("div");
-    wrapper.className = "print-wrapper"; // Ensure fonts apply
-    wrapper.style.position = "fixed";
-    wrapper.style.top = "0";
-    wrapper.style.left = "-9999px"; // Hide it off-screen
-    wrapper.style.width = "800px";
-    wrapper.style.height = "1131px";
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    // Copy canvas data for QR Code (cloneNode doesn't copy canvas content)
-    const originalCanvases = element.getElementsByTagName("canvas");
-    const clonedCanvases = clone.getElementsByTagName("canvas");
-    for (let i = 0; i < originalCanvases.length; i++) {
-      const ctx = clonedCanvases[i].getContext("2d");
-      ctx.drawImage(originalCanvases[i], 0, 0);
-    }
-
-    // Allow DOM to repaint
-    setTimeout(() => {
-      const lrNum = booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || 'UNKNOWN';
-      const originStr = booking?.origin ? ` - ${booking.origin.toUpperCase()}` : '';
-      const destStr = booking?.destination ? ` - ${booking.destination.toUpperCase()}` : '';
-      const nameStr = (booking?.consignor || booking?.clientName) ? ` - ${(booking.consignor || booking.clientName).toUpperCase()}` : '';
-
-      const opt = {
-        margin: 0,
-        filename: `AWB ${lrNum}${originStr}${destStr}${nameStr}.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          width: 800,
-          height: 1131,
-          windowWidth: 800,
-          scrollY: 0,
-          scrollX: 0
-        },
-        jsPDF: { unit: 'px', format: [800, 1131], orientation: 'portrait' }
-      };
-
-      html2pdf().set(opt).from(clone).save().then(() => {
-        document.body.removeChild(wrapper);
-        if (typeof onComplete === 'function') onComplete();
-      }).catch(err => {
-        console.error("PDF generation failed:", err);
-        document.body.removeChild(wrapper);
-        if (typeof onComplete === 'function') onComplete();
+    try {
+      await downloadViaPuppeteer({
+        elementId: "bilty-content",
+        filename,
+        landscape: false,
+        autoPrint
       });
-    }, 300);
+      if (typeof onComplete === 'function') onComplete();
+    } catch (err) {
+      console.error("Puppeteer PDF generation failed:", err);
+      if (typeof onComplete === 'function') onComplete();
+    }
   };
 
   useEffect(() => {
@@ -259,7 +224,7 @@ const PrintLR = () => {
 
 
   return (
-    <div style={{ background: "#e2e8f0", minHeight: "100vh", padding: "2rem" }} className="print-wrapper">
+    <div ref={containerRef} style={{ background: "#e2e8f0", minHeight: "100vh", padding: scale < 1 ? "0.5rem 0.25rem" : "1.5rem 0.75rem", boxSizing: "border-box", width: "100%", overflowX: "hidden" }} className="print-wrapper">
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -268,6 +233,35 @@ const PrintLR = () => {
           .print-wrapper {
             font-family: 'Outfit', sans-serif;
           }
+
+          /* Prevent any global responsive table scrollbar injection inside print preview */
+          .print-container,
+          .print-container *,
+          .print-container div,
+          .print-container div:has(> table) {
+            max-width: none !important;
+            min-width: 0 !important;
+            overflow: visible !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            box-sizing: border-box !important;
+          }
+          .print-container table,
+          .bilty-table {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+          .print-container th, 
+          .print-container td,
+          .bilty-table th,
+          .bilty-table td {
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+
           @media print {
             @page {
               size: A4 portrait;
@@ -287,6 +281,7 @@ const PrintLR = () => {
               width: 800px !important;
               max-width: 800px !important;
               min-width: 800px !important;
+              transform: none !important;
               margin: 0;
               padding: 0;
               background: white !important;
@@ -353,7 +348,7 @@ const PrintLR = () => {
         <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", color: "#475569", fontWeight: 600 }} onClick={handleBack}>
           <ArrowLeft size={18} className="mr-2" /> Back
         </button>
-        <div className="top-actions-container">
+        <div className="top-actions-container" style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
           <input
             type="text"
             value={signName}
@@ -371,7 +366,7 @@ const PrintLR = () => {
               cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
             }}
           />
-          <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
+          <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={() => handleDownloadPDF()}>
             <Download size={18} className="mr-2" /> Download PDF Bilty
           </button>
         </div>
@@ -381,7 +376,8 @@ const PrintLR = () => {
         <div style={{ width: `${800 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
           <div id="bilty-content" className="print-container" style={{
             width: "800px",
-            height: "1131px",
+            height: "auto",
+            minHeight: "0",
             background: "white",
             color: "#0f172a",
             boxSizing: "border-box",
@@ -393,8 +389,55 @@ const PrintLR = () => {
             top: 0,
             left: 0
           }}>
+            <style>
+              {`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
+                
+                .bilty-table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                  font-size: 0.75rem !important;
+                  table-layout: fixed !important;
+                }
+                .bilty-table th, .bilty-table td {
+                  border: 1px solid #cbd5e1 !important;
+                  padding: 4px 8px !important;
+                  color: #0f172a !important;
+                }
+                .gray-cell {
+                  background-color: #f8fafc !important;
+                  color: #0f172a !important;
+                  font-weight: 700 !important;
+                  text-transform: uppercase !important;
+                  font-size: 0.7rem !important;
+                  letter-spacing: 0.5px !important;
+                }
+                .data-cell {
+                  font-weight: 600 !important;
+                  color: #0f172a !important;
+                  font-size: 0.8rem !important;
+                }
+                .section-header {
+                  background-color: #1e293b !important;
+                  color: #ffffff !important;
+                  padding: 4px 10px !important;
+                  font-weight: 600 !important;
+                  font-size: 0.8rem !important;
+                  letter-spacing: 1px !important;
+                  text-transform: uppercase !important;
+                  display: flex !important;
+                  align-items: center !important;
+                }
+                .bilty-section {
+                  margin-bottom: 0px !important;
+                }
+                .blue-text { color: #1e3a8a !important; }
+                .premium-border { border: 2px solid #1e293b !important; }
+              `}
+            </style>
 
-            <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="premium-border" style={{ height: "auto", minHeight: "0", position: "relative", display: "flex", flexDirection: "column" }}>
               {/* Professional Logo Watermark */}
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.1 }} />
@@ -402,23 +445,25 @@ const PrintLR = () => {
 
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
                 {/* Header Section */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.5rem", borderBottom: "2px solid #1e293b" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.25rem", borderBottom: "2px solid #1e293b" }}>
                   {/* Logo */}
-                  <div style={{ width: "120px", flexShrink: 0 }}>
+                  <div style={{ width: "135px", flexShrink: 0 }}>
                     <img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} />
                   </div>
 
                   {/* Company Details */}
-                  <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.5rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "2px 0 2px", fontSize: "0.75rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "4px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
+                  <div style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
+                    <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <p style={{ margin: "0 0 2px", fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                    <p style={{ margin: "2px 0 2px", fontSize: "0.72rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "3px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155" }}>
                       <span>Contact: +91 5944-324033</span>
                       <span>|</span>
-                      <span>info@multimarg.com</span>
+                      <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
+                      <span>|</span>
+                      <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "2px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
                       <span>|</span>
                       <span>PAN: AANCM3054E1ZN</span>
@@ -426,15 +471,17 @@ const PrintLR = () => {
                   </div>
 
                   {/* QR Code & Tracking */}
-                  <div style={{ width: "130px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ padding: "4px", background: "white", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center" }}>
-                      <QRCodeCanvas
-                        value={`${import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com"}/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`}
-                        size={80}
-                        style={{ display: "block" }}
+                  <div style={{ width: "105px", textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ padding: "4px", background: "#ffffff", border: "1.5px solid #1e293b", borderRadius: "4px", display: "inline-flex", justifyContent: "center", alignItems: "center" }}>
+                      <img
+                        id="lr-qr-code"
+                        data-qr-value={`${import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com"}/track?awb=${booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent((import.meta.env.VITE_FRONTEND_URL || "https://multimarg.com") + "/track?awb=" + (booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)))}`}
+                        alt="SCAN TO TRACK"
+                        style={{ width: "64px", height: "64px", display: "block" }}
                       />
                     </div>
-                    <div style={{ fontSize: "0.6rem", fontWeight: "800", color: "#1e3a8a", marginTop: "4px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
+                    <div style={{ fontSize: "0.55rem", fontWeight: "800", color: "#1e3a8a", marginTop: "3px", letterSpacing: "0.5px" }}>SCAN TO TRACK</div>
                   </div>
                 </div>
 

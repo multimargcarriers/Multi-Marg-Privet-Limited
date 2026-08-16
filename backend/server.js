@@ -79,6 +79,9 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:5175",
+      "https://multimarg.com",
+      "https://www.multimarg.com",
+      "https://soft.multimargcarriers.co.in",
       process.env.FRONTEND_ORIGIN,
       process.env.PUBLIC_FRONTEND_ORIGIN
     ].filter(Boolean),
@@ -321,6 +324,23 @@ app.use("/api/public/quote", publicQuoteRoutes);
 app.use("/api/public/contact", publicContactRoutes);
 app.use("/api/public/cms", publicCmsRoutes);
 app.use("/api/public/applications", publicApplicationsRoutes);
+
+// Public Puppeteer PDF Generation Route (Must be mounted before authenticateToken)
+const { generatePDF } = require("./src/utils/pdfGenerator");
+app.post("/api/print/generate-pdf", async (req, res) => {
+  try {
+    const { html, filename = "document.pdf", landscape = false } = req.body;
+    if (!html) return res.status(400).json({ success: false, message: "HTML content is required" });
+
+    const pdfBuffer = await generatePDF(html, { landscape });
+    res.type("application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error("Puppeteer PDF Error:", err);
+    res.status(500).json({ success: false, message: "Failed to generate PDF", error: err.message });
+  }
+});
 
 // ============================================================
 // Global Authentication & Auditing Lockdown

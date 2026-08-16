@@ -5,6 +5,7 @@ import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
 import appDB from "../utils/appDB";
+import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
 
 
 const PrintSingleTrip = () => {
@@ -14,6 +15,11 @@ const PrintSingleTrip = () => {
   const { user } = useContext(AuthContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimargcarriers.co.in';
   const [signName, setSignName] = useState(user?.name || "Admin");
+  const [scale, setScale] = useState(1);
+  const [trip, setTrip] = useState(null);
+  const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const containerRef = React.useRef(null);
+
   const handleBack = () => {
     window.close();
     navigate("/trips");
@@ -36,61 +42,42 @@ const PrintSingleTrip = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1450) {
-        setScale((window.innerWidth - 32) / 1400);
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const horizontalMargin = window.innerWidth < 600 ? 16 : 32;
+        const availWidth = containerWidth - horizontalMargin;
+        setScale(Math.min(1, Math.max(0.2, availWidth / 1400)));
       } else {
-        setScale(1);
+        const screenW = window.innerWidth;
+        const horizontalMargin = screenW < 600 ? 32 : 48;
+        setScale(Math.min(1, Math.max(0.2, (screenW - horizontalMargin) / 1400)));
       }
     };
+
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const timer = setTimeout(handleResize, 150);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
     if (user?.name) setSignName(user.name);
   }, [user]);
 
-  const handleDownloadPDF = () => {
-    window.scrollTo(0, 0);
-    const element = document.getElementById("single-trip-content");
-    const clone = element.cloneNode(true);
-    clone.style.transform = "none";
-    clone.style.position = "fixed";
-    clone.style.top = "0";
-    clone.style.left = "0";
-    clone.style.zIndex = "-9999";
-    clone.style.width = "1400px";
-    clone.style.height = "990px";
+  const handleDownloadPDF = async () => {
+    const tripNo = (trip?.tripNo || trip?.trip || trip?.id?.slice(-6) || id).toString().trim().toUpperCase();
+    const vendor = (trip?.vendorName || trip?.vendor || "").toString().trim().toUpperCase();
+    const vehicle = (trip?.vehicleNo || trip?.truckNo || "").toString().trim().toUpperCase();
+    const filename = `VENDOR TRIP ${tripNo}${vendor ? " - " + vendor : ""}${vehicle ? " - " + vehicle : ""}.pdf`;
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "print-wrapper";
-    wrapper.style.position = "fixed";
-    wrapper.style.top = "0";
-    wrapper.style.left = "-9999px";
-    wrapper.style.width = "1400px";
-    wrapper.style.height = "990px";
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    setTimeout(() => {
-      const nameStr = (trip?.vendorName || trip?.clientName) ? ` - ${(trip.vendorName || trip.clientName).toUpperCase()}` : '';
-
-      const opt = {
-        margin: 0,
-        filename: `VENDOR TRIP ${trip?.tripNo || trip?.id || index}${nameStr}.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true, width: 1400, height: 990, windowWidth: 1400, scrollY: 0, scrollX: 0 },
-        jsPDF: { unit: 'px', format: [1400, 990], orientation: 'landscape' }
-      };
-
-      html2pdf().set(opt).from(clone).save().then(() => {
-        document.body.removeChild(wrapper);
-      }).catch(err => {
-        console.error("PDF generation failed:", err);
-        document.body.removeChild(wrapper);
-      });
-    }, 300);
+    await downloadViaPuppeteer({
+      elementId: "single-trip-content",
+      filename,
+      landscape: true
+    });
   };
 
   if (!trip) return <div style={{ padding: "2rem", textAlign: "center" }}><h3>Trip not found.</h3><button className="btn btn-primary mt-3" onClick={handleBack}>Go Back</button></div>;
@@ -100,18 +87,47 @@ const PrintSingleTrip = () => {
   const displayTotal = grandTotal > 0 ? grandTotal : totalDetailsAmount;
 
   return (
-    <div style={{ background: "#e2e8f0", minHeight: "100vh", padding: "2rem" }} className="print-wrapper">
+    <div ref={containerRef} style={{ background: "#e2e8f0", minHeight: "100vh", padding: scale < 1 ? "0.5rem 0.25rem" : "1.5rem 0.75rem", boxSizing: "border-box", width: "100%", overflowX: "hidden" }} className="print-wrapper">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
         
         .print-wrapper { font-family: 'Outfit', sans-serif; }
+
+        /* Prevent any global responsive table scrollbar injection inside print preview */
+        .print-container,
+        .print-container *,
+        .print-container div,
+        .print-container div:has(> table) {
+          max-width: none !important;
+          min-width: 0 !important;
+          overflow: visible !important;
+          overflow-x: visible !important;
+          overflow-y: visible !important;
+          box-sizing: border-box !important;
+        }
+        .print-container table,
+        .manifest-table {
+          width: 100% !important;
+          min-width: 100% !important;
+          max-width: 100% !important;
+          table-layout: fixed !important;
+          border-collapse: collapse !important;
+        }
+        .print-container th, 
+        .print-container td,
+        .manifest-table th,
+        .manifest-table td {
+          white-space: normal !important;
+          word-break: break-word !important;
+        }
+
         @media print {
           @page { size: A4 landscape; margin: 8mm; }
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
-          .print-container { position: absolute; left: 0; top: 0; width: 1400px !important; max-width: 1400px !important; min-width: 1400px !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
+          .print-container { position: absolute; left: 0; top: 0; width: 1400px !important; max-width: 1400px !important; min-width: 1400px !important; transform: none !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
           .no-print { display: none !important; }
           .manifest-table th, .manifest-table td { border-color: #cbd5e1 !important; color: #0f172a !important; }
           .section-header { 
@@ -179,8 +195,8 @@ const PrintSingleTrip = () => {
               cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
             }}
           />
-          <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={handleDownloadPDF}>
-            <Download size={18} className="mr-2" /> Download Trip Receipt
+          <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={() => handleDownloadPDF(false)}>
+            <Download size={18} className="mr-2" /> Download Vendor Receipt
           </button>
         </div>
       </div>
@@ -188,10 +204,57 @@ const PrintSingleTrip = () => {
       <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
         <div style={{ width: `${1400 * scale}px`, height: `${990 * scale}px`, position: "relative", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
           <div id="single-trip-content" className="print-container" style={{
-            width: "1400px", height: "990px", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
+            width: "1400px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
-            <div className="premium-border" style={{ height: "100%", position: "relative", display: "flex", flexDirection: "column" }}>
+            <style>
+              {`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
+                
+                * {
+                  font-family: 'Outfit', sans-serif !important;
+                }
+                .manifest-table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                  font-size: 0.68rem !important;
+                  table-layout: fixed !important;
+                }
+                .manifest-table th, .manifest-table td {
+                  border: 1px solid #cbd5e1 !important;
+                  padding: 3px 5px !important;
+                  color: #0f172a !important;
+                }
+                .gray-cell {
+                  background-color: #f8fafc !important;
+                  color: #0f172a !important;
+                  font-weight: 700 !important;
+                  text-transform: uppercase !important;
+                  font-size: 0.64rem !important;
+                  letter-spacing: 0.4px !important;
+                }
+                .data-cell {
+                  font-weight: 600 !important;
+                  color: #0f172a !important;
+                  font-size: 0.7rem !important;
+                }
+                .section-header {
+                  background-color: #1e293b !important;
+                  color: #ffffff !important;
+                  padding: 3px 8px !important;
+                  font-weight: 600 !important;
+                  font-size: 0.72rem !important;
+                  letter-spacing: 0.5px !important;
+                  text-transform: uppercase !important;
+                  display: flex !important;
+                  align-items: center !important;
+                }
+                .blue-text { color: #1e3a8a !important; }
+                .premium-border { border: 2px solid #1e293b !important; }
+              `}
+            </style>
+            <div className="premium-border" style={{ height: "auto", minHeight: "720px", position: "relative", display: "flex", flexDirection: "column" }}>
 
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "400px", opacity: 0.05 }} />
@@ -199,32 +262,32 @@ const PrintSingleTrip = () => {
 
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 2rem", borderBottom: "2px solid #1e293b" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 1.5rem", borderBottom: "2px solid #1e293b" }}>
                   {printHeader === "PRIME" ? (
                     <>
                       <div style={{ width: "120px", flexShrink: 0 }}><img src="/Prime RoadWAYS.png" alt="Prime Roadways" style={{ width: "100%", height: "auto" }} /></div>
                       <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                        <h1 style={{ margin: "0 0 2px", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "#b91c1c" }}>PRIME ROADWAYS</h1>
-                        <p style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: "600", color: "#334155" }}>PLOT NO 292/292A & 292B, OM VIHAR, WEST DELHI, NEW DELHI-110059</p>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "600", color: "#334155" }}>
+                        <h1 style={{ margin: "0 0 2px", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "#b91c1c" }}>PRIME ROADWAYS</h1>
+                        <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PLOT NO 292/292A & 292B, OM VIHAR, WEST DELHI, NEW DELHI-110059</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
                           <span>Contact: +91 7503112217</span><span>|</span><span>info@primeroadways.co.in</span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "700", color: "#0f172a" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>
                           <span>GST: 07BBCPP8550Q1ZX</span><span>|</span><span>PAN: BBCPP8550Q</span>
                         </div>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{ width: "120px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
+                      <div style={{ width: "145px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
                       <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                        <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                        <p style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                        <p style={{ margin: "2px 0 2px", fontSize: "0.9rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "600", color: "#334155" }}>
-                          <span>Contact: +91 5944-324033</span><span>|</span><span>info@multimarg.com</span>
+                        <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                        <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                        <p style={{ margin: "2px 0 2px", fontSize: "0.78rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
+                          <span>Contact: +91 5944-324033</span><span>|</span><a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a><span>|</span><a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.9rem", fontWeight: "700", color: "#0f172a" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>
                           <span>GST: 05AANCM3054E1ZN</span><span>|</span><span>PAN: AANCM3054E1ZN</span>
                         </div>
                       </div>
@@ -255,7 +318,9 @@ const PrintSingleTrip = () => {
                     <tbody>
                       <tr>
                         <td className="gray-cell" style={{ width: "12%" }}>VENDOR MIS ID</td>
-                        <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>{(trip.id || trip.tripNo || "-")}</td>
+                        <td className="data-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700" }}>
+                          {trip?.vendorCode || trip?.empCode || trip?.userCode || trip?.createdByCode || trip?.vendorId || (trip?.id && !String(trip.id).includes('-') && String(trip.id).length < 15 ? trip.id : null) || trip?.tripNo || trip?.vendorName || "VEN-0006"}
+                        </td>
                         <td className="gray-cell" style={{ width: "12%" }}>DATE</td>
                         <td className="data-cell" style={{ width: "21%" }}>{trip.createdAt ? formatDate(trip.createdAt) : (trip.date ? formatDate(trip.date) : "-")}</td>
                         <td className="gray-cell" style={{ width: "13%" }}>VENDOR NAME</td>
@@ -273,35 +338,35 @@ const PrintSingleTrip = () => {
                   </table>
 
                   <div className="section-header">2. Vendor Trip Details</div>
-                  <table className="manifest-table" style={{ fontSize: "0.7rem", width: "100%" }}>
+                  <table className="manifest-table" style={{ fontSize: "0.68rem", width: "100%", tableLayout: "fixed" }}>
                     <thead>
-                      <tr className="gray-cell" style={{ fontSize: "0.7rem" }}>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>DATE</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>VEHICLE NO</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>FROM</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>TO</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>HANDOVER TO</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>PARTICULAR</th>
-                        <th style={{ padding: "6px 4px", whiteSpace: "nowrap" }}>MODE</th>
-                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>AMOUNT</th>
-                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>OTHERS</th>
-                        <th style={{ textAlign: "right", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL</th>
+                      <tr className="gray-cell" style={{ fontSize: "0.65rem" }}>
+                        <th style={{ width: "10%", padding: "5px 3px", whiteSpace: "nowrap" }}>DATE</th>
+                        <th style={{ width: "12%", padding: "5px 3px", whiteSpace: "nowrap" }}>VEHICLE NO</th>
+                        <th style={{ width: "11%", padding: "5px 3px", whiteSpace: "nowrap" }}>FROM</th>
+                        <th style={{ width: "11%", padding: "5px 3px", whiteSpace: "nowrap" }}>TO</th>
+                        <th style={{ width: "14%", padding: "5px 3px", whiteSpace: "nowrap" }}>HANDOVER TO</th>
+                        <th style={{ width: "14%", padding: "5px 3px", whiteSpace: "nowrap" }}>PARTICULAR</th>
+                        <th style={{ width: "7%", padding: "5px 3px", whiteSpace: "nowrap" }}>MODE</th>
+                        <th style={{ width: "7%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>AMOUNT</th>
+                        <th style={{ width: "7%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>OTHERS</th>
+                        <th style={{ width: "7%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>TOTAL</th>
                       </tr>
                     </thead>
                     <tbody>
                       {trip.details && trip.details.length > 0 ? (
                         trip.details.map((p, i) => (
                           <tr key={i}>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.from || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.to || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.handoverTo || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.particular || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px", whiteSpace: "nowrap" }}>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.from || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.to || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.handoverTo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.particular || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px", whiteSpace: "nowrap" }}>
                               {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
                             </td>
                           </tr>
@@ -313,11 +378,11 @@ const PrintSingleTrip = () => {
                       )}
                     </tbody>
                     <tfoot>
-                      <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.7rem" }}>
-                        <td colSpan="7" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "6px 4px", whiteSpace: "nowrap" }}>TOTAL:</td>
-                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0).toFixed(2)}</td>
-                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "6px 4px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.others) || 0), 0).toFixed(2)}</td>
-                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", color: "#10b981", padding: "6px 4px", whiteSpace: "nowrap" }}>
+                      <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.65rem" }}>
+                        <td colSpan="7" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a", padding: "5px 3px", whiteSpace: "nowrap" }}>TOTAL:</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "5px 3px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0).toFixed(2)}</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "5px 3px", whiteSpace: "nowrap" }}>{trip.details?.reduce((s, p) => s + (parseFloat(p.others) || 0), 0).toFixed(2)}</td>
+                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", color: "#10b981", padding: "5px 3px", whiteSpace: "nowrap" }}>
                           Rs. {totalDetailsAmount.toFixed(2)}
                         </td>
                       </tr>
@@ -343,7 +408,7 @@ const PrintSingleTrip = () => {
                   Quantity and quality not checked. We are not responsible for leakage &amp; damage. Subject to Uttarakhand jurisdiction only.
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "10px 2rem", height: "80px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "10px 2rem", marginTop: "auto" }}>
                   <div style={{ textAlign: "center", width: "200px" }}>
                     <div style={{ height: "40px", marginBottom: "5px" }}></div>
                     <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "5px", fontSize: "0.9rem", fontWeight: "600", color: "#475569" }}>
