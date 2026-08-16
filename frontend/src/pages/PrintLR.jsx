@@ -97,9 +97,25 @@ const PrintLR = () => {
 
           if (clientsRes.data.success) {
             const clientsList = clientsRes.data.data || [];
-            const cClient = clientsList.find(c => c.name === b.client || c.client === b.client);
-            if (cClient) {
-              b.clientEmail = cClient.email || "";
+            const searchClient = String(b.client || b.billedTo || "").trim().toLowerCase();
+            const searchConsignor = String(b.consignor || "").trim().toLowerCase();
+            
+            let matchedClient = clientsList.find(c => {
+              const nameLower = String(c.name || "").trim().toLowerCase();
+              const codeLower = String(c.clientCode || "").trim().toLowerCase();
+              return searchClient && (nameLower === searchClient || codeLower === searchClient);
+            });
+            
+            if (!matchedClient && searchConsignor) {
+              matchedClient = clientsList.find(c => {
+                const nameLower = String(c.name || "").trim().toLowerCase();
+                const codeLower = String(c.clientCode || "").trim().toLowerCase();
+                return nameLower === searchConsignor || codeLower === searchConsignor;
+              });
+            }
+
+            if (matchedClient) {
+              b.clientEmail = matchedClient.email || "";
             }
           }
 
