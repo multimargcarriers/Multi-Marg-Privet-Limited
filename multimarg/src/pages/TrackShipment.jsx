@@ -307,51 +307,113 @@ const TrackShipment = () => {
                       return dateStr;
                     };
 
+                    const b = trackingResult.booking;
+                    const boxVal = b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount;
+
                     return (
                       <div style={{ 
                         display: 'grid', 
-                        gridTemplateColumns: '1fr 1fr', 
-                        gap: '1.5rem 2rem' 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.25rem',
+                        marginTop: '1rem'
                       }}>
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Origin</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.origin ? trackingResult.booking.origin.toUpperCase() : '-'}</p>
-                        </div>
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Destination</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.destination ? trackingResult.booking.destination.toUpperCase() : '-'}</p>
+                        {/* 1. ROUTE CARD */}
+                        <div style={{ 
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                            <MapPin size={16} color="#3b82f6" /> Route Details
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Origin</span>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.1rem', marginTop: '0.1rem' }}>{b.origin ? b.origin.toUpperCase() : '-'}</div>
+                            </div>
+                            <div style={{ color: '#94a3b8', fontWeight: 500, fontSize: '1.2rem', userSelect: 'none' }}>&rarr;</div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>
+                              <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Destination</span>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.1rem', marginTop: '0.1rem' }}>{b.destination ? b.destination.toUpperCase() : '-'}</div>
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignor</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignor ? trackingResult.booking.consignor.toUpperCase() : '-'}</p>
-                        </div>
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Consignee</p>
-                          <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>{trackingResult.booking.consignee ? trackingResult.booking.consignee.toUpperCase() : '-'}</p>
+                        {/* 2. PARTIES CARD */}
+                        <div style={{ 
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                            <Package size={16} color="#f59e0b" /> Party Information
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Consignor</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.consignor ? b.consignor.toUpperCase() : '-'}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Consignee</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.consignee ? b.consignee.toUpperCase() : '-'}</span>
+                          </div>
                         </div>
 
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Booking Date</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{parseDateString(trackingResult.booking.date)}</p>
-                        </div>
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Client</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.client ? trackingResult.booking.client.toUpperCase() : (trackingResult.booking.clientName ? trackingResult.booking.clientName.toUpperCase() : '-')}</p>
+                        {/* 3. BOOKING CONTEXT CARD */}
+                        <div style={{ 
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                            <Clock size={16} color="#8b5cf6" /> Booking Context
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Booking Date</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{parseDateString(b.date)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Client</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.client ? b.client.toUpperCase() : (b.clientName ? b.clientName.toUpperCase() : '-')}</span>
+                          </div>
                         </div>
 
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Package Count (Boxes)</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                            {(() => {
-                              const bVal = trackingResult.booking.box || trackingResult.booking.packages || trackingResult.booking.pkg || trackingResult.booking.pcs || trackingResult.booking.package_count || trackingResult.booking.boxCount;
-                              return bVal ? `${bVal} Pcs` : '-';
-                            })()}
-                          </p>
-                        </div>
-                        <div>
-                          <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', marginBottom: '0.3rem', textTransform: 'uppercase', fontWeight: 600 }}>Mode of Transport</p>
-                          <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>{trackingResult.booking.mode ? trackingResult.booking.mode.toUpperCase() : '-'}</p>
+                        {/* 4. CARGO & TRANSIT CARD */}
+                        <div style={{ 
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.5rem',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                            <Truck size={16} color="#10b981" /> Cargo & Transit
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Package Count</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{boxVal ? `${boxVal} PCS` : '-'}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Transport Mode</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>{b.mode ? b.mode.toUpperCase() : '-'}</span>
+                          </div>
                         </div>
                       </div>
                     );
