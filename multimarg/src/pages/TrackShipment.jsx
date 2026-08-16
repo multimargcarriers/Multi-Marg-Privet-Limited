@@ -412,7 +412,7 @@ const TrackShipment = () => {
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
                             <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Transport Mode</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>{b.mode ? b.mode.toUpperCase() : '-'}</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>{b.mode ? (b.mode.toUpperCase() === 'RAIL' ? 'TRAIN' : b.mode.toUpperCase()) : '-'}</span>
                           </div>
                         </div>
                       </div>

@@ -619,7 +619,7 @@ const Tracking = () => {
                       </div>
                       <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? selectedSearchBooking.mode.toUpperCase() : "-"}</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? (selectedSearchBooking.mode.toUpperCase() === "RAIL" ? "TRAIN" : selectedSearchBooking.mode.toUpperCase()) : "-"}</div>
                       </div>
                     </div>
                   </div>
