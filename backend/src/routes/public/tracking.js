@@ -84,6 +84,24 @@ router.get('/:awb', async (req, res) => {
     });
     
     if (booking) {
+      const parseDateString = (dateStr) => {
+        if (!dateStr) return new Date();
+        let parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) return parsed;
+        const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        if (dmyMatch) {
+          const day = parseInt(dmyMatch[1], 10);
+          const month = parseInt(dmyMatch[2], 10) - 1;
+          const year = parseInt(dmyMatch[3], 10);
+          parsed = new Date(year, month, day);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return new Date();
+      };
+
+      const bookingDateObj = parseDateString(booking.date);
+      const bookingDateISO = bookingDateObj.toISOString();
+
       // 1. Shipment Booked milestone
       const hasBookedStatus = entries.some(e => e.status === "Booked" || e.status === "Shipment Booked");
       if (!hasBookedStatus) {
@@ -92,33 +110,25 @@ router.get('/:awb', async (req, res) => {
           awb: baseAwb,
           status: "Shipment Booked",
           location: booking.origin || "Origin",
-          date: booking.date || new Date().toISOString(),
+          date: bookingDateISO,
           remarks: "Shipment details received and Lorry Receipt (LR) generated.",
-          updatedAt: booking.date || new Date().toISOString()
+          updatedAt: bookingDateISO
         });
       }
 
       // 2. Picked Up milestone
       const hasPickedUpStatus = entries.some(e => e.status === "Picked Up" || e.status === "Shipment Picked Up");
       if (!hasPickedUpStatus) {
-        let pickupDate = new Date().toISOString();
-        if (booking.date) {
-          try {
-            const dateObj = new Date(booking.date);
-            dateObj.setMinutes(dateObj.getMinutes() + 5);
-            pickupDate = dateObj.toISOString();
-          } catch (e) {
-            pickupDate = booking.date;
-          }
-        }
+        const pickupDateObj = new Date(bookingDateObj.getTime() + 5 * 60 * 1000);
+        const pickupDateISO = pickupDateObj.toISOString();
         entries.push({
           id: `picked-${booking.id || baseAwb}`,
           awb: baseAwb,
           status: "Picked Up",
           location: booking.origin || "Origin",
-          date: pickupDate,
+          date: pickupDateISO,
           remarks: "Shipment packages received and loaded into transport vehicle.",
-          updatedAt: pickupDate
+          updatedAt: pickupDateISO
         });
       }
 

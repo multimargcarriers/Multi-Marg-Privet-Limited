@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
@@ -602,7 +602,13 @@ const Tracking = () => {
                             : "-"}
                         </div>
                       </div>
-                       <div>
+                      <div>
+                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                        </div>
+                      </div>
+                      <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
                         <div style={{ fontWeight: 700, color: "#0f172a" }}>
                           {(() => {
@@ -612,62 +618,9 @@ const Tracking = () => {
                         </div>
                       </div>
                       <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                          {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
-                        </div>
-                      </div>
-                      <div>
                         <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
                         <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? selectedSearchBooking.mode.toUpperCase() : "-"}</div>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* INVOICE DETAILS CARD */}
-                {selectedSearchBooking && (selectedSearchBooking.invoiceDetails?.length > 0 || selectedSearchBooking.parcels?.length > 0) && (
-                  <div style={{
-                    background: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    padding: "1.25rem",
-                    marginBottom: "2rem",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-                  }}>
-                    <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <FileText size={18} color="#0ea5e9" /> Attached Invoices
-                    </h5>
-                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                      <table style={{ width: "100%", fontSize: "0.85rem", borderCollapse: "collapse", minWidth: "500px" }}>
-                        <thead>
-                          <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                            <th style={{ padding: "0.5rem", textAlign: "left", color: "#64748b", fontWeight: 600 }}>INVOICE / PART</th>
-                            <th style={{ padding: "0.5rem", textAlign: "center", color: "#64748b", fontWeight: 600 }}>QTY</th>
-                            <th style={{ padding: "0.5rem", textAlign: "right", color: "#64748b", fontWeight: 600 }}>VALUE (₹)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const parcels = selectedSearchBooking.invoiceDetails?.length > 0 
-                              ? selectedSearchBooking.invoiceDetails 
-                              : selectedSearchBooking.parcels || [];
-                            
-                            return parcels.map((parcel, idx) => (
-                              <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                <td style={{ padding: "0.5rem", fontWeight: 600, color: "#334155" }}>
-                                  {parcel.invoice || parcel.invoiceNo || parcel.part || parcel.partNumber || '-'}
-                                  {(parcel.eway || parcel.ewayBill) && <div style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 400 }}>Eway: {parcel.eway || parcel.ewayBill}</div>}
-                                </td>
-                                <td style={{ padding: "0.5rem", textAlign: "center", color: "#475569" }}>{parcel.quantity || parcel.qty || '-'}</td>
-                                <td style={{ padding: "0.5rem", textAlign: "right", fontWeight: 600, color: "#0f172a" }}>
-                                  {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
-                                </td>
-                              </tr>
-                            ));
-                          })()}
-                        </tbody>
-                      </table>
                     </div>
                   </div>
                 )}
