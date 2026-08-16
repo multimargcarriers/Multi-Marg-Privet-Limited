@@ -22,13 +22,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = async ({ to, subject, htmlContent }) => {
+const sendEmail = async ({ to, subject, htmlContent, attachments }) => {
   try {
     const info = await transporter.sendMail({
       from: `"Multi Marg" <${senderEmail}>`,
       to: to,
       subject: subject,
-      html: htmlContent
+      html: htmlContent,
+      ...(attachments ? { attachments } : {})
     });
     
     console.log(`[Mail] Email successfully sent to ${to} (Message ID: ${info.messageId}) via port ${smtpPort}`);

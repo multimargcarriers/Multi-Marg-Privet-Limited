@@ -4,7 +4,7 @@ const { db } = require("../config/database");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { body, validationResult } = require("express-validator");
-const { post_send_invoice_1 } = require('../controllers/emailController');
+const { post_send_invoice_1, post_send_lr } = require('../controllers/emailController');
 const { requirePermission } = require("../middleware/rbac");
 
 router.use(requirePermission(["reports","billing","email_reports"]));
@@ -17,6 +17,16 @@ router.post(
   body("subject").notEmpty().withMessage("Subject is required"),
   body("body").notEmpty().withMessage("Body is required")],
   asyncHandler(post_send_invoice_1)
+);
+
+// Send LR email
+router.post(
+  "/send-lr",
+  [
+    body("lrId").notEmpty().withMessage("LR ID is required"),
+    body("to").notEmpty().withMessage("Recipient email is required")
+  ],
+  asyncHandler(post_send_lr)
 );
 
 module.exports = router;
