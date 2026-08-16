@@ -148,33 +148,8 @@ const BookingsList = () => {
     } catch (err) { console.error("Clear all bookings error", err); }
   };
 
-  const [isExporting, setIsExporting] = useState(false);
-  const handleExportBookings = async () => {
-    try {
-      setIsExporting(true);
-      let exportUrl = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/csv/export/bookings`;
-      if (search) exportUrl += `?search=${encodeURIComponent(search)}`;
-      
-      const response = await axios.get(exportUrl, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `bookings_export.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      addToast("Export successful", "success");
-    } catch (err) {
-      console.error("Export failed:", err);
-      addToast("Failed to export data", "error");
-    } finally {
-      setIsExporting(false);
-    }
-  };
+
+
 
   const displayBookings = useMemo(() => {
     const pending = (syncQueue || [])
@@ -239,15 +214,32 @@ const BookingsList = () => {
         </div>
 
         {/* Right Side: Tools */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
-          <button 
-            className="page-header-btn page-header-btn-primary" 
-            onClick={handleExportBookings}
-            disabled={isExporting}
-            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
-          >
-            {isExporting ? "EXPORTING..." : "EXPORT CSV"}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {globalSettings?.integrations?.enableCsvImport !== false && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {/* Bookings (AWB) CSV */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>AWB</span>
+                <CsvImportExport moduleName="bookings" onImportSuccess={fetchAllData} searchQuery={search} />
+              </div>
+
+              <div style={{ width: '1px', height: '28px', backgroundColor: '#cbd5e1' }}></div>
+
+              {/* LR Details (Invoice Items) CSV */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>LR</span>
+                <CsvImportExport moduleName="lr_details" onImportSuccess={fetchAllData} searchQuery={search} />
+              </div>
+
+              <div style={{ width: '1px', height: '28px', backgroundColor: '#cbd5e1' }}></div>
+
+              {/* Combined (AWB + LR) CSV */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Combined</span>
+                <CsvImportExport moduleName="bookings_combined" onImportSuccess={fetchAllData} searchQuery={search} />
+              </div>
+            </div>
+          )}
           
           {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
             <button 
