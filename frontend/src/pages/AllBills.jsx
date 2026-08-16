@@ -398,8 +398,8 @@ const AllBills = () => {
                   <option value="cancelled" style={{ color: "#dc2626" }}>Cancelled</option>
                 </select>
               </td>
-              <td style={{ padding: "1rem" }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem' }}>
+              <td className="actions-cell" style={{ padding: "1rem" }}>
+                <div className="table-actions" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem' }}>
                   <button disabled={item.isOfflinePending} onClick={() => window.open(`/bills/view1/${encodeURIComponent(encodeURIComponent(item.id))}`, "_blank")} style={{ background: "rgba(14, 165, 233, 0.1)", border: "none", color: "#0ea5e9", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="View Bill"><Eye size={16} /></button>
                   <button disabled={item.isOfflinePending} onClick={() => navigate(`/bills/update?id=${encodeURIComponent(item.id)}`)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Bill"><Edit3 size={16} /></button>
                   <button disabled={item.isOfflinePending} onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${encodeURIComponent(encodeURIComponent(item.id))}/pdf?token=${localStorage.getItem('token')}`, "_blank")} style={{ background: "rgba(100, 116, 139, 0.1)", border: "none", color: "#64748b", cursor: item.isOfflinePending ? "not-allowed" : "pointer", display: 'flex', padding: "6px", borderRadius: "6px", transition: "all 0.2s", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download PDF"><Download size={16} /></button>

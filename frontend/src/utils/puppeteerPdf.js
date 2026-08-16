@@ -1,4 +1,3 @@
-import html2pdf from "html2pdf.js";
 
 /**
  * Generates and downloads/prints a PDF.
@@ -138,6 +137,7 @@ export const downloadViaPuppeteer = async ({
   // --- 2. Fallback: Client-side html2pdf.js (raster, works everywhere) ---
   if (!puppeteerOk) {
     try {
+      const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
         margin: [2, 2, 2, 2],
         filename: finalFilename,

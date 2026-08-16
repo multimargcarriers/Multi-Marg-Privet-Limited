@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Download, ArrowLeft } from "lucide-react";
 import RupeeIcon from "../components/RupeeIcon";
-import html2pdf from "html2pdf.js";
 import { AuthContext } from "../context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { formatDate } from "../utils/formatters";
@@ -265,6 +264,7 @@ const PrintLR = () => {
       };
 
       setEmailStatusMsg("Sending Lorry Receipt via email...");
+      const html2pdf = (await import("html2pdf.js")).default;
       const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
       const pdfBase64 = dataUri.split(';base64,')[1];
 

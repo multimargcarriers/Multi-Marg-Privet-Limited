@@ -5,7 +5,6 @@ import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
 import { useToast } from "../context/ToastContext";
-import html2pdf from "html2pdf.js";
 import appDB from "../utils/appDB";
 import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
 import { formatDate } from "../utils/formatters";
@@ -296,6 +295,7 @@ const BillView1 = () => {
       };
 
       setEmailStatusMsg("Sending Tax Invoice via email...");
+      const html2pdf = (await import("html2pdf.js")).default;
       const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
       const pdfBase64 = dataUri.split(';base64,')[1];
 
