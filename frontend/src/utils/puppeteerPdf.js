@@ -202,8 +202,8 @@ export const downloadViaPuppeteer = async ({
         window.URL.revokeObjectURL(url);
       }, 5000);
     }
-  } catch (err) {
-    console.warn("Backend PDF generation failed or not available on deployment server, executing client-side html2pdf.js fallback:", err);
+  } catch (_err) {
+    // Silently fall back to client-side html2pdf.js when backend PDF endpoint is unavailable or returns 500
     try {
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default || html2pdfModule;

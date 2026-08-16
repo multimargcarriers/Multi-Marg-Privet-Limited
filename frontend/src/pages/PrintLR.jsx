@@ -437,7 +437,7 @@ const PrintLR = () => {
               `}
             </style>
 
-            <div className="premium-border" style={{ height: "auto", minHeight: "1010px", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="premium-border" style={{ height: "auto", minHeight: "1050px", position: "relative", display: "flex", flexDirection: "column" }}>
               {/* Professional Logo Watermark */}
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <img src="/mc.png" alt="Watermark" style={{ width: "400px", opacity: 0.1 }} />
@@ -445,7 +445,7 @@ const PrintLR = () => {
 
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
                 {/* Header Section */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.25rem", borderBottom: "2px solid #1e293b" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 1.25rem", borderBottom: "2px solid #1e293b" }}>
                   {/* Logo */}
                   <div style={{ width: "135px", flexShrink: 0 }}>
                     <img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} />
@@ -453,17 +453,17 @@ const PrintLR = () => {
 
                   {/* Company Details */}
                   <div style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "0 0 2px", fontSize: "0.8rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
-                    <p style={{ margin: "2px 0 2px", fontSize: "0.72rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "3px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155" }}>
+                    <h1 className="blue-text" style={{ margin: "0 0 1px", fontSize: "1.45rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <p style={{ margin: "0 0 1px", fontSize: "0.78rem", fontWeight: "600", color: "#334155" }}>PREMIER LOGISTICS & TRANSPORTATION SERVICES</p>
+                    <p style={{ margin: "1px 0", fontSize: "0.72rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155" }}>
                       <span>Contact: +91 5944-324033</span>
                       <span>|</span>
                       <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
                       <span>|</span>
                       <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "2px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "12px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a" }}>
                       <span>GST: 05AANCM3054E1ZN</span>
                       <span>|</span>
                       <span>PAN: AANCM3054E1ZN</span>
