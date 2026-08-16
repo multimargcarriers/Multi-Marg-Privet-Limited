@@ -160,17 +160,28 @@ const CreateBooking = () => {
             
             // Auto-fill missing GST for old bookings so they fix themselves when edited
             const clientsList = clientsRes.data.data || [];
-            if (!b.consignorGst && b.consignor) {
-               const cClient = clientsList.find(c => c.name === b.consignor || c.client === b.consignor);
-               if (cClient) b.consignorGst = cClient.gst;
+            const findGstForParty = (partyName) => {
+              if (!partyName) return "";
+              const searchVal = String(partyName).trim().toLowerCase();
+              const cClient = clientsList.find(c => 
+                String(c.name || "").trim().toLowerCase() === searchVal || 
+                String(c.client || "").trim().toLowerCase() === searchVal ||
+                String(c.clientCode || "").trim().toLowerCase() === searchVal
+              );
+              return cClient ? (cClient.gst || "") : "";
+            };
+
+            if (!b.consignorGst || String(b.consignorGst).trim().toUpperCase() === "NA") {
+               const matchedGst = findGstForParty(b.consignor);
+               if (matchedGst) b.consignorGst = matchedGst;
             }
-            if (!b.consigneeGst && b.consignee) {
-               const cClient = clientsList.find(c => c.name === b.consignee || c.client === b.consignee);
-               if (cClient) b.consigneeGst = cClient.gst;
+            if (!b.consigneeGst || String(b.consigneeGst).trim().toUpperCase() === "NA") {
+               const matchedGst = findGstForParty(b.consignee);
+               if (matchedGst) b.consigneeGst = matchedGst;
             }
-            if (!b.clientGst && b.client) {
-               const cClient = clientsList.find(c => c.name === b.client || c.client === b.client);
-               if (cClient) b.clientGst = cClient.gst;
+            if (!b.clientGst || String(b.clientGst).trim().toUpperCase() === "NA") {
+               const matchedGst = findGstForParty(b.client);
+               if (matchedGst) b.clientGst = matchedGst;
             }
 
             // Full fallback mapping for all fields from possible imported CSV structures
