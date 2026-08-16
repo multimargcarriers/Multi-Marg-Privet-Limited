@@ -64,11 +64,11 @@ exports.post_send_lr = async (req, res) => {
     if (!bookingDoc.exists) return error(res, "Booking not found", 404);
     
     const booking = { id: bookingDoc.id, ...bookingDoc.data() };
-    const lrNumber = (booking.lrNumber || booking.awb || lrId).toString().toUpperCase();
+    const lrNumber = String(booking.consignment || booking.awb || booking.lrNo || booking.lr || booking.lrNumber || booking.id || lrId).trim().toUpperCase();
     const date = booking.date ? new Date(booking.date).toLocaleDateString("en-IN") : new Date().toLocaleDateString("en-IN");
     
     // --- 1. Construct standard filename: AWB Route BilledTo ---
-    const awb = String(booking.consignment || booking.awb || booking.lrNumber || lrId).trim().toUpperCase();
+    const awb = lrNumber;
     const origin = String(booking.origin || booking.from || "").trim().toUpperCase();
     const dest = String(booking.destination || booking.to || "").trim().toUpperCase();
     const routeStr = (origin && dest) ? `${origin} TO ${dest}` : (origin || dest || "");
