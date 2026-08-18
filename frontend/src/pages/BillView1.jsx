@@ -712,9 +712,9 @@ const BillView1 = () => {
       </style>
 
       {/* Premium Executive Tax Invoice Printable Document Sheet */}
-      <div style={{ display: "flex", justifyContent: "center", width: "100%", paddingBottom: "2rem" }}>
-        <div style={{ width: `${940 * scale}px`, height: `${sheetHeight * scale}px`, position: "relative" }}>
-          <div id="bill-content" className="print-container" style={{
+      <div className="print-main-wrapper" style={{ display: "flex", justifyContent: "center", width: "100%", paddingBottom: "2rem" }}>
+        <div className="print-scale-wrapper" style={{ width: `${940 * scale}px`, height: `${sheetHeight * scale}px`, position: "relative" }}>
+          <div id="bill-content" className="print-container print-container-bill" style={{
             width: "940px",
             height: `${sheetHeight}px`,
             background: "white",

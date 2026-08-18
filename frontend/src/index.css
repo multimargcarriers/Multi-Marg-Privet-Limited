@@ -2531,3 +2531,71 @@ html, body {
     gap: 0.75rem;
   }
 }
+
+/* Print Overrides for Dynamic Scale Wrappers across all devices */
+@media print {
+  .print-main-wrapper {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .print-scale-wrapper {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    transform: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-container {
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Lock the container widths specifically per page to preserve format */
+  .print-container-lr,
+  .print-container-manifest {
+    width: 750px !important;
+    min-width: 750px !important;
+    max-width: 750px !important;
+  }
+  
+  .print-container-trip,
+  .print-container-vendor-trip {
+    width: 1122px !important;
+    min-width: 1122px !important;
+    max-width: 1122px !important;
+  }
+  
+  .print-container-triplist {
+    width: 1122px !important;
+    min-width: 1122px !important;
+    max-width: 1122px !important;
+  }
+  
+  .print-container-bill {
+    width: 940px !important;
+    min-width: 940px !important;
+    max-width: 940px !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}

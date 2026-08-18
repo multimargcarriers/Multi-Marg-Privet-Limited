@@ -120,8 +120,9 @@ export const downloadViaPuppeteer = async ({
     });
 
     if (res.ok) {
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const rawBlob = await res.blob();
+      const pdfBlob = new Blob([rawBlob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
       puppeteerOk = true;
 
       if (isAutoPrint) {

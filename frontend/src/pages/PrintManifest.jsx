@@ -147,7 +147,7 @@ const PrintManifest = () => {
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
-          .print-container { position: absolute; left: 0; top: 0; width: 800px !important; max-width: 800px !important; min-width: 800px !important; transform: none !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
+          .print-container { position: absolute; left: 0; top: 0; width: 750px !important; max-width: 750px !important; min-width: 750px !important; transform: none !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
           .no-print { display: none !important; }
           .manifest-table th, .manifest-table td { border-color: #cbd5e1 !important; color: #0f172a !important; }
           .section-header { 
@@ -210,9 +210,9 @@ const PrintManifest = () => {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
-        <div style={{ width: `${750 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
-          <div id="manifest-content" className="print-container" style={{
+      <div className="print-main-wrapper" style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
+        <div className="print-scale-wrapper" style={{ width: `${750 * scale}px`, height: `${1131 * scale}px`, position: "relative" }}>
+          <div id="manifest-content" className="print-container print-container-manifest" style={{
             width: "750px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "8px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
@@ -220,6 +220,17 @@ const PrintManifest = () => {
               {`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
                 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
+                
+                .print-header-reset,
+                .print-header-reset * {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  line-height: 1.2 !important;
+                  box-sizing: border-box !important;
+                }
+                .print-header-reset h1 { margin: 0 !important; }
+                .print-header-reset p { margin: 1px 0 0 !important; }
+                .print-header-reset div { margin: 1px 0 0 !important; }
                 
                 .manifest-table {
                   width: 100% !important;
@@ -269,19 +280,19 @@ const PrintManifest = () => {
               <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 1.5rem", borderBottom: "2px solid #1e293b" }}>
-                  <div style={{ width: "145px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
-                  <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.5rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                  <div style={{ width: "100px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
+                  <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
+                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
 
-                    <p style={{ margin: "2px 0 2px", fontSize: "0.75rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "4px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
+                    <p style={{ margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.2", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.2", whiteSpace: "nowrap" }}>
                       <span>Contact: +91 5944-324033</span><span>|</span><a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a><span>|</span><a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.2", whiteSpace: "nowrap" }}>
                       <span>GST: 05AANCM3054E1ZN</span><span>|</span><span>PAN: AANCM3054E1ZN</span>
                     </div>
                   </div>
-                  <div style={{ width: "145px", flexShrink: 0 }}></div>
+                  <div style={{ width: "100px", flexShrink: 0 }}></div>
                 </div>
 
                 <div style={{ background: "#f8fafc", padding: "4px", textAlign: "center", borderBottom: "1px solid #cbd5e1" }}>

@@ -7,7 +7,7 @@ import appDB from "../utils/appDB";
 import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
 
 
-const PrintSingleTrip = () => {
+const PrintSingleVendorTrip = () => {
   const { index } = useParams();
   const navigate = useNavigate();
   const _location = useLocation();
@@ -45,11 +45,11 @@ const PrintSingleTrip = () => {
         const containerWidth = containerRef.current.clientWidth;
         const horizontalMargin = window.innerWidth < 600 ? 16 : 32;
         const availWidth = containerWidth - horizontalMargin;
-        setScale(Math.min(1, Math.max(0.2, availWidth / 1400)));
+        setScale(Math.min(1, Math.max(0.2, availWidth / 1122)));
       } else {
         const screenW = window.innerWidth;
         const horizontalMargin = screenW < 600 ? 32 : 48;
-        setScale(Math.min(1, Math.max(0.2, (screenW - horizontalMargin) / 1400)));
+        setScale(Math.min(1, Math.max(0.2, (screenW - horizontalMargin) / 1122)));
       }
     };
 
@@ -126,7 +126,7 @@ const PrintSingleTrip = () => {
           body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
           body * { visibility: hidden; }
           .print-container, .print-container * { visibility: visible; }
-          .print-container { position: absolute; left: 0; top: 0; width: 1400px !important; max-width: 1400px !important; min-width: 1400px !important; transform: none !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
+          .print-container { position: absolute; left: 0; top: 0; width: 1122px !important; max-width: 1122px !important; min-width: 1122px !important; transform: none !important; margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
           .no-print { display: none !important; }
           .manifest-table th, .manifest-table td { border-color: #cbd5e1 !important; color: #0f172a !important; }
           .section-header { 
@@ -200,10 +200,10 @@ const PrintSingleTrip = () => {
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
-        <div style={{ width: `${1400 * scale}px`, height: `${990 * scale}px`, position: "relative", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
-          <div id="single-trip-content" className="print-container" style={{
-            width: "1400px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
+      <div className="print-main-wrapper" style={{ display: "flex", justifyContent: "center", overflow: "hidden", width: "100%", paddingBottom: "2rem" }}>
+        <div className="print-scale-wrapper" style={{ width: `${1122 * scale}px`, height: `${794 * scale}px`, position: "relative", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
+          <div id="single-trip-content" className="print-container print-container-vendor-trip" style={{
+            width: "1122px", height: "auto", minHeight: "0", background: "white", color: "#0f172a", boxSizing: "border-box", padding: "10px", overflow: "hidden",
             transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0
           }}>
             <style>
@@ -214,6 +214,16 @@ const PrintSingleTrip = () => {
                 * {
                   font-family: 'Outfit', sans-serif !important;
                 }
+                .print-header-reset,
+                .print-header-reset * {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  line-height: 1.2 !important;
+                  box-sizing: border-box !important;
+                }
+                .print-header-reset h1 { margin: 0 !important; }
+                .print-header-reset p { margin: 1px 0 0 !important; }
+                .print-header-reset div { margin: 1px 0 0 !important; }
                 .manifest-table {
                   width: 100% !important;
                   border-collapse: collapse !important;
@@ -265,7 +275,7 @@ const PrintSingleTrip = () => {
                   {printHeader === "PRIME" ? (
                     <>
                       <div style={{ width: "120px", flexShrink: 0 }}><img src="/Prime RoadWAYS.png" alt="Prime Roadways" style={{ width: "100%", height: "auto" }} /></div>
-                      <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
+                      <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
                         <h1 style={{ margin: "0 0 2px", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "#b91c1c" }}>PRIME ROADWAYS</h1>
                         <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>PLOT NO 292/292A & 292B, OM VIHAR, WEST DELHI, NEW DELHI-110059</p>
                         <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
@@ -278,15 +288,15 @@ const PrintSingleTrip = () => {
                     </>
                   ) : (
                     <>
-                      <div style={{ width: "145px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
-                      <div style={{ textAlign: "center", flex: 1, padding: "0 15px", minWidth: 0 }}>
-                        <h1 className="blue-text" style={{ margin: "0 0 2px", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                      <div style={{ width: "100px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
+                      <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0 }}>
+                        <h1 className="blue-text" style={{ margin: "0", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
 
-                        <p style={{ margin: "2px 0 2px", fontSize: "0.78rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
+                        <p style={{ margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.2", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.2", whiteSpace: "nowrap" }}>
                           <span>Contact: +91 5944-324033</span><span>|</span><a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a><span>|</span><a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "center", gap: "15px", margin: "2px 0 0", fontSize: "0.75rem", fontWeight: "700", color: "#0f172a" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.2", whiteSpace: "nowrap" }}>
                           <span>GST: 05AANCM3054E1ZN</span><span>|</span><span>PAN: AANCM3054E1ZN</span>
                         </div>
                       </div>
@@ -356,16 +366,16 @@ const PrintSingleTrip = () => {
                       {trip.details && trip.details.length > 0 ? (
                         trip.details.map((p, i) => (
                           <tr key={i}>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap" }}>{p.date ? formatDate(p.date) : "-"}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.from || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.to || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.handoverTo || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p.particular || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", whiteSpace: "nowrap" }}>{(p.mode || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px", whiteSpace: "nowrap" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px", whiteSpace: "nowrap" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px", whiteSpace: "nowrap" }}>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{p.date ? formatDate(p.date) : "-"}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.from || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.to || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.handoverTo || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.particular || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.mode || "-").toUpperCase()}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
+                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px" }}>
                               {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
                             </td>
                           </tr>
@@ -441,4 +451,4 @@ const PrintSingleTrip = () => {
   );
 };
 
-export default PrintSingleTrip;
+export default PrintSingleVendorTrip;

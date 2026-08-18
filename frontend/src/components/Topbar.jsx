@@ -39,8 +39,10 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [fontSizeDropdownOpen, setFontSizeDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
+  const fontSizeDropdownRef = useRef(null);
   const navigate = useNavigate();
 
   // QuickAddModal state
@@ -56,6 +58,9 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
       }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false);
+      }
+      if (fontSizeDropdownRef.current && !fontSizeDropdownRef.current.contains(event.target)) {
+        setFontSizeDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -113,31 +118,30 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
         .topbar {
           padding: 0 0.75rem !important;
         }
+        .topbar-left {
+          gap: 0.15rem !important;
+        }
         .topbar-right {
-          gap: 0.5rem !important;
+          gap: 0.8rem !important;
         }
         .font-size-adjuster {
-          gap: 0 !important;
-          padding: 1px 4px !important;
-          margin-right: 0 !important;
-          transform: scale(0.9);
-          transform-origin: right center;
+          display: none !important;
         }
-        .font-size-adjuster input {
-          width: 28px !important;
-          font-size: 0.75rem !important;
+        .font-size-mobile-toggle-btn {
+          display: flex !important;
         }
         .topbar-avatar {
           width: 28px !important;
           height: 28px !important;
         }
         .topbar-logo {
-          height: 28px !important;
+          height: 50px !important;
+          margin-left: -0.35rem !important;
         }
       }
     `}</style>
     <div className="topbar no-print" style={{ height: 'var(--topbar-height)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem', background: 'var(--secondary-color)', color: '#ffffff', position: 'fixed', top: 0, left: 0, zIndex: 200 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         {hasSidebar && (
           <button onClick={toggleSidebar} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
             <Menu size={24} />
@@ -197,115 +201,247 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
         </div>
 
         {/* Font Size Adjuster Controls */}
-        <div 
-          className="font-size-adjuster"
-          title="Adjust Application Text Size"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.08)',
-            borderRadius: '20px',
-            padding: '3px 6px',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            gap: '0.2rem',
-            marginRight: '0.5rem',
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-          }}
-        >
-          <button
-            type="button"
-            onClick={decreaseFontSize}
-            title="Decrease Text Size (-)"
-            disabled={fontSize <= 50}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={fontSizeDropdownRef}>
+          {/* Desktop Version */}
+          <div 
+            className="font-size-adjuster"
+            title="Adjust Application Text Size"
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: fontSize <= 50 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
-              cursor: fontSize <= 50 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.25rem',
-              borderRadius: '4px',
-              transition: 'background 0.2s'
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: '20px',
+              padding: '3px 6px',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              gap: '0.2rem',
+              marginRight: '0.5rem',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
             }}
-            onMouseOver={e => { if (fontSize > 50) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
           >
-            <Minus size={14} />
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0 2px' }}>
-            <Type 
-              size={12} 
-              style={{ opacity: 0.85, cursor: 'pointer', color: '#ffffff' }} 
-              onClick={resetFontSize}
-              title="Click to reset text size to 100%"
-            />
-            <label htmlFor="font-size-input" style={{ display: 'none' }}>Font Size</label>
-            <input
-              id="font-size-input"
-              name="fontSize"
-              type="text"
-              value={fontInputValue}
-              onChange={(e) => setFontInputValue(e.target.value)}
-              onBlur={() => {
-                const val = parseInt(fontInputValue, 10);
-                if (!isNaN(val)) {
-                  changeFontSize(val);
-                } else {
-                  setFontInputValue(fontSize.toString());
-                }
+            <button
+              type="button"
+              onClick={decreaseFontSize}
+              title="Decrease Text Size (-)"
+              disabled={fontSize <= 50}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: fontSize <= 50 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                cursor: fontSize <= 50 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.25rem',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+              onMouseOver={e => { if (fontSize > 50) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+              onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Minus size={14} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0 2px' }}>
+              <Type 
+                size={12} 
+                style={{ opacity: 0.85, cursor: 'pointer', color: '#ffffff' }} 
+                onClick={resetFontSize}
+                title="Click to reset text size to 100%"
+              />
+              <label htmlFor="font-size-input" style={{ display: 'none' }}>Font Size</label>
+              <input
+                id="font-size-input"
+                name="fontSize"
+                type="text"
+                value={fontInputValue}
+                onChange={(e) => setFontInputValue(e.target.value)}
+                onBlur={() => {
                   const val = parseInt(fontInputValue, 10);
                   if (!isNaN(val)) {
                     changeFontSize(val);
                   } else {
                     setFontInputValue(fontSize.toString());
                   }
-                  e.target.blur();
-                }
-              }}
-              title="Type custom text size percentage (50 - 400) & press Enter"
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt(fontInputValue, 10);
+                    if (!isNaN(val)) {
+                      changeFontSize(val);
+                    } else {
+                      setFontInputValue(fontSize.toString());
+                    }
+                    e.target.blur();
+                  }
+                }}
+                title="Type custom text size percentage (50 - 400) & press Enter"
+                style={{
+                  width: '32px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  outline: 'none',
+                  padding: '0'
+                }}
+              />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>%</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={increaseFontSize}
+              title="Increase Text Size (+)"
+              disabled={fontSize >= 400}
               style={{
-                width: '32px',
                 background: 'transparent',
                 border: 'none',
-                color: '#ffffff',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                textAlign: 'center',
-                outline: 'none',
-                padding: '0'
+                color: fontSize >= 400 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                cursor: fontSize >= 400 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.25rem',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
               }}
-            />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>%</span>
+              onMouseOver={e => { if (fontSize < 400) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+              onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Plus size={14} />
+            </button>
           </div>
 
+          {/* Mobile Collapsible Button */}
           <button
             type="button"
-            onClick={increaseFontSize}
-            title="Increase Text Size (+)"
-            disabled={fontSize >= 400}
+            className="font-size-mobile-toggle-btn"
+            onClick={() => setFontSizeDropdownOpen(!fontSizeDropdownOpen)}
+            title="Adjust Text Size"
             style={{
+              display: 'none',
               background: 'transparent',
               border: 'none',
-              color: fontSize >= 400 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
-              cursor: fontSize >= 400 ? 'not-allowed' : 'pointer',
-              display: 'flex',
+              color: '#ffffff',
+              cursor: 'pointer',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '0.25rem',
-              borderRadius: '4px',
-              transition: 'background 0.2s'
+              width: '24px',
+              height: '24px',
+              marginRight: '0.2rem',
+              outline: 'none'
             }}
-            onMouseOver={e => { if (fontSize < 400) e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
           >
-            <Plus size={14} />
+            <Type size={20} />
           </button>
+
+          {/* Floating Mobile Adjuster Popover */}
+          {fontSizeDropdownOpen && (
+            <div
+              className="font-size-mobile-popover"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '10px',
+                background: 'var(--secondary-color)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '8px',
+                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                boxShadow: '0 10px 25px -3px rgba(0,0,0,0.3)',
+                zIndex: 1005
+              }}
+            >
+              <button
+                type="button"
+                onClick={decreaseFontSize}
+                disabled={fontSize <= 50}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: fontSize <= 50 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                  cursor: fontSize <= 50 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.25rem',
+                  borderRadius: '4px'
+                }}
+              >
+                <Minus size={14} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0 2px' }}>
+                <Type 
+                  size={12} 
+                  style={{ opacity: 0.85, cursor: 'pointer', color: '#ffffff' }} 
+                  onClick={resetFontSize}
+                />
+                <input
+                  id="font-size-input-mobile"
+                  name="fontSizeMobile"
+                  type="text"
+                  value={fontInputValue}
+                  onChange={(e) => setFontInputValue(e.target.value)}
+                  onBlur={() => {
+                    const val = parseInt(fontInputValue, 10);
+                    if (!isNaN(val)) {
+                      changeFontSize(val);
+                    } else {
+                      setFontInputValue(fontSize.toString());
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt(fontInputValue, 10);
+                      if (!isNaN(val)) {
+                        changeFontSize(val);
+                      } else {
+                        setFontInputValue(fontSize.toString());
+                      }
+                      e.target.blur();
+                    }
+                  }}
+                  style={{
+                    width: '32px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    outline: 'none',
+                    padding: '0'
+                  }}
+                />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>%</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={increaseFontSize}
+                disabled={fontSize >= 400}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: fontSize >= 400 ? 'rgba(255, 255, 255, 0.3)' : '#ffffff',
+                  cursor: fontSize >= 400 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.25rem',
+                  borderRadius: '4px'
+                }}
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Notifications (Admin, Super Admin, and those with activity permissions) */}
