@@ -1,6 +1,6 @@
 /**
  * Redis Configuration & Client
- * Provides caching layer for faster data delivery
+ * Provides caching layer with robust OOM handling, query timeouts, and auto-flushing.
  */
 
 const redis = require("redis");
@@ -9,6 +9,58 @@ let client = null;
 let isConnected = false;
 const USE_REDIS = process.env.USE_REDIS === "true";
 const invalidationTimestamps = new Map();
+
+// Local Memory Cache
+const memoryCache = new Map();
+const memoryCacheExpiry = new Map();
+
+/**
+ * Periodically prunes expired items and caps memory cache size to prevent process OOM.
+ */
+function pruneExpiredMemoryCache() {
+  const now = Date.now();
+  for (const [key, expiry] of memoryCacheExpiry.entries()) {
+    if (now >= expiry) {
+      memoryCache.delete(key);
+      memoryCacheExpiry.delete(key);
+    }
+  }
+
+  // Cap local Map storage at 1000 items to limit memory footprint
+  if (memoryCache.size > 1000) {
+    const keys = Array.from(memoryCache.keys());
+    const toRemove = keys.slice(0, memoryCache.size - 800); // Leave the 800 freshest
+    for (const k of toRemove) {
+      memoryCache.delete(k);
+      memoryCacheExpiry.delete(k);
+    }
+    console.log(`[Memory Cache] Evicted ${toRemove.length} old entries to control size (Size: ${memoryCache.size})`);
+  }
+}
+
+// Setup background interval daemon
+const pruneInterval = setInterval(pruneExpiredMemoryCache, 30000);
+if (pruneInterval.unref) pruneInterval.unref();
+
+/**
+ * Timeout wrapper for promise-based operations
+ */
+const withTimeout = (promise, ms, defaultValue = null) => {
+  let timeoutId;
+  const timeoutPromise = new Promise((resolve) => {
+    timeoutId = setTimeout(() => {
+      console.warn(`[Redis] Command timed out after ${ms}ms. Bypassing Redis cache.`);
+      resolve(defaultValue);
+    }, ms);
+  });
+  return Promise.race([
+    promise.then((res) => {
+      clearTimeout(timeoutId);
+      return res;
+    }),
+    timeoutPromise
+  ]);
+};
 
 const getRedisUrl = () => {
   const url = process.env.REDIS_URL;
@@ -44,11 +96,10 @@ async function initRedis() {
       url,
       socket: {
         reconnectStrategy: (retries) => {
-          // Stop reconnecting after 3 attempts to prevent process hang
-          if (retries > 3) {
-            return new Error("[Redis] Max connection retries reached");
-          }
-          return 1000; // Retry after 1 second
+          // Exponential backoff reconnect strategy that doesn't terminate permanently
+          const delay = Math.min(1000 * Math.pow(2, retries), 15000);
+          console.warn(`[Redis] Connection offline. Reconnection attempt #${retries} in ${delay}ms...`);
+          return delay;
         }
       }
     });
@@ -61,6 +112,16 @@ async function initRedis() {
     client.on("connect", () => {
       console.log("[Redis] Connected successfully");
       isConnected = true;
+    });
+
+    client.on("ready", async () => {
+      // Attempt to configure eviction policy automatically if permitted by the cloud provider
+      try {
+        await client.configSet("maxmemory-policy", "allkeys-lru");
+        console.log("[Redis] Auto-configured maxmemory-policy to allkeys-lru");
+      } catch (err) {
+        console.log("[Redis] Auto-configuration of maxmemory-policy bypassed (cloud provider restriction):", err.message);
+      }
     });
 
     client.on("end", () => {
@@ -77,16 +138,13 @@ async function initRedis() {
   }
 }
 
-const memoryCache = new Map();
-const memoryCacheExpiry = new Map();
-
 /**
  * Get cached data by key
  * @param {string} key
  * @returns {Promise<object|null>}
  */
 async function getCache(key) {
-  // 1. Ultra-fast Memory Cache
+  // 1. Memory Cache
   if (memoryCache.has(key)) {
     if (Date.now() < memoryCacheExpiry.get(key)) {
       return memoryCache.get(key);
@@ -96,13 +154,13 @@ async function getCache(key) {
     }
   }
 
-  // 2. Redis Fallback
+  // 2. Redis Fallback with 500ms timeout
   if (!client || !isConnected) return null;
   try {
-    const data = await client.get(key);
+    const data = await withTimeout(client.get(key), 500, null);
     if (data) {
       const parsed = JSON.parse(data);
-      const ttl = await client.ttl(key);
+      const ttl = await withTimeout(client.ttl(key), 300, 0);
       if (ttl > 0) {
         memoryCache.set(key, parsed);
         memoryCacheExpiry.set(key, Date.now() + ttl * 1000);
@@ -127,12 +185,25 @@ async function setCache(key, value, ttlSeconds = 300) {
   memoryCache.set(key, value);
   memoryCacheExpiry.set(key, Date.now() + ttlSeconds * 1000);
 
-  // Set Redis
+  // Set Redis with 500ms timeout
   if (!client || !isConnected) return;
   try {
-    await client.setEx(key, ttlSeconds, JSON.stringify(value));
+    await withTimeout(client.setEx(key, ttlSeconds, JSON.stringify(value)), 500, null);
   } catch (error) {
-    console.log(`[Redis] Set cache error for key "${key}":`, error.message);
+    console.error(`[Redis] Set cache error for key "${key}":`, error.message);
+    
+    // Auto-flush cache on OOM or quota-exceeded write failures
+    const isOom = error.message && (
+      error.message.includes("OOM") || 
+      error.message.includes("maxmemory") || 
+      error.message.includes("quota exceeded") ||
+      error.message.includes("out of memory")
+    );
+    
+    if (isOom) {
+      console.warn(`[Redis] OOM/Maxmemory write failure detected for key "${key}". Triggering automatic clearAllCache().`);
+      clearAllCache().catch(err => console.error("[Redis] Auto-flush execution failed:", err.message));
+    }
   }
 }
 
@@ -148,7 +219,7 @@ function delCache(key) {
 
   if (!client || !isConnected) return Promise.resolve();
   
-  return client.del(key).catch(error => {
+  return withTimeout(client.del(key), 500, null).catch(error => {
     console.log(`[Redis] Del cache error for key "${key}":`, error.message);
   });
 }
@@ -163,13 +234,17 @@ function invalidatePattern(pattern) {
 
   if (!client || !isConnected) return Promise.resolve();
   
-  return client.keys(pattern).then(keys => {
-    if (keys.length > 0) {
-      return client.del(keys).then(() => {
-        console.log(`[Redis] Invalidated ${keys.length} keys matching "${pattern}"`);
-      });
-    }
-  }).catch(error => {
+  return withTimeout(
+    client.keys(pattern).then(keys => {
+      if (keys.length > 0) {
+        return client.del(keys).then(() => {
+          console.log(`[Redis] Invalidated ${keys.length} keys matching "${pattern}"`);
+        });
+      }
+    }),
+    800,
+    null
+  ).catch(error => {
     console.log(`[Redis] Invalidate pattern error for "${pattern}":`, error.message);
   });
 }

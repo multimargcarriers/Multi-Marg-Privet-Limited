@@ -8,7 +8,7 @@ const { getOrSet, delCache } = require("../config/redis");
 const { body, param, validationResult } = require("express-validator");
 const { generatePDF } = require("../utils/pdfGenerator");
 const { uploadBase64 } = require("../config/cloudinary");
-const { getRoot_1, get_id_2, get_id_pdf_3, post_id_upload_pdf_4, post_generate_5, post_misc_6, put_id_7, delete_id_8, post_import_9 } = require('../controllers/billsController');
+const { getRoot_1, get_id_2, get_id_pdf_3, post_id_upload_pdf_4, post_generate_5, post_misc_6, put_id_7, delete_id_8, post_import_9, delete_clear_all_10 } = require('../controllers/billsController');
 
 const { requirePermission } = require("../middleware/rbac");
 router.use(requirePermission(["billing","all_bills","generate_bills","misc_bill","update_bill"]));
@@ -291,6 +291,12 @@ router.put(
 
 
   )
+);
+
+// Clear all bills
+router.delete(
+  "/clear/all",
+  asyncHandler(delete_clear_all_10)
 );
 
 // Delete bill

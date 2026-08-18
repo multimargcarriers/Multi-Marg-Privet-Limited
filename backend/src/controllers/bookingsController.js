@@ -339,22 +339,66 @@ exports.delete_clear_all_6 = async (req, res) => {
   // Optional safety check: Ensure user is SuperAdmin
   const role = (req.user?.role || "").toLowerCase().replace(/\s+/g, '');
   if (role !== 'superadmin' && req.user?.email !== 'admin@multimarg.com') {
-    return error(res, "Forbidden: Only SuperAdmins can clear all bookings.", 403);
+    return error(res, "Forbidden: Only SuperAdmins can clear bookings.", 403);
   }
+
+  const { startDate, endDate } = req.query;
 
   try {
     const snapshot = await db.collection("bookings").get();
     if (snapshot.empty) {
       emitDataUpdated("bookings", "update");
-    return success(res, "No bookings found to delete.");
+      return success(res, "No bookings found to delete.");
     }
 
-    // Insert all to Trash first
+    const parseBookingDate = (d) => {
+      if (!d) return null;
+      if (typeof d === "string" && /^\d{2}-\d{2}-\d{4}$/.test(d)) {
+        const [day, month, year] = d.split("-");
+        return new Date(`${year}-${month}-${day}`);
+      }
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const docsToDelete = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      let keep = true;
+
+      if (startDate || endDate) {
+        const bDate = parseBookingDate(data.createdAt || data.date || data.dispatch_date);
+        if (bDate) {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (bDate < start) keep = false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (bDate > end) keep = false;
+          }
+        } else {
+          keep = false; // exclude if date range is set but date is missing/invalid
+        }
+      }
+
+      if (keep) {
+        docsToDelete.push({ id: doc.id, data });
+      }
+    });
+
+    if (docsToDelete.length === 0) {
+      return success(res, "No bookings found within the specified date range.");
+    }
+
+    // Insert filtered to Trash first
     const dbInstance = db.mongoDb;
     if (dbInstance) {
-      const trashDocs = snapshot.docs.map(doc => ({
+      const trashDocs = docsToDelete.map(item => ({
         originalCollection: "bookings",
-        document: { id: doc.id, ...doc.data() },
+        document: { id: item.id, ...item.data },
         deletedAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         deletedBy: req.user ? { id: req.user.id, name: req.user.name, role: req.user.role } : null
@@ -364,16 +408,39 @@ exports.delete_clear_all_6 = async (req, res) => {
 
     // Delete in batches since Firestore/MongoDB adapters might have limits
     const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(db.collection("bookings").doc(doc.id));
-    });
+    for (const item of docsToDelete) {
+      batch.delete(db.collection("bookings").doc(item.id));
+
+      // Cascade delete related tracking entries
+      if (item.data.consignment) {
+        const trackingSnap = await db.collection("tracking")
+          .where("awb", "==", item.data.consignment)
+          .get();
+        trackingSnap.forEach(trkDoc => {
+          batch.delete(db.collection("tracking").doc(trkDoc.id));
+        });
+      }
+
+      // Cascade delete related bills
+      const lrNo = item.data.lrNumber || item.data.awb || item.data.lrNo;
+      if (lrNo) {
+        const billsSnap = await db.collection("bills")
+          .where("lrNo", "==", lrNo)
+          .get();
+        billsSnap.forEach(billDoc => {
+          batch.delete(db.collection("bills").doc(billDoc.id));
+        });
+      }
+    }
     
     await batch.commit();
     await delCache(CACHE_KEY);
-    return success(res, `Successfully moved ${snapshot.size} bookings to Trash.`);
+    emitDataUpdated("bookings", "delete");
+    return success(res, `Successfully moved ${docsToDelete.length} bookings to Trash.`);
   } catch (err) {
     console.error("Error clearing bookings:", err);
     return error(res, "Failed to clear bookings", 500);
   }
 };
+
 

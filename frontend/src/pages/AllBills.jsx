@@ -70,6 +70,39 @@ const AllBills = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    const hasDateRange = fromDate || toDate;
+    let title = "Clear ALL Bills";
+    let message = "WARNING: This will permanently delete ALL bills from the database and revert their bookings back to Booked status. Are you absolutely sure you want to proceed?";
+    let url = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/clear/all`;
+
+    if (hasDateRange) {
+      const startStr = fromDate ? formatDate(fromDate) : "anytime";
+      const endStr = toDate ? formatDate(toDate) : "anytime";
+      title = `Delete ${filtered.length} Bills`;
+      message = `WARNING: This will permanently delete ${filtered.length} bills (and revert their bookings back to Booked status) from ${startStr} to ${endStr}. Are you absolutely sure you want to proceed?`;
+      url += `?startDate=${fromDate}&endDate=${toDate}`;
+    }
+
+    const isConfirmed = await confirm({
+      title,
+      message,
+      confirmText: hasDateRange ? "Yes, Delete Filtered" : "Yes, Delete Everything",
+      cancelText: "Cancel",
+      requireInput: "confirm"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await axios.delete(url);
+      addToast("Bills cleared successfully", "success");
+      fetchBills();
+    } catch (err) { 
+      console.error("Clear bills error", err); 
+      addToast("Failed to clear bills", "error");
+    }
+  };
+
   const handleStatusChange = async (id, newStatus) => {
     try {
       await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bills/${id}`, { status: newStatus });
@@ -248,6 +281,24 @@ const AllBills = () => {
           <button className="btn btn-secondary page-header-btn" onClick={exportToCSV}>
             <Download size={16} /> Export
           </button>
+          {((isSuperAdmin || user?.role === 'Admin') && globalSettings?.integrations?.enableBulkDelete) && (
+            <button 
+              className="btn btn-secondary page-header-btn" 
+              style={{ 
+                color: "#dc2626", 
+                borderColor: "#fecaca", 
+                backgroundColor: (fromDate || toDate) ? '#fef2f2' : 'transparent',
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px' 
+              }} 
+              onClick={handleClearAll} 
+              title={(fromDate || toDate) ? "Delete Filtered Bills" : "Clear All Bills"}
+            >
+              <Trash2 size={16} />
+              {(fromDate || toDate) ? `Delete Filtered (${filtered.length})` : "Delete All Bills"}
+            </button>
+          )}
           <button className="btn btn-secondary page-header-btn" onClick={() => navigate("/bills/misc")}>
             <FileText size={16} /> New Misc Bill
           </button>

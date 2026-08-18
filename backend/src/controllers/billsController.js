@@ -636,3 +636,139 @@ exports.post_import_9 = async (req, res) => {
   return success(res, `Successfully imported ${importedCount} bills`);
 };
 
+exports.delete_clear_all_10 = async (req, res) => {
+  // Optional safety check: Ensure user is SuperAdmin or Admin
+  const role = (req.user?.role || "").toLowerCase().replace(/\s+/g, '');
+  if (role !== 'superadmin' && req.user?.email !== 'admin@multimarg.com' && role !== 'admin') {
+    return error(res, "Forbidden: Only Admins can clear bills.", 403);
+  }
+
+  const { startDate, endDate } = req.query;
+
+  try {
+    const snapshot = await db.collection("bills").get();
+    if (snapshot.empty) {
+      emitDataUpdated("bills", "update");
+      return success(res, "No bills found to delete.");
+    }
+
+    const parseBillDate = (d) => {
+      if (!d) return null;
+      if (typeof d === "string" && /^\d{2}-\d{2}-\d{4}$/.test(d)) {
+        const [day, month, year] = d.split("-");
+        return new Date(`${year}-${month}-${day}`);
+      }
+      const parsed = new Date(d);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const docsToDelete = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      let keep = true;
+
+      if (startDate || endDate) {
+        const bDate = parseBillDate(data.createdAt || data.invoice_date);
+        if (bDate) {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (bDate < start) keep = false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (bDate > end) keep = false;
+          }
+        } else {
+          keep = false;
+        }
+      }
+
+      if (keep) {
+        docsToDelete.push({ id: doc.id, data });
+      }
+    });
+
+    if (docsToDelete.length === 0) {
+      return success(res, "No bills found within the specified date range.");
+    }
+
+    // Insert filtered to Trash first
+    const dbInstance = db.mongoDb;
+    if (dbInstance) {
+      const trashDocs = docsToDelete.map(item => ({
+        originalCollection: "bills",
+        document: { id: item.id, ...item.data },
+        deletedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        deletedBy: req.user ? { id: req.user.id, name: req.user.name, role: req.user.role } : null
+      }));
+      await dbInstance.collection("trash").insertMany(trashDocs);
+    }
+
+    const batch = db.batch();
+    const uniqueClients = new Set();
+
+    for (const item of docsToDelete) {
+      batch.delete(db.collection("bills").doc(item.id));
+
+      // Revert booking statuses back to "Booked"
+      if (item.data.items && Array.isArray(item.data.items)) {
+        for (const lrItem of item.data.items) {
+          const lrNo = lrItem.awb || lrItem.lrNo;
+          if (lrNo) {
+            const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
+            byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
+
+            const byIdField = await db.collection("bookings").where("id", "==", lrNo).get();
+            byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
+
+            try {
+              const directDoc = await db.collection("bookings").doc(lrNo).get();
+              if (directDoc.exists) {
+                await db.collection("bookings").doc(lrNo).update({ status: "Booked" });
+              }
+            } catch(e) {}
+          }
+        }
+      }
+
+      // Delete Cloudinary PDF if exists
+      if (item.data.pdfUrl) {
+        try {
+          const { deleteFile } = require("../config/cloudinary");
+          await deleteFile(item.data.pdfUrl, "raw");
+        } catch (e) {
+          console.warn("Failed to delete Bill PDF from Cloudinary:", e.message);
+        }
+      }
+
+      if (item.data.client) {
+        uniqueClients.add(item.data.client);
+      }
+    }
+
+    await batch.commit();
+
+    // Recalculate payments for affected clients
+    for (const client of uniqueClients) {
+      const { recalculatePartyPayments } = require("./authController");
+      try {
+        await recalculatePartyPayments('Client', client);
+      } catch (err) {
+        console.error(`Error recalculating payments for client ${client}:`, err);
+      }
+    }
+
+    await delCache(CACHE_KEY);
+    await delCache("bookings");
+    emitDataUpdated("bills", "delete");
+    return success(res, `Successfully moved ${docsToDelete.length} bills to Trash.`);
+  } catch (err) {
+    console.error("Error clearing bills:", err);
+    return error(res, "Failed to clear bills", 500);
+  }
+};
+
+

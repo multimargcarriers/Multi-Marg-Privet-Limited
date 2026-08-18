@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -32,6 +32,8 @@ const BookingsList = () => {
   const [bookings, setBookings] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // POD modal state & lookup map
   const [podModalOpen, setPodModalOpen] = useState(false);
@@ -117,39 +119,35 @@ const BookingsList = () => {
 
   useSocketSync("bookings", fetchAllData);
 
-  const handleDelete = async (id) => {
-    const isConfirmed = await confirm({
-      title: "Delete Booking",
-      message: "Are you sure you want to delete this booking? This action cannot be undone.",
-      confirmText: "Delete",
-      cancelText: "Cancel"
-    });
-    if (!isConfirmed) return;
-
-    try {
-      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/${id}`);
-      fetchAllData();
-    } catch (err) { console.error("Delete booking error", err); }
-  };
-
   const handleClearAll = async () => {
+    const hasDateRange = startDate || endDate;
+    let title = "Clear ALL Bookings";
+    let message = "WARNING: This will permanently delete ALL bookings and their associated LR details from the database. Are you absolutely sure you want to proceed?";
+    let url = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/clear/all`;
+
+    if (hasDateRange) {
+      const startStr = startDate ? formatDate(startDate) : "anytime";
+      const endStr = endDate ? formatDate(endDate) : "anytime";
+      title = `Delete ${filtered.length} Bookings`;
+      message = `WARNING: This will permanently delete ${filtered.length} bookings (and their associated LR details/tracking) from ${startStr} to ${endStr}. Are you absolutely sure you want to proceed?`;
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+
     const isConfirmed = await confirm({
-      title: "Clear ALL Bookings",
-      message: "WARNING: This will permanently delete ALL bookings and their associated LR details from the database. Are you absolutely sure you want to proceed?",
-      confirmText: "Yes, Delete Everything",
+      title,
+      message,
+      confirmText: hasDateRange ? "Yes, Delete Filtered" : "Yes, Delete Everything",
       cancelText: "Cancel",
       requireInput: "confirm"
     });
     if (!isConfirmed) return;
 
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/clear/all`);
+      await axios.delete(url);
       fetchAllData();
-    } catch (err) { console.error("Clear all bookings error", err); }
+      setCurrentPage(1);
+    } catch (err) { console.error("Clear bookings error", err); }
   };
-
-
-
 
   const displayBookings = useMemo(() => {
     const pending = (syncQueue || [])
@@ -162,14 +160,48 @@ const BookingsList = () => {
     return [...pending, ...bookings];
   }, [bookings, syncQueue]);
 
+  const getBookingDateObj = (item) => {
+    const d = item.createdAt || item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.created_at;
+    if (!d) return null;
+    if (typeof d === "string" && /^\d{2}-\d{2}-\d{4}$/.test(d)) {
+      const [day, month, year] = d.split("-");
+      return new Date(`${year}-${month}-${day}`);
+    }
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const filtered = useMemo(() => {
-    return displayBookings.filter(b =>
-      !search || (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
-      (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
-      (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
-      (b.destination || "").toLowerCase().includes(search.toLowerCase())
-    );
-  }, [displayBookings, search]);
+    return displayBookings.filter(b => {
+      const matchesSearch = !search || 
+        (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.destination || "").toLowerCase().includes(search.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (startDate || endDate) {
+        const bDate = getBookingDateObj(b);
+        if (bDate) {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (bDate < start) return false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (bDate > end) return false;
+          }
+        } else {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [displayBookings, search, startDate, endDate]);
 
   const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght" });
 
@@ -244,11 +276,24 @@ const BookingsList = () => {
           {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
             <button 
               className="page-header-btn" 
-              style={{ color: "#dc2626", borderColor: "#fecaca", height: '42px', width: '42px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }} 
+              style={{ 
+                color: "#dc2626", 
+                borderColor: "#fecaca", 
+                height: '42px', 
+                padding: (startDate || endDate) ? '0 1rem' : '0', 
+                width: (startDate || endDate) ? 'auto' : '42px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                borderRadius: '6px',
+                gap: '6px',
+                backgroundColor: (startDate || endDate) ? '#fef2f2' : 'transparent'
+              }} 
               onClick={handleClearAll} 
-              title="Clear All Bookings"
+              title={(startDate || endDate) ? "Delete Filtered Bookings" : "Clear All Bookings"}
             >
               <Trash2 size={16} />
+              {(startDate || endDate) && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Delete Filtered ({filtered.length})</span>}
             </button>
           )}
         </div>
@@ -274,6 +319,48 @@ const BookingsList = () => {
             onChange={setSortOption} 
             options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
           />
+
+          <div className="premium-filter-group" style={{ flex: '1 1 200px' }}>
+            <Calendar size={16} style={{ color: "#64748b" }} />
+            <span className="premium-filter-label">From:</span>
+            <input
+              type="date"
+              className="premium-filter-input"
+              value={startDate}
+              onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+              style={{ cursor: 'pointer' }}
+            />
+            {startDate && (
+              <button 
+                onClick={() => { setStartDate(""); setCurrentPage(1); }} 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                title="Clear From Date"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="premium-filter-group" style={{ flex: '1 1 200px' }}>
+            <Calendar size={16} style={{ color: "#64748b" }} />
+            <span className="premium-filter-label">To:</span>
+            <input
+              type="date"
+              className="premium-filter-input"
+              value={endDate}
+              onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+              style={{ cursor: 'pointer' }}
+            />
+            {endDate && (
+              <button 
+                onClick={() => { setEndDate(""); setCurrentPage(1); }} 
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 4px', display: 'flex', alignItems: 'center' }}
+                title="Clear To Date"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
           <div className="premium-filter-group">
             <span className="premium-filter-label">Show</span>
