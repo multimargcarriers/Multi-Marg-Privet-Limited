@@ -11,7 +11,7 @@ const Footer = () => {
           {/* Brand Col */}
           <div>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', marginBottom: '1.5rem' }}>
-              <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: '60px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              <img src="/circle_crop_logo.png" alt="Multimarg Carriers Logo" style={{ height: '60px', objectFit: 'contain' }} />
               <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px' }}>
                 <span style={{ color: 'white' }}>MULTIMARG </span>
                 <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
