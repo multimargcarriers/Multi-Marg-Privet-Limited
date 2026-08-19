@@ -135,10 +135,23 @@ const AllBills = () => {
         if (!invoiceMatch && !clientMatch) return false;
       }
       
+      // Dynamic Status check
+      const totalAmount = parseFloat(b.amount || b.total || 0);
+      const paidAmount = parseFloat(b.paidAmount || 0);
+      const pendingAmount = totalAmount - paidAmount;
+
+      const isPaid = pendingAmount <= 0.01;
+      const isUnpaid = paidAmount <= 0.01;
+      const isPartial = pendingAmount > 0.01 && paidAmount > 0.01;
+      const isCancelled = (b.status || "").toLowerCase() === "cancelled";
+
       // Status filter
       if (filterStatus !== "All") {
-        const currentStatus = (b.status || "pending").toLowerCase();
-        if (currentStatus !== filterStatus.toLowerCase()) return false;
+        if (filterStatus === "paid" && !isPaid) return false;
+        if (filterStatus === "unpaid" && !isUnpaid) return false;
+        if (filterStatus === "partial" && !isPartial) return false;
+        if (filterStatus === "pending" && !isUnpaid && !isPartial) return false;
+        if (filterStatus === "cancelled" && !isCancelled) return false;
       }
       
       // Date filter
@@ -342,8 +355,10 @@ const AllBills = () => {
               style={{ cursor: "pointer" }}
             >
               <option value="All">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
+              <option value="pending">Pending / Outstandings</option>
+              <option value="unpaid">Fully Unpaid</option>
+              <option value="partial">Partial Payments</option>
+              <option value="paid">Fully Paid</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
@@ -430,24 +445,37 @@ const AllBills = () => {
               <td style={{ padding: "1rem", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", color: "#ef4444", fontWeight: "700" }}><RupeeIcon size={14} />&nbsp;{pendingAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
               <td style={{ padding: "1rem", color: "#64748b", fontSize: "0.85rem", fontWeight: "500", whiteSpace: "nowrap" }}>{formatDate(item.invoice_date || item.date || item.createdAt)}</td>
               <td style={{ padding: "1rem", whiteSpace: "nowrap" }}>
-                <select 
-                  value={(item.status || "pending").toLowerCase()}
-                  onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                  style={{
-                    padding: "0.35rem 0.75rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700",
-                    background: (item.status || "pending").toLowerCase() === "paid" ? "rgba(16, 185, 129, 0.1)" : 
-                                (item.status || "pending").toLowerCase() === "cancelled" ? "rgba(220, 38, 38, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                    color: (item.status || "pending").toLowerCase() === "paid" ? "#10b981" : 
-                           (item.status || "pending").toLowerCase() === "cancelled" ? "#dc2626" : "#f59e0b",
-                    border: "1px solid transparent", outline: "none", cursor: "pointer",
-                    appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
-                    textAlign: "center", letterSpacing: "0.5px"
-                  }}
-                >
-                  <option value="pending" style={{ color: "#f59e0b" }}>Pending</option>
-                  <option value="paid" style={{ color: "#10b981" }}>Paid</option>
-                  <option value="cancelled" style={{ color: "#dc2626" }}>Cancelled</option>
-                </select>
+                {(() => {
+                  let displayStatus = "pending";
+                  if (pendingAmt <= 0.01) displayStatus = "paid";
+                  else if (receivedAmt > 0.01 && pendingAmt > 0.01) displayStatus = "partial";
+                  else if ((item.status || "").toLowerCase() === "cancelled") displayStatus = "cancelled";
+
+                  return (
+                    <select 
+                      value={displayStatus}
+                      onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                      disabled={displayStatus === "partial"}
+                      style={{
+                        padding: "0.35rem 0.75rem", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700",
+                        background: displayStatus === "paid" ? "rgba(5, 150, 105, 0.1)" : 
+                                    displayStatus === "cancelled" ? "rgba(220, 38, 38, 0.1)" : 
+                                    displayStatus === "partial" ? "rgba(217, 119, 6, 0.1)" : "rgba(245, 158, 11, 0.1)",
+                        color: displayStatus === "paid" ? "var(--color-success)" : 
+                               displayStatus === "cancelled" ? "#dc2626" : 
+                               displayStatus === "partial" ? "var(--color-warning)" : "#f59e0b",
+                        border: "1px solid transparent", outline: "none", cursor: displayStatus === "partial" ? "not-allowed" : "pointer",
+                        appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
+                        textAlign: "center", letterSpacing: "0.5px"
+                      }}
+                    >
+                      <option value="pending" style={{ color: "#f59e0b" }}>Pending</option>
+                      <option value="partial" style={{ color: "var(--color-warning)" }}>Partial</option>
+                      <option value="paid" style={{ color: "var(--color-success)" }}>Paid</option>
+                      <option value="cancelled" style={{ color: "#dc2626" }}>Cancelled</option>
+                    </select>
+                  );
+                })()}
               </td>
               <td className="actions-cell" style={{ padding: "1rem" }}>
                 <div className="table-actions" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start', gap: '0.75rem' }}>
