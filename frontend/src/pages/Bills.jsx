@@ -98,16 +98,30 @@ const Bills = () => {
             <td>{b.client || "-"}</td>
             <td><span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{formatAmount(b.amount || b.total)}</span></td>
             <td>
-              <span style={{ 
-                padding: '4px 8px', 
-                borderRadius: '12px', 
-                fontSize: '0.75rem', 
-                fontWeight: '600',
-                backgroundColor: b.status === 'Paid' ? '#dcfce7' : (b.status === 'Partial' ? '#fef9c3' : '#fee2e2'),
-                color: b.status === 'Paid' ? '#166534' : (b.status === 'Partial' ? '#854d0e' : '#991b1b')
-              }}>
-                {b.status || 'Generated'}
-              </span>
+              {(() => {
+                const total = parseFloat(b.amount || b.total || 0);
+                const paid = parseFloat(b.paidAmount || 0);
+                let status = b.status || "Unpaid";
+                if (paid >= total && total > 0) status = "Paid";
+                else if (paid > 0 && paid < total) status = "Partial";
+                else if (paid === 0) status = "Unpaid";
+
+                const isPaid = status === "Paid";
+                const isPartial = status === "Partial";
+
+                return (
+                  <span style={{ 
+                    padding: '4px 8px', 
+                    borderRadius: '12px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: '600',
+                    backgroundColor: isPaid ? '#dcfce7' : (isPartial ? '#fef9c3' : '#fee2e2'),
+                    color: isPaid ? '#166534' : (isPartial ? '#854d0e' : '#991b1b')
+                  }}>
+                    {status}
+                  </span>
+                );
+              })()}
             </td>
             <td>
               <button

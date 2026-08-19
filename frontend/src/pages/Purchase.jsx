@@ -1012,13 +1012,22 @@ const Purchase = () => {
                 </td>
 
                 <td style={{ padding: "1rem" }}>
-                  {item.status === 'Paid' ? (
-                      <span style={{ background: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Paid</span>
-                  ) : item.status === 'Partial' ? (
-                      <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Partial</span>
-                  ) : (
-                      <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Unpaid</span>
-                  )}
+                  {(() => {
+                    const total = parseFloat(item.total || 0);
+                    const paid = parseFloat(item.paidAmount || 0);
+                    let status = item.status || "Unpaid";
+                    if (paid >= total && total > 0) status = "Paid";
+                    else if (paid > 0 && paid < total) status = "Partial";
+                    else if (paid === 0) status = "Unpaid";
+
+                    if (status === 'Paid') {
+                      return <span style={{ background: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Paid</span>;
+                    } else if (status === 'Partial') {
+                      return <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Partial</span>;
+                    } else {
+                      return <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Unpaid</span>;
+                    }
+                  })()}
                 </td>
 
                 <td style={{ padding: "1rem" }}>
