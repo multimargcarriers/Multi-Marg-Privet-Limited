@@ -83,7 +83,7 @@ const Dashboard = () => {
             disabled={syncing}
             style={{ 
               padding: '0.5rem 1rem', 
-              backgroundColor: syncing ? '#94a3b8' : '#6366f1', 
+              backgroundColor: syncing ? 'var(--text-light)' : 'var(--primary-color)', 
               color: 'white', 
               borderRadius: '8px', 
               border: 'none', 
@@ -125,8 +125,8 @@ const Dashboard = () => {
       <div className="stats-panel-grid">
         <StatCard title="Total Booking AWB" value={stats?.totalBookings || 0} icon={<Truck size={24} />} trend="+Logistics" subtitle="Dispatched total" />
         <StatCard title="Total Unbilled AWB" value={<span style={{ display: 'flex', alignItems: 'center' }}> {stats?.unbilledAwbCount || 0}</span>} icon={<Clock size={24} />} trend="+Pending" subtitle="Bookings not billed" />
-        <StatCard title="Cash In" value={<span style={{ display: 'flex', alignItems: 'center', color: '#10b981' }}><RupeeIcon size={28} /> {(stats?.totalCashIn || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<TrendingUp size={24} />} trend="+Income" subtitle="Recorded Cash In" />
-        <StatCard title="Cash Out" value={<span style={{ display: 'flex', alignItems: 'center', color: '#f59e0b' }}><RupeeIcon size={28} /> {(stats?.totalCashOut || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
+        <StatCard title="Cash In" value={<span style={{ display: 'flex', alignItems: 'center', color: 'var(--color-success)' }}><RupeeIcon size={28} /> {(stats?.totalCashIn || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<TrendingUp size={24} />} trend="+Income" subtitle="Recorded Cash In" />
+        <StatCard title="Cash Out" value={<span style={{ display: 'flex', alignItems: 'center', color: 'var(--color-warning)' }}><RupeeIcon size={28} /> {(stats?.totalCashOut || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>} icon={<CreditCard size={24} />} trend="-Expense" subtitle="Recorded Cash Out" />
       </div>
 
       {/* Charts Section */}
