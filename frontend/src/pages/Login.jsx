@@ -288,33 +288,34 @@ const Login = () => {
             {/* Minimalist Logo Overlay */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', gap: '0.5rem' }}>
-                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '140px', height: '140px', objectFit: 'contain' }} />
+                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '180px', height: '180px', objectFit: 'contain' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <h2 style={{ 
                     margin: 0, 
                     fontFamily: "'Montserrat', sans-serif",
-                    fontSize: '37px', // 28 pt
+                    fontSize: '28px', 
                     fontWeight: 800, 
-                    letterSpacing: '-0.05em', 
+                    letterSpacing: '-0.04em', 
                     background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
                     textTransform: 'uppercase',
                     textAlign: 'center',
-                    lineHeight: 1.0,
-                    width: '140px',
-                    maxWidth: '140px'
+                    lineHeight: 1.1,
+                    width: '180px',
+                    maxWidth: '180px',
+                    whiteSpace: 'nowrap'
                   }}>
                     MULTIMARG
                   </h2>
                   <span style={{ 
                     fontFamily: "'Outfit', sans-serif", 
-                    fontSize: '11px', 
+                    fontSize: '13px', 
                     fontWeight: 800, 
                     color: '#475569', 
                     textTransform: 'uppercase', 
-                    letterSpacing: '3px',
+                    letterSpacing: '5px',
                     marginTop: '2px'
                   }}>
                     CARRIERS
@@ -415,12 +416,12 @@ const Login = () => {
             {/* Mobile Logo */}
             <div className="mobile-only-logo" style={{ display: 'none', marginBottom: '2.5rem' }}>
               <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', gap: '0.4rem' }}>
-                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '90px', height: '90px', objectFit: 'contain' }} />
+                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <h2 style={{ 
                     margin: 0, 
                     fontFamily: "'Montserrat', sans-serif",
-                    fontSize: '22px', 
+                    fontSize: '18px', 
                     fontWeight: 800, 
                     letterSpacing: '-0.04em', 
                     background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
@@ -429,19 +430,20 @@ const Login = () => {
                     backgroundClip: 'text',
                     textTransform: 'uppercase',
                     textAlign: 'center',
-                    lineHeight: 1.0,
-                    width: '90px',
-                    maxWidth: '90px'
+                    lineHeight: 1.1,
+                    width: '120px',
+                    maxWidth: '120px',
+                    whiteSpace: 'nowrap'
                   }}>
                     MULTIMARG
                   </h2>
                   <span style={{ 
                     fontFamily: "'Outfit', sans-serif", 
-                    fontSize: '9px', 
+                    fontSize: '10px', 
                     fontWeight: 800, 
                     color: '#64748b', 
                     textTransform: 'uppercase', 
-                    letterSpacing: '2px',
+                    letterSpacing: '3px',
                     marginTop: '1px'
                   }}>
                     CARRIERS
