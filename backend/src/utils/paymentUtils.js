@@ -24,7 +24,42 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             client: { $regex: regex }
         }).toArray();
         
-        billsDocs.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+        billsDocs.sort((a, b) => {
+            const parseBill = (bill) => {
+                const billNo = bill.billNo || "";
+                const parts = billNo.split('/');
+                if (parts.length >= 3) {
+                    const yearPart = parts[1]; // "25-26" or "2025-2026"
+                    const seqPart = parts[2]; // "0247"
+                    let yearStart = 0;
+                    if (yearPart.includes('-')) {
+                        const yearStr = yearPart.split('-')[0];
+                        yearStart = parseInt(yearStr, 10) || 0;
+                        if (yearStart < 100) yearStart += 2000;
+                    } else {
+                        yearStart = parseInt(yearPart, 10) || 0;
+                    }
+                    const sequence = parseInt(seqPart, 10) || 0;
+                    return { hasFormat: true, yearStart, sequence };
+                }
+                const dateVal = new Date(bill.createdAt || bill.date || 0);
+                const yearVal = dateVal.getFullYear() || 9999;
+                return { hasFormat: false, yearStart: yearVal, sequence: 0 };
+            };
+
+            const infoA = parseBill(a);
+            const infoB = parseBill(b);
+
+            if (infoA.yearStart !== infoB.yearStart) {
+                return infoA.yearStart - infoB.yearStart;
+            }
+            if (infoA.hasFormat && infoB.hasFormat) {
+                if (infoA.sequence !== infoB.sequence) {
+                    return infoA.sequence - infoB.sequence;
+                }
+            }
+            return new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0);
+        });
 
         let remaining = totalPaid;
         for (const bill of billsDocs) {
