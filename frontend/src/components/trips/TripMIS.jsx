@@ -303,6 +303,19 @@ const TripMIS = () => {
   const [_editingStatus, setEditingStatus] = useState('');
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
 
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const clientDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(e.target)) {
+        setShowClientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showTripListForm && e.ctrlKey && (e.key === '+' || e.key === '=')) {
@@ -464,7 +477,7 @@ const TripMIS = () => {
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip Destination (To)<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
                 <input type="text" className="form-control" placeholder="Enter Trip Destination Location" value={tripListForm.destination} onChange={e => setTripListForm({...tripListForm, destination: formatAllCaps(e.target.value)})} required />
               </div>
-              <div className="form-group">
+              <div className="form-group" ref={clientDropdownRef} style={{ position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                   <label className="form-label" style={{ fontWeight: "500", color: "#374151", margin: 0 }}>Client Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
                   <button
@@ -475,28 +488,85 @@ const TripMIS = () => {
                     <Plus size={14} /> + Add New Client
                   </button>
                 </div>
-                <select
-                  className="form-control"
-                  value={tripListForm.clientName || ""}
-                  onChange={e => {
-                    if (e.target.value === "__NEW__") {
-                      setShowQuickAddClient(true);
-                    } else {
-                      const clientVal = e.target.value;
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search client or type custom name..."
+                    value={tripListForm.clientName || ""}
+                    onChange={e => {
+                      const clientVal = e.target.value.toUpperCase();
                       const nextTripNo = editingId ? tripListForm.tripNo : getNextTripNo(clientVal, tripListEntries);
                       setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: nextTripNo });
-                    }
-                  }}
-                  required
-                >
-                  <option value="">-- Select Client --</option>
-                  {clientsList.map((cl, i) => (
-                    <option key={cl.id || i} value={cl.name || cl.clientName}>
-                      {cl.name || cl.clientName} {cl.gst ? `(${cl.gst})` : ''}
-                    </option>
-                  ))}
-                  <option value="__NEW__" style={{ fontWeight: "700", color: "#4F46E5" }}>+ Add New Client...</option>
-                </select>
+                      setShowClientDropdown(true);
+                    }}
+                    onFocus={() => setShowClientDropdown(true)}
+                    required
+                    style={{ paddingRight: "30px" }}
+                  />
+                  <div style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
+                    <Search size={16} />
+                  </div>
+                </div>
+                {showClientDropdown && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    background: "white",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+                    zIndex: 1000,
+                    maxHeight: "220px",
+                    overflowY: "auto",
+                    marginTop: "4px"
+                  }}>
+                    {clientsList.filter(cl => {
+                      const name = (cl.name || cl.clientName || "").toLowerCase();
+                      const search = (tripListForm.clientName || "").toLowerCase();
+                      return name.includes(search);
+                    }).map((cl, i) => (
+                      <div
+                        key={cl.id || i}
+                        onClick={() => {
+                          const clientVal = cl.name || cl.clientName;
+                          const nextTripNo = editingId ? tripListForm.tripNo : getNextTripNo(clientVal, tripListEntries);
+                          setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: nextTripNo });
+                          setShowClientDropdown(false);
+                        }}
+                        style={{
+                          padding: "8px 12px",
+                          cursor: "pointer",
+                          background: "white",
+                          transition: "background 0.15s",
+                          borderBottom: "1px solid #f1f5f9"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+                        onMouseLeave={e => e.currentTarget.style.background = "white"}
+                      >
+                        <div style={{ fontWeight: "600", fontSize: "0.875rem", color: "#1e293b" }}>
+                          {cl.name || cl.clientName}
+                        </div>
+                        {cl.gst && (
+                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                            GST: {cl.gst}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {clientsList.filter(cl => {
+                      const name = (cl.name || cl.clientName || "").toLowerCase();
+                      const search = (tripListForm.clientName || "").toLowerCase();
+                      return name.includes(search);
+                    }).length === 0 && (
+                      <div style={{ padding: "12px", fontSize: "0.85rem", color: "#64748b", fontStyle: "italic", textAlign: "center", background: "#f8fafc" }}>
+                        "{tripListForm.clientName}" is not on DB. (Acting as custom client)
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
