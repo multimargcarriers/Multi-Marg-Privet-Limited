@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Printer, Cloud, Download, CheckSquare, Square, ArrowLeft } from "lucide-react";
+import { Printer, Cloud, Download, CheckSquare, Square, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import axios from "axios";
 import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
@@ -90,6 +90,7 @@ const BillView1 = () => {
   const [emailStatusMsg, setEmailStatusMsg] = useState("");
   const [emailSentCount, setEmailSentCount] = useState(0);
   const [emailSentTo, setEmailSentTo] = useState([]);
+  const [isEmailCollapsed, setIsEmailCollapsed] = useState(false);
 
   // Option toggle for official company stamp
   const [includeStamp, setIncludeStamp] = useState(() => {
@@ -455,49 +456,88 @@ const BillView1 = () => {
       </div>
 
       {/* AWS Console-themed Send Email Panel */}
-      <div className="no-print aws-email-panel">
-        <div className="aws-email-row">
-          <div className="aws-email-inputs">
-            <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16191f", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap" }}>Send Invoice Email:</span>
-            
-            <div className="aws-email-field">
-              <input
-                type="text"
-                placeholder="Recipient Email ID(s) (comma separated)"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                disabled={isSendingEmail}
-                className="aws-email-input"
-              />
+      <div className="no-print aws-email-panel" style={{ padding: 0 }}>
+        {/* Panel Header (Collapsible toggle) */}
+        <div 
+          className="aws-email-header" 
+          onClick={() => setIsEmailCollapsed(!isEmailCollapsed)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            cursor: "pointer",
+            userSelect: "none",
+            padding: "0.5rem 0.75rem",
+            background: "#f2f3f3",
+            transition: "background 0.15s ease-in-out",
+            borderBottom: isEmailCollapsed ? "none" : "1px solid #eaeded"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {isEmailCollapsed ? <ChevronRight size={14} style={{ color: "#545b64" }} /> : <ChevronDown size={14} style={{ color: "#545b64" }} />}
+            <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#16191f", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Send Invoice Email
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "#545b64", fontWeight: "600", fontSize: "0.72rem" }}>
+              Sent: <strong style={{ color: "#16191f" }}>{emailSentCount}</strong>
+            </span>
+            {emailSentTo.length > 0 && isEmailCollapsed && (
+              <span className="aws-collapse-badge" style={{
+                background: "#067f58",
+                color: "#ffffff",
+                padding: "1px 6px",
+                borderRadius: "10px",
+                fontSize: "0.65rem",
+                fontWeight: "700"
+              }}>
+                Success
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Panel Content (only rendered if not collapsed) */}
+        {!isEmailCollapsed && (
+          <div className="aws-email-body" style={{ padding: "0.75rem 1rem", background: "#ffffff" }}>
+            <div className="aws-email-row" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+              <div className="aws-email-inputs" style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: "1 1 320px", minWidth: 0 }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#545b64", whiteSpace: "nowrap" }}>Recipient Email(s):</span>
+                <div className="aws-email-field" style={{ flex: "1 1 200px", minWidth: 0 }}>
+                  <input
+                    type="text"
+                    placeholder="Recipient Email ID(s) (comma separated)"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    disabled={isSendingEmail}
+                    className="aws-email-input"
+                  />
+                </div>
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail || !recipientEmail.trim()}
+                  className="aws-email-btn"
+                  style={{
+                    background: isSendingEmail ? "#eaeded" : "#ec7211",
+                    color: isSendingEmail ? "#aab7b8" : "#ffffff",
+                    borderColor: isSendingEmail ? "#d5dbdb" : "#dd6b10",
+                    cursor: isSendingEmail || !recipientEmail.trim() ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" style={{ width: "12px", height: "12px", borderWidth: "1.5px", display: "inline-block", borderRadius: "50%", borderStyle: "solid", borderColor: "#aab7b8 transparent #aab7b8 transparent", animation: "spin 0.8s linear infinite" }} /> Sending...
+                    </>
+                  ) : "Send Invoice"}
+                </button>
+              </div>
             </div>
 
-            <button
-              onClick={handleSendEmail}
-              disabled={isSendingEmail || !recipientEmail.trim()}
-              className="aws-email-btn"
-              style={{
-                background: isSendingEmail ? "#eaeded" : "#ec7211",
-                color: isSendingEmail ? "#aab7b8" : "#ffffff",
-                borderColor: isSendingEmail ? "#d5dbdb" : "#dd6b10",
-                cursor: isSendingEmail || !recipientEmail.trim() ? "not-allowed" : "pointer"
-              }}
-            >
-              {isSendingEmail ? (
-                <>
-                  <span className="spinner-border spinner-border-sm" style={{ width: "12px", height: "12px", borderWidth: "1.5px", display: "inline-block", borderRadius: "50%", borderStyle: "solid", borderColor: "#aab7b8 transparent #aab7b8 transparent", animation: "spin 0.8s linear infinite" }} /> Sending...
-                </>
-              ) : "Send Invoice"}
-            </button>
-          </div>
-
-          <div className="aws-email-stats">
-            <span style={{ color: "#545b64", fontWeight: "600" }}>
-              Sent Count: <strong style={{ color: "#16191f" }}>{emailSentCount}</strong>
-            </span>
+            {/* Sent to addresses */}
             {emailSentTo.length > 0 && (
-              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ color: "#879196" }}>|</span>
-                <span style={{ color: "#545b64", fontWeight: "600" }}>Sent To:</span>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginTop: "0.5rem" }}>
+                <span style={{ color: "#545b64", fontWeight: "600", fontSize: "0.72rem" }}>Sent To:</span>
                 {emailSentTo.map((mail, idx) => (
                   <span key={idx} style={{
                     padding: "2px 6px",
@@ -514,20 +554,20 @@ const BillView1 = () => {
                 ))}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Status log lines */}
-        {emailStatus !== "idle" && (
-          <div style={{
-            marginTop: "6px",
-            fontSize: "0.72rem",
-            fontWeight: "700",
-            wordBreak: "break-word",
-            color: emailStatus === "sending" ? "#0073bb" : emailStatus === "success" ? "#067f58" : "#d13212"
-          }}>
-            {emailStatus === "sending" ? "● " : emailStatus === "success" ? "✓ " : "❌ "}
-            {emailStatusMsg}
+            {/* Status log lines */}
+            {emailStatus !== "idle" && (
+              <div style={{
+                marginTop: "0.5rem",
+                fontSize: "0.72rem",
+                fontWeight: "700",
+                wordBreak: "break-word",
+                color: emailStatus === "sending" ? "#0073bb" : emailStatus === "success" ? "#067f58" : "#d13212"
+              }}>
+                {emailStatus === "sending" ? "● " : emailStatus === "success" ? "✓ " : "❌ "}
+                {emailStatusMsg}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -537,7 +577,6 @@ const BillView1 = () => {
         {`
           .aws-email-panel {
             margin: 0.5rem 0 1rem 0;
-            padding: 0.75rem 1rem;
             background: #fafafa;
             border: 1px solid #d5dbdb;
             border-left: 4px solid #ec7211;
@@ -545,6 +584,10 @@ const BillView1 = () => {
             font-family: 'Amazon Ember', 'Helvetica Neue', Roboto, sans-serif;
             width: 100%;
             box-sizing: border-box;
+            overflow: hidden;
+          }
+          .aws-email-header:hover {
+            background: #eaeded !important;
           }
           .aws-email-row {
             display: flex;
@@ -577,6 +620,11 @@ const BillView1 = () => {
             font-family: monospace;
             box-sizing: border-box;
             background: #ffffff;
+            transition: border-color 0.15s ease-in-out;
+          }
+          .aws-email-input:focus {
+            border-color: #ec7211;
+            box-shadow: 0 0 0 1px #ec7211;
           }
           .aws-email-btn {
             padding: 0 16px;
@@ -590,7 +638,12 @@ const BillView1 = () => {
             justify-content: center;
             gap: 4px;
             box-sizing: border-box;
+            border: 1px solid transparent;
             transition: all 0.1s ease-in-out;
+          }
+          .aws-email-btn:hover:not(:disabled) {
+            background: #dd6b10 !important;
+            border-color: #c8610e !important;
           }
           .aws-email-stats {
             display: flex;
@@ -643,6 +696,10 @@ const BillView1 = () => {
             min-width: 100% !important;
             max-width: 100% !important;
             border-collapse: collapse !important;
+          }
+          .print-container th,
+          .nowrap-cell {
+            white-space: nowrap !important;
           }
 
           @media print {
@@ -838,22 +895,22 @@ const BillView1 = () => {
                 const refVal = item.ref || item.invoiceNo || item.invoiceNumber || item.invoice_number || (Array.isArray(item.invoiceDetails) ? item.invoiceDetails.map(i => i.invoiceNo || i.invoiceNumber).filter(Boolean).join(", ") : "") || "-";
                 return (
                   <tr key={idx} style={{ pageBreakInside: "avoid", borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.si || idx + 1}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.lrNo || item.awb}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{formatDate(item.lrDt || item.awb_date || item.date)}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.65rem" }}>{item.si || idx + 1}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.65rem" }}>{item.lrNo || item.awb}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{formatDate(item.lrDt || item.awb_date || item.date)}</td>
                     <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{refVal}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.org || item.origin}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem", wordBreak: "break-word", overflowWrap: "break-word" }}>{item.dest || item.destination}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pkg || item.box}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.wt || item.weight}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.rate}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.frg || item.frieght}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.lr || item.awb_charge}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pick || item.pickup}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.del || item.delivery}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.spl || item.special_delivery}</td>
-                    <td style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.oth || item.other_charge}</td>
-                    <td style={{ padding: "0.35rem 0.25rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.org || item.origin}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.dest || item.destination}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pkg || item.box}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.wt || item.weight}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.rate}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.frg || item.frieght}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.lr || item.awb_charge}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.pick || item.pickup}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.del || item.delivery}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.spl || item.special_delivery}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.65rem" }}>{item.oth || item.other_charge}</td>
+                    <td className="nowrap-cell" style={{ padding: "0.35rem 0.25rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.65rem" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
                   </tr>
                 );
               })}

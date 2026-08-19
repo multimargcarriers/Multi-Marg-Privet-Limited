@@ -215,6 +215,10 @@ const PrintSingleTrip = () => {
                   padding: 3px 5px !important;
                   color: #0f172a !important;
                 }
+                .manifest-table th,
+                .nowrap-cell {
+                  white-space: nowrap !important;
+                }
                 .gray-cell {
                   background-color: #f8fafc !important;
                   color: #0f172a !important;
@@ -291,7 +295,7 @@ const PrintSingleTrip = () => {
                   <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>TRIP RECEIPT</h2>
                 </div>
 
-                <div style={{ flex: 1, padding: "6px 20px" }}>
+                <div style={{ flex: 1, padding: "6px 20px", width: "100%", boxSizing: "border-box" }}>
                     
                     <div className="section-header">1. Vehicle & Trip Info</div>
                     <table className="manifest-table">
@@ -327,40 +331,40 @@ const PrintSingleTrip = () => {
                     <table className="manifest-table" style={{ fontSize: "0.68rem", width: "100%", tableLayout: "fixed" }}>
                         <thead>
                             <tr className="gray-cell" style={{ fontSize: "0.65rem" }}>
-                                <th style={{ width: "7.5%", padding: "5px 3px", whiteSpace: "nowrap" }}>LR NO</th>
-                                <th style={{ width: "11%", padding: "5px 3px", whiteSpace: "nowrap" }}>CONSIGNOR</th>
-                                <th style={{ width: "11%", padding: "5px 3px", whiteSpace: "nowrap" }}>CONSIGNEE</th>
-                                <th style={{ width: "9%", padding: "5px 3px", whiteSpace: "nowrap" }}>ORIGIN</th>
-                                <th style={{ width: "9%", padding: "5px 3px", whiteSpace: "nowrap" }}>DEST</th>
-                                <th style={{ width: "5.5%", padding: "5px 3px", whiteSpace: "nowrap" }}>MODE</th>
-                                <th style={{ width: "4.5%", textAlign: "center", padding: "5px 3px", whiteSpace: "nowrap" }}>BOX</th>
-                                <th style={{ width: "4.5%", textAlign: "center", padding: "5px 3px", whiteSpace: "nowrap" }}>WT</th>
-                                <th style={{ width: "7.5%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>FRT</th>
-                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>PICK</th>
-                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>DELV</th>
-                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>SPEC</th>
-                                <th style={{ width: "4.5%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>OTH</th>
-                                <th style={{ width: "8%", textAlign: "right", padding: "5px 3px", whiteSpace: "nowrap" }}>TOTAL</th>
+                                <th style={{ width: "7.5%", padding: "5px 3px" }}>LR NO</th>
+                                <th style={{ width: "11%", padding: "5px 3px" }}>CONSIGNOR</th>
+                                <th style={{ width: "11%", padding: "5px 3px" }}>CONSIGNEE</th>
+                                <th style={{ width: "9%", padding: "5px 3px" }}>ORIGIN</th>
+                                <th style={{ width: "9%", padding: "5px 3px" }}>DEST</th>
+                                <th style={{ width: "5.5%", padding: "5px 3px" }}>MODE</th>
+                                <th style={{ width: "4.5%", textAlign: "center", padding: "5px 3px" }}>BOX</th>
+                                <th style={{ width: "4.5%", textAlign: "center", padding: "5px 3px" }}>WT</th>
+                                <th style={{ width: "7.5%", textAlign: "right", padding: "5px 3px" }}>FRT</th>
+                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px" }}>PICK</th>
+                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px" }}>DELV</th>
+                                <th style={{ width: "6%", textAlign: "right", padding: "5px 3px" }}>SPEC</th>
+                                <th style={{ width: "4.5%", textAlign: "right", padding: "5px 3px" }}>OTH</th>
+                                <th style={{ width: "8%", textAlign: "right", padding: "5px 3px" }}>TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
                             {trip.parcels && trip.parcels.length > 0 ? (
                                 trip.parcels.map((p, i) => (
                                     <tr key={i}>
-                                        <td className="data-cell" style={{ color: "#ef4444", fontWeight: "700", padding: "4px 3px" }}>{p.lrNo || "-"}</td>
+                                        <td className="data-cell nowrap-cell" style={{ color: "#ef4444", fontWeight: "700", padding: "4px 3px" }}>{p.lrNo || "-"}</td>
                                         <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.consignor || "-").toUpperCase()}</td>
                                         <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.consignee || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.origin || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.destination || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.mode || "-").toUpperCase()}</td>
-                                        <td className="data-cell" style={{ textAlign: "center", padding: "4px 3px" }}>{p.box || "-"}</td>
-                                        <td className="data-cell" style={{ textAlign: "center", padding: "4px 3px" }}>{p.weight || "-"}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.freight || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.pickup || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.delivery || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.special || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.other || 0).toFixed(2)}</td>
-                                        <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px" }}>
+                                        <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.origin || "-").toUpperCase()}</td>
+                                        <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.destination || "-").toUpperCase()}</td>
+                                        <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.mode || "-").toUpperCase()}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "center", padding: "4px 3px" }}>{p.box || "-"}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "center", padding: "4px 3px" }}>{p.weight || "-"}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.freight || 0).toFixed(2)}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.pickup || 0).toFixed(2)}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.delivery || 0).toFixed(2)}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.special || 0).toFixed(2)}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.other || 0).toFixed(2)}</td>
+                                        <td className="data-cell nowrap-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px" }}>
                                             {((parseFloat(p.freight) || 0) + (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0)).toFixed(2)}
                                         </td>
                                     </tr>

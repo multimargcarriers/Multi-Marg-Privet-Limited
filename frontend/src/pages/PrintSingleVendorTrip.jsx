@@ -235,6 +235,10 @@ const PrintSingleVendorTrip = () => {
                   padding: 3px 5px !important;
                   color: #0f172a !important;
                 }
+                .manifest-table th,
+                .nowrap-cell {
+                  white-space: nowrap !important;
+                }
                 .gray-cell {
                   background-color: #f8fafc !important;
                   color: #0f172a !important;
@@ -311,7 +315,7 @@ const PrintSingleVendorTrip = () => {
                   <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: "700", color: "#0f172a", letterSpacing: "2px", textTransform: "uppercase" }}>VENDOR VEHICLE MIS RECEIPT</h2>
                 </div>
 
-                <div style={{ flex: 1, padding: "6px 20px" }}>
+                <div style={{ flex: 1, padding: "6px 20px", width: "100%", boxSizing: "border-box" }}>
 
                   <div className="section-header">1. Vendor & Info</div>
                   <table className="manifest-table">
@@ -357,16 +361,16 @@ const PrintSingleVendorTrip = () => {
                       {trip.details && trip.details.length > 0 ? (
                         trip.details.map((p, i) => (
                           <tr key={i}>
-                            <td className="data-cell" style={{ padding: "4px 3px" }}>{p.date ? formatDate(p.date) : "-"}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.from || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.to || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.handoverTo || "-").toUpperCase()}</td>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{p.date ? formatDate(p.date) : "-"}</td>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px", fontWeight: "700", color: "#e11d48" }}>{(p.vehicleNo || "-").toUpperCase()}</td>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.from || "-").toUpperCase()}</td>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.to || "-").toUpperCase()}</td>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.handoverTo || "-").toUpperCase()}</td>
                             <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.particular || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ padding: "4px 3px" }}>{(p.mode || "-").toUpperCase()}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
-                            <td className="data-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px" }}>
+                            <td className="data-cell nowrap-cell" style={{ padding: "4px 3px" }}>{(p.mode || "-").toUpperCase()}</td>
+                            <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.amount || 0).toFixed(2)}</td>
+                            <td className="data-cell nowrap-cell" style={{ textAlign: "right", padding: "4px 3px" }}>{parseFloat(p.others || 0).toFixed(2)}</td>
+                            <td className="data-cell nowrap-cell" style={{ textAlign: "right", fontWeight: "700", padding: "4px 3px" }}>
                               {((parseFloat(p.amount) || 0) + (parseFloat(p.others) || 0)).toFixed(2)}
                             </td>
                           </tr>

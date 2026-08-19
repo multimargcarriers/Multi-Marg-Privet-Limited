@@ -1646,12 +1646,19 @@ html, body {
   h1, h2, h3 {
     font-size: clamp(1.2rem, 4vw, 1.8rem) !important;
   }
-  /* Undo mobile heading override inside print/document containers so document layout is preserved */
   .print-container h1, .print-container h2, .print-container h3,
   .print-wrapper h1, .print-wrapper h2, .print-wrapper h3 {
     font-size: 1.6rem !important;
     line-height: 1.2 !important;
     margin: 0 !important;
+  }
+
+  /* Prevent nested layout containers inside print previews from collapsing under mobile screen width constraints */
+  .print-container,
+  .print-container div {
+    max-width: none !important;
+    min-width: 0 !important;
+    overflow: visible !important;
   }
 
   /* Shrink cell padding on mobile for max data density */
@@ -1851,7 +1858,7 @@ html, body {
   /* Ensure all data tables are scrollable horizontally (excluding print/bilty document views) */
   .table-container:not(.print-container),
   .table-responsive:not(.print-container),
-  div:has(> table:not(.bilty-table)):not(.print-container):not(.print-wrapper) {
+  div:has(> table:not(.bilty-table)):not(.print-container):not(.print-wrapper):not(.print-container *):not([class*="print"]) {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     max-width: 100vw !important;
@@ -2545,6 +2552,33 @@ html, body {
   .tracking-timeline-item {
     gap: 0.75rem;
   }
+}
+
+/* Lock the container widths on screen to preserve desktop layout and prevent wrapping/squishing on mobile devices */
+.print-container-lr,
+.print-container-manifest {
+  width: 750px !important;
+  min-width: 750px !important;
+  max-width: 750px !important;
+}
+
+.print-container-trip,
+.print-container-vendor-trip {
+  width: 1122px !important;
+  min-width: 1122px !important;
+  max-width: 1122px !important;
+}
+
+.print-container-triplist {
+  width: 1122px !important;
+  min-width: 1122px !important;
+  max-width: 1122px !important;
+}
+
+.print-container-bill {
+  width: 940px !important;
+  min-width: 940px !important;
+  max-width: 940px !important;
 }
 
 /* Print Overrides for Dynamic Scale Wrappers across all devices */

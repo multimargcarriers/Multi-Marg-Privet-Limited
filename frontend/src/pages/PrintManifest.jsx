@@ -177,7 +177,7 @@ const PrintManifest = () => {
           border-bottom: 1.5px solid #cbd5e1;
           margin-bottom: 4px;
         }
-        .manifest-section { margin-bottom: 0px; }
+        .manifest-section { padding-bottom: 0px; width: 100% !important; box-sizing: border-box !important; }
         .blue-text { color: #1e3a8a; }
         .premium-border { border: 2px solid #1e293b; }
       `}</style>
@@ -238,11 +238,15 @@ const PrintManifest = () => {
                   font-size: 0.75rem !important;
                   table-layout: fixed !important;
                 }
-                .manifest-table th, .manifest-table td {
-                  border: 1.5px solid #64748b !important;
-                  padding: 4px 8px !important;
-                  color: #0f172a !important;
-                }
+                 .manifest-table th, .manifest-table td {
+                   border: 1.5px solid #64748b !important;
+                   padding: 4px 8px !important;
+                   color: #0f172a !important;
+                 }
+                 .manifest-table th,
+                 .nowrap-cell {
+                   white-space: nowrap !important;
+                 }
                 .gray-cell {
                   background-color: #f8fafc !important;
                   color: #0f172a !important;
@@ -364,16 +368,16 @@ const PrintManifest = () => {
                     <tbody>
                       {trip.materialDetails && trip.materialDetails.length > 0 ? (
                         trip.materialDetails.map((mat, idx) => (
-                          <tr key={idx}>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{idx + 1}</td>
-                            <td className="data-cell">{(mat.clientName || "-").substring(0, 20)}</td>
-                            <td className="data-cell">{mat.lrNo || "-"}</td>
-                            <td className="data-cell">{(mat.origin || "-").substring(0, 15)}</td>
-                            <td className="data-cell">{(mat.destination || "-").substring(0, 15)}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.box || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.weight || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{mat.chWeight || "-"}</td>
-                          </tr>
+                           <tr key={idx}>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{idx + 1}</td>
+                             <td className="data-cell">{(mat.clientName || "-").substring(0, 20)}</td>
+                             <td className="data-cell nowrap-cell">{mat.lrNo || "-"}</td>
+                             <td className="data-cell nowrap-cell">{(mat.origin || "-").substring(0, 15)}</td>
+                             <td className="data-cell nowrap-cell">{(mat.destination || "-").substring(0, 15)}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{mat.box || "-"}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{mat.weight || "-"}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{mat.chWeight || "-"}</td>
+                           </tr>
                         ))
                       ) : (
                         <tr><td colSpan="8" style={{ textAlign: "center", padding: "20px" }} className="data-cell">No shipment items available.</td></tr>

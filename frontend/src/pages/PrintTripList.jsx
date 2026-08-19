@@ -173,11 +173,15 @@ const PrintTripList = () => {
                   font-size: 0.75rem !important;
                   table-layout: fixed !important;
                 }
-                .manifest-table th, .manifest-table td {
-                  border: 1.5px solid #64748b !important;
-                  padding: 4px 8px !important;
-                  color: #0f172a !important;
-                }
+                 .manifest-table th, .manifest-table td {
+                   border: 1.5px solid #64748b !important;
+                   padding: 4px 8px !important;
+                   color: #0f172a !important;
+                 }
+                 .manifest-table th,
+                 .nowrap-cell {
+                   white-space: nowrap !important;
+                 }
                 .gray-cell {
                   background-color: #f8fafc !important;
                   color: #0f172a !important;
@@ -231,7 +235,7 @@ const PrintTripList = () => {
                   <div style={{ width: "150px", textAlign: "right", fontSize: "0.8rem", fontWeight: "600", color: "#475569" }}>Date: {formatDate(new Date())}</div>
                 </div>
 
-                <div className="manifest-section" style={{ flex: 1, padding: "10px" }}>
+                <div className="manifest-section" style={{ flex: 1, padding: "10px", width: "100%", boxSizing: "border-box" }}>
                   <table className="manifest-table">
                     <thead>
                       <tr className="gray-cell">
@@ -254,29 +258,29 @@ const PrintTripList = () => {
                     <tbody>
                       {tripListEntries && tripListEntries.length > 0 ? (
                         tripListEntries.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{idx + 1}</td>
-                            <td className="data-cell">{item.date ? formatDate(item.date) : "-"}</td>
-                            <td className="data-cell">{(item.clientName || "-").substring(0, 15)}</td>
-                            <td className="data-cell">{item.lrNo || "-"}</td>
-                            <td className="data-cell">{(item.consignor || "-").substring(0, 12)}</td>
-                            <td className="data-cell">{(item.consignee || "-").substring(0, 12)}</td>
-                            <td className="data-cell">{(item.origin || "-").substring(0, 10)}</td>
-                            <td className="data-cell">{(item.destination || "-").substring(0, 10)}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{item.box || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{item.weight || "-"}</td>
-                            <td className="data-cell">{item.vehicleNo}<br/><span style={{ fontSize: "0.65rem", color: "#475569", fontWeight: "normal" }}>{item.vehicleType}</span></td>
-                            <td className="data-cell" style={{ textAlign: "center", textTransform: "uppercase" }}>{item.mode || "-"}</td>
-                            <td className="data-cell" style={{ textAlign: "right" }}>
-                                {parseFloat(item.freight || 0).toFixed(2)}
-                                {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (
-                                    <div style={{ fontSize: "0.6rem", color: "#000", fontWeight: "normal" }}>
-                                        Pd:{item.paidAmount} Rm:{(parseFloat(item.freight) || 0) - parseFloat(item.paidAmount)}
-                                    </div>
-                                )}
-                            </td>
-                            <td className="data-cell" style={{ textAlign: "center" }}>{item.payment || "-"}</td>
-                          </tr>
+                           <tr key={idx}>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{idx + 1}</td>
+                             <td className="data-cell nowrap-cell">{item.date ? formatDate(item.date) : "-"}</td>
+                             <td className="data-cell">{(item.clientName || "-").substring(0, 15)}</td>
+                             <td className="data-cell nowrap-cell">{item.lrNo || "-"}</td>
+                             <td className="data-cell">{(item.consignor || "-").substring(0, 12)}</td>
+                             <td className="data-cell">{(item.consignee || "-").substring(0, 12)}</td>
+                             <td className="data-cell nowrap-cell">{(item.origin || "-").substring(0, 10)}</td>
+                             <td className="data-cell nowrap-cell">{(item.destination || "-").substring(0, 10)}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{item.box || "-"}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{item.weight || "-"}</td>
+                             <td className="data-cell nowrap-cell">{item.vehicleNo}<br/><span style={{ fontSize: "0.65rem", color: "#475569", fontWeight: "normal" }}>{item.vehicleType}</span></td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center", textTransform: "uppercase" }}>{item.mode || "-"}</td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "right" }}>
+                                 {parseFloat(item.freight || 0).toFixed(2)}
+                                 {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (
+                                     <div style={{ fontSize: "0.6rem", color: "#000", fontWeight: "normal" }}>
+                                         Pd:{item.paidAmount} Rm:{(parseFloat(item.freight) || 0) - parseFloat(item.paidAmount)}
+                                     </div>
+                                 )}
+                             </td>
+                             <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{item.payment || "-"}</td>
+                           </tr>
                         ))
                       ) : (
                         <tr><td colSpan="14" style={{ textAlign: "center", padding: "20px" }} className="data-cell">No trip MIS entries available.</td></tr>
