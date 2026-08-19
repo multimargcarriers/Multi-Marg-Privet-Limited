@@ -6,7 +6,7 @@ import RupeeIcon from "../components/RupeeIcon";
 import { AuthContext } from "../context/AuthContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { formatDate } from "../utils/formatters";
-import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
+import { downloadViaPuppeteer, getPdfBase64ViaPuppeteer } from "../utils/puppeteerPdf";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -234,53 +234,12 @@ const PrintLR = () => {
     setEmailStatusMsg("Generating Lorry Receipt PDF on browser...");
 
     try {
-      const element = document.getElementById("bilty-content");
-      if (!element) {
-        throw new Error("Lorry Receipt content not found");
-      }
-
-      // Clone and clean element for PDF printing
-      const clone = element.cloneNode(true);
-      clone.style.transform = "none";
-      clone.style.position = "static";
-      clone.style.margin = "0";
-      clone.style.height = "auto";
-      clone.style.maxHeight = "none";
-      clone.style.overflow = "visible";
-      clone.style.width = "750px";
-      clone.style.boxSizing = "border-box";
-      clone.style.padding = "0";
-
-      // Convert canvas elements (QR codes) to images
-      const originalCanvases = element.querySelectorAll("canvas");
-      const cloneCanvases = clone.querySelectorAll("canvas");
-      originalCanvases.forEach((origCanvas, idx) => {
-        if (cloneCanvases[idx]) {
-          try {
-            const dataUrl = origCanvas.toDataURL("image/png");
-            const img = document.createElement("img");
-            img.src = dataUrl;
-            img.style.cssText = origCanvas.style.cssText || "display: block;";
-            if (origCanvas.style.width) img.style.width = origCanvas.style.width;
-            if (origCanvas.style.height) img.style.height = origCanvas.style.height;
-            cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
-          } catch (_e) { }
-        }
+      const pdfBase64 = await getPdfBase64ViaPuppeteer({
+        elementId: "bilty-content",
+        landscape: false
       });
 
-      const opt = {
-        margin: [2, 2, 2, 2],
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, width: 750, windowWidth: 750 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ['avoid-all'] }
-      };
-
       setEmailStatusMsg("Sending Lorry Receipt via email...");
-      const html2pdf = (await import("html2pdf.js")).default;
-      const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
-      const pdfBase64 = dataUri.split(';base64,')[1];
-
       const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
       const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
       const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();

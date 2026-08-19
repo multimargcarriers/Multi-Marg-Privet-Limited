@@ -6,7 +6,7 @@ import CompanyStamp from "../components/CompanyStamp";
 import { SettingsContext } from "../context/SettingsContext";
 import { useToast } from "../context/ToastContext";
 import appDB from "../utils/appDB";
-import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
+import { downloadViaPuppeteer, getPdfBase64ViaPuppeteer } from "../utils/puppeteerPdf";
 import { formatDate } from "../utils/formatters";
 
 // Indian Currency Number to Words converter
@@ -235,7 +235,8 @@ const BillView1 = () => {
         elementId: "bill-content",
         filename,
         landscape: false,
-        autoPrint
+        autoPrint,
+        width: "940px"
       });
     } catch (err) {
       console.error("Puppeteer PDF generation error:", err);
@@ -254,50 +255,13 @@ const BillView1 = () => {
     setEmailStatusMsg("Generating Tax Invoice PDF on browser...");
     
     try {
-      const element = document.getElementById("bill-content");
-      if (!element) {
-        throw new Error("Tax Invoice content not found");
-      }
-
-      // Clone and clean element for PDF printing
-      const clone = element.cloneNode(true);
-      clone.style.transform = "none";
-      clone.style.position = "static";
-      clone.style.margin = "0";
-      clone.style.width = "940px";
-      clone.style.boxSizing = "border-box";
-      clone.style.padding = "0";
-
-      // Convert canvas elements to images if any
-      const originalCanvases = element.querySelectorAll("canvas");
-      const cloneCanvases = clone.querySelectorAll("canvas");
-      originalCanvases.forEach((origCanvas, idx) => {
-        if (cloneCanvases[idx]) {
-          try {
-            const dataUrl = origCanvas.toDataURL("image/png");
-            const img = document.createElement("img");
-            img.src = dataUrl;
-            img.style.cssText = origCanvas.style.cssText || "display: block;";
-            if (origCanvas.style.width) img.style.width = origCanvas.style.width;
-            if (origCanvas.style.height) img.style.height = origCanvas.style.height;
-            cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
-          } catch (_e) {}
-        }
+      const pdfBase64 = await getPdfBase64ViaPuppeteer({
+        elementId: "bill-content",
+        landscape: false,
+        width: "940px"
       });
 
-      const opt = {
-        margin: [2, 2, 2, 2],
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false, width: 940, windowWidth: 940 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ['avoid-all'] }
-      };
-
       setEmailStatusMsg("Sending Tax Invoice via email...");
-      const html2pdf = (await import("html2pdf.js")).default;
-      const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
-      const pdfBase64 = dataUri.split(';base64,')[1];
-
       const clientName = typeof billData?.client === 'string' ? billData.client : (billData?.client?.name || billData?.clientName || billData?.customerName || "");
       const billNo = (billData?.invoice || billData?.billNo || billData?.invoiceNo || id).toString().replace(/[\/\\]/g, "_");
       const filename = `${billNo}${clientName ? " - " + clientName.toUpperCase() : ""}.pdf`;

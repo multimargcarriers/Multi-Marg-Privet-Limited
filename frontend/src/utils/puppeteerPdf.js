@@ -12,13 +12,17 @@ export const downloadViaPuppeteer = async ({
   elementId,
   filename = "document.pdf",
   landscape = false,
-  autoPrint = false
+  autoPrint = false,
+  width = null
 }) => {
   const element = document.getElementById(elementId);
   if (!element) {
     console.error(`Element #${elementId} not found`);
     return;
   }
+
+  const cloneWidth = width || (landscape ? "1120px" : "750px");
+  const canvasWidth = parseInt(cloneWidth);
 
   const clone = element.cloneNode(true);
   clone.style.transform = "none";
@@ -27,7 +31,7 @@ export const downloadViaPuppeteer = async ({
   clone.style.height = "auto";
   clone.style.maxHeight = "none";
   clone.style.overflow = "visible";
-  clone.style.width = landscape ? "1120px" : "750px";
+  clone.style.width = cloneWidth;
   clone.style.boxSizing = "border-box";
   clone.style.padding = element.style.padding || "0";
 
@@ -143,7 +147,7 @@ export const downloadViaPuppeteer = async ({
         margin: [2, 2, 2, 2],
         filename: finalFilename,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, width: landscape ? 1120 : 750, windowWidth: landscape ? 1120 : 750 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, width: canvasWidth, windowWidth: canvasWidth },
         jsPDF: { unit: "mm", format: "a4", orientation: landscape ? "landscape" : "portrait" },
         pagebreak: { mode: ['avoid-all'] }
       };
@@ -159,6 +163,145 @@ export const downloadViaPuppeteer = async ({
       alert("Failed to download PDF. Please try again.");
     }
   }
+};
+
+/**
+ * Generates base64 encoded PDF string using Backend Puppeteer with client-side fallback.
+ * Guaranteed to render with desktop dimensions for consistent email attachments.
+ */
+export const getPdfBase64ViaPuppeteer = async ({
+  elementId,
+  landscape = false,
+  width = null
+}) => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    throw new Error(`Element #${elementId} not found`);
+  }
+
+  const cloneWidth = width || (landscape ? "1120px" : "750px");
+  const canvasWidth = parseInt(cloneWidth);
+
+  const clone = element.cloneNode(true);
+  clone.style.transform = "none";
+  clone.style.position = "static";
+  clone.style.margin = "0";
+  clone.style.height = "auto";
+  clone.style.maxHeight = "none";
+  clone.style.overflow = "visible";
+  clone.style.width = cloneWidth;
+  clone.style.boxSizing = "border-box";
+  clone.style.padding = element.style.padding || "0";
+
+  // Convert canvas elements (QR codes, signatures) into <img> PNG Data URLs
+  const originalCanvases = element.querySelectorAll("canvas");
+  const cloneCanvases = clone.querySelectorAll("canvas");
+  originalCanvases.forEach((origCanvas, idx) => {
+    if (cloneCanvases[idx]) {
+      try {
+        const dataUrl = origCanvas.toDataURL("image/png");
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        img.style.cssText = origCanvas.style.cssText || "display: block;";
+        if (origCanvas.style.width) img.style.width = origCanvas.style.width;
+        if (origCanvas.style.height) img.style.height = origCanvas.style.height;
+        cloneCanvases[idx].parentNode.replaceChild(img, cloneCanvases[idx]);
+      } catch (_e) {}
+    }
+  });
+
+  // Extract all page style blocks for backend rendering
+  const pageStyles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+    .map(el => el.outerHTML)
+    .join("\n");
+
+  // Build full HTML document for backend Puppeteer
+  const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  ${pageStyles}
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
+    * { box-sizing: border-box !important; }
+    body, div, span, p, td, th, label, h1, h2, h3, h4, h5, h6, b, strong, tr, table { 
+      text-transform: uppercase !important; 
+    }
+    a, a *, .no-transform, .no-transform * {
+      text-transform: lowercase !important;
+      text-decoration: none !important;
+      color: inherit !important;
+    }
+    body { 
+      margin: 0 !important; padding: 0 !important; 
+      background: #fff !important; color: #0f172a !important; 
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+      font-family: 'Outfit', sans-serif !important;
+    }
+    .no-print { display: none !important; }
+    .print-container, .tax-invoice-sheet, .print-wrapper { 
+      max-width: none !important; min-width: 0 !important; 
+      width: 100% !important; height: auto !important;
+      transform: none !important; box-shadow: none !important; 
+      border: none !important; margin: 0 !important; 
+      padding: 0 !important; overflow: visible !important; 
+    }
+    table { width: 100% !important; }
+    th, td { word-break: break-word !important; }
+    svg, canvas, img { display: inline-block !important; max-width: 100% !important; }
+    @page { size: A4 ${landscape ? "landscape" : "portrait"}; margin: 3mm; }
+    @media print {
+      html, body { height: 100% !important; overflow: hidden !important; }
+      .print-container { page-break-after: avoid !important; page-break-inside: avoid !important; height: auto !important; min-height: 0 !important; }
+    }
+  </style>
+</head>
+<body>${clone.outerHTML}</body>
+</html>`;
+
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const token = localStorage.getItem("token");
+
+  try {
+    const res = await fetch(`${API_URL}/api/print/generate-pdf`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ html: fullHTML, filename: "email.pdf", landscape })
+    });
+
+    if (res.ok) {
+      const rawBlob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(rawBlob);
+        reader.onloadend = () => {
+          const base64data = reader.result.split(',')[1];
+          resolve(base64data);
+        };
+        reader.onerror = reject;
+      });
+    }
+  } catch (_e) {
+    // Fall through to html2pdf
+  }
+
+  // Fallback: Client-side html2pdf.js (raster, works everywhere)
+  const html2pdf = (await import("html2pdf.js")).default;
+  const opt = {
+    margin: [2, 2, 2, 2],
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, width: canvasWidth, windowWidth: canvasWidth },
+    jsPDF: { unit: "mm", format: "a4", orientation: landscape ? "landscape" : "portrait" },
+    pagebreak: { mode: ['avoid-all'] }
+  };
+  const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
+  return dataUri.split(';base64,')[1];
 };
 
 // --- Helper: Download a blob URL as a file ---
