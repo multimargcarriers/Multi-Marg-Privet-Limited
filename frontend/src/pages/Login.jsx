@@ -61,7 +61,18 @@ const Login = () => {
       const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com';
       const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
       
-      const target = hasDashboard ? '/dashboard' : (user.role === 'Client' || user.role === 'Vendor' ? '/trips' : '/profile');
+      let target = '/profile';
+      if (hasDashboard) {
+        target = '/dashboard';
+      } else if (user.role === 'Client' || user.role === 'Vendor') {
+        if (user.permissions && user.permissions.includes('tripmis')) {
+          target = '/trip-mis';
+        } else if (user.permissions && user.permissions.includes('vendormis')) {
+          target = '/vendor-mis';
+        } else if (user.permissions && user.permissions.includes('trips')) {
+          target = '/trips';
+        }
+      }
       navigate(target, { replace: true });
     }
   }, [user, authLoading, navigate]);

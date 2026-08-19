@@ -39,8 +39,8 @@ const PERMISSIONS_TREE = [
     pages: [
       { id: 'bookings', name: 'Bookings (View)' },
       { id: 'create_booking', name: 'Create Booking' },
-      { id: 'trips', name: 'Trips' },
-      { id: 'tripmis', name: 'Trip MIS' },
+      { id: 'trips', name: 'Vendor Ship MIS' },
+      { id: 'tripmis', name: 'Vehicle Trip MIS' },
       { id: 'vendormis', name: 'Vendor Vehicle MIS' },
       { id: 'track_shipment', name: 'Track Shipment (View)' },
       { id: 'update_tracking', name: 'Update Tracking (Add Status)' },

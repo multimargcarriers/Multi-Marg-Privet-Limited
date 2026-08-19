@@ -4,7 +4,7 @@ const vendorMisController = require("../controllers/vendorMisController");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { requirePermission } = require("../middleware/rbac");
 
-router.use(requirePermission(["trips", "vendormis", "all"]));
+router.use(requirePermission(["vendormis", "all"]));
 
 router.get("/", asyncHandler(vendorMisController.getRoot_1));
 router.post("/", asyncHandler(vendorMisController.postRoot_2));

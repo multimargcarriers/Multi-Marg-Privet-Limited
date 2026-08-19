@@ -214,15 +214,6 @@ export const AuthProvider = ({ children }) => {
     if (user.permissions && (user.permissions.includes('all') || user.permissions.includes(moduleName))) {
       return true;
     }
-    
-    // Implicit parent permissions for Vendors & Clients
-    if (user.role === 'Vendor' || user.role === 'Client') {
-      if (moduleName === 'trips' && 
-          (user.permissions?.includes('tripmis') || user.permissions?.includes('vendormis') || user.permissions?.includes('trips'))) {
-        return true;
-      }
-    }
-    
     return false;
   };
 

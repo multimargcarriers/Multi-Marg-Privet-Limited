@@ -191,14 +191,8 @@ export const getVisibleMenuItems = (hasPermission, globalSettings, user) => {
         const hasParentPermission = !item.permission || hasPermission(item.permission);
         const visibleChildren = item.children.filter(child => {
           if (item.permission && globalSettings?.modules && globalSettings.modules[item.permission] === false) return false;
+          if (!child.permission) return true;
           
-          if (!child.permission) return true; // Show items with no permission explicitly required (like Tracking)
-
-          if (user?.role === 'Vendor' || user?.role === 'Client') {
-            if (child.permission === 'trips' && (hasPermission('tripmis') || hasPermission('trips') || hasPermission('vendormis'))) return true;
-            return child.permission && hasPermission(child.permission);
-          }
-
           if (hasParentPermission) return true;
           return child.permission && hasPermission(child.permission);
         });
