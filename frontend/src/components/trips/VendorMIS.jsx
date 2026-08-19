@@ -43,33 +43,43 @@ const VendorMIS = () => {
     }
   }, [activeRemarksModal?.remarks]);
 
-  const filteredEntries = vendorMisEntries.filter(item => {
-    // 1. Date Filter
-    if (startDate || endDate) {
-      const itemDate = new Date(item.createdAt);
-      itemDate.setHours(0,0,0,0);
-      const start = startDate ? new Date(startDate) : new Date("1970-01-01");
-      start.setHours(0,0,0,0);
-      const end = endDate ? new Date(endDate) : new Date("2100-01-01");
-      end.setHours(23,59,59,999);
-      if (itemDate < start || itemDate > end) return false;
-    }
-    
-    // 2. Search Filter
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchesVendor = (item.vendorName || "").toLowerCase().includes(q);
-      const matchesDetails = item.details?.some(d => 
-        (d.particular || "").toLowerCase().includes(q) ||
-        (d.vehicleNo || "").toLowerCase().includes(q) ||
-        (d.from || "").toLowerCase().includes(q) ||
-        (d.to || "").toLowerCase().includes(q) ||
-        (d.handoverTo || "").toLowerCase().includes(q)
-      );
-      if (!matchesVendor && !matchesDetails) return false;
-    }
-    return true;
-  });
+  const filteredEntries = useMemo(() => {
+    const filtered = vendorMisEntries.filter(item => {
+      // 1. Date Filter
+      if (startDate || endDate) {
+        const mainDate = item.details?.[0]?.date || item.createdAt;
+        const itemDate = new Date(mainDate);
+        itemDate.setHours(0,0,0,0);
+        const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+        start.setHours(0,0,0,0);
+        const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+        end.setHours(23,59,59,999);
+        if (itemDate < start || itemDate > end) return false;
+      }
+      
+      // 2. Search Filter
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesVendor = (item.vendorName || "").toLowerCase().includes(q);
+        const matchesDetails = item.details?.some(d => 
+          (d.particular || "").toLowerCase().includes(q) ||
+          (d.vehicleNo || "").toLowerCase().includes(q) ||
+          (d.from || "").toLowerCase().includes(q) ||
+          (d.to || "").toLowerCase().includes(q) ||
+          (d.handoverTo || "").toLowerCase().includes(q)
+        );
+        if (!matchesVendor && !matchesDetails) return false;
+      }
+      return true;
+    });
+
+    // Sort by vendor-entered date (details[0]?.date or createdAt fallback) descending
+    return [...filtered].sort((a, b) => {
+      const dateA = a.details?.[0]?.date || a.createdAt || "";
+      const dateB = b.details?.[0]?.date || b.createdAt || "";
+      return new Date(dateB) - new Date(dateA);
+    });
+  }, [vendorMisEntries, startDate, endDate, searchQuery]);
 
   // Exclude pending/rejected entries from total
   const totalReceivable = filteredEntries.reduce((sum, item) => {
