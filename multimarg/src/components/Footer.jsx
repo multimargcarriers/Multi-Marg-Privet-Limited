@@ -27,17 +27,28 @@ const Footer = () => {
                 }}>
                   MULTIMARG
                 </span>
-                <span style={{ 
-                  fontFamily: "'Roboto', sans-serif", 
-                  fontSize: '0.75rem', 
-                  fontWeight: 700, 
-                  color: '#FF5A1F', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '2px',
-                  marginTop: '1px'
-                }}>
-                  CARRIERS
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1px' }}>
+                  <span style={{ 
+                    fontFamily: "'Roboto', sans-serif", 
+                    fontSize: '0.75rem', 
+                    fontWeight: 700, 
+                    color: '#FF5A1F', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '2px'
+                  }}>
+                    CARRIERS
+                  </span>
+                  <span style={{ 
+                    fontFamily: "'Roboto', sans-serif", 
+                    fontSize: '0.65rem', 
+                    fontWeight: 500, 
+                    color: '#94a3b8', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1px'
+                  }}>
+                    PVT. LTD.
+                  </span>
+                </div>
               </div>
             </Link>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.8', color: '#94a3b8' }}>

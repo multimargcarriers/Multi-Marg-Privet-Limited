@@ -89,18 +89,30 @@ const Navbar = () => {
             }}>
               MULTIMARG
             </h1>
-            <span style={{ 
-              fontFamily: "'Roboto', sans-serif", 
-              fontSize: scrolled ? '0.65rem' : '0.8rem', 
-              fontWeight: 700, 
-              color: '#FF5A1F', 
-              textTransform: 'uppercase', 
-              letterSpacing: scrolled ? '1.5px' : '2.5px',
-              marginTop: '1px',
-              transition: 'all 0.3s ease'
-            }}>
-              CARRIERS
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1px' }}>
+              <span style={{ 
+                fontFamily: "'Roboto', sans-serif", 
+                fontSize: scrolled ? '0.65rem' : '0.8rem', 
+                fontWeight: 700, 
+                color: '#FF5A1F', 
+                textTransform: 'uppercase', 
+                letterSpacing: scrolled ? '1px' : '2px',
+                transition: 'all 0.3s ease'
+              }}>
+                CARRIERS
+              </span>
+              <span style={{ 
+                fontFamily: "'Roboto', sans-serif", 
+                fontSize: scrolled ? '0.55rem' : '0.65rem', 
+                fontWeight: 500, 
+                color: '#64748b', 
+                textTransform: 'uppercase', 
+                letterSpacing: '1px',
+                transition: 'all 0.3s ease'
+              }}>
+                PVT. LTD.
+              </span>
+            </div>
           </div>
         </Link>
 
