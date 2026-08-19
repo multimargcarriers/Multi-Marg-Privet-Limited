@@ -2,10 +2,15 @@ const { db } = require("../config/database");
 const { delCache } = require("../config/redis");
 const { runAnalyticsAggregation } = require("../jobs/analyticsJob");
 
+const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const recalculatePartyPayments = async (partyType, partyName) => {
     if (!partyType || !partyName) return;
 
-    const regex = new RegExp(`^${partyName}$`, "i");
+    const escapedPartyName = escapeRegExp(partyName);
+    const regex = new RegExp(`^${escapedPartyName}$`, "i");
 
     if (partyType === 'Client') {
         const cashDocs = await db.mongoDb.collection("cashEntries").find({

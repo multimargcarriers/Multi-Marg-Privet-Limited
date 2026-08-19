@@ -1,6 +1,10 @@
 const { db } = require("../config/database");
 const { success } = require("../utils/response");
 
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 exports.getAdvancedAnalytics = async (req, res) => {
   try {
     const { startDate, endDate, groupBy = "month", client } = req.query;
@@ -20,7 +24,8 @@ exports.getAdvancedAnalytics = async (req, res) => {
     }
 
     if (client && client.trim() !== "") {
-      matchQuery.client = { $regex: new RegExp(`^${client}$`, "i") };
+      const escapedClient = escapeRegExp(client);
+      matchQuery.client = { $regex: new RegExp(`^${escapedClient}$`, "i") };
     }
 
     // Grouping Date Formatter
@@ -117,9 +122,10 @@ exports.getAdvancedAnalytics = async (req, res) => {
     let bookingsMatchQuery = { ...matchQuery };
     if (client && client.trim() !== "") {
       delete bookingsMatchQuery.client; // Bookings usually have 'clientName' or 'company_name'
+      const escapedClient = escapeRegExp(client);
       bookingsMatchQuery.$or = [
-        { clientName: { $regex: new RegExp(`^${client}$`, "i") } },
-        { company_name: { $regex: new RegExp(`^${client}$`, "i") } }
+        { clientName: { $regex: new RegExp(`^${escapedClient}$`, "i") } },
+        { company_name: { $regex: new RegExp(`^${escapedClient}$`, "i") } }
       ];
     }
 
