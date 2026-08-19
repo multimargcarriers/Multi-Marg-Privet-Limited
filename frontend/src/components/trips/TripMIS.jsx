@@ -372,6 +372,7 @@ const TripMIS = () => {
                 (parseFloat(p.parking) || 0) + 
                 (parseFloat(p.labor) || 0), 0);
               const totalBox = tripListForm.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
+              const totalWeight = tripListForm.parcels.reduce((sum, p) => sum + (parseFloat(p.weight) || 0), 0);
               const cleanParcels = tripListForm.parcels.map(p => {
                 const { rate, ...rest } = p;
                 return {
