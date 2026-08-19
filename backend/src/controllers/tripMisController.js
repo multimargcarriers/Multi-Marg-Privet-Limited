@@ -5,6 +5,15 @@ const { getOrSet, delCache } = require("../config/redis");
 
 const CACHE_KEY = "trip_mis";
 
+const getClientShortForm = (clientName) => {
+  if (!clientName) return "VEH";
+  const clean = clientName.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (clean.length >= 4) {
+    return clean.substring(0, 4);
+  }
+  return clean.padEnd(4, 'X');
+};
+
 const matchClientUser = (data, user) => {
   if (!user) return false;
   const clientVal = (data.clientName || data.client || data.client_name || '').toLowerCase().trim();
@@ -61,19 +70,24 @@ exports.postRoot_2 = async (req, res) => {
   }
   
   if (!payload.tripNo || payload.tripNo.trim() === '') {
+    const clientName = payload.clientName || 'VEH';
+    const clientPrefix = getClientShortForm(clientName);
+    
     const snapshot = await db.collection("trip_mis").get();
     let maxNum = 0;
     snapshot.forEach(doc => {
       const data = doc.data();
       const tripNo = data.tripNo || '';
-      const match = tripNo.match(/^((VEH|VEN)-)?(\d+)(-(VEH|VEN))?$/);
-      if (match) {
-        const num = parseInt(match[3], 10);
-        if (num > maxNum) maxNum = num;
+      if (tripNo.startsWith(clientPrefix)) {
+        const match = tripNo.substring(clientPrefix.length).match(/[- ]?(\d+)/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
       }
     });
     const nextNum = maxNum + 1;
-    payload.tripNo = `VEH-${String(nextNum).padStart(4, '0')}`;
+    payload.tripNo = `${clientPrefix} ${String(nextNum).padStart(4, '0')}`;
   }
   
   const docRef = await db.collection("trip_mis").add(payload);

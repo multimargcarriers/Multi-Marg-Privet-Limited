@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X } from "lucide-react";
+import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
 
@@ -41,6 +41,16 @@ const Trips = () => {
   const [success, setSuccess] = useState(false);
   const [editId, setEditId] = useState(null);
   const [modeFilter, setModeFilter] = useState("ROAD");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [selectedOrigin, setSelectedOrigin] = useState("");
+  const [selectedDestination, setSelectedDestination] = useState("");
+  const [selectedApprovalStatus, setSelectedApprovalStatus] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const { refreshNotifications } = useNotification();
   const { addToast } = useToast();
@@ -184,12 +194,7 @@ const Trips = () => {
   };
 
   const exportToCSV = () => {
-    const dataToExport = displayTrips.filter(t => {
-      if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
-      if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
-      if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
-      return false;
-    });
+    const dataToExport = filteredTrips;
 
     if (dataToExport.length === 0) {
       addToast("No trips to export", "warning");
@@ -282,6 +287,107 @@ const Trips = () => {
     return [...pendingTrips, ...trips];
   }, [trips, syncQueue]);
 
+  const filteredTrips = useMemo(() => {
+    return displayTrips.filter(t => {
+      // 1. Date Range Filter
+      if (startDate || endDate) {
+        const itemDate = new Date(t.date || t.createdAt);
+        itemDate.setHours(0, 0, 0, 0);
+        const start = startDate ? new Date(startDate) : new Date("1970-01-01");
+        start.setHours(0, 0, 0, 0);
+        const end = endDate ? new Date(endDate) : new Date("2100-01-01");
+        end.setHours(23, 59, 59, 999);
+        if (itemDate < start || itemDate > end) return false;
+      }
+
+      // 2. Vendor Dropdown Filter
+      if (selectedVendor && t.vendor !== selectedVendor) return false;
+
+      // 3. Client Dropdown Filter
+      if (selectedClient && !t.materialDetails?.some(m => m.clientName === selectedClient)) return false;
+
+      // 4. Vehicle Dropdown Filter
+      if (selectedVehicle && t.vehicleNo !== selectedVehicle) return false;
+
+      // 5. Origin Dropdown Filter
+      if (selectedOrigin && t.origin !== selectedOrigin) return false;
+
+      // 6. Destination Dropdown Filter
+      if (selectedDestination && t.destination !== selectedDestination) return false;
+
+      // 7. Approval Status Dropdown Filter
+      if (selectedApprovalStatus && t.approvalStatus !== selectedApprovalStatus) return false;
+
+      // 8. Global Search Filter
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesMain = (t.tripNo || "").toLowerCase().includes(q) ||
+          (t.vehicleNo || "").toLowerCase().includes(q) ||
+          (t.mode || "").toLowerCase().includes(q) ||
+          (t.type || "").toLowerCase().includes(q) ||
+          (t.awbNo || "").toLowerCase().includes(q) ||
+          (t.cdNo || "").toLowerCase().includes(q) ||
+          (t.vendor || "").toLowerCase().includes(q) ||
+          (t.origin || "").toLowerCase().includes(q) ||
+          (t.destination || "").toLowerCase().includes(q) ||
+          (t.approvalStatus || "").toLowerCase().includes(q);
+
+        const matchesMaterials = t.materialDetails?.some(m =>
+          (m.clientName || "").toLowerCase().includes(q) ||
+          (m.lrNo || "").toLowerCase().includes(q) ||
+          (m.origin || "").toLowerCase().includes(q) ||
+          (m.destination || "").toLowerCase().includes(q)
+        );
+
+        if (!matchesMain && !matchesMaterials) return false;
+      }
+
+      return true;
+    });
+  }, [displayTrips, startDate, endDate, selectedVendor, selectedClient, selectedVehicle, selectedOrigin, selectedDestination, selectedApprovalStatus, searchQuery]);
+
+  const uniqueVendors = useMemo(() => {
+    const set = new Set();
+    displayTrips.forEach(t => {
+      if (t.vendor) set.add(t.vendor);
+    });
+    return Array.from(set).sort();
+  }, [displayTrips]);
+
+  const uniqueClients = useMemo(() => {
+    const set = new Set();
+    displayTrips.forEach(t => {
+      t.materialDetails?.forEach(m => {
+        if (m.clientName) set.add(m.clientName);
+      });
+    });
+    return Array.from(set).sort();
+  }, [displayTrips]);
+
+  const uniqueVehicles = useMemo(() => {
+    const set = new Set();
+    displayTrips.forEach(t => {
+      if (t.vehicleNo) set.add(t.vehicleNo);
+    });
+    return Array.from(set).sort();
+  }, [displayTrips]);
+
+  const uniqueOrigins = useMemo(() => {
+    const set = new Set();
+    displayTrips.forEach(t => {
+      if (t.origin) set.add(t.origin);
+    });
+    return Array.from(set).sort();
+  }, [displayTrips]);
+
+  const uniqueDestinations = useMemo(() => {
+    const set = new Set();
+    displayTrips.forEach(t => {
+      if (t.destination) set.add(t.destination);
+    });
+    return Array.from(set).sort();
+  }, [displayTrips]);
+
   const calculateTotalChWeight = (tripsList, modeList) => {
     return tripsList
       .filter(t => modeList.includes((t.mode || "").toLowerCase()))
@@ -293,12 +399,12 @@ const Trips = () => {
 
   const tripsStats = useMemo(() => {
     return {
-      totalAmount: displayTrips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
-      trainChWeight: calculateTotalChWeight(displayTrips, ['train', 'rail']),
-      flightChWeight: calculateTotalChWeight(displayTrips, ['air', 'flight']),
-      roadChWeight: calculateTotalChWeight(displayTrips, ['road']),
+      totalAmount: filteredTrips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
+      trainChWeight: calculateTotalChWeight(filteredTrips, ['train', 'rail']),
+      flightChWeight: calculateTotalChWeight(filteredTrips, ['air', 'flight']),
+      roadChWeight: calculateTotalChWeight(filteredTrips, ['road']),
     };
-  }, [displayTrips]);
+  }, [filteredTrips]);
 
   if (loading) return <TablePageSkeleton />;
 
@@ -494,7 +600,7 @@ const Trips = () => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }} className="no-print">
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #3b82f6" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trip</div>
-            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{displayTrips.length}</div>
+            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{filteredTrips.length}</div>
           </div>
 
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
@@ -719,10 +825,260 @@ const Trips = () => {
         </div>
       </div>
 
+      <style>{`
+        /* AWS Console Premium Theme Styles */
+        .aws-search-container {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          align-items: center;
+          width: 100%;
+        }
+        .aws-search-wrapper {
+          position: relative;
+          flex: 1;
+        }
+        .aws-input {
+          width: 100%;
+          height: 38px;
+          padding-left: 40px;
+          padding-right: 12px;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          background-color: #ffffff;
+          font-size: 0.9rem;
+          color: #1e293b;
+          transition: all 0.15s ease-in-out;
+        }
+        .aws-input:focus {
+          border-color: #ec7211;
+          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+          outline: none;
+        }
+        .aws-date-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          padding: 0 0.75rem;
+          background: #ffffff;
+          height: 38px;
+        }
+        .aws-date-input {
+          border: none;
+          height: 32px;
+          font-size: 0.85rem;
+          color: #1e293b;
+          outline: none;
+          background: transparent;
+        }
+        .aws-btn-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          height: 38px;
+          padding: 0 1rem;
+          background: #ffffff;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #545b64;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .aws-btn-toggle:hover {
+          background: #f8f9fa;
+          border-color: #545b64;
+        }
+        .aws-btn-toggle.active {
+          background: #f1f5f9;
+          border-color: #ec7211;
+          color: #ec7211;
+        }
+        .aws-filters-panel {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          padding: 1.25rem;
+          background: #f8f9fa;
+          border: 1px solid #eaeded;
+          border-radius: 4px;
+          animation: slideDown 0.2s ease-out;
+        }
+        .aws-filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+        .aws-filter-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #545b64;
+          letter-spacing: 0.5px;
+        }
+        .aws-select {
+          height: 34px;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          background-color: #ffffff;
+          font-size: 0.85rem;
+          color: #1e293b;
+          padding: 0 8px;
+          outline: none;
+          transition: all 0.15s;
+        }
+        .aws-select:focus {
+          border-color: #ec7211;
+          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+        }
+        .aws-btn-reset {
+          height: 34px;
+          border: 1px solid #d5dbdb;
+          background: #fafafa;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #545b64;
+          cursor: pointer;
+          transition: all 0.15s;
+          width: 100%;
+        }
+        .aws-btn-reset:hover {
+          background: #f2f2f2;
+          border-color: #aab7b8;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+          .aws-search-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+          }
+          .aws-date-group {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .aws-date-input {
+            flex: 1;
+            text-align: center;
+          }
+          .aws-btn-toggle {
+            width: 100%;
+            justify-content: center;
+          }
+          /* Hide less critical drop downs on mobile by default to keep it neat */
+          .aws-mobile-hide {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {/* Global Search & Date Filters */}
+      <div className="no-print aws-search-container">
+        <div className="aws-search-wrapper">
+          <Search size={18} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input
+            type="text"
+            className="aws-input"
+            placeholder="Search by anything: CD No, AWB No, vehicle, vendor, client..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="aws-date-group">
+          <Filter size={16} color="#64748b" />
+          <input type="date" className="aws-date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          <span style={{ color: "#94a3b8" }}>-</span>
+          <input type="date" className="aws-date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        </div>
+        <button
+          type="button"
+          className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        >
+          <Filter size={16} />
+          {showAdvancedFilters ? "Hide Dropdowns" : "Show Dropdowns"}
+        </button>
+      </div>
+
+      {/* Dropdown Filters Grid */}
+      {showAdvancedFilters && (
+        <div className="no-print aws-filters-panel">
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Vendor</label>
+            <select className="aws-select" value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)}>
+              <option value="">All Vendors</option>
+              {uniqueVendors.map((v, i) => <option key={i} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Client</label>
+            <select className="aws-select" value={selectedClient} onChange={e => setSelectedClient(e.target.value)}>
+              <option value="">All Clients</option>
+              {uniqueClients.map((c, i) => <option key={i} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Vehicle No</label>
+            <select className="aws-select" value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}>
+              <option value="">All Vehicles</option>
+              {uniqueVehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group aws-mobile-hide">
+            <label className="aws-filter-label">Origin</label>
+            <select className="aws-select" value={selectedOrigin} onChange={e => setSelectedOrigin(e.target.value)}>
+              <option value="">All Origins</option>
+              {uniqueOrigins.map((o, i) => <option key={i} value={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group aws-mobile-hide">
+            <label className="aws-filter-label">Destination</label>
+            <select className="aws-select" value={selectedDestination} onChange={e => setSelectedDestination(e.target.value)}>
+              <option value="">All Destinations</option>
+              {uniqueDestinations.map((d, i) => <option key={i} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group aws-mobile-hide">
+            <label className="aws-filter-label">Approval Status</label>
+            <select className="aws-select" value={selectedApprovalStatus} onChange={e => setSelectedApprovalStatus(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="aws-filter-group" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="aws-btn-reset" onClick={() => {
+              setSelectedVendor("");
+              setSelectedClient("");
+              setSelectedVehicle("");
+              setSelectedOrigin("");
+              setSelectedDestination("");
+              setSelectedApprovalStatus("");
+              setStartDate("");
+              setEndDate("");
+              setSearchQuery("");
+            }}>Reset Filters</button>
+          </div>
+        </div>
+      )}
+
       <div className="glass-panel" style={{ padding: "1.5rem" }}>
         <h4 style={{ marginBottom: "1rem", color: modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)', borderBottom: `2px solid ${modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)'}`, paddingBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", textTransform: 'uppercase' }}>
            {modeFilter === 'ROAD' ? <Truck size={20} /> : modeFilter === 'TRAIN' ? <Train size={20} /> : modeFilter === 'AIR' ? <Plane size={20} /> : <ClipboardList size={20} />}
-           {`${modeFilter} TRIP`} ({displayTrips.filter(t => {
+           {`${modeFilter} TRIP`} ({filteredTrips.filter(t => {
              if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
              if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
              if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
@@ -734,7 +1090,7 @@ const Trips = () => {
           pagination={true}
           defaultEntries={10}
           headers={["SL Number", "Mode", "Date", "Vehicle No", "Type", "AWB No", "CD No", "Vendor", "Origin", "Destination", "Material Details", "Status", "Actions"]}
-          data={displayTrips.filter(t => {
+          data={filteredTrips.filter(t => {
             if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
             if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
             if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';

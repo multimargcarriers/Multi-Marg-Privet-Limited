@@ -35,7 +35,41 @@ const VendorMIS = () => {
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [selectedMode, setSelectedMode] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedApprovalStatus, setSelectedApprovalStatus] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const remarksEndRef = useRef(null);
+
+  const uniqueVendors = useMemo(() => {
+    const set = new Set();
+    vendorMisEntries.forEach(item => {
+      if (item.vendorName) set.add(item.vendorName);
+    });
+    return Array.from(set).sort();
+  }, [vendorMisEntries]);
+
+  const uniqueVehicles = useMemo(() => {
+    const set = new Set();
+    vendorMisEntries.forEach(item => {
+      item.details?.forEach(d => {
+        if (d.vehicleNo) set.add(d.vehicleNo);
+      });
+    });
+    return Array.from(set).sort();
+  }, [vendorMisEntries]);
+
+  const uniqueModes = useMemo(() => {
+    const set = new Set();
+    vendorMisEntries.forEach(item => {
+      item.details?.forEach(d => {
+        if (d.mode) set.add(d.mode);
+      });
+    });
+    return Array.from(set).sort();
+  }, [vendorMisEntries]);
 
   useEffect(() => {
     if (activeRemarksModal && activeRemarksModal.remarks) {
@@ -56,19 +90,49 @@ const VendorMIS = () => {
         end.setHours(23,59,59,999);
         if (itemDate < start || itemDate > end) return false;
       }
+
+      // 2. Vendor Dropdown Filter
+      if (selectedVendor && item.vendorName !== selectedVendor) {
+        return false;
+      }
+
+      // 3. Approval Status Dropdown Filter
+      if (selectedApprovalStatus && item.approvalStatus !== selectedApprovalStatus) {
+        return false;
+      }
+
+      // 4. Vehicle Dropdown Filter
+      if (selectedVehicle && !item.details?.some(d => d.vehicleNo === selectedVehicle)) {
+        return false;
+      }
+
+      // 5. Mode Dropdown Filter
+      if (selectedMode && !item.details?.some(d => d.mode === selectedMode)) {
+        return false;
+      }
+
+      // 6. Status Dropdown Filter
+      if (selectedStatus && !item.details?.some(d => d.status === selectedStatus)) {
+        return false;
+      }
       
-      // 2. Search Filter
+      // 7. Search Filter
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesVendor = (item.vendorName || "").toLowerCase().includes(q);
+        const matchesApproval = (item.approvalStatus || "").toLowerCase().includes(q);
         const matchesDetails = item.details?.some(d => 
           (d.particular || "").toLowerCase().includes(q) ||
           (d.vehicleNo || "").toLowerCase().includes(q) ||
           (d.from || "").toLowerCase().includes(q) ||
           (d.to || "").toLowerCase().includes(q) ||
-          (d.handoverTo || "").toLowerCase().includes(q)
+          (d.handoverTo || "").toLowerCase().includes(q) ||
+          (d.mode || "").toLowerCase().includes(q) ||
+          (d.status || "").toLowerCase().includes(q) ||
+          String(d.amount || "").includes(q) ||
+          String(d.others || "").includes(q)
         );
-        if (!matchesVendor && !matchesDetails) return false;
+        if (!matchesVendor && !matchesApproval && !matchesDetails) return false;
       }
       return true;
     });
@@ -79,7 +143,7 @@ const VendorMIS = () => {
       const dateB = b.details?.[0]?.date || b.createdAt || "";
       return new Date(dateB) - new Date(dateA);
     });
-  }, [vendorMisEntries, startDate, endDate, searchQuery]);
+  }, [vendorMisEntries, startDate, endDate, searchQuery, selectedVendor, selectedVehicle, selectedMode, selectedStatus, selectedApprovalStatus]);
 
   // Exclude pending/rejected entries from total
   const totalReceivable = filteredEntries.reduce((sum, item) => {
@@ -273,22 +337,249 @@ const VendorMIS = () => {
          </div>
       </div>
       
-       <div className="no-print search-freight-container">
-         <div className="search-wrapper">
-           <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-           <input 
-             type="text" 
-             className="form-control" 
-             placeholder="Search by vendor name, vehicle no, origin, destination, particulars..." 
-             style={{ paddingLeft: '40px', height: '45px', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} 
-             value={searchQuery} 
-             onChange={e => setSearchQuery(e.target.value)} 
-           />
-         </div>
-         <div className="freight-box">
-           Total Amount: &nbsp;<RupeeIcon size={14} /> {totalReceivable.toFixed(2)}
-         </div>
-       </div>
+      <style>{`
+        /* AWS Console Premium Theme Styles */
+        .aws-search-container {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          align-items: center;
+          width: 100%;
+        }
+        .aws-search-wrapper {
+          position: relative;
+          flex: 1;
+        }
+        .aws-input {
+          width: 100%;
+          height: 38px;
+          padding-left: 40px;
+          padding-right: 12px;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          background-color: #ffffff;
+          font-size: 0.9rem;
+          color: #1e293b;
+          transition: all 0.15s ease-in-out;
+        }
+        .aws-input:focus {
+          border-color: #ec7211;
+          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+          outline: none;
+        }
+        .aws-date-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          padding: 0 0.75rem;
+          background: #ffffff;
+          height: 38px;
+        }
+        .aws-date-input {
+          border: none;
+          height: 32px;
+          font-size: 0.85rem;
+          color: #1e293b;
+          outline: none;
+          background: transparent;
+        }
+        .aws-btn-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          height: 38px;
+          padding: 0 1rem;
+          background: #ffffff;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #545b64;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+        }
+        .aws-btn-toggle:hover {
+          background: #f8f9fa;
+          border-color: #545b64;
+        }
+        .aws-btn-toggle.active {
+          background: #f1f5f9;
+          border-color: #ec7211;
+          color: #ec7211;
+        }
+        .aws-filters-panel {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          padding: 1.25rem;
+          background: #f8f9fa;
+          border: 1px solid #eaeded;
+          border-radius: 4px;
+          animation: slideDown 0.2s ease-out;
+        }
+        .aws-filter-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+        .aws-filter-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #545b64;
+          letter-spacing: 0.5px;
+        }
+        .aws-select {
+          height: 34px;
+          border: 1px solid #aab7b8;
+          border-radius: 4px;
+          background-color: #ffffff;
+          font-size: 0.85rem;
+          color: #1e293b;
+          padding: 0 8px;
+          outline: none;
+          transition: all 0.15s;
+        }
+        .aws-select:focus {
+          border-color: #ec7211;
+          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+        }
+        .aws-btn-reset {
+          height: 34px;
+          border: 1px solid #d5dbdb;
+          background: #fafafa;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #545b64;
+          cursor: pointer;
+          transition: all 0.15s;
+          width: 100%;
+        }
+        .aws-btn-reset:hover {
+          background: #f2f2f2;
+          border-color: #aab7b8;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+          .aws-search-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+          }
+          .aws-date-group {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .aws-date-input {
+            flex: 1;
+            text-align: center;
+          }
+          .aws-btn-toggle {
+            width: 100%;
+            justify-content: center;
+          }
+          /* Hide less critical drop downs on mobile by default to keep it neat */
+          .aws-mobile-hide {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {/* Global Search & Date Filters */}
+      <div className="no-print aws-search-container">
+        <div className="aws-search-wrapper">
+          <Search size={18} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <input 
+            type="text" 
+            className="aws-input" 
+            placeholder="Search by vendor name, vehicle no, origin, destination, particulars..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+          />
+        </div>
+        <div className="aws-date-group">
+          <Filter size={16} color="#64748b" />
+          <input type="date" className="aws-date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          <span style={{ color: "#94a3b8" }}>-</span>
+          <input type="date" className="aws-date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        </div>
+        <button
+          type="button"
+          className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        >
+          <Filter size={16} />
+          {showAdvancedFilters ? "Hide Dropdowns" : "Show Dropdowns"}
+        </button>
+      </div>
+
+      {/* Dropdown Filters Grid */}
+      {showAdvancedFilters && (
+        <div className="no-print aws-filters-panel">
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Vendor</label>
+            <select className="aws-select" value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)}>
+              <option value="">All Vendors</option>
+              {uniqueVendors.map((v, i) => <option key={i} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Vehicle No</label>
+            <select className="aws-select" value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}>
+              <option value="">All Vehicles</option>
+              {uniqueVehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group">
+            <label className="aws-filter-label">Mode</label>
+            <select className="aws-select" value={selectedMode} onChange={e => setSelectedMode(e.target.value)}>
+              <option value="">All Modes</option>
+              {uniqueModes.map((m, i) => <option key={i} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div className="aws-filter-group aws-mobile-hide">
+            <label className="aws-filter-label">Row Status</label>
+            <select className="aws-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)}>
+              <option value="">All Row Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="aws-filter-group aws-mobile-hide">
+            <label className="aws-filter-label">Overall Approval</label>
+            <select className="aws-select" value={selectedApprovalStatus} onChange={e => setSelectedApprovalStatus(e.target.value)}>
+              <option value="">All Approvals</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="aws-filter-group" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="aws-btn-reset" onClick={() => {
+              setSelectedVendor("");
+              setSelectedVehicle("");
+              setSelectedMode("");
+              setSelectedStatus("");
+              setSelectedApprovalStatus("");
+              setStartDate("");
+              setEndDate("");
+              setSearchQuery("");
+            }}>Reset Filters</button>
+          </div>
+        </div>
+      )}
 
       {showVendorMisForm && (
          <form className="glass-panel slide-down" style={{ padding: "2rem", marginBottom: "2rem" }} onSubmit={async e => {
