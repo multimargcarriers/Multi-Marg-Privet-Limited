@@ -170,9 +170,6 @@ const AllBills = () => {
       }
 
       // Pending Amount filter
-      const amt = parseFloat(b.amount || b.total || 0);
-      const rec = parseFloat(b.paidAmount || 0);
-      const pendingAmount = amt - rec;
 
       if (minPending !== "" && pendingAmount < parseFloat(minPending)) return false;
       if (maxPending !== "" && pendingAmount > parseFloat(maxPending)) return false;
