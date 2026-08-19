@@ -779,19 +779,19 @@ const BillView1 = () => {
           <div style={{ width: "145px", flexShrink: 0 }}>
             <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: "88px", width: "100%", objectFit: "contain" }} />
           </div>
-          <div style={{ flex: 1, textAlign: "center", padding: "0 1rem" }}>
-            <h1 style={{ margin: "0 0 4px 0", color: "#0C4A6E", fontSize: "1.85rem", fontWeight: "900", letterSpacing: "0.5px" }}>
+          <div style={{ flex: 1, textAlign: "center", padding: "0 1rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0px", lineHeight: "1.15" }}>
+            <h1 style={{ margin: "0", padding: "0", color: "#0C4A6E", fontSize: "1.85rem", fontWeight: "900", letterSpacing: "0.5px", lineHeight: "1.15" }}>
               MULTIMARG CARRIERS PVT. LTD.
             </h1>
-            <p style={{ margin: "0 0 2px 0", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
+            <span style={{ margin: "0", padding: "0", display: "block", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap", lineHeight: "1.15" }}>
               ADDRESS : LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153, UTTARAKHAND
-            </p>
-            <p style={{ margin: "0 0 2px 0", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
+            </span>
+            <span style={{ margin: "0", padding: "0", display: "block", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap", lineHeight: "1.15" }}>
               CONTACT : +91 5944-324033 &nbsp;&nbsp;|&nbsp;&nbsp; WEBSITE : <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "#0288D1", textDecoration: "none", textTransform: "lowercase" }}>multimarg.com</a> &nbsp;&nbsp;|&nbsp;&nbsp; EMAIL : <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "#0288D1", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
-            </p>
-            <p style={{ margin: 0, color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap" }}>
+            </span>
+            <span style={{ margin: "0", padding: "0", display: "block", color: "#0288D1", fontSize: "0.71rem", fontWeight: "700", whiteSpace: "nowrap", lineHeight: "1.15" }}>
               GSTIN : 05AANCM3054E1ZN &nbsp;&nbsp;|&nbsp;&nbsp; PAN NO : AANCM3054E &nbsp;&nbsp;|&nbsp;&nbsp; CIN : U60300UR2020PTC010749
-            </p>
+            </span>
           </div>
           <div style={{ minWidth: "145px" }}></div>
         </div>

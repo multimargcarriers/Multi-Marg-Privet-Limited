@@ -804,12 +804,12 @@ const PrintLR = () => {
                 .print-header-reset * {
                   margin: 0 !important;
                   padding: 0 !important;
-                  line-height: 1.2 !important;
+                  line-height: 1.15 !important;
                   box-sizing: border-box !important;
                 }
-                .print-header-reset h1 { margin: 0 !important; }
-                .print-header-reset p { margin: 1px 0 0 !important; }
-                .print-header-reset div { margin: 1px 0 0 !important; }
+                .print-header-reset h1 { margin: 0 !important; padding: 0 !important; }
+                .print-header-reset span { margin: 0 !important; padding: 0 !important; display: block !important; }
+                .print-header-reset a { display: inline !important; }
                 .blue-text { color: #1e3a8a !important; }
                 .premium-border { border: 2px solid #1e293b !important; }
               `}
@@ -830,21 +830,11 @@ const PrintLR = () => {
                   </div>
 
                   {/* Company Details */}
-                  <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 6px", minWidth: 0 }}>
-                    <h1 className="blue-text" style={{ margin: "0", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.2" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <p style={{ margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.2", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</p>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.2" }}>
-                      <span>Contact: +91 5944-324033</span>
-                      <span>|</span>
-                      <a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>
-                      <span>|</span>
-                      <a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>www.multimarg.com</a>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", margin: "1px 0 0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.2" }}>
-                      <span>GST: 05AANCM3054E1ZN</span>
-                      <span>|</span>
-                      <span>PAN: AANCM3054E1ZN</span>
-                    </div>
+                  <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 6px", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "0px", lineHeight: "1" }}>
+                    <h1 className="blue-text" style={{ margin: "0", padding: "0", fontSize: "1.6rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.15", width: "100%" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
+                    <span style={{ margin: "0", padding: "0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.15", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</span>
+                    <span style={{ margin: "0", padding: "0", fontSize: "0.72rem", fontWeight: "600", color: "#334155", lineHeight: "1.15" }}>Contact: +91 5944-324033&nbsp;&nbsp;|&nbsp;&nbsp;<a href="mailto:info@multimarg.com" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>info@multimarg.com</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="https://multimarg.com" target="_blank" rel="noreferrer" className="no-transform" style={{ color: "inherit", textDecoration: "none", textTransform: "lowercase" }}>www.multimarg.com</a></span>
+                    <span style={{ margin: "0", padding: "0", fontSize: "0.72rem", fontWeight: "700", color: "#0f172a", lineHeight: "1.15" }}>GST: 05AANCM3054E1ZN&nbsp;&nbsp;|&nbsp;&nbsp;PAN: AANCM3054E1ZN</span>
                   </div>
 
                   {/* QR Code & Tracking */}

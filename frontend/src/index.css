@@ -1638,6 +1638,13 @@ html, body {
   h1, h2, h3 {
     font-size: clamp(1.2rem, 4vw, 1.8rem) !important;
   }
+  /* Undo mobile heading override inside print/document containers so document layout is preserved */
+  .print-container h1, .print-container h2, .print-container h3,
+  .print-wrapper h1, .print-wrapper h2, .print-wrapper h3 {
+    font-size: 1.6rem !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+  }
 
   /* Shrink cell padding on mobile for max data density */
   .table th, .table td {
