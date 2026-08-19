@@ -129,8 +129,7 @@ const TripMIS = () => {
     if (item.approvalStatus === 'Pending' || item.approvalStatus === 'Rejected') {
       return sum;
     }
-    const parcelsFreight = (item.parcels || []).reduce((pSum, p) => pSum + (parseFloat(p.freight) || 0), 0);
-    return sum + parcelsFreight;
+    return sum + ((parseFloat(item.freight) || 0) * 1.18);
   }, 0);
 
   const handleExportCSV = () => {
