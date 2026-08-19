@@ -151,7 +151,37 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
             <Menu size={24} />
           </button>
         )}
-        <img src="/mc.png?v=2" alt="Logo" className="topbar-logo" style={{ height: '52px', filter: 'invert(1) grayscale(1) contrast(1.5)', mixBlendMode: 'screen' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="/circle_crop_logo.png" alt="Logo" style={{ height: '42px', width: '42px', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h1 style={{ 
+              margin: 0, 
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: '18px', 
+              fontWeight: 800, 
+              letterSpacing: '-0.04em', 
+              background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textTransform: 'uppercase',
+              lineHeight: 1.0
+            }}>
+              MULTIMARG
+            </h1>
+            <span style={{ 
+              fontFamily: "'Outfit', sans-serif", 
+              fontSize: '7px', 
+              fontWeight: 800, 
+              color: 'rgba(255,255,255,0.7)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '1.5px',
+              marginTop: '1px'
+            }}>
+              CARRIERS
+            </span>
+          </div>
+        </div>
         {/* Global Search (Available for all roles) */}
         <div 
           className="topbar-search"
