@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import Table from "../components/Table";
 import { } from "../components/SkeletonLoader";
-import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle, Clock } from "lucide-react";
+import { Trash2, FileText, IndianRupee, CreditCard, AlertCircle, Clock, Filter } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 import StatsPanel from "../components/StatsPanel";
 import { useSync } from "../context/SyncContext";
@@ -18,6 +18,7 @@ const Bills = () => {
 
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
     fetchBills();
@@ -60,8 +61,24 @@ const Bills = () => {
         id: req.tempId,
         isOfflinePending: true,
       }));
-    return [...pending, ...bills];
-  }, [bills, syncQueue]);
+    const combined = [...pending, ...bills];
+
+    return combined.filter(b => {
+      const totalAmount = parseFloat(b.amount || b.total || 0);
+      const paidAmount = parseFloat(b.paidAmount || 0);
+      const pendingAmount = totalAmount - paidAmount;
+
+      const isPaid = pendingAmount <= 0.01;
+      const isUnpaid = paidAmount <= 0.01;
+      const isPartial = pendingAmount > 0.01 && paidAmount > 0.01;
+
+      if (statusFilter === "Paid") return isPaid;
+      if (statusFilter === "Unpaid") return isUnpaid;
+      if (statusFilter === "Partial") return isPartial;
+      if (statusFilter === "Pending") return isUnpaid || isPartial;
+      return true; // "All"
+    });
+  }, [bills, syncQueue, statusFilter]);
 
   return (
     <div className="page-content">
@@ -71,6 +88,24 @@ const Bills = () => {
             Bills / Invoices
           </h3>
           <p className="text-muted" style={{ margin: 0 }}>View generated bills and invoices.</p>
+        </div>
+        
+        {/* Status Filter */}
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div className="premium-filter-group" style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "white", padding: "0.4rem 0.8rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+            <Filter size={16} color="#64748b" />
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ cursor: "pointer", border: "none", outline: "none", fontSize: "0.85rem", color: "#334155", background: "transparent", fontWeight: 500 }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending / Outstandings</option>
+              <option value="Unpaid">Fully Unpaid</option>
+              <option value="Partial">Partial Payments</option>
+              <option value="Paid">Fully Paid</option>
+            </select>
+          </div>
         </div>
       </div>
       
@@ -90,7 +125,7 @@ const Bills = () => {
           <tr key={b.id || i} style={{ opacity: b.isOfflinePending ? 0.7 : 1 }}>
             <td>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                {b.id}
+                {b.billNo || b.id}
                 {b.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
               </div>
             </td>

@@ -385,13 +385,15 @@ const Purchase = () => {
       const paidAmount = parseFloat(item.paidAmount || 0);
       const pendingAmount = totalAmount - paidAmount;
       
-      const isPaid = pendingAmount <= 0.01; // fuzzy check for floats
-      const isPending = pendingAmount > 0;
-      const isPartial = pendingAmount > 0 && paidAmount > 0;
+      const isPaid = pendingAmount <= 0.01;
+      const isUnpaid = paidAmount <= 0.01;
+      const isPartial = pendingAmount > 0.01 && paidAmount > 0.01;
 
       let matchesStatus = true;
       if (statusFilter === "Paid") matchesStatus = isPaid;
-      if (statusFilter === "Pending") matchesStatus = isPending || isPartial;
+      if (statusFilter === "Unpaid") matchesStatus = isUnpaid;
+      if (statusFilter === "Partial") matchesStatus = isPartial;
+      if (statusFilter === "Pending") matchesStatus = isUnpaid || isPartial;
 
       let matchesPendingAmount = true;
       if (minPending !== "") {
@@ -908,7 +910,9 @@ const Purchase = () => {
               style={{ cursor: "pointer" }}
             >
               <option value="All">All Statuses</option>
-              <option value="Pending">Pending / Unpaid</option>
+              <option value="Pending">Pending / Outstandings</option>
+              <option value="Unpaid">Fully Unpaid</option>
+              <option value="Partial">Partial Payments</option>
               <option value="Paid">Fully Paid</option>
             </select>
           </div>

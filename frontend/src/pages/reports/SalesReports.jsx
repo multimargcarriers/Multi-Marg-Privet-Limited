@@ -252,13 +252,29 @@ const SalesReports = () => {
               <td style={{ padding: "1rem", fontWeight: 600, color: "#334155" }}>{item.client || "-"}</td>
               <td style={{ padding: "1rem", color: "#475569" }}>{item.lrNo || "-"}</td>
               <td style={{ padding: "1rem" }}>
-                 <span style={{
-                    padding: "0.35rem 0.85rem", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "700",
-                    background: item.status === "paid" ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)", 
-                    color: item.status === "paid" ? "#10b981" : "#f59e0b"
-                 }}>
-                   {item.status ? item.status.toUpperCase() : "PENDING"}
-                 </span>
+                {(() => {
+                  const total = parseFloat(item.total || item.amount || 0);
+                  const paid = parseFloat(item.paidAmount || 0);
+                  let status = "PENDING";
+                  if (paid >= total && total > 0) status = "PAID";
+                  else if (paid > 0 && paid < total) status = "PARTIAL";
+
+                  const isPaid = status === "PAID";
+                  const isPartial = status === "PARTIAL";
+
+                  return (
+                    <span style={{
+                      padding: "0.35rem 0.85rem", 
+                      borderRadius: "20px", 
+                      fontSize: "0.75rem", 
+                      fontWeight: "700",
+                      background: isPaid ? "rgba(5, 150, 105, 0.1)" : (isPartial ? "rgba(217, 119, 6, 0.1)" : "rgba(239, 68, 68, 0.1)"), 
+                      color: isPaid ? "var(--color-success)" : (isPartial ? "var(--color-warning)" : "#ef4444")
+                    }}>
+                      {status}
+                    </span>
+                  );
+                })()}
               </td>
               <td style={{ padding: "1rem", color: "#64748b" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.taxable || item.amount || 0).toFixed(2)}</span>
