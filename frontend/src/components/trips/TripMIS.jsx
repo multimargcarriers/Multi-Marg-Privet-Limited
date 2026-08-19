@@ -20,7 +20,7 @@ const TripMIS = () => {
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
 
-  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", freight: "", pickup: "", delivery: "", special: "", other: "" };
+  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "", freight: "", pickup: "", delivery: "", special: "", other: "", parking: "", labor: "" };
   const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
@@ -31,6 +31,7 @@ const TripMIS = () => {
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const [showPrintAmounts, setShowPrintAmounts] = useState(false);
   const remarksEndRef = useRef(null);
 
   useEffect(() => {
@@ -108,7 +109,7 @@ const TripMIS = () => {
   }, 0);
 
   const handleExportCSV = () => {
-    let csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Payment,Approval status,Created at\n";
+    let csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Parking,Labor,Payment,Approval status,Created at\n";
     filteredEntries.forEach(trip => {
       if (trip.parcels && trip.parcels.length > 0) {
         trip.parcels.forEach((p, pIdx) => {
@@ -135,12 +136,14 @@ const TripMIS = () => {
           const delivery = p.delivery || '';
           const special = p.special || '';
           const other = p.other || '';
+          const parking = p.parking || '';
+          const labor = p.labor || '';
           
           const payment = pIdx === 0 ? (trip.payment || '') : '';
           const approvalStatus = pIdx === 0 ? (trip.approvalStatus || '') : '';
           const tripDate = pIdx === 0 ? (trip.date ? formatDate(trip.date) : (trip.createdAt ? formatDate(trip.createdAt) : '')) : '';
 
-          csv += `"${tripNo}","${clientName}","${origin}","${destination}","${lrNo}","${consignor}","${consignee}","${lrOrigin}","${lrDestination}","${lrMode}","${lrBox}","${lrWeight}","${vehicleNo}","${vehicleType}","${mode}","${freight}","${pickup}","${delivery}","${special}","${other}","${payment}","${approvalStatus}","${tripDate}"\n`;
+          csv += `"${tripNo}","${clientName}","${origin}","${destination}","${lrNo}","${consignor}","${consignee}","${lrOrigin}","${lrDestination}","${lrMode}","${lrBox}","${lrWeight}","${vehicleNo}","${vehicleType}","${mode}","${freight}","${pickup}","${delivery}","${special}","${other}","${parking}","${labor}","${payment}","${approvalStatus}","${tripDate}"\n`;
         });
       } else {
         const tripDate = trip.date ? formatDate(trip.date) : (trip.createdAt ? formatDate(trip.createdAt) : '');
@@ -161,7 +164,7 @@ const TripMIS = () => {
   const fileInputRef = useRef(null);
 
   const handleSampleCSV = () => {
-    const csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Payment,Approval status,Created at\nTRP-1001,XYZ Corp,Delhi,Mumbai,LR-001,ABC Ltd,DEF Ltd,Delhi,Mumbai,Air,10,500.5,DL1A1234,Container,Normal,15000,500,0,0,0,Paid,Approved,2026-08-01\n";
+    const csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Parking,Labor,Payment,Approval status,Created at\nTRP-1001,XYZ Corp,Delhi,Mumbai,LR-001,ABC Ltd,DEF Ltd,Delhi,Mumbai,Air,10,500.5,DL1A1234,Container,Normal,15000,500,0,0,0,0,0,Paid,Approved,2026-08-01\n";
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -220,7 +223,9 @@ const TripMIS = () => {
               pickup: row['Pickup'] || '0',
               delivery: row['Delivery'] || '0',
               special: row['Special'] || '0',
-              other: row['Other'] || '0'
+              other: row['Other'] || '0',
+              parking: row['Parking'] || '0',
+              labor: row['Labor'] || '0'
             });
           }
         });
@@ -230,7 +235,7 @@ const TripMIS = () => {
 
         for (let trip of tripsToImport) {
           try {
-            trip.freight = trip.parcels.reduce((sum, p) => sum + (parseFloat(p.freight) || 0) + (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0), 0);
+            trip.freight = trip.parcels.reduce((sum, p) => sum + (parseFloat(p.freight) || 0) + (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0) + (parseFloat(p.parking) || 0) + (parseFloat(p.labor) || 0), 0);
             trip.box = trip.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
             trip.weight = trip.parcels.reduce((sum, p) => sum + (parseFloat(p.weight) || 0), 0);
 
@@ -317,6 +322,16 @@ const TripMIS = () => {
               </select>
             )}
             
+            <select 
+               className="form-control" 
+               style={{ border: "1px solid #cbd5e1", height: "30px", fontSize: "0.8rem", width: "135px", padding: "0 5px", background: "white" }}
+               value={showPrintAmounts ? "SHOW" : "HIDE"}
+               onChange={e => setShowPrintAmounts(e.target.value === "SHOW")}
+             >
+               <option value="SHOW">Show Amounts</option>
+               <option value="HIDE">Hide (XXXX)</option>
+             </select>
+            
             <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
               <Printer size={16} style={{ marginRight: 6 }} /> Print All
             </button>
@@ -353,14 +368,19 @@ const TripMIS = () => {
                 (parseFloat(p.pickup) || 0) + 
                 (parseFloat(p.delivery) || 0) + 
                 (parseFloat(p.special) || 0) + 
-                (parseFloat(p.other) || 0), 0);
+                (parseFloat(p.other) || 0) + 
+                (parseFloat(p.parking) || 0) + 
+                (parseFloat(p.labor) || 0), 0);
               const totalBox = tripListForm.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
-              const cleanParcels = tripListForm.parcels.map(p => ({
-                ...p,
-                origin: p.origin || tripListForm.origin || "",
-                destination: p.destination || tripListForm.destination || "",
-                mode: p.mode || tripListForm.mode || "Normal"
-              }));
+              const cleanParcels = tripListForm.parcels.map(p => {
+                const { rate, ...rest } = p;
+                return {
+                  ...rest,
+                  origin: p.origin || tripListForm.origin || "",
+                  destination: p.destination || tripListForm.destination || "",
+                  mode: p.mode || tripListForm.mode || "Normal"
+                };
+              });
               
               const newEntry = {
                 tripNo: tripListForm.tripNo,
@@ -490,7 +510,7 @@ const TripMIS = () => {
             
             <div style={{ marginBottom: "2rem", paddingBottom: "1rem" }}>
               {tripListForm.parcels.map((parcel, idx) => {
-                const rowTotal = (parseFloat(parcel.freight) || 0) + (parseFloat(parcel.pickup) || 0) + (parseFloat(parcel.delivery) || 0) + (parseFloat(parcel.special) || 0) + (parseFloat(parcel.other) || 0);
+                const rowTotal = (parseFloat(parcel.freight) || 0) + (parseFloat(parcel.pickup) || 0) + (parseFloat(parcel.delivery) || 0) + (parseFloat(parcel.special) || 0) + (parseFloat(parcel.other) || 0) + (parseFloat(parcel.parking) || 0) + (parseFloat(parcel.labor) || 0);
                 return (
                 <div key={idx} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1rem", marginBottom: "1rem", position: "relative" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #e5e7eb", paddingBottom: "0.5rem" }}>
@@ -542,9 +562,12 @@ const TripMIS = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Weight</label>
-                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Weight" value={parcel.weight} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].weight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required />
+                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Weight" value={parcel.weight} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].weight = e.target.value; const w = parseFloat(e.target.value) || 0; const r = parseFloat(newParcels[idx].rate) || 0; if (r > 0) { newParcels[idx].freight = (w * r).toFixed(2); } setTripListForm({...tripListForm, parcels: newParcels}); }} required />
                     </div>
-                    
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Rate</label>
+                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Rate" value={parcel.rate || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].rate = e.target.value; const r = parseFloat(e.target.value) || 0; const w = parseFloat(newParcels[idx].weight) || 0; if (w > 0 || r > 0) { newParcels[idx].freight = (w * r).toFixed(2); } setTripListForm({...tripListForm, parcels: newParcels}); }} />
+                    </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Freight</label>
                       <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Freight" value={parcel.freight} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].freight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required /></div>
@@ -564,6 +587,14 @@ const TripMIS = () => {
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Other</label>
                       <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Other" value={parcel.other} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].other = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Parking</label>
+                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Parking" value={parcel.parking || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].parking = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Labor</label>
+                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Labor" value={parcel.labor || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].labor = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Total</label>
@@ -646,7 +677,7 @@ const TripMIS = () => {
                         weight: item.weight || "-",
                         freight: item.freight || "0"
                       }]).map((p, i, arr) => {
-                        const oth = (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0);
+                        const oth = (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0) + (parseFloat(p.parking) || 0) + (parseFloat(p.labor) || 0);
                         const amt = parseFloat(p.freight || item.freight || 0);
                         return (
                           <tr key={i} style={{ borderBottom: i < arr.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
@@ -658,7 +689,7 @@ const TripMIS = () => {
                             <td style={{ padding: "8px 12px", color: "#475569", whiteSpace: "nowrap", textAlign: "right" }}>{p.weight || item.weight || "0"} kg</td>
                             <td style={{ padding: "8px 12px", color: "#64748b", textAlign: "right" }}>
                               {oth > 0 ? (
-                                <span title={`Pickup: ₹${p.pickup||0}, Delivery: ₹${p.delivery||0}, Special: ₹${p.special||0}, Other: ₹${p.other||0}`}>
+                                <span title={`Pickup: ₹${p.pickup||0}, Delivery: ₹${p.delivery||0}, Special: ₹${p.special||0}, Other: ₹${p.other||0}, Parking: ₹${p.parking||0}, Labor: ₹${p.labor||0}`}>
                                   {oth.toFixed(2)}
                                 </span>
                               ) : "0"}
@@ -836,7 +867,11 @@ const TripMIS = () => {
                   )}
                   {(isAdminOrSuperAdmin || (user?.role === 'Vendor' && item.createdBy === user?.id && item.approvalStatus !== 'Approved')) && (
                     <button onClick={() => {
-                      setTripListForm(item);
+                      const safeParcels = (item.parcels || []).map(p => ({
+                        ...initialParcel,
+                        ...p
+                      }));
+                      setTripListForm({ ...item, parcels: safeParcels });
                       setEditingId(item.id);
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowTripListForm(true);
@@ -1263,9 +1298,13 @@ const TripMIS = () => {
                     <span style={{ fontSize: "8pt", color: "#64748b" }}>{p.origin || "-"} &rarr; {p.destination || "-"}</span>
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>
-                    <strong>{parseFloat(p.freight || 0).toFixed(2)}</strong><br/>
-                    {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Pickup: {p.pickup}</span>}
-                    {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b" }}>+ Del: {p.delivery}</span>}
+                    <strong>{showPrintAmounts ? parseFloat(p.freight || 0).toFixed(2) : "0"}</strong><br/>
+                    {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Pickup: {showPrintAmounts ? p.pickup : "0"}</span>}
+                    {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Del: {showPrintAmounts ? p.delivery : "0"}</span>}
+                    {parseFloat(p.special || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Special: {showPrintAmounts ? p.special : "0"}</span>}
+                    {parseFloat(p.other || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Other: {showPrintAmounts ? p.other : "0"}</span>}
+                    {parseFloat(p.parking || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Parking: {showPrintAmounts ? p.parking : "0"}</span>}
+                    {parseFloat(p.labor || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Labor: {showPrintAmounts ? p.labor : "0"}</span>}
                   </td>
                   <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: String(item.approvalStatus).toLowerCase() === 'pending' ? '#d97706' : '#16a34a' }}>
                     {pIdx === 0 ? (item.approvalStatus || 'Approved') : ''}
