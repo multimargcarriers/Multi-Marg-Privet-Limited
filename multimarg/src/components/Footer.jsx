@@ -11,11 +11,34 @@ const Footer = () => {
           {/* Brand Col */}
           <div>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', marginBottom: '1.5rem' }}>
-              <img src="/circle_crop_logo.png" alt="Multimarg Carriers Logo" style={{ height: '60px', objectFit: 'contain' }} />
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px' }}>
-                <span style={{ color: 'white' }}>MULTIMARG </span>
-                <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
-              </span>
+              <img src="/circle_crop_logo.png" alt="Multimarg Carriers Logo" style={{ height: '60px', width: '60px', objectFit: 'contain' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <span style={{ 
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: '1.4rem', 
+                  fontWeight: 800, 
+                  letterSpacing: '-0.03em', 
+                  background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.1
+                }}>
+                  MULTIMARG
+                </span>
+                <span style={{ 
+                  fontFamily: "'Roboto', sans-serif", 
+                  fontSize: '0.75rem', 
+                  fontWeight: 700, 
+                  color: '#FF5A1F', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '2px',
+                  marginTop: '1px'
+                }}>
+                  CARRIERS
+                </span>
+              </div>
             </Link>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.8', color: '#94a3b8' }}>
               Multimarg Carriers Pvt Ltd handles the transportation, storage, and distribution of goods, ensuring products move efficiently from suppliers to customers. We provide services like freight forwarding, warehousing, supply chain management, and last-mile delivery.

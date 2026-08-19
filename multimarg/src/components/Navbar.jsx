@@ -70,12 +70,37 @@ const Navbar = () => {
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: scrolled ? '0.5rem' : '1rem', paddingBottom: scrolled ? '0.5rem' : '1rem', transition: 'padding 0.3s ease', gap: '1rem' }}>
 
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 101, textDecoration: 'none' }}>
-          <img src="/mc.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '48px' : '62px', objectFit: 'contain', transition: 'height 0.3s ease' }} />
-          <div>
-            <h1 className="brand-name">
-              MULTIMARG <span style={{ color: 'var(--primary-red)' }}>CARRIERS</span>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 101, textDecoration: 'none' }}>
+          <img src="/circle_crop_logo.png" alt="Multimarg Carriers Logo" style={{ height: scrolled ? '48px' : '60px', width: scrolled ? '48px' : '60px', objectFit: 'contain', transition: 'all 0.3s ease' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h1 style={{ 
+              margin: 0, 
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: scrolled ? '1.4rem' : '1.8rem', 
+              fontWeight: 800, 
+              letterSpacing: '-0.03em', 
+              background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textTransform: 'uppercase',
+              lineHeight: 1.1,
+              transition: 'font-size 0.3s ease'
+            }}>
+              MULTIMARG
             </h1>
+            <span style={{ 
+              fontFamily: "'Roboto', sans-serif", 
+              fontSize: scrolled ? '0.65rem' : '0.8rem', 
+              fontWeight: 700, 
+              color: '#FF5A1F', 
+              textTransform: 'uppercase', 
+              letterSpacing: scrolled ? '1.5px' : '2.5px',
+              marginTop: '1px',
+              transition: 'all 0.3s ease'
+            }}>
+              CARRIERS
+            </span>
           </div>
         </Link>
 
