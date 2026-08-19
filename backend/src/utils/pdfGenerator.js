@@ -3,42 +3,48 @@ const fs = require('fs');
 const path = require('path');
 const QRCode = require('qrcode');
 
-// Pre-load images from backend/public folder into Base64 strings for 100% instant Puppeteer rendering
-let mcLogoBase64 = '';
-let primeLogoBase64 = '';
-let fabStampBase64 = '';
-
-try {
-  const mcPath = path.join(__dirname, '../../public/mc.png');
-  const fallbackMcPath = path.join(__dirname, '../../../frontend/public/mc.png');
-  const targetPath = fs.existsSync(mcPath) ? mcPath : (fs.existsSync(fallbackMcPath) ? fallbackMcPath : null);
-  if (targetPath) {
-    mcLogoBase64 = `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+// Helper functions to dynamically load images from backend/public folder into Base64 strings on demand.
+// This guarantees that any changes to assets (such as transparency updates) take effect immediately.
+function getMcLogoBase64() {
+  try {
+    const mcPath = path.join(__dirname, '../../public/mc.png');
+    const fallbackMcPath = path.join(__dirname, '../../../frontend/public/mc.png');
+    const targetPath = fs.existsSync(mcPath) ? mcPath : (fs.existsSync(fallbackMcPath) ? fallbackMcPath : null);
+    if (targetPath) {
+      return `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+    }
+  } catch (e) {
+    console.error("Failed to load mc.png logo:", e);
   }
-} catch (e) {
-  console.error("Failed to load mc.png logo:", e);
+  return '';
 }
 
-try {
-  const primePath = path.join(__dirname, '../../public/Prime RoadWAYS.png');
-  const fallbackPrimePath = path.join(__dirname, '../../../frontend/public/Prime RoadWAYS.png');
-  const targetPath = fs.existsSync(primePath) ? primePath : (fs.existsSync(fallbackPrimePath) ? fallbackPrimePath : null);
-  if (targetPath) {
-    primeLogoBase64 = `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+function getPrimeLogoBase64() {
+  try {
+    const primePath = path.join(__dirname, '../../public/Prime RoadWAYS.png');
+    const fallbackPrimePath = path.join(__dirname, '../../../frontend/public/Prime RoadWAYS.png');
+    const targetPath = fs.existsSync(primePath) ? primePath : (fs.existsSync(fallbackPrimePath) ? fallbackPrimePath : null);
+    if (targetPath) {
+      return `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+    }
+  } catch (e) {
+    console.error("Failed to load Prime RoadWAYS.png logo:", e);
   }
-} catch (e) {
-  console.error("Failed to load Prime RoadWAYS.png logo:", e);
+  return '';
 }
 
-try {
-  const fabPath = path.join(__dirname, '../../public/fab.png');
-  const fallbackFabPath = path.join(__dirname, '../../../frontend/public/fab.png');
-  const targetPath = fs.existsSync(fabPath) ? fabPath : (fs.existsSync(fallbackFabPath) ? fallbackFabPath : null);
-  if (targetPath) {
-    fabStampBase64 = `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+function getFabStampBase64() {
+  try {
+    const fabPath = path.join(__dirname, '../../public/fab.png');
+    const fallbackFabPath = path.join(__dirname, '../../../frontend/public/fab.png');
+    const targetPath = fs.existsSync(fabPath) ? fabPath : (fs.existsSync(fallbackFabPath) ? fallbackFabPath : null);
+    if (targetPath) {
+      return `data:image/png;base64,${fs.readFileSync(targetPath).toString('base64')}`;
+    }
+  } catch (e) {
+    console.error("Failed to load fab.png stamp:", e);
   }
-} catch (e) {
-  console.error("Failed to load fab.png stamp:", e);
+  return '';
 }
 
 // --- Chromium availability check (runs once at startup) ---
@@ -156,14 +162,17 @@ async function generatePDF(htmlContent, options = {}) {
         return imgTag;
       }
 
-      if ((imgTag.includes('fab.png') || imgTag.includes('/fab')) && fabStampBase64) {
-        return imgTag.replace(/src="[^"]*"/gi, `src="${fabStampBase64}"`);
+      const fabStamp = getFabStampBase64();
+      if ((imgTag.includes('fab.png') || imgTag.includes('/fab')) && fabStamp) {
+        return imgTag.replace(/src="[^"]*"/gi, `src="${fabStamp}"`);
       }
-      if ((imgTag.includes('Prime') || imgTag.includes('RoadWAYS')) && primeLogoBase64) {
-        return imgTag.replace(/src="[^"]*"/gi, `src="${primeLogoBase64}"`);
+      const primeLogo = getPrimeLogoBase64();
+      if ((imgTag.includes('Prime') || imgTag.includes('RoadWAYS')) && primeLogo) {
+        return imgTag.replace(/src="[^"]*"/gi, `src="${primeLogo}"`);
       }
-      if ((imgTag.includes('mc.png') || imgTag.includes('/mc') || imgTag.includes('Watermark') || imgTag.includes('Logo')) && mcLogoBase64) {
-        return imgTag.replace(/src="[^"]*"/gi, `src="${mcLogoBase64}"`);
+      const mcLogo = getMcLogoBase64();
+      if ((imgTag.includes('mc.png') || imgTag.includes('/mc') || imgTag.includes('Watermark') || imgTag.includes('Logo')) && mcLogo) {
+        return imgTag.replace(/src="[^"]*"/gi, `src="${mcLogo}"`);
       }
       return imgTag;
     });
