@@ -587,6 +587,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
               src={getUserAvatarUrl()} 
               alt="User" 
               className="avatar topbar-avatar" 
+              crossOrigin="anonymous"
               style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} 
             />
           </div>
@@ -603,6 +604,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
                 <img 
                   src={getUserAvatarUrl()} 
                   alt="User" 
+                  crossOrigin="anonymous"
                   style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} 
                 />
                 <div>
