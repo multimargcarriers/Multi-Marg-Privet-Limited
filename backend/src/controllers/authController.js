@@ -312,13 +312,11 @@ exports.get_me = async (req, res) => {
 };
 
 exports.get_default_assets = async (req, res) => {
-  const cleanAvatars = (defaultAssets.DEFAULT_AVATARS || []).map(u => typeof u === 'string' && u.includes('res.cloudinary.com') ? u.toLowerCase() : u);
-  const cleanBanners = (defaultAssets.DEFAULT_BANNERS || []).map(u => typeof u === 'string' && u.includes('res.cloudinary.com') ? u.toLowerCase() : u);
   return success(res, {
     message: "Default assets fetched successfully",
     data: {
-      DEFAULT_AVATARS: cleanAvatars,
-      DEFAULT_BANNERS: cleanBanners
+      DEFAULT_AVATARS: defaultAssets.DEFAULT_AVATARS || [],
+      DEFAULT_BANNERS: defaultAssets.DEFAULT_BANNERS || []
     }
   });
 };
@@ -524,43 +522,39 @@ exports.put_profile_2 = async (req, res) => {
   const isSuperAdmin = req.user.role === 'SuperAdmin' || req.user.email === 'admin@multimarg.com';
 
   const updates = {};
-  if (name) updates.name = name;
-  if (email && isSuperAdmin) updates.email = email.toLowerCase().trim();
-  if (username) {
-    const lowerUsername = username.toLowerCase().trim();
-    const userCheck = await db.collection("users").where("username", "==", lowerUsername).get();
-    let taken = false;
-    userCheck.forEach(d => { if (d.id !== userId) taken = true; });
-    if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
-    updates.username = lowerUsername;
+  if (name !== undefined && name !== null && String(name).trim()) updates.name = String(name).trim();
+  if (email !== undefined && isSuperAdmin && String(email).trim()) updates.email = String(email).toLowerCase().trim();
+  if (employeeId !== undefined && isSuperAdmin && String(employeeId).trim()) updates.employeeId = String(employeeId).trim();
+  if (bloodGroup !== undefined) updates.bloodGroup = String(bloodGroup).trim();
+
+  if (username !== undefined && String(username).trim()) {
+    const lowerUsername = String(username).toLowerCase().trim();
+    if (lowerUsername !== (req.user.username || '').toLowerCase()) {
+      const userCheck = await db.collection("users").where("username", "==", lowerUsername).get();
+      let taken = false;
+      userCheck.forEach(d => { if (String(d.id) !== String(userId)) taken = true; });
+      if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
+      updates.username = lowerUsername;
+    }
   }
-  if (bloodGroup) updates.bloodGroup = bloodGroup;
+
   if (password) {
     const salt = await bcrypt.genSalt(10);
     updates.password = await bcrypt.hash(password, salt);
   }
-  if (employeeId && isSuperAdmin) updates.employeeId = employeeId;
 
-  if (updates.employeeId) {
+  if (updates.employeeId && updates.employeeId !== req.user.employeeId) {
     const empIdCheck = await db.collection("users").where("employeeId", "==", updates.employeeId).get();
     let taken = false;
     empIdCheck.forEach(d => {
-      if (d.id !== userId) taken = true;
+      if (String(d.id) !== String(userId)) taken = true;
     });
     if (taken) return error(res, { message: `Employee ID already exists. Please contact the administrator at ${process.env.ENQUIRY_EMAIL || 'info@multimarg.com'}.`, statusCode: 400 });
   }
-  if (photoUrl) updates.photo = typeof photoUrl === 'string' && photoUrl.includes('res.cloudinary.com') ? photoUrl.toLowerCase() : photoUrl;
-  if (bannerUrl) updates.banner = typeof bannerUrl === 'string' && bannerUrl.includes('res.cloudinary.com') ? bannerUrl.toLowerCase() : bannerUrl;
-  if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
-    return error(res, {
-      message: "No fields to update",
-      statusCode: 400
-    });
-  }
-  let updatedUserData = null;
-  console.log("=== DEBUG PROFILE UPDATE ===");
-  console.log("userId from token:", userId);
-  console.log("newId requested:", newId);
+
+  if (photoUrl) updates.photo = photoUrl;
+  if (bannerUrl) updates.banner = bannerUrl;
+
   const docRef = db.collection("users").doc(userId);
   const doc = await docRef.get();
   if (!doc.exists) {
@@ -569,6 +563,20 @@ exports.put_profile_2 = async (req, res) => {
       statusCode: 404
     });
   }
+
+  if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
+    const currentData = { id: doc.id, ...doc.data() };
+    delete currentData.password;
+    return success(res, {
+      message: "Profile is up to date",
+      data: {
+        user: currentData,
+        token: generateToken(currentData)
+      }
+    });
+  }
+
+  let updatedUserData = null;
 
   // Delete old photo or banner safely if replacing
   const oldData = doc.data() || {};

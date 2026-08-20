@@ -71,10 +71,14 @@ router.put(
   "/profile",
   authenticateToken,
   (req, res, next) => {
-    profileUpload(req, res, (err) => {
-      if (err) return handleMulterError(err, req, res, next);
-      next();
-    });
+    const contentType = req.headers["content-type"] || "";
+    if (contentType.toLowerCase().includes("multipart/form-data")) {
+      return profileUpload(req, res, (err) => {
+        if (err) return handleMulterError(err, req, res, next);
+        next();
+      });
+    }
+    next();
   },
   asyncHandler(put_profile_2)
 );

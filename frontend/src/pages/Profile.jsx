@@ -206,13 +206,14 @@ const Profile = () => {
 
     try {
       setIsLoading(true);
-      const formData = new FormData();
-      if (galleryType === 'photo') formData.append('photoUrl', url);
-      else formData.append('bannerUrl', url);
+      const payload = {};
+      if (galleryType === 'photo') payload.photoUrl = url;
+      else payload.bannerUrl = url;
 
-      const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, payload, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -235,7 +236,7 @@ const Profile = () => {
   const handleSubmit = async (e, skipConfirm = false) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    if (username !== (user.username || '').toLowerCase() && !skipConfirm) {
+    if (username && username !== (user?.username || '').toLowerCase() && !skipConfirm) {
       setShowConfirmDialog(true);
       return;
     }
@@ -243,42 +244,35 @@ const Profile = () => {
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      if (name !== user.name) formData.append('name', name);
-      if (email !== user.email) formData.append('email', email);
-      if (employeeId !== user.employeeId) formData.append('employeeId', employeeId);
-      if (bloodGroup !== (user.bloodGroup || '')) formData.append('bloodGroup', bloodGroup);
-
-      if (username !== (user.username || '').toLowerCase()) {
-        formData.append('username', username.toLowerCase());
+      const payload = {
+        name,
+        bloodGroup: bloodGroup || '',
+      };
+      if (isSuperAdmin) {
+        if (email) payload.email = email;
+        if (employeeId) payload.employeeId = employeeId;
       }
-
+      if (username) {
+        payload.username = username.toLowerCase();
+      }
       if (password) {
-        formData.append('password', password);
-        if (currentPassword) formData.append('currentPassword', currentPassword);
+        payload.password = password;
+        if (currentPassword) payload.currentPassword = currentPassword;
       }
 
-      let hasUpdates = false;
-      for (let _pair of formData.entries()) {
-        hasUpdates = true;
-        break;
-      }
-
-      if (!hasUpdates) {
-        addToast("No changes made to update.", "info");
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, payload, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (response.data?.success) {
         addToast("Profile updated successfully!", "success");
-        updateUser(response.data.data.user, response.data.data.token);
+        const updatedUser = response.data.data.user;
+        updateUser(updatedUser, response.data.data.token);
+        if (updatedUser?.bloodGroup !== undefined) setBloodGroup(updatedUser.bloodGroup);
+        if (updatedUser?.name) setName(updatedUser.name);
         setPassword('');
         setCurrentPassword('');
       } else {
@@ -406,8 +400,14 @@ const Profile = () => {
             <p style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{user?.email || 'admin@multimarg.com'}</p>
 
             {user?.employeeId && (
-              <div style={{ margin: '0 auto 1.5rem auto', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.95rem', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ margin: '0 auto 0.75rem auto', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: 700, fontSize: '0.95rem', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)' }}>
                 <span style={{ color: '#94a3b8', fontWeight: 500 }}>ID:</span> {user.employeeId}
+              </div>
+            )}
+
+            {user?.bloodGroup && (
+              <div style={{ margin: '0 auto 1rem auto', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.35rem 0.85rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#dc2626', fontWeight: 700, fontSize: '0.85rem' }}>
+                <span style={{ color: '#ef4444', fontWeight: 500 }}>Blood:</span> {user.bloodGroup}
               </div>
             )}
 

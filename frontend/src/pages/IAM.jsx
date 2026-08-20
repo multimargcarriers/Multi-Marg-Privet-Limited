@@ -234,7 +234,7 @@ const IAM = () => {
 
   const openModal = (user = null) => {
     if (user) {
-      setFormData({ employeeId: '', ...user, username: (user.username || '').toLowerCase(), password: '' });
+      setFormData({ employeeId: '', bloodGroup: '', ...user, username: (user.username || '').toLowerCase(), password: '' });
       if ((user.role === 'Client' || user.role === 'Vendor') && user.name) {
         const inList = user.role === 'Client' 
           ? clientsList.some(c => (c.name || c.clientName) === user.name)
@@ -244,7 +244,7 @@ const IAM = () => {
         setIsCustomName(false);
       }
     } else {
-      setFormData({ id: '', name: '', username: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}` });
+      setFormData({ id: '', name: '', username: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}`, bloodGroup: '' });
       setIsCustomName(false);
     }
     // Expand all sections by default when opening modal
@@ -732,6 +732,24 @@ const IAM = () => {
                       style={{ fontWeight: "600" }}
                       placeholder="MCPL-1234"
                     />
+                  </div>
+                  <div className="iam-form-field">
+                    <label>Blood Group</label>
+                    <select
+                      value={formData.bloodGroup || ''}
+                      onChange={e => setFormData({...formData, bloodGroup: e.target.value})}
+                      className="iam-input"
+                    >
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
                   </div>
                   <div className="iam-form-field">
                     <label>Username <span>(Optional)</span></label>

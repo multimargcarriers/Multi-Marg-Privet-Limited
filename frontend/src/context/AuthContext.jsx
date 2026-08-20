@@ -21,14 +21,7 @@ export const AuthProvider = ({ children }) => {
 
   const normalizeUserData = (userData) => {
     if (!userData) return userData;
-    const cleaned = { ...userData };
-    if (cleaned.photo && typeof cleaned.photo === 'string' && cleaned.photo.toLowerCase().includes('res.cloudinary.com')) {
-      cleaned.photo = cleaned.photo.toLowerCase();
-    }
-    if (cleaned.banner && typeof cleaned.banner === 'string' && cleaned.banner.toLowerCase().includes('res.cloudinary.com')) {
-      cleaned.banner = cleaned.banner.toLowerCase();
-    }
-    return cleaned;
+    return { ...userData };
   };
 
   const fetchMe = async (currentToken) => {
