@@ -72,19 +72,38 @@ app.use(
 // CORS
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "https://multimarg.com",
-      "https://www.multimarg.com",
-      "https://soft.multimarg.com",
-      process.env.FRONTEND_ORIGIN,
-      process.env.PUBLIC_FRONTEND_ORIGIN
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "https://app.multimarg.com",
+        "https://indocreo.multimarg.com",
+        "https://multimarg.com",
+        "https://www.multimarg.com",
+        "https://soft.multimarg.com",
+        "https://soft.multimargcarriers.co.in",
+        process.env.FRONTEND_ORIGIN,
+        process.env.PUBLIC_FRONTEND_ORIGIN
+      ].filter(Boolean);
+
+      if (
+        allowed.includes(origin) ||
+        origin.endsWith(".multimarg.com") ||
+        origin.endsWith(".multimargcarriers.co.in") ||
+        origin.includes("localhost") ||
+        origin.includes("127.0.0.1")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   }),
 );
 
@@ -409,7 +428,7 @@ for (const distPath of candidateDistPaths) {
 
 if (activeDistPath) {
   app.use(express.static(activeDistPath));
-  app.get("*", (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     res.sendFile(path.join(activeDistPath, "index.html"));
   });
