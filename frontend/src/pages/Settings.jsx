@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Papa from 'papaparse';
 import { 
   Server, Database, Cloud, HardDrive, RefreshCw, AlertCircle, MemoryStick, 
   ToggleLeft, ToggleRight, Building, Palette, Shield, FileText, Bell, Save,
-ChevronDown, ChevronRight, Upload, RotateCcw
+  ChevronDown, ChevronRight, Upload, RotateCcw, Calendar, Download, Trash2
 } from 'lucide-react';
 import CompanyStamp from '../components/CompanyStamp';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
@@ -47,6 +48,7 @@ const ProgressBar = ({ value, max, color = '#6366f1' }) => {
 };
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { globalSettings, updateGlobalSettings } = useContext(SettingsContext);
   const { confirm } = useDialog();
   const { addToast } = useToast();
@@ -815,6 +817,55 @@ const Settings = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Financial Year Closing & Archival */}
+            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1.5px solid #fde68a', background: 'linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{ backgroundColor: '#fef3c7', padding: '0.5rem', borderRadius: '8px', color: '#b45309' }}><Calendar size={20} /></div>
+                <h5 style={{ margin: 0, fontSize: '1.1rem', color: '#92400e' }}>Financial Year Closing & Archival</h5>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#78350f', margin: '0 0 1rem 0', lineHeight: '1.4' }}>
+                Archive completed bills and paid AWBs on or before 31st March, calculate net client & vendor opening balances for 1st April, and safely preserve all unbilled/pending shipments for the new year.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => navigate('/opening-outstanding')}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    color: '#fff',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Calendar size={15} /> Manage Prior FY Balances
+                </button>
+                <button
+                  onClick={() => navigate('/opening-outstanding')}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #d97706',
+                    backgroundColor: '#fff',
+                    color: '#b45309',
+                    fontWeight: '700',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Download size={15} /> Export & Close Financial Year
+                </button>
               </div>
             </div>
 

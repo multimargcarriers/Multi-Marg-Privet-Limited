@@ -221,7 +221,7 @@ const QuickAddModal = ({ isOpen, onClose, onSave, type, initialName, editingItem
                     <select className="modal-input" name="mode" value={formData.mode || "ROAD"} onChange={handleChange} required>
                       <option value="ROAD">ROAD</option>
                       <option value="TRAIN">TRAIN</option>
-                      <option value="FLIGHT">FLIGHT</option>
+                      <option value="AIR">AIR</option>
                     </select>
                   </div>
                 </>

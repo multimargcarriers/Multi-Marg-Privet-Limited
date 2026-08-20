@@ -23,7 +23,6 @@ const {
 
 const CACHE_KEY = "outstanding";
 
-
 exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("outstanding").orderBy("date", "desc").get();
@@ -75,3 +74,19 @@ exports.delete_id_4 = async (req, res) => {
   return success(res, "Outstanding entry deleted successfully");
 };
 
+exports.put_id_5 = async (req, res) => {
+  const {
+    id
+  } = req.params;
+  const doc = await db.collection("outstanding").doc(id).get();
+  if (!doc.exists) return error(res, "Outstanding entry not found", 404);
+  
+  const entry = req.body;
+  entry.updatedAt = new Date().toISOString();
+  await db.collection("outstanding").doc(id).update(entry);
+  await delCache(CACHE_KEY);
+  return success(res, "Outstanding entry updated successfully", {
+    id,
+    ...entry
+  });
+};

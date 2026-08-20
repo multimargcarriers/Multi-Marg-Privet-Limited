@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
+import React, { useState, useEffect, useContext, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Table from "../components/Table";
@@ -17,7 +18,7 @@ import {
   ShoppingCart,
   Receipt,
   FileSpreadsheet,
-  DollarSign, Search, Filter, Clock
+  DollarSign, Search, Filter, Clock, Shield
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -47,6 +48,7 @@ const Purchase = () => {
   // Data states
   const [purchases, setPurchases] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [adjustments, setAdjustments] = useState([]);
   
   // Filter States
   const [search, setSearch] = useState("");
@@ -65,6 +67,31 @@ const Purchase = () => {
   const [payBillOpen, setPayBillOpen] = useState(false);
   const [payBillData, setPayBillData] = useState(null);
   const [payingBill, setPayingBill] = useState(false);
+
+  // Vendor TDS / Adjustment Modal State
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustData, setAdjustData] = useState({
+    vendor: "",
+    billNo: "",
+    billAmount: 0,
+    particulars: "tds",
+    amount: "",
+    percentage: "1",
+    date: new Date().toISOString().slice(0, 10),
+    tdsStatus: "pending"
+  });
+  const [submittingAdjust, setSubmittingAdjust] = useState(false);
+
+  useEffect(() => {
+    if (payBillOpen || adjustModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [payBillOpen, adjustModalOpen]);
 
   // Modal / Add Form states
   const [isAdding, setIsAdding] = useState(false);
@@ -94,26 +121,33 @@ const Purchase = () => {
 
   const fileInputRef = useRef(null);
 
+  const fetchData = useCallback(async () => {
+    try {
+      const [purchasesRes, vendorsRes, adjRes] = await Promise.all([
+        axios.get(`${API}/purchases`),
+        axios.get(`${API}/vendors`),
+        axios.get(`${API}/outstanding`)
+      ]);
+      if (purchasesRes.data && purchasesRes.data.success) {
+        setPurchases(purchasesRes.data.data || []);
+      }
+      if (vendorsRes.data && vendorsRes.data.success) {
+        setVendors(vendorsRes.data.data || []);
+      }
+      if (adjRes.data && adjRes.data.success) {
+        setAdjustments(adjRes.data.data || []);
+      }
+    } catch (error) {
+      console.error("Error loading purchase data", error);
+    } finally {
+      setLoading(false); 
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
     clearBadge("purchases");
-  }, []);
-
-  const fetchData = async () => {
-    if (purchases.length === 0) setLoading(true);
-    try {
-      const [vendorsRes, purchasesRes] = await Promise.all([
-        axios.get(`${API}/vendors`),
-        axios.get(`${API}/purchases`)
-      ]);
-      if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
-      if (purchasesRes.data.success) setPurchases(purchasesRes.data.data || []);
-    } catch (err) { 
-      console.error("Fetch purchase data error", err); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
+  }, [fetchData, clearBadge]);
 
   useSocketSync("purchases", fetchData);
 
@@ -352,7 +386,54 @@ const Purchase = () => {
     }
   };
 
-  
+  const handleOpenAdjustModal = (item) => {
+    const totalAmt = Number(item.total || item.amount) || 0;
+    const taxableAmt = Number(item.taxable) || totalAmt;
+    const defaultTdsAmt = Math.round(taxableAmt * 0.01);
+    setAdjustData({
+      vendor: item.vendor || "",
+      billNo: item.billNo || "",
+      billAmount: totalAmt,
+      particulars: "tds",
+      amount: String(defaultTdsAmt || ""),
+      percentage: "1",
+      date: new Date().toISOString().slice(0, 10),
+      tdsStatus: "pending"
+    });
+    setAdjustModalOpen(true);
+  };
+
+  const handleAdjustSubmit = async (e) => {
+    e.preventDefault();
+    if (!adjustData.amount || Number(adjustData.amount) <= 0) {
+      alertDialog({ title: "Error", message: "Please enter a valid adjustment amount" });
+      return;
+    }
+    setSubmittingAdjust(true);
+    try {
+      const payload = {
+        partyType: "Vendor",
+        client: adjustData.vendor,
+        vendor: adjustData.vendor,
+        billNo: adjustData.billNo,
+        particulars: adjustData.particulars,
+        amount: Number(adjustData.amount),
+        percentage: adjustData.percentage ? Number(adjustData.percentage) : "",
+        date: adjustData.date,
+        tdsStatus: adjustData.particulars === "tds" ? adjustData.tdsStatus : ""
+      };
+      await axios.post(`${API}/outstanding`, payload);
+      setAdjustModalOpen(false);
+      await fetchData();
+      alert("Vendor adjustment recorded successfully!");
+    } catch (error) {
+      console.error("Failed to save vendor adjustment", error);
+      alertDialog({ title: "Error", message: "Failed to save vendor adjustment: " + (error.response?.data?.message || error.message) });
+    } finally {
+      setSubmittingAdjust(false);
+    }
+  };
+
   const displayPurchases = useMemo(() => {
     const pending = (syncQueue || [])
       .filter(req => req.method === 'post' && req.url.includes('/purchases'))
@@ -366,11 +447,17 @@ const Purchase = () => {
 
   const filteredPurchases = useMemo(() => {
     return displayPurchases.filter(item => {
+      const bNo = (item.billNo || '').toLowerCase();
+      const vName = (item.vendor || '').toLowerCase();
+      const tdsDeducted = adjustments
+        .filter(a => a.particulars === 'tds' && ((a.billNo && a.billNo.toLowerCase() === bNo) || (!a.billNo && a.client && a.client.toLowerCase() === vName)))
+        .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+      
       // Search
       const searchStr = search.toLowerCase();
       const matchesSearch = 
-        (item.vendor || "").toLowerCase().includes(searchStr) ||
-        (item.billNo || "").toLowerCase().includes(searchStr);
+        vName.includes(searchStr) ||
+        bNo.includes(searchStr);
         
       // Date
       const itemDate = new Date(item.date || item.createdAt);
@@ -383,11 +470,11 @@ const Purchase = () => {
       // Status & Pending Amount
       const totalAmount = parseFloat(item.total || 0);
       const paidAmount = parseFloat(item.paidAmount || 0);
-      const pendingAmount = totalAmount - paidAmount;
+      const pendingAmount = totalAmount - paidAmount - tdsDeducted;
       
       const isPaid = pendingAmount <= 0.01;
-      const isUnpaid = paidAmount <= 0.01;
-      const isPartial = pendingAmount > 0.01 && paidAmount > 0.01;
+      const isUnpaid = paidAmount <= 0.01 && tdsDeducted <= 0.01;
+      const isPartial = pendingAmount > 0.01 && (paidAmount > 0.01 || tdsDeducted > 0.01);
 
       let matchesStatus = true;
       if (statusFilter === "Paid") matchesStatus = isPaid;
@@ -405,7 +492,7 @@ const Purchase = () => {
 
       return matchesSearch && matchesFrom && matchesTo && matchesStatus && matchesPendingAmount;
     });
-  }, [displayPurchases, search, fromDate, toDate, statusFilter, minPending, maxPending]);
+  }, [displayPurchases, search, fromDate, toDate, statusFilter, minPending, maxPending, adjustments]);
 
   const { sortedData, sortOption, setSortOption } = useTableSort(filteredPurchases, "newest", { nameKey: "vendor", amountKey: "total" });
 
@@ -414,9 +501,16 @@ const Purchase = () => {
     const totalAmount = filteredPurchases.reduce((s, e) => s + parseFloat(e.total || 0), 0);
     const totalGst = filteredPurchases.reduce((s, e) => s + parseFloat(e.gst || 0), 0);
     const totalPaid = filteredPurchases.reduce((s, e) => s + parseFloat(e.paidAmount || 0), 0);
-    const outstanding = totalAmount - totalPaid;
-    return { totalPurchases, totalAmount, totalGst, outstanding, totalPaid };
-  }, [filteredPurchases]);
+    const totalTds = filteredPurchases.reduce((s, e) => {
+        const bNo = (e.billNo || '').toLowerCase();
+        const vName = (e.vendor || '').toLowerCase();
+        return s + adjustments
+            .filter(a => a.particulars === 'tds' && ((a.billNo && a.billNo.toLowerCase() === bNo) || (!a.billNo && a.client && a.client.toLowerCase() === vName)))
+            .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+    }, 0);
+    const outstanding = totalAmount - totalPaid - totalTds;
+    return { totalPurchases, totalAmount, totalGst, outstanding, totalPaid, totalTds };
+  }, [filteredPurchases, adjustments]);
 
   return (
     <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
@@ -859,7 +953,7 @@ const Purchase = () => {
         { label: "Total Purchases", value: stats.totalPurchases, icon: FileSpreadsheet, color: "blue" },
         { label: "Total Value", value: "₹" + formatAmount(stats.totalAmount), icon: ShoppingCart, color: "purple" },
         { label: "Total Paid", value: "₹" + formatAmount(stats.totalPaid), icon: Receipt, color: "green" },
-        { label: "Total GST Paid", value: "₹" + formatAmount(stats.totalGst), icon: FileText, color: "orange" },
+        { label: "TDS Deducted", value: "₹" + formatAmount(stats.totalTds), icon: Shield, color: "yellow" },
         { label: "Total Outstanding", value: "₹" + formatAmount(stats.outstanding), icon: DollarSign, color: "red" }
       ]} />
 
@@ -960,12 +1054,17 @@ const Purchase = () => {
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status", "Bill Image", "Actions"]}
+          headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "TDS", "Balance", "Status", "Bill Image", "Actions"]}
           data={sortedData}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
             const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
+            const bNo = (item.billNo || '').toLowerCase();
+            const vName = (item.vendor || '').toLowerCase();
+            const tdsDeducted = adjustments
+              .filter(a => a.particulars === 'tds' && ((a.billNo && a.billNo.toLowerCase() === bNo) || (!a.billNo && a.client && a.client.toLowerCase() === vName)))
+              .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
 
             return (
               <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
@@ -1009,20 +1108,28 @@ const Purchase = () => {
                   </div>
                 </td>
 
+                <td style={{ padding: "1rem" }}>
+                  {tdsDeducted > 0 ? (
+                    <span style={{ background: '#fef3c7', color: '#b45309', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                      <RupeeIcon size={10} />{formatAmount(tdsDeducted)}
+                    </span>
+                  ) : <span style={{ color: "#94a3b8" }}>—</span>}
+                </td>
+
                 <td style={{ padding: "1rem", color: "#ef4444", fontWeight: 700 }}>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <RupeeIcon size={14} /> {formatAmount(Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0)))}
+                    <RupeeIcon size={14} /> {formatAmount(Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0) - tdsDeducted))}
                   </div>
                 </td>
 
                 <td style={{ padding: "1rem" }}>
                   {(() => {
                     const total = parseFloat(item.total || 0);
-                    const paid = parseFloat(item.paidAmount || 0);
+                    const paidAndTds = parseFloat(item.paidAmount || 0) + tdsDeducted;
                     let status = item.status || "Unpaid";
-                    if (paid >= total && total > 0) status = "Paid";
-                    else if (paid > 0 && paid < total) status = "Partial";
-                    else if (paid === 0) status = "Unpaid";
+                    if (paidAndTds >= total && total > 0) status = "Paid";
+                    else if (paidAndTds > 0 && paidAndTds < total) status = "Partial";
+                    else if (paidAndTds === 0) status = "Unpaid";
 
                     if (status === 'Paid') {
                       return <span style={{ background: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>Paid</span>;
@@ -1071,6 +1178,15 @@ const Purchase = () => {
                          title="Pay Bill"
                        >
                          <DollarSign size={12} /> Pay
+                       </button>
+                    )}
+                    {isSuperAdmin && !item.isOfflinePending && (
+                       <button
+                         onClick={() => handleOpenAdjustModal(item)}
+                         style={{ background: "#fef3c7", border: "1px solid #fde68a", color: "#92400e", cursor: "pointer", padding: "4px 8px", borderRadius: "6px", fontWeight: 600, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}
+                         title="Deduct TDS or Adjustment"
+                       >
+                         <Shield size={12} /> TDS
                        </button>
                     )}
                     {fileUrl && (
@@ -1129,54 +1245,225 @@ const Purchase = () => {
         onSave={handleStudioSave}
       />
 
-      {/* PAY BILL MODAL */}
-      <AnimatePresence>
-        {payBillOpen && payBillData && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" }}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              style={{ background: "white", borderRadius: "16px", padding: "2rem", width: "100%", maxWidth: "400px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
-            >
-              <h3 style={{ margin: "0 0 1.5rem 0", display: "flex", alignItems: "center", gap: "8px", color: "#0f172a" }}>
+      {/* PAY BILL MODAL MOUNTED TO document.body */}
+      {payBillOpen && payBillData && typeof document !== "undefined" && createPortal(
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setPayBillOpen(false); }}
+        >
+          <div className="modal-dialog-card" style={{ maxWidth: "480px" }}>
+            {/* Modal Header */}
+            <div className="modal-header-section">
+              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700" }}>
                 <DollarSign size={20} color="#8b5cf6" /> Pay Vendor Bill
               </h3>
-              
-              <form onSubmit={handlePayBillSubmit}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Vendor Name</label>
-                    <input type="text" value={payBillData.vendor} disabled style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f1f5f9", color: "#64748b", boxSizing: "border-box" }} />
+              <button 
+                type="button" 
+                onClick={() => setPayBillOpen(false)} 
+                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <form onSubmit={handlePayBillSubmit} className="modal-form-container">
+              <div className="modal-body-section">
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>VENDOR NAME</label>
+                  <input type="text" value={payBillData.vendor} disabled style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f1f5f9", color: "#64748b", boxSizing: "border-box" }} />
+                </div>
+
+                {payBillData.billNo && (
+                  <div style={{ padding: "0.6rem 0.8rem", borderRadius: "8px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "0.75rem", color: "#475569" }}>
+                    <span>Bill Number: <strong>{payBillData.billNo}</strong></span>
                   </div>
-                  
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Payment Date</label>
-                    <input type="date" value={payBillData.date} onChange={(e) => setPayBillData({...payBillData, date: e.target.value})} required style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} />
-                  </div>
-                  
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Payment Amount (₹)</label>
-                    <input type="number" step="0.01" value={payBillData.amount} onChange={(e) => setPayBillData({...payBillData, amount: e.target.value})} required style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1.5px solid #8b5cf6", boxSizing: "border-box", outline: "none", fontWeight: 700 }} />
-                  </div>
-                  
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.4rem" }}>Remarks</label>
-                    <input type="text" value={payBillData.remarks} onChange={(e) => setPayBillData({...payBillData, remarks: e.target.value})} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} />
+                )}
+                
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>PAYMENT AMOUNT (₹) *</label>
+                  <input type="number" step="0.01" value={payBillData.amount} onChange={(e) => setPayBillData({...payBillData, amount: e.target.value})} required style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1.5px solid #8b5cf6", boxSizing: "border-box", outline: "none", fontWeight: "700", color: "#6d28d9" }} />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>PAYMENT DATE *</label>
+                  <input type="date" value={payBillData.date} onChange={(e) => setPayBillData({...payBillData, date: e.target.value})} required style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} />
+                </div>
+                
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>REMARKS (OPTIONAL)</label>
+                  <input type="text" value={payBillData.remarks} onChange={(e) => setPayBillData({...payBillData, remarks: e.target.value})} style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} placeholder="e.g. Bank Ref, Cheque No..." />
+                </div>
+              </div>
+
+              {/* Modal Sticky Footer (Always Visible!) */}
+              <div className="modal-footer-section">
+                <button type="button" onClick={() => setPayBillOpen(false)} style={{ background: "#ffffff", color: "#475569", border: "1px solid #cbd5e1", padding: "0.45rem 1rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer" }}>Cancel</button>
+                <button type="submit" disabled={payingBill} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)", color: "white", border: "none", padding: "0.45rem 1.5rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: payingBill ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 4px rgba(124, 58, 237, 0.25)" }}>
+                  {payingBill ? "Processing..." : "Confirm Payment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* VENDOR TDS & ADJUSTMENT MODAL MOUNTED TO document.body */}
+      {adjustModalOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          className="modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setAdjustModalOpen(false); }}
+        >
+          <div className="modal-dialog-card" style={{ maxWidth: "480px" }}>
+            {/* Modal Header */}
+            <div className="modal-header-section">
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700" }}>
+                  <Shield size={20} color="#d97706" /> Vendor TDS & Adjustment
+                </h3>
+                <p style={{ color: "#64748b", fontSize: "0.75rem", margin: "2px 0 0 0" }}>
+                  Record TDS deduction or Bill Correction for {adjustData.vendor}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setAdjustModalOpen(false)} 
+                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "30px", height: "30px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAdjustSubmit} className="modal-form-container">
+              <div className="modal-body-section">
+                {/* Adjustment Type Selector */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>ADJUSTMENT TYPE *</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setAdjustData({ ...adjustData, particulars: "tds" })}
+                      style={{
+                        padding: "0.5rem",
+                        borderRadius: "8px",
+                        border: adjustData.particulars === "tds" ? "2px solid #d97706" : "1px solid #cbd5e1",
+                        backgroundColor: adjustData.particulars === "tds" ? "#fef3c7" : "#fff",
+                        color: adjustData.particulars === "tds" ? "#92400e" : "#475569",
+                        fontWeight: "700",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      🛡️ TDS Deducted
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdjustData({ ...adjustData, particulars: "debit" })}
+                      style={{
+                        padding: "0.5rem",
+                        borderRadius: "8px",
+                        border: adjustData.particulars === "debit" ? "2px solid #e11d48" : "1px solid #cbd5e1",
+                        backgroundColor: adjustData.particulars === "debit" ? "#ffe4e6" : "#fff",
+                        color: adjustData.particulars === "debit" ? "#9f1239" : "#475569",
+                        fontWeight: "700",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      📉 Bill Correction
+                    </button>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-                  <button type="button" onClick={() => setPayBillOpen(false)} style={{ background: "#f1f5f9", color: "#475569", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                  <button type="submit" disabled={payingBill} style={{ background: "#8b5cf6", color: "white", border: "none", padding: "0.65rem 1rem", borderRadius: "8px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}>
-                    {payingBill ? "Processing..." : "Confirm Payment"}
-                  </button>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>VENDOR NAME</label>
+                  <input type="text" value={adjustData.vendor} disabled style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#f1f5f9", color: "#64748b", boxSizing: "border-box" }} />
                 </div>
-              </form>
-            </motion.div>
+
+                {adjustData.billNo && (
+                  <div style={{ padding: "0.6rem 0.8rem", borderRadius: "8px", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", fontSize: "0.75rem", color: "#475569" }}>
+                    <span>Bill Number: <strong>{adjustData.billNo}</strong> (Total: ₹{adjustData.billAmount})</span>
+                  </div>
+                )}
+                
+                {/* TDS Percentage quick helper */}
+                {adjustData.particulars === "tds" && (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>TDS RATE (%)</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      {["0.1", "1", "2", "5", "10"].map((rate) => (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => {
+                            const pct = Number(rate);
+                            const amt = Math.round((adjustData.billAmount * pct) / 100);
+                            setAdjustData({ ...adjustData, percentage: rate, amount: String(amt) });
+                          }}
+                          style={{
+                            padding: "0.35rem 0.6rem",
+                            borderRadius: "6px",
+                            border: adjustData.percentage === rate ? "1.5px solid #d97706" : "1px solid #cbd5e1",
+                            backgroundColor: adjustData.percentage === rate ? "#fef3c7" : "#fff",
+                            color: adjustData.percentage === rate ? "#92400e" : "#475569",
+                            fontSize: "0.75rem",
+                            fontWeight: "600",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {rate}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
+                    {adjustData.particulars === "tds" ? "TDS DEDUCTED AMOUNT (₹) *" : "CORRECTION AMOUNT (₹) *"}
+                  </label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={adjustData.amount} 
+                    onChange={(e) => setAdjustData({ ...adjustData, amount: e.target.value })} 
+                    required 
+                    style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1.5px solid #d97706", boxSizing: "border-box", outline: "none", fontWeight: "700", color: "#92400e" }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>ADJUSTMENT DATE *</label>
+                  <input 
+                    type="date" 
+                    value={adjustData.date} 
+                    onChange={(e) => setAdjustData({ ...adjustData, date: e.target.value })} 
+                    required 
+                    style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", boxSizing: "border-box", outline: "none" }} 
+                  />
+                </div>
+              </div>
+
+              {/* Modal Sticky Footer */}
+              <div className="modal-footer-section">
+                <button type="button" onClick={() => setAdjustModalOpen(false)} style={{ background: "#ffffff", color: "#475569", border: "1px solid #cbd5e1", padding: "0.45rem 1rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer" }}>Cancel</button>
+                <button type="submit" disabled={submittingAdjust} style={{ background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)", color: "white", border: "none", padding: "0.45rem 1.5rem", borderRadius: "8px", fontWeight: "600", fontSize: "0.85rem", cursor: submittingAdjust ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 4px rgba(180, 83, 9, 0.25)" }}>
+                  {submittingAdjust ? "Saving..." : "Save Adjustment"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

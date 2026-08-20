@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Layers,
   Trash2,
+  Calendar,
   Globe
 } from "lucide-react";
 
@@ -94,6 +95,18 @@ export const menuItems = [
         icon: <DollarSign size={18} />,
         permission: "cash_sheet",
         moduleKey: "cashEntries"
+      },
+      {
+        name: "TDS & Debt Adjustment",
+        path: "/outstanding",
+        icon: <DollarSign size={18} />,
+        permission: "accounts"
+      },
+      {
+        name: "Opening Balances & FY Close",
+        path: "/opening-outstanding",
+        icon: <Calendar size={18} />,
+        permission: "accounts"
       },
     ],
   },

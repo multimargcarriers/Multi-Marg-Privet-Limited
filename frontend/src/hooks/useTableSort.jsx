@@ -23,8 +23,8 @@ const useTableSort = (data, defaultSort = "newest", config = {}) => {
       const nameA = (a[nameKey] || a.client || a.vendor || a.city || a.branch || "").toString().toLowerCase();
       const nameB = (b[nameKey] || b.client || b.vendor || b.city || b.branch || "").toString().toLowerCase();
 
-      const billNoA = (a.invoice || a.billNo || a.awb || a.consignment || a.lrNo || "").toString();
-      const billNoB = (b.invoice || b.billNo || b.awb || b.consignment || b.lrNo || "").toString();
+      const billNoA = (a.invoice || a.billNo || a.id || a.awb || a.consignment || a.lrNo || "").toString();
+      const billNoB = (b.invoice || b.billNo || b.id || b.awb || b.consignment || b.lrNo || "").toString();
 
       switch (sortOption) {
         case "newest":

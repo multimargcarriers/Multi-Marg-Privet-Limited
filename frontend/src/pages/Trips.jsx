@@ -652,16 +652,14 @@ const Trips = () => {
               <datalist id="type-options">
                 {form.mode === 'AIR' && (
                   <>
-                    <option value="GCR FLIGHT" />
-                    <option value="PRIME FLIGHT" />
-                    <option value="EXPRESS MODE" />
+                    <option value="GCR AIR" />
+                    <option value="PRIME AIR" />
                   </>
                 )}
                 {form.mode === 'ROAD' && (
                   <>
                     <option value="FTL" />
                     <option value="PTL" />
-                    <option value="EXPRESS" />
                   </>
                 )}
               </datalist>

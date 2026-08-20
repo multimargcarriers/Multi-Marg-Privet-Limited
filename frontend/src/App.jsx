@@ -31,6 +31,8 @@ import ClientTripReports from "./pages/reports/ClientTripReports";
 import Analytics from "./pages/Analytics";
 
 import MiscBill from "./pages/MiscBill";
+import TdsDebtManagement from "./pages/TdsDebtManagement";
+import OpeningOutstanding from "./pages/OpeningOutstanding";
 import Profile from './pages/Profile';
 import EmployeeActivity from './pages/EmployeeActivity';
 import POD from "./pages/POD";
@@ -168,6 +170,8 @@ function App() {
             <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
               <Route path="/cash-sheet" element={<ProtectedRoute requiredPermission="cash_sheet"><CashSheet /></ProtectedRoute>} />
               <Route path="/purchases" element={<ProtectedRoute requiredPermission="purchases"><Purchase /></ProtectedRoute>} />
+              <Route path="/outstanding" element={<ProtectedRoute requiredPermission="accounts"><TdsDebtManagement /></ProtectedRoute>} />
+              <Route path="/opening-outstanding" element={<ProtectedRoute requiredPermission="accounts"><OpeningOutstanding /></ProtectedRoute>} />
             </Route>
 
             
