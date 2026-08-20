@@ -143,7 +143,8 @@ const Profile = () => {
         if (response.data?.success) {
           addToast("Avatar uploaded and updated successfully!", "success");
           const updatedUser = response.data.data.user;
-          if (updatedUser?.photo) setPhotoPreview(updatedUser.photo);
+          const newPhoto = updatedUser?.photo || updatedUser?.avatar || updatedUser?.photoUrl;
+          if (newPhoto) setPhotoPreview(newPhoto);
           updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update avatar", "error");
@@ -178,7 +179,8 @@ const Profile = () => {
         if (response.data?.success) {
           addToast("Banner uploaded and updated successfully!", "success");
           const updatedUser = response.data.data.user;
-          if (updatedUser?.banner) setBannerPreview(updatedUser.banner);
+          const newBanner = updatedUser?.banner || updatedUser?.bannerUrl;
+          if (newBanner) setBannerPreview(newBanner);
           updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update banner", "error");

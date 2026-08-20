@@ -552,8 +552,15 @@ exports.put_profile_2 = async (req, res) => {
     if (taken) return error(res, { message: `Employee ID already exists. Please contact the administrator at ${process.env.ENQUIRY_EMAIL || 'info@multimarg.com'}.`, statusCode: 400 });
   }
 
-  if (photoUrl) updates.photo = photoUrl;
-  if (bannerUrl) updates.banner = bannerUrl;
+  if (photoUrl) {
+    updates.photo = photoUrl;
+    updates.avatar = photoUrl;
+    updates.photoUrl = photoUrl;
+  }
+  if (bannerUrl) {
+    updates.banner = bannerUrl;
+    updates.bannerUrl = bannerUrl;
+  }
 
   const docRef = db.collection("users").doc(userId);
   const doc = await docRef.get();
