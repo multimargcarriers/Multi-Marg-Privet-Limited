@@ -161,6 +161,26 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         }
     }
     
+    // Invalidate all related dependent caches
+    await Promise.all([
+        delCache("bills"),
+        delCache("purchases"),
+        delCache("outstanding"),
+        delCache("cashEntries"),
+        delCache("openingBalances"),
+        delCache("clients"),
+        delCache("vendors")
+    ]);
+
+    try {
+        const { emitDataUpdated } = require("./socket");
+        emitDataUpdated("bills");
+        emitDataUpdated("purchases");
+        emitDataUpdated("outstanding");
+        emitDataUpdated("cashEntries");
+        emitDataUpdated("openingBalances");
+    } catch (err) {}
+
     try {
         runAnalyticsAggregation();
     } catch (e) {

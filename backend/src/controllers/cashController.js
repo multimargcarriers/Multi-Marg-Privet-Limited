@@ -83,8 +83,15 @@ exports.delete_id_3 = async (req, res) => {
   }
 
   await docRef.delete(req.user);
-  await delCache(CACHE_KEY);
-  emitDataUpdated("cashEntries", "create");
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bills"),
+    delCache("purchases"),
+    delCache("outstanding"),
+    delCache("openingBalances")
+  ]);
+  emitDataUpdated("cashEntries", "delete");
+  emitDataUpdated("outstanding", "update");
   await recalculatePartyPayments(data.partyType, data.partyName);
   return success(res, "Cash entry deleted successfully");
 };

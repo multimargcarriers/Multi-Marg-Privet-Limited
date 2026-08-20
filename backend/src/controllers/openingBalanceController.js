@@ -369,7 +369,25 @@ exports.closeFinancialYear = async (req, res) => {
       }
     }
 
-    // H. CLEAR ALL RELEVANT REDIS CACHES
+    // H. PURGE PRIOR CASH SHEET ENTRIES (ROLLED INTO OPENING BALANCE)
+    let cashEntriesDeleted = 0;
+    for (const cash of cashEntries) {
+      if (isPriorOrEqual(cash.date || cash.createdAt)) {
+        await db.collection("cashEntries").doc(cash.id).delete(req.user);
+        cashEntriesDeleted++;
+      }
+    }
+
+    // I. PURGE PRIOR TDS & DEBT ADJUSTMENTS (ROLLED INTO OPENING BALANCE)
+    let adjustmentsDeleted = 0;
+    for (const adj of adjustments) {
+      if (isPriorOrEqual(adj.date || adj.createdAt)) {
+        await db.collection("outstanding").doc(adj.id).delete(req.user);
+        adjustmentsDeleted++;
+      }
+    }
+
+    // J. CLEAR ALL RELEVANT REDIS CACHES
     await Promise.all([
       delCache(CACHE_KEY),
       delCache("bills"),
@@ -388,7 +406,9 @@ exports.closeFinancialYear = async (req, res) => {
       billsDeleted,
       purchasesDeleted,
       awbsDeleted,
-      awbsRetainedUnbilled
+      awbsRetainedUnbilled,
+      cashEntriesDeleted,
+      adjustmentsDeleted
     });
   } catch (err) {
     console.error("closeFinancialYear error:", err);

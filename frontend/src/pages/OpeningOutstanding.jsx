@@ -328,7 +328,7 @@ const OpeningOutstanding = () => {
       const r = res.data.data;
       alertDialog({
         title: "Financial Year Closed Successfully!",
-        message: `FY Rollover Complete:\n• ${r.clientsCarriedForward} Client opening balances created\n• ${r.vendorsCarriedForward} Vendor opening balances created\n• ${r.billsDeleted} prior sales bills cleared\n• ${r.purchasesDeleted} prior purchase bills cleared\n• ${r.awbsDeleted} prior completed AWBs cleared\n• ${r.awbsRetainedUnbilled} pending/unbilled AWBs SAFELY PRESERVED for new billing.`
+        message: `FY Rollover Complete:\n• ${r.clientsCarriedForward} Client opening balances created\n• ${r.vendorsCarriedForward} Vendor opening balances created\n• ${r.billsDeleted} prior sales bills cleared\n• ${r.purchasesDeleted} prior purchase bills cleared\n• ${r.cashEntriesDeleted || 0} prior cash sheet settlements archived\n• ${r.adjustmentsDeleted || 0} prior TDS/DEBT adjustments archived\n• ${r.awbsDeleted} prior completed AWBs cleared\n• ${r.awbsRetainedUnbilled} pending/unbilled AWBs SAFELY PRESERVED for new billing.`
       });
     } catch (err) {
       console.error("Close FY error:", err);

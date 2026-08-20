@@ -160,9 +160,11 @@ sequenceDiagram
     end
 
     rect rgb(255, 240, 240)
-    Note over API,DB: Step 2: Purge Prior Invoices
+    Note over API,DB: Step 2: Purge Prior Invoices & Financial Settlements
     API->>DB: Delete `bills` with date <= 31-03-2026
     API->>DB: Delete `purchases` with date <= 31-03-2026
+    API->>DB: Delete `cashEntries` with date <= 31-03-2026 (rolled into opening balance)
+    API->>DB: Delete `outstanding` (TDS/DEBT) with date <= 31-03-2026
     end
 
     rect rgb(240, 255, 240)
@@ -172,8 +174,8 @@ sequenceDiagram
     API->>API: STRICTLY PRESERVE if unbilled / pending
     end
 
-    API->>Cache: delCache("bookings", "bills", "purchases", "openingBalances")
-    API-->>UI: Return summary (Clients carried, Vendors carried, Bills deleted, AWBs retained)
+    API->>Cache: delCache("bookings", "bills", "purchases", "cashEntries", "outstanding", "openingBalances")
+    API-->>UI: Return summary (Clients carried, Vendors carried, Bills deleted, Cash cleared, AWBs retained)
     UI-->>Admin: Display Confirmation Summary Alert
 ```
 
