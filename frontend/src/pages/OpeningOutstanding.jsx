@@ -24,6 +24,7 @@ import {
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
 import Table from "../components/Table";
+import { formatDate } from "../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -283,13 +284,13 @@ const OpeningOutstanding = () => {
       "Financial Year": e.financialYear,
       "Party Type": e.partyType,
       "Party Name": e.partyName,
-      "Opening Outstanding (₹)": e.openingOutstanding,
-      "Prior Billed (₹)": e.totalBilledPrior || 0,
-      "Prior Paid (₹)": e.totalPaidPrior || 0,
-      "Prior TDS (₹)": e.totalTdsPrior || 0,
-      "Prior DEBT (₹)": e.totalDebtPrior || 0,
-      "Cutoff Date": e.asOfDate,
-      "Effective Starting Date": e.effectiveFrom,
+      "Closing Balance (₹)": e.totalBilledPrior || 0,
+      "Amount Received (₹)": e.totalPaidPrior || 0,
+      "TDS (₹)": e.totalTdsPrior || 0,
+      "Bad Debt / Debit (₹)": e.totalDebtPrior || 0,
+      "Outstanding (₹)": e.openingOutstanding,
+      "Cutoff Date": formatDate(e.asOfDate),
+      "Effective Starting Date": formatDate(e.effectiveFrom),
       "Notes / Reference": e.notes || ""
     }));
 
@@ -520,7 +521,7 @@ const OpeningOutstanding = () => {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "0.75rem", fontWeight: "700", color: partyTab === "Vendor" ? "#5b21b6" : "#1e3a8a", textTransform: "uppercase" }}>
-                {partyTab === "Vendor" ? "Vendor Opening Due" : (partyTab === "Client" ? "Client Opening Due" : "Client Opening Due")}
+                {partyTab === "Vendor" ? "Vendor Outstanding" : "Client Outstanding"}
               </span>
               {partyTab === "Vendor" ? <Building2 size={16} style={{ color: "#5b21b6" }} /> : <Users size={16} style={{ color: "#1e3a8a" }} />}
             </div>
@@ -529,30 +530,30 @@ const OpeningOutstanding = () => {
             </div>
           </div>
           <span style={{ fontSize: "0.7rem", color: partyTab === "Vendor" ? "#7c3aed" : "#3b82f6" }}>
-            {partyTab === "Vendor" ? "Total payable to vendors before 31 Mar" : "Total receivable from clients before 31 Mar"}
+            {partyTab === "Vendor" ? "Total net payable to vendors" : "Total net receivable from clients"}
           </span>
         </div>
 
-        {/* Card 2: Vendor Due (in All view) OR Prior Invoiced */}
+        {/* Card 2: Vendor Due (in All view) OR Closing Balance */}
         {partyTab === "All" ? (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)", border: "1px solid #ddd6fe", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#5b21b6", textTransform: "uppercase" }}>Vendor Opening Due</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#5b21b6", textTransform: "uppercase" }}>Vendor Outstanding</span>
                 <Building2 size={16} style={{ color: "#5b21b6" }} />
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#5b21b6", margin: "0.5rem 0" }}>
                 ₹{metrics.vendorOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#7c3aed" }}>Payable to vendors before 31 Mar</span>
+            <span style={{ fontSize: "0.7rem", color: "#7c3aed" }}>Net payable to vendors</span>
           </div>
         ) : (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#14532d", textTransform: "uppercase" }}>
-                  {partyTab === "Vendor" ? "Vendor Invoiced" : "Client Invoiced"}
+                  Closing Balance
                 </span>
                 <Activity size={16} style={{ color: "#14532d" }} />
               </div>
@@ -560,30 +561,30 @@ const OpeningOutstanding = () => {
                 ₹{metrics.totalPriorBilled.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#22c55e" }}>Invoiced before financial year close</span>
+            <span style={{ fontSize: "0.7rem", color: "#22c55e" }}>Total gross balance</span>
           </div>
         )}
 
-        {/* Card 3: Prior Total Billed (in All view) OR Prior Paid */}
+        {/* Card 3: Closing Balance (in All view) OR Amount Received */}
         {partyTab === "All" ? (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#14532d", textTransform: "uppercase" }}>Prior Total Billed</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#14532d", textTransform: "uppercase" }}>Closing Balance</span>
                 <Activity size={16} style={{ color: "#14532d" }} />
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#14532d", margin: "0.5rem 0" }}>
                 ₹{metrics.totalPriorBilled.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#22c55e" }}>Invoiced before financial year close</span>
+            <span style={{ fontSize: "0.7rem", color: "#22c55e" }}>Total gross balance</span>
           </div>
         ) : (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: "1px solid #fde68a", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#78350f", textTransform: "uppercase" }}>
-                  {partyTab === "Vendor" ? "Vendor Payments" : "Client Payments"}
+                  Amount Received
                 </span>
                 <TrendingUp size={16} style={{ color: "#78350f" }} />
               </div>
@@ -591,36 +592,36 @@ const OpeningOutstanding = () => {
                 ₹{metrics.totalPriorPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#78350f" }}>Payments cleared before 31 Mar</span>
+            <span style={{ fontSize: "0.7rem", color: "#78350f" }}>Total payments received</span>
           </div>
         )}
 
-        {/* Card 4: Prior Paid (in All view) OR Prior TDS & DEBT */}
+        {/* Card 4: Amount Received (in All view) OR TDS & Adjustments */}
         {partyTab === "All" ? (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: "1px solid #fde68a", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#78350f", textTransform: "uppercase" }}>Prior Total Paid</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#78350f", textTransform: "uppercase" }}>Amount Received</span>
                 <TrendingUp size={16} style={{ color: "#78350f" }} />
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#78350f", margin: "0.5rem 0" }}>
                 ₹{metrics.totalPriorPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#78350f" }}>Payments cleared before 31 Mar</span>
+            <span style={{ fontSize: "0.7rem", color: "#78350f" }}>Total payments received</span>
           </div>
         ) : (
           <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)", border: "1px solid #fecdd3", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#881337", textTransform: "uppercase" }}>Prior TDS & DEBT</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#881337", textTransform: "uppercase" }}>TDS & DEBT</span>
                 <TrendingDown size={16} style={{ color: "#881337" }} />
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#881337", margin: "0.5rem 0" }}>
                 ₹{(metrics.totalPriorTds + metrics.totalPriorDebt).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
               </div>
             </div>
-            <span style={{ fontSize: "0.7rem", color: "#f43f5e" }}>TDS & corrections before 31 Mar</span>
+            <span style={{ fontSize: "0.7rem", color: "#f43f5e" }}>TDS & debt adjustments</span>
           </div>
         )}
 
@@ -629,7 +630,7 @@ const OpeningOutstanding = () => {
       {/* Main Table */}
       <div style={{ marginBottom: "2rem" }}>
         <Table
-          headers={["Financial Year", "Party Type", "Party Name", "Prior Invoiced", "Prior Paid", "Prior TDS", "Opening Balance", "Effective From", "Actions"]}
+          headers={["Financial Year", "Party Type", "Party Name", "Closing Balance", "Amount Received", "TDS", "Outstanding", "Effective From", "Actions"]}
           data={filteredList}
           loading={loading}
           pagination={true}
@@ -668,8 +669,8 @@ const OpeningOutstanding = () => {
                   ₹{(Number(item.openingOutstanding) || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </td>
 
-                <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                  {item.effectiveFrom || "01-04-2026"}
+                <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                  {formatDate(item.effectiveFrom || "2026-04-01")}
                 </td>
 
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
@@ -804,16 +805,124 @@ const OpeningOutstanding = () => {
                   </div>
                 </div>
 
-                {/* Opening Balance Amount */}
+                {/* Closing Balance (Prior Invoiced) Amount */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
+                      CLOSING BALANCE (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Total closing balance before 31 March"
+                      value={formData.totalBilledPrior}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const billed = parseFloat(val) || 0;
+                        const paid = parseFloat(formData.totalPaidPrior) || 0;
+                        const tds = parseFloat(formData.totalTdsPrior) || 0;
+                        const debt = parseFloat(formData.totalDebtPrior) || 0;
+                        const calculatedOutstanding = Math.max(0, billed - paid - tds - debt);
+                        setFormData({
+                          ...formData,
+                          totalBilledPrior: val,
+                          openingOutstanding: calculatedOutstanding > 0 ? String(calculatedOutstanding) : String(billed)
+                        });
+                      }}
+                      style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1.5px solid #0284c7", fontWeight: "700", color: "#0369a1" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
+                      AMOUNT RECEIVED (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Amount received before 31 Mar"
+                      value={formData.totalPaidPrior}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const paid = parseFloat(val) || 0;
+                        const billed = parseFloat(formData.totalBilledPrior) || 0;
+                        const tds = parseFloat(formData.totalTdsPrior) || 0;
+                        const debt = parseFloat(formData.totalDebtPrior) || 0;
+                        const calculatedOutstanding = Math.max(0, billed - paid - tds - debt);
+                        setFormData({
+                          ...formData,
+                          totalPaidPrior: val,
+                          openingOutstanding: billed > 0 ? String(calculatedOutstanding) : formData.openingOutstanding
+                        });
+                      }}
+                      style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    />
+                  </div>
+                </div>
+
+                {/* TDS and Bad Debt */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
+                      TDS (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="TDS before 31 Mar"
+                      value={formData.totalTdsPrior}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const tds = parseFloat(val) || 0;
+                        const billed = parseFloat(formData.totalBilledPrior) || 0;
+                        const paid = parseFloat(formData.totalPaidPrior) || 0;
+                        const debt = parseFloat(formData.totalDebtPrior) || 0;
+                        const calculatedOutstanding = Math.max(0, billed - paid - tds - debt);
+                        setFormData({
+                          ...formData,
+                          totalTdsPrior: val,
+                          openingOutstanding: billed > 0 ? String(calculatedOutstanding) : formData.openingOutstanding
+                        });
+                      }}
+                      style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
+                      BAD DEBT / DEBIT (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Bad debts before 31 Mar"
+                      value={formData.totalDebtPrior}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const debt = parseFloat(val) || 0;
+                        const billed = parseFloat(formData.totalBilledPrior) || 0;
+                        const paid = parseFloat(formData.totalPaidPrior) || 0;
+                        const tds = parseFloat(formData.totalTdsPrior) || 0;
+                        const calculatedOutstanding = Math.max(0, billed - paid - tds - debt);
+                        setFormData({
+                          ...formData,
+                          totalDebtPrior: val,
+                          openingOutstanding: billed > 0 ? String(calculatedOutstanding) : formData.openingOutstanding
+                        });
+                      }}
+                      style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Outstanding Amount */}
                 <div>
                   <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#475569", marginBottom: "0.4rem" }}>
-                    OPENING OUTSTANDING AMOUNT (₹) *
+                    OUTSTANDING (₹) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    placeholder="Net pending balance from prior year"
+                    placeholder="Net outstanding balance from prior year"
                     value={formData.openingOutstanding}
                     onChange={(e) => setFormData({ ...formData, openingOutstanding: e.target.value })}
                     style={{ width: "100%", padding: "0.55rem 0.75rem", borderRadius: "8px", border: "1.5px solid #3b82f6", fontWeight: "700", color: "#1d4ed8" }}

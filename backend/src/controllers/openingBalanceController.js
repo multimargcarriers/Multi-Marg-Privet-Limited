@@ -162,11 +162,24 @@ exports.updateOpeningBalance = async (req, res) => {
     const updateData = {
       ...req.body,
       openingOutstanding: Number(req.body.openingOutstanding) || 0,
+      totalBilledPrior: Number(req.body.totalBilledPrior) || 0,
+      totalPaidPrior: Number(req.body.totalPaidPrior) || 0,
+      totalTdsPrior: Number(req.body.totalTdsPrior) || 0,
+      totalDebtPrior: Number(req.body.totalDebtPrior) || 0,
       updatedAt: new Date().toISOString()
     };
+    if (updateData.totalBilledPrior) {
+      updateData.initialOpeningDue = updateData.totalBilledPrior;
+    }
 
     await db.collection("openingBalances").doc(id).update(updateData);
     await delCache(CACHE_KEY);
+
+    // Re-evaluate party payments with the updated prior invoice amount
+    try {
+      const { recalculatePartyPayments } = require("../utils/paymentUtils");
+      await recalculatePartyPayments(updateData.partyType || doc.data().partyType, updateData.partyName || doc.data().partyName);
+    } catch (rErr) {}
 
     return success(res, "Opening balance updated successfully", { id, ...updateData });
   } catch (err) {

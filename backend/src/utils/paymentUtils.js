@@ -9,12 +9,13 @@ const escapeRegExp = (string) => {
 const recalculatePartyPayments = async (partyType, partyName) => {
     if (!partyType || !partyName) return;
 
+    const normType = String(partyType || '').trim().toLowerCase();
     const escapedPartyName = escapeRegExp(partyName);
     const regex = new RegExp(`^${escapedPartyName}$`, "i");
 
-    if (partyType === 'Client') {
+    if (normType === 'client') {
         const cashDocs = await db.mongoDb.collection("cashEntries").find({
-            partyType: "Client",
+            partyType: { $regex: /^client$/i },
             partyName: { $regex: regex }
         }).toArray();
 
@@ -35,7 +36,7 @@ const recalculatePartyPayments = async (partyType, partyName) => {
 
         // 1. Clear Prior Opening Outstanding FIRST with General Payments
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
-            partyType: "Client",
+            partyType: { $regex: /^client$/i },
             partyName: { $regex: regex }
         });
 
@@ -43,23 +44,24 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         let openingPaid = 0;
 
         if (openDoc) {
-            const openBilled = Number(openDoc.totalBilledPrior || openDoc.openingOutstanding) || 0;
+            const initialBaseline = Number(openDoc.initialOpeningDue || openDoc.totalBilledPrior || (Number(openDoc.openingOutstanding || 0) + Number(openDoc.totalPaidPrior || 0))) || 0;
             const openTds = Number(openDoc.totalTdsPrior) || 0;
             const openDebt = Number(openDoc.totalDebtPrior) || 0;
-            const maxPayable = Math.max(0, openBilled - openTds - openDebt);
+            const maxPayable = Math.max(0, initialBaseline - openTds - openDebt);
 
             openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
             remainingGeneral -= openingPaid;
 
-            const newOpeningDue = Number((openBilled - openingPaid - openTds - openDebt).toFixed(2));
+            const newOpeningDue = Number(Math.max(0, maxPayable - openingPaid).toFixed(2));
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                initialOpeningDue: initialBaseline,
                 totalPaidPrior: Number(openingPaid.toFixed(2)),
                 openingOutstanding: newOpeningDue,
                 updatedAt: new Date().toISOString()
             });
         }
 
-        // 2. Cascade Remaining General Payments + Direct Payments to Bills
+        // 2. Cascade Remaining General Payments (excess after opening balance is 0) + Direct Payments to Bills
         const billsDocs = await db.mongoDb.collection("bills").find({
             client: { $regex: regex }
         }).toArray();
@@ -98,7 +100,7 @@ const recalculatePartyPayments = async (partyType, partyName) => {
                     return infoA.sequence - infoB.sequence;
                 }
             }
-            return new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0);
+            return new Date(a.createdAt || a.date || a.invoice_date || 0) - new Date(b.createdAt || b.date || b.invoice_date || 0);
         });
 
         for (const bill of billsDocs) {
@@ -124,17 +126,23 @@ const recalculatePartyPayments = async (partyType, partyName) => {
                 });
             }
         }
-        await delCache("bills");
+        await Promise.all([
+            delCache("bills"),
+            delCache("openingBalances"),
+            delCache("outstanding")
+        ]);
         try {
             const { emitDataUpdated } = require("./socket");
             emitDataUpdated("bills");
+            emitDataUpdated("openingBalances");
+            emitDataUpdated("outstanding");
         } catch (err) {
             console.error("Socket emit failed for bills", err);
         }
     }
-    else if (partyType === 'Vendor') {
+    else if (normType === 'vendor') {
         const cashDocs = await db.mongoDb.collection("cashEntries").find({
-            partyType: "Vendor",
+            partyType: { $regex: /^vendor$/i },
             partyName: { $regex: regex }
         }).toArray();
 
@@ -155,7 +163,7 @@ const recalculatePartyPayments = async (partyType, partyName) => {
 
         // 1. Clear Prior Opening Outstanding FIRST with General Payments
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
-            partyType: "Vendor",
+            partyType: { $regex: /^vendor$/i },
             partyName: { $regex: regex }
         });
 
@@ -163,16 +171,17 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         let openingPaid = 0;
 
         if (openDoc) {
-            const openBilled = Number(openDoc.totalBilledPrior || openDoc.openingOutstanding) || 0;
+            const initialBaseline = Number(openDoc.initialOpeningDue || openDoc.totalBilledPrior || (Number(openDoc.openingOutstanding || 0) + Number(openDoc.totalPaidPrior || 0))) || 0;
             const openTds = Number(openDoc.totalTdsPrior) || 0;
             const openDebt = Number(openDoc.totalDebtPrior) || 0;
-            const maxPayable = Math.max(0, openBilled - openTds - openDebt);
+            const maxPayable = Math.max(0, initialBaseline - openTds - openDebt);
 
             openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
             remainingGeneral -= openingPaid;
 
-            const newOpeningDue = Number((openBilled - openingPaid - openTds - openDebt).toFixed(2));
+            const newOpeningDue = Number(Math.max(0, maxPayable - openingPaid).toFixed(2));
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                initialOpeningDue: initialBaseline,
                 totalPaidPrior: Number(openingPaid.toFixed(2)),
                 openingOutstanding: newOpeningDue,
                 updatedAt: new Date().toISOString()

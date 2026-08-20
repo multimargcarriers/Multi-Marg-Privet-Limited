@@ -428,6 +428,13 @@ const TdsDebtManagement = () => {
     setBillSearchResults([]);
   };
 
+  const handleParticularsChange = (val) => {
+    setForm(prev => ({
+      ...prev,
+      particulars: val
+    }));
+  };
+
   // Bidirectional calculations
   const handlePercentageChange = (e) => {
     const pct = e.target.value;

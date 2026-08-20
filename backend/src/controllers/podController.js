@@ -79,7 +79,86 @@ exports.postRoot_2 = async (req, res) => {
   }
 
   const docRef = await db.collection("pod").add(entry);
-  await delCache(CACHE_KEY);
+
+  // --- AUTO-MARK TRACKING & BOOKINGS AS DELIVERED WITH DESTINATION ADDRESS ---
+  try {
+    const awbNo = String(entry.lrNo || '').trim();
+    if (awbNo && awbNo !== 'UNKNOWN') {
+      let destAddress = entry.destination !== '-' ? entry.destination : '';
+      let matchedBookingDocId = entry.bookingId;
+
+      // Lookup booking to retrieve detailed destination address if missing or to update booking status
+      if (db.mongoDb) {
+        const escapedAwb = awbNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const awbRegex = new RegExp(`^${escapedAwb}$`, 'i');
+        const bookingDoc = await db.mongoDb.collection("bookings").findOne({
+          $or: [
+            { awb: awbRegex },
+            { awbNo: awbRegex },
+            { lrNumber: awbRegex },
+            { lrNo: awbRegex },
+            { consignment: awbRegex },
+            ...(matchedBookingDocId ? [{ _id: matchedBookingDocId }, { id: matchedBookingDocId }] : [])
+          ]
+        });
+
+        if (bookingDoc) {
+          matchedBookingDocId = bookingDoc.id || bookingDoc._id.toString();
+          destAddress = destAddress || bookingDoc.destinationAddress || bookingDoc.destination || bookingDoc.consigneeAddress || bookingDoc.consignee || 'Destination';
+          
+          // Update booking status to Delivered with POD URL
+          await db.collection("bookings").doc(matchedBookingDocId).update({
+            status: "Delivered",
+            deliveryDate: new Date().toISOString(),
+            podUploaded: true,
+            podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      destAddress = destAddress || "Destination";
+
+      // Check if a Delivered tracking event already exists for this AWB
+      const existingDelivered = db.mongoDb ? await db.mongoDb.collection("tracking").findOne({
+        awb: { $regex: new RegExp(`^${awbNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        status: { $regex: /^delivered$/i }
+      }) : null;
+
+      if (!existingDelivered) {
+        const trackingEntry = {
+          awb: awbNo,
+          status: "Delivered",
+          location: destAddress,
+          date: new Date().toISOString(),
+          remarks: `Proof of Delivery (POD) uploaded. Shipment delivered at ${destAddress}.`,
+          enteredBy: req.user?.name || req.user?.email || "System (Auto POD)",
+          enteredById: req.user?.id || null,
+          enteredByRole: req.user?.role || "System",
+          podUrl: entry.podUrl || entry.cloudinaryUrl || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        await db.collection("tracking").add(trackingEntry);
+      }
+    }
+  } catch (syncErr) {
+    console.error("[POD Auto-Delivery Tracking Error]:", syncErr);
+  }
+
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("tracking"),
+    delCache("bookings")
+  ]);
+
+  try {
+    const { emitDataUpdated } = require("../utils/socket");
+    emitDataUpdated("podEntries", "create");
+    emitDataUpdated("tracking", "create");
+    emitDataUpdated("bookings", "update");
+  } catch (sockErr) {}
+
   return created(res, "POD entry created successfully", {
     id: docRef.id,
     ...entry

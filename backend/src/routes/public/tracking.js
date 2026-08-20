@@ -132,6 +132,29 @@ router.get('/:awb', async (req, res) => {
         });
       }
 
+      // 3. Check if POD is uploaded for this shipment
+      const podDoc = db.mongoDb ? await db.mongoDb.collection("pod").findOne({
+        lrNo: { $in: queryVariations }
+      }) : null;
+
+      if (podDoc) {
+        const hasDeliveredStatus = entries.some(e => String(e.status || '').toLowerCase().includes("delivered"));
+        if (!hasDeliveredStatus) {
+          const podDate = podDoc.uploadedAt || podDoc.createdAt || new Date().toISOString();
+          const destLocation = (booking && (booking.destination || booking.consigneeAddress || booking.consignee)) || (podDoc.destination !== '-' ? podDoc.destination : '') || "Destination";
+          entries.push({
+            id: `pod-delivered-${podDoc.id || podDoc._id || baseAwb}`,
+            awb: baseAwb,
+            status: "Delivered",
+            location: destLocation,
+            date: podDate,
+            remarks: "Proof of Delivery (POD) uploaded. Shipment delivered at destination.",
+            podUrl: podDoc.podUrl || podDoc.cloudinaryUrl || null,
+            updatedAt: podDate
+          });
+        }
+      }
+
       entries.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }
 
