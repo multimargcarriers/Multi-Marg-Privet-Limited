@@ -1,72 +1,49 @@
-# 🌐 REST API Documentation
+# 🌐 Multi Marg Carriers - Master REST API Catalog
 
 Base URL: `http://localhost:5000/api` (or configured `VITE_API_URL`)
 
-All endpoints (except `/api/auth/login`) require the HTTP Authorization Header:
-`Authorization: Bearer <JWT_TOKEN>`
+All endpoints (except public authentication and tracking lookups) require the HTTP Authorization header:
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
 
 ---
 
-## 1. Authentication (`/api/auth`)
+## 📑 Detailed Subsystem API Guides
 
-* `POST /api/auth/login`: Authenticates user by username and password. Returns JWT token and user profile.
-* `GET /api/auth/profile`: Returns active user identity and role.
+For exhaustive schema fields, query parameters, request bodies, success/error responses, and side-effect mechanics, reference the dedicated subsystem guides:
 
----
-
-## 2. Opening Balances & FY Close (`/api/opening-balances`)
-
-* `GET /api/opening-balances`: List all opening balances (supports `?financialYear=2026-2027&partyType=Client`).
-* `POST /api/opening-balances`: Create manual opening balance entry.
-* `PUT /api/opening-balances/:id`: Update existing opening balance entry.
-* `DELETE /api/opening-balances/:id`: Delete opening balance entry.
-* `POST /api/opening-balances/close-fy`:
-  * **Payload**: `{ cutoffDate: "2026-03-31", targetFY: "2026-2027", effectiveDate: "2026-04-01", notes: "..." }`
-  * **Action**: Calculates net party closing balances, saves opening balance records, archives completed prior bills and AWBs, and strictly preserves unbilled AWBs.
-
----
-
-## 3. TDS & DEBT Adjustments (`/api/outstanding`)
-
-* `GET /api/outstanding`: Returns all TDS & DEBT entries.
-* `POST /api/outstanding`: Create new adjustment (requires `partyType`, `client` or `vendor`, `particulars` (`tds`/`debit`), `amount`, `date`).
-* `PUT /api/outstanding/:id`: Edit adjustment entry.
-* `DELETE /api/outstanding/:id`: Delete adjustment entry.
+| Subsystem | Scope & Endpoints | Detailed Spec Guide |
+| :--- | :--- | :--- |
+| **Authentication & Users** | Login, Profile, Users, Branches, RBAC | 🔐 **[`AUTH_USERS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/AUTH_USERS_API.md)** |
+| **AWB Bookings & Tracking** | Bookings, POD upload, Milestone Checkpoints, Tracking | 📦 **[`BOOKINGS_TRACKING_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/BOOKINGS_TRACKING_API.md)** |
+| **Client Sales Invoicing** | Bill generation, GST calculation, Unbilled AWB reports | 🧾 **[`BILLS_INVOICING_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/BILLS_INVOICING_API.md)** |
+| **Vendor Management & Purchases** | Vendor master, Purchase invoices, Linehaul expenses | 🏢 **[`PURCHASES_VENDORS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/PURCHASES_VENDORS_API.md)** |
+| **Cash Sheet & Settlements** | Receipts (`in`), Payments (`out`), Vouchers, Bank allocations | 💵 **[`CASH_SETTLEMENTS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/CASH_SETTLEMENTS_API.md)** |
+| **TDS & DEBT Adjustments** | Dual Client/Vendor non-cash deductions, Form 26AS tracking | ⚖️ **[`TDS_DEBT_ADJUSTMENTS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/TDS_DEBT_ADJUSTMENTS_API.md)** |
+| **Opening Balances & FY Close** | Stored prior FY balances, Automated Year-End Rollover | 📈 **[`OPENING_BALANCES_FY_CLOSE_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/OPENING_BALANCES_FY_CLOSE_API.md)** |
+| **Trips, Trip MIS & Vendor MIS** | Internal manifests, Vendor trips, Linehaul tracking | 🚚 **[`TRIPS_MIS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/TRIPS_MIS_API.md)** |
+| **Rate Master & Directory** | Lane rates per kg, Client directory, City master | 🏷️ **[`RATES_MASTERS_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/RATES_MASTERS_API.md)** |
+| **Settings, Trash & Audit Logs** | Trash soft-delete, Restore, CSV backups, Audit logs | ⚙️ **[`SETTINGS_SYSTEM_API.md`](file:///c:/Users/impra/OneDrive/Desktop/Logistics%20Softwares/soft.multimargcarriers.co.in/docs/api/SETTINGS_SYSTEM_API.md)** |
 
 ---
 
-## 4. Bookings & Shipments (`/api/bookings`)
+## ⚡ Global Response Envelope Standards
 
-* `GET /api/bookings`: Fetch list of all AWB bookings.
-* `POST /api/bookings`: Create new booking with rate calculations.
-* `GET /api/bookings/:id`: Retrieve single booking details.
-* `PUT /api/bookings/:id`: Update booking.
-* `DELETE /api/bookings/:id`: Delete booking.
+### Standard Success Envelope (200 / 201):
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "data": { ... }
+}
+```
 
----
-
-## 5. Billing & Purchase (`/api/bills` & `/api/purchases`)
-
-* `GET /api/bills`: List sales invoices.
-* `POST /api/bills`: Generate new invoice and link unbilled AWBs.
-* `DELETE /api/bills/:id`: Cancel / delete invoice (resets linked AWBs to unbilled).
-* `GET /api/purchases`: List vendor purchase invoices.
-* `POST /api/purchases`: Create vendor invoice.
-* `DELETE /api/purchases/:id`: Delete vendor invoice.
-
----
-
-## 6. Cash Sheet (`/api/cash`)
-
-* `GET /api/cash`: Fetch transaction ledger entries.
-* `POST /api/cash`: Record cash in (receipt) or cash out (payment).
-* `DELETE /api/cash/:id`: Delete transaction entry.
-
----
-
-## 7. Trips & Vendor MIS (`/api/trips`, `/api/vendor-mis`)
-
-* `GET /api/trips`: List all trip manifests.
-* `POST /api/trips`: Create new trip manifest.
-* `GET /api/vendor-mis`: List vendor line-haul entries.
-* `POST /api/vendor-mis`: Create vendor MIS entry.
+### Standard Error Envelope (400 / 401 / 403 / 404 / 500):
+```json
+{
+  "success": false,
+  "error": "Detailed error description",
+  "details": [ ... ]
+}
+```
