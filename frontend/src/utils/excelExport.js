@@ -86,14 +86,14 @@ export async function buildProfessionalExcelReport({
   }));
 
   // 2. Set Row Heights for Header Section
-  worksheet.getRow(1).height = 24;
-  worksheet.getRow(2).height = 16;
-  worksheet.getRow(3).height = 16;
-  worksheet.getRow(4).height = 16;
-  worksheet.getRow(5).height = 16;
-  worksheet.getRow(6).height = 6;  // Spacer
+  worksheet.getRow(1).height = 28;
+  worksheet.getRow(2).height = 18;
+  worksheet.getRow(3).height = 18;
+  worksheet.getRow(4).height = 18;
+  worksheet.getRow(5).height = 18;
+  worksheet.getRow(6).height = 8;  // Spacer
 
-  // 3. Company Logo (High Resolution & Prominent on Top Left)
+  // 3. Company Logo (Fully Square, Large & Crisp on Top Left)
   const logoBuffer = await fetchImageBuffer("/mc.png");
   if (logoBuffer) {
     try {
@@ -102,8 +102,8 @@ export async function buildProfessionalExcelReport({
         extension: "png",
       });
       worksheet.addImage(imageId, {
-        tl: { col: 0.15, row: 0.2 },
-        ext: { width: 175, height: 72 },
+        tl: { col: 0.15, row: 0.15 },
+        ext: { width: 100, height: 100 },
       });
     } catch (_imgErr) {
       console.warn("Could not insert logo image into Excel:", _imgErr);
@@ -121,19 +121,19 @@ export async function buildProfessionalExcelReport({
   titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: primaryColorHex } };
   titleCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 2: Registered Address
+  // Row 2: Tagline / Business Scope
   worksheet.mergeCells(`${headerStartLetter}2:${lastColLetter}2`);
-  const addrCell = worksheet.getCell(`${headerStartLetter}2`);
-  addrCell.value = companyAddress;
-  addrCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: "FF475569" } };
-  addrCell.alignment = { horizontal: "center", vertical: "middle" };
+  const taglineCell = worksheet.getCell(`${headerStartLetter}2`);
+  taglineCell.value = companyTagline;
+  taglineCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF475569" } };
+  taglineCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 3: Contact Details
+  // Row 3: Registered Address
   worksheet.mergeCells(`${headerStartLetter}3:${lastColLetter}3`);
-  const contactCell = worksheet.getCell(`${headerStartLetter}3`);
-  contactCell.value = companyContact;
-  contactCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF334155" } };
-  contactCell.alignment = { horizontal: "center", vertical: "middle" };
+  const addrCell = worksheet.getCell(`${headerStartLetter}3`);
+  addrCell.value = companyAddress;
+  addrCell.font = { name: "Calibri", size: 9.5, color: { argb: "FF334155" } };
+  addrCell.alignment = { horizontal: "center", vertical: "middle" };
 
   // Row 4: GSTIN & PAN Details
   worksheet.mergeCells(`${headerStartLetter}4:${lastColLetter}4`);
@@ -142,12 +142,12 @@ export async function buildProfessionalExcelReport({
   taxCell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF0F172A" } };
   taxCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 5: Tagline / Business Scope
+  // Row 5: Contact Details
   worksheet.mergeCells(`${headerStartLetter}5:${lastColLetter}5`);
-  const taglineCell = worksheet.getCell(`${headerStartLetter}5`);
-  taglineCell.value = companyTagline;
-  taglineCell.font = { name: "Calibri", size: 8.5, italic: true, color: { argb: "FF64748B" } };
-  taglineCell.alignment = { horizontal: "center", vertical: "middle" };
+  const contactCell = worksheet.getCell(`${headerStartLetter}5`);
+  contactCell.value = companyContact;
+  contactCell.font = { name: "Calibri", size: 9, color: { argb: "FF334155" } };
+  contactCell.alignment = { horizontal: "center", vertical: "middle" };
 
   // 5. Report Banner (Row 7)
   worksheet.mergeCells(`A7:${lastColLetter}7`);
@@ -464,6 +464,12 @@ export async function exportBookingsList({
     { header: "Consignee", width: 22 },
     { header: "Mode", width: 12, align: "center" },
     { header: "Box", width: 10, align: "center" },
+    { header: "Invoice No", width: 16 },
+    { header: "Invoice Date", width: 14, align: "center" },
+    { header: "Part No", width: 14 },
+    { header: "Qty", width: 10, align: "center" },
+    { header: "Invoice Value (₹)", width: 16, align: "right", numFmt: "#,##0.00" },
+    { header: "E-Way Bill No", width: 18 },
     { header: "Actual Wt (KG)", width: 14, align: "right", numFmt: "#,##0.00" },
     { header: "Charged Wt (KG)", width: 14, align: "right", numFmt: "#,##0.00" },
     { header: "Rate (₹)", width: 12, align: "right", numFmt: "#,##0.00" },
@@ -473,16 +479,11 @@ export async function exportBookingsList({
     { header: "Other Chg (₹)", width: 12, align: "right", numFmt: "#,##0.00" },
     { header: "Total Amount (₹)", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "Payment Mode", width: 14, align: "center" },
-    { header: "Invoice No", width: 16 },
-    { header: "Invoice Date", width: 14, align: "center" },
-    { header: "Part No", width: 14 },
-    { header: "Qty", width: 10, align: "center" },
-    { header: "Invoice Value (₹)", width: 16, align: "right", numFmt: "#,##0.00" },
-    { header: "E-Way Bill No", width: 18 },
   ];
 
   let sl = 1;
   let totalBoxes = 0;
+  let totalInvoiceValue = 0;
   let totalActualWt = 0;
   let totalChargedWt = 0;
   let totalFreight = 0;
@@ -510,9 +511,14 @@ export async function exportBookingsList({
     totalFreight += freight;
     totalGrandAmt += totalAmt;
 
-    const parcels = b.parcels && b.parcels.length > 0 ? b.parcels : [{}];
+    const parcels = (b.invoiceDetails && b.invoiceDetails.length > 0)
+      ? b.invoiceDetails
+      : (b.parcels && b.parcels.length > 0 ? b.parcels : [{}]);
 
     parcels.forEach((p, pIdx) => {
+      const invVal = parseFloat(p.value || p.invoiceValue || 0);
+      if (!isNaN(invVal) && invVal > 0) totalInvoiceValue += invVal;
+
       rows.push([
         pIdx === 0 ? sl : "",
         pIdx === 0 ? awbNo : "",
@@ -523,6 +529,12 @@ export async function exportBookingsList({
         pIdx === 0 ? b.consignee || "-" : "",
         pIdx === 0 ? b.mode || "-" : "",
         pIdx === 0 ? (boxCount || "-") : "",
+        p.invoice || p.invoiceNo || "-",
+        p.invdate || p.invoiceDate ? formatDate(p.invdate || p.invoiceDate) : "-",
+        p.part || p.partNumber || "-",
+        p.quantity || p.qty || "-",
+        p.value || p.invoiceValue ? parseFloat(p.value || p.invoiceValue) : "-",
+        p.eway || p.ewayBill || "-",
         pIdx === 0 ? (actWt || "-") : "",
         pIdx === 0 ? (chgWt || "-") : "",
         pIdx === 0 ? (rate || "-") : "",
@@ -532,12 +544,6 @@ export async function exportBookingsList({
         pIdx === 0 ? (other || "-") : "",
         pIdx === 0 ? (totalAmt || "-") : "",
         pIdx === 0 ? (b.payment_type || b.paymentMode || "TBB") : "",
-        p.invoice || p.invoiceNo || "-",
-        p.invdate || p.invoiceDate ? formatDate(p.invdate || p.invoiceDate) : "-",
-        p.part || p.partNumber || "-",
-        p.quantity || "-",
-        p.value || p.invoiceValue ? parseFloat(p.value || p.invoiceValue) : "-",
-        p.eway || p.ewayBill || "-",
       ]);
     });
 
@@ -565,10 +571,11 @@ export async function exportBookingsList({
         labelColSpan: 8,
         totals: [
           { colIndex: 9, value: totalBoxes, align: "center" },
-          { colIndex: 10, value: totalActualWt, numFmt: "#,##0.00", align: "right" },
-          { colIndex: 11, value: totalChargedWt, numFmt: "#,##0.00", align: "right" },
-          { colIndex: 13, value: totalFreight, numFmt: "#,##0.00", align: "right" },
-          { colIndex: 17, value: totalGrandAmt, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 14, value: totalInvoiceValue > 0 ? totalInvoiceValue : 0, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 16, value: totalActualWt, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 17, value: totalChargedWt, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 19, value: totalFreight, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 23, value: totalGrandAmt, numFmt: "#,##0.00", align: "right" },
         ],
       },
       filename: `AWB_Bookings_Report_${sanitizedDate}.xlsx`,
@@ -1029,6 +1036,246 @@ export async function exportClientTripReport({
         ],
       },
       filename: `Client_Trip_Report_${sanitizedDate}.xlsx`,
+    });
+  }
+}
+
+/**
+ * 8. VEHICLE TRIP MIS EXPORT (WITHOUT STATUS)
+ */
+export async function exportVehicleTripMisList({
+  trips = [],
+  format = "excel",
+  dateRange = {},
+}) {
+  const columns = [
+    { header: "S.No", width: 6, align: "center" },
+    { header: "Trip No", width: 16 },
+    { header: "Date", width: 14, align: "center" },
+    { header: "Client", width: 22 },
+    { header: "Route (From - To)", width: 24 },
+    { header: "Vehicle No", width: 18 },
+    { header: "Vehicle Type", width: 16 },
+    { header: "LR No", width: 16 },
+    { header: "Consignor", width: 22 },
+    { header: "Consignee", width: 22 },
+    { header: "LR Route", width: 22 },
+    { header: "Mode", width: 12, align: "center" },
+    { header: "Boxes", width: 10, align: "center" },
+    { header: "Weight (Kg)", width: 14, numFmt: "#,##0.00", align: "right" },
+    { header: "Freight (₹)", width: 16, numFmt: "#,##0.00", align: "right" },
+    { header: "Extra Chgs (₹)", width: 14, numFmt: "#,##0.00", align: "right" },
+    { header: "Payment", width: 14, align: "center" },
+  ];
+
+  const rows = [];
+  let sl = 1;
+  let totalBoxes = 0;
+  let totalWeight = 0;
+  let totalFreight = 0;
+  let totalExtra = 0;
+
+  trips.forEach((trip) => {
+    const tripDate = trip.date ? formatDate(trip.date) : (trip.createdAt ? formatDate(trip.createdAt) : "-");
+    const tripRoute = `${trip.origin || "-"} ➔ ${trip.destination || "-"}`;
+    
+    if (trip.parcels && trip.parcels.length > 0) {
+      trip.parcels.forEach((p, pIdx) => {
+        const box = parseInt(p.box || 0, 10) || 0;
+        const wt = parseFloat(p.weight || 0) || 0;
+        const frt = parseFloat(p.freight || 0) || 0;
+        const extra = (parseFloat(p.pickup || 0) || 0) + (parseFloat(p.delivery || 0) || 0) + (parseFloat(p.special || 0) || 0) + (parseFloat(p.other || 0) || 0) + (parseFloat(p.parking || 0) || 0) + (parseFloat(p.labor || 0) || 0);
+
+        totalBoxes += box;
+        totalWeight += wt;
+        totalFreight += frt;
+        totalExtra += extra;
+
+        rows.push([
+          pIdx === 0 ? sl : "",
+          pIdx === 0 ? trip.tripNo || "-" : "",
+          pIdx === 0 ? tripDate : "",
+          pIdx === 0 ? trip.clientName || "-" : "",
+          pIdx === 0 ? tripRoute : "",
+          pIdx === 0 ? trip.vehicleNo || "-" : "",
+          pIdx === 0 ? trip.vehicleType || "-" : "",
+          p.lrNo || "-",
+          p.consignor || "-",
+          p.consignee || "-",
+          `${p.origin || "-"} ➔ ${p.destination || "-"}`,
+          p.mode || trip.mode || "ROAD",
+          box || "-",
+          wt || "-",
+          frt || "-",
+          extra || "-",
+          pIdx === 0 ? trip.payment || "Credit" : "",
+        ]);
+      });
+      sl++;
+    } else {
+      const frt = parseFloat(trip.freight || 0) || 0;
+      totalFreight += frt;
+
+      rows.push([
+        sl,
+        trip.tripNo || "-",
+        tripDate,
+        trip.clientName || "-",
+        tripRoute,
+        trip.vehicleNo || "-",
+        trip.vehicleType || "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        trip.mode || "ROAD",
+        "-",
+        "-",
+        frt || "-",
+        "-",
+        trip.payment || "Credit",
+      ]);
+      sl++;
+    }
+  });
+
+  const sanitizedDate = new Date().toISOString().split("T")[0];
+  const dateStr = dateRange.startDate && dateRange.endDate
+    ? `(${formatDate(dateRange.startDate)} to ${formatDate(dateRange.endDate)})`
+    : "";
+
+  if (format === "csv") {
+    exportGenericCSV({
+      headers: columns.map((c) => c.header),
+      rows,
+      filename: `Vehicle_Trip_MIS_${sanitizedDate}.csv`,
+    });
+  } else {
+    await buildProfessionalExcelReport({
+      reportTitle: "VEHICLE TRIP MIS REPORT",
+      subtitle: dateStr,
+      columns,
+      rows,
+      summaryTotals: {
+        labelColSpan: 12,
+        totals: [
+          { colIndex: 13, value: totalBoxes, align: "center" },
+          { colIndex: 14, value: totalWeight, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 15, value: totalFreight, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 16, value: totalExtra, numFmt: "#,##0.00", align: "right" },
+        ],
+      },
+      filename: `Vehicle_Trip_MIS_${sanitizedDate}.xlsx`,
+    });
+  }
+}
+
+/**
+ * 9. VENDOR VEHICLE MIS EXPORT (WITHOUT STATUS)
+ */
+export async function exportVendorVehicleMisList({
+  entries = [],
+  format = "excel",
+  dateRange = {},
+}) {
+  const columns = [
+    { header: "S.No", width: 6, align: "center" },
+    { header: "Vendor Name", width: 24 },
+    { header: "Date", width: 14, align: "center" },
+    { header: "Handover To / Driver", width: 22 },
+    { header: "Vehicle No", width: 18 },
+    { header: "Particular", width: 24 },
+    { header: "From", width: 18 },
+    { header: "To", width: 18 },
+    { header: "Mode", width: 12, align: "center" },
+    { header: "Amount (₹)", width: 16, numFmt: "#,##0.00", align: "right" },
+    { header: "Other Chgs (₹)", width: 14, numFmt: "#,##0.00", align: "right" },
+    { header: "Total Amount (₹)", width: 18, numFmt: "#,##0.00", align: "right" },
+  ];
+
+  const rows = [];
+  let sl = 1;
+  let grandAmount = 0;
+  let grandOthers = 0;
+  let grandTotal = 0;
+
+  entries.forEach((item) => {
+    const createdDate = item.createdAt ? formatDate(item.createdAt) : "-";
+    if (item.details && item.details.length > 0) {
+      item.details.forEach((d, dIdx) => {
+        const dDate = d.date ? formatDate(d.date) : createdDate;
+        const amt = parseFloat(d.amount || 0) || 0;
+        const oth = parseFloat(d.others || 0) || 0;
+        const tot = amt + oth;
+
+        grandAmount += amt;
+        grandOthers += oth;
+        grandTotal += tot;
+
+        rows.push([
+          dIdx === 0 ? sl : "",
+          dIdx === 0 ? item.vendorName || "-" : "",
+          dDate,
+          d.handoverTo || "-",
+          d.vehicleNo || "-",
+          d.particular || "-",
+          d.from || "-",
+          d.to || "-",
+          d.mode || "ROAD",
+          amt || "-",
+          oth || "-",
+          tot || "-",
+        ]);
+      });
+      sl++;
+    } else {
+      const tot = parseFloat(item.totalAmount || 0) || 0;
+      grandTotal += tot;
+
+      rows.push([
+        sl,
+        item.vendorName || "-",
+        createdDate,
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        "-",
+        tot || "-",
+      ]);
+      sl++;
+    }
+  });
+
+  const sanitizedDate = new Date().toISOString().split("T")[0];
+  const dateStr = dateRange.startDate && dateRange.endDate
+    ? `(${formatDate(dateRange.startDate)} to ${formatDate(dateRange.endDate)})`
+    : "";
+
+  if (format === "csv") {
+    exportGenericCSV({
+      headers: columns.map((c) => c.header),
+      rows,
+      filename: `Vendor_Vehicle_MIS_${sanitizedDate}.csv`,
+    });
+  } else {
+    await buildProfessionalExcelReport({
+      reportTitle: "VENDOR VEHICLE MIS REPORT",
+      subtitle: dateStr,
+      columns,
+      rows,
+      summaryTotals: {
+        labelColSpan: 9,
+        totals: [
+          { colIndex: 10, value: grandAmount, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 11, value: grandOthers, numFmt: "#,##0.00", align: "right" },
+          { colIndex: 12, value: grandTotal, numFmt: "#,##0.00", align: "right" },
+        ],
+      },
+      filename: `Vendor_Vehicle_MIS_${sanitizedDate}.xlsx`,
     });
   }
 }

@@ -10,6 +10,8 @@ import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
 import appDB from "../../utils/appDB";
+import ExportModal from "../ExportModal";
+import { exportVendorVehicleMisList } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -159,31 +161,39 @@ const VendorMIS = () => {
     return sum + (approvedDetailsAmount > 0 ? approvedDetailsAmount : (parseFloat(item.totalAmount) || 0));
   }, 0);
 
-  const handleExportCSV = () => {
-    let csv = "Vendor name,Handover to,Date,From,To,Veh no,Particular,Mode,Amount,Others,Status,Total amount,Approval status,Created at\n";
-    filteredEntries.forEach(item => {
-      if (item.details && item.details.length > 0) {
-        item.details.forEach((d, dIdx) => {
-          const createdAt = dIdx === 0 ? (item.createdAt ? formatDate(item.createdAt) : '') : '';
-          const vendorName = dIdx === 0 ? (item.vendorName || '') : '';
-          const totalAmt = dIdx === 0 ? (item.totalAmount || '') : '';
-          const approvalStatus = dIdx === 0 ? (item.approvalStatus || '') : '';
-          
-          csv += `"${vendorName}","${d.handoverTo || ''}","${d.date ? formatDate(d.date) : ''}","${d.from || ''}","${d.to || ''}","${d.vehicleNo || ''}","${d.particular || ''}","${d.mode || ''}","${d.amount || ''}","${d.others || ''}","${d.status || ''}","${totalAmt}","${approvalStatus}","${createdAt}"\n`;
-        });
-      } else {
-        csv += `"${item.vendorName || ''}","","","","","","","","","","","${item.totalAmount || ''}","${item.approvalStatus || ''}","${item.createdAt ? formatDate(item.createdAt) : ''}"\n`;
+  // Selection State
+  const [selectedVendorMisIds, setSelectedVendorMisIds] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleToggleSelectVendorMis = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedVendorMisIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleExport = () => {
+    if (filteredEntries.length === 0) return;
+    setShowExportModal(true);
+  };
+
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = filteredEntries;
+      if (selectedVendorMisIds.length > 0) {
+        dataToExport = filteredEntries.filter((v, idx) => selectedVendorMisIds.includes(v.id || v._id || idx));
       }
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Vendor_MIS_Export_${formatDate(new Date())}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      await exportVendorVehicleMisList({
+        entries: dataToExport,
+        format,
+        dateRange: { startDate, endDate },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const fileInputRef = useRef(null);
@@ -309,21 +319,9 @@ const VendorMIS = () => {
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
            </div>
            
-           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
-             <Download size={16} style={{ marginRight: 6 }} /> Export CSV
+           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", fontWeight: 600 }} onClick={handleExport}>
+             <Download size={16} style={{ marginRight: 6, color: "#2563eb" }} /> Export
            </button>
-           
-           {isSuperAdmin && (
-             <select 
-               className="form-control" 
-               style={{ border: "1px solid #cbd5e1", height: "30px", fontSize: "0.8rem", width: "170px", padding: "0 5px", background: "white" }}
-               value={printHeader}
-               onChange={e => setPrintHeader(e.target.value)}
-             >
-               <option value="MULTIMARG">Header: Multimarg</option>
-               <option value="PRIME">Header: Prime Roadways</option>
-             </select>
-           )}
            
            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
              <Printer size={16} style={{ marginRight: 6 }} /> Print All
@@ -716,11 +714,41 @@ const VendorMIS = () => {
       <div className="table-responsive">
         <Table 
           loading={false}
-          headers={["Vendor Name", "Date Created", "Details", "Total Amount", "Status", "Remarks", "Actions"]}
+          headers={[
+            <div key="select-all-vendor-mis" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={filteredEntries.length > 0 && filteredEntries.every((v, idx) => selectedVendorMisIds.includes(v.id || v._id || idx))}
+                onChange={() => {
+                  const visibleIds = filteredEntries.map((v, idx) => v.id || v._id || idx);
+                  const allSelected = visibleIds.every(id => selectedVendorMisIds.includes(id));
+                  if (allSelected) {
+                    setSelectedVendorMisIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedVendorMisIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Vendor Name", "Date Created", "Details", "Total Amount", "Status", "Remarks", "Actions"
+          ]}
           data={filteredEntries}
           emptyMessage="No Vendor MIS entries added yet. Click 'Add Vendor MIS Entry' to start."
-          renderRow={(item, idx) => (
-            <tr key={idx}>
+          renderRow={(item, idx) => {
+            const itemId = item.id || item._id || idx;
+            const isSelected = selectedVendorMisIds.includes(itemId);
+            return (
+            <tr key={idx} style={{ backgroundColor: isSelected ? "rgba(37, 99, 235, 0.08)" : undefined }}>
+              <td style={{ width: "40px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectVendorMis(itemId)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                />
+              </td>
               <td className="font-semibold" style={{ color: "#1e3a8a", whiteSpace: "nowrap" }}>
                 {item.vendorName || "-"}
                 {isAdminOrSuperAdmin && (
@@ -969,7 +997,8 @@ const VendorMIS = () => {
                 </div>
               </td>
             </tr>
-          )}
+            );
+          }}
         />
       </div>
       </div>
@@ -1341,6 +1370,17 @@ const VendorMIS = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Vendor Vehicle MIS"
+        itemCount={selectedVendorMisIds.length > 0 ? selectedVendorMisIds.length : filteredEntries.length}
+        subtitle={selectedVendorMisIds.length > 0 ? `Exporting ${selectedVendorMisIds.length} selected vendor vehicle record(s)` : `Exporting all ${filteredEntries.length} vendor vehicle records`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

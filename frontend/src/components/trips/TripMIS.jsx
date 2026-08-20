@@ -10,6 +10,8 @@ import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
 import appDB from "../../utils/appDB";
+import ExportModal from "../ExportModal";
+import { exportVehicleTripMisList } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -132,57 +134,39 @@ const TripMIS = () => {
     return sum + ((parseFloat(item.freight) || 0) * 1.18);
   }, 0);
 
-  const handleExportCSV = () => {
-    let csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Parking,Labor,Payment,Approval status,Created at\n";
-    filteredEntries.forEach(trip => {
-      if (trip.parcels && trip.parcels.length > 0) {
-        trip.parcels.forEach((p, pIdx) => {
-          const tripNo = pIdx === 0 ? (trip.tripNo || '') : '';
-          const clientName = pIdx === 0 ? (trip.clientName || '') : '';
-          const origin = pIdx === 0 ? (trip.origin || '') : '';
-          const destination = pIdx === 0 ? (trip.destination || '') : '';
-          
-          const lrNo = p.lrNo || '';
-          const consignor = p.consignor || '';
-          const consignee = p.consignee || '';
-          const lrOrigin = p.origin || '';
-          const lrDestination = p.destination || '';
-          const lrMode = p.mode || '';
-          const lrBox = p.box || '';
-          const lrWeight = p.weight || '';
-          
-          const vehicleNo = pIdx === 0 ? (trip.vehicleNo || '') : '';
-          const vehicleType = pIdx === 0 ? (trip.vehicleType || '') : '';
-          const mode = pIdx === 0 ? (trip.mode || '') : '';
-          
-          const freight = p.freight || '';
-          const pickup = p.pickup || '';
-          const delivery = p.delivery || '';
-          const special = p.special || '';
-          const other = p.other || '';
-          const parking = p.parking || '';
-          const labor = p.labor || '';
-          
-          const payment = pIdx === 0 ? (trip.payment || '') : '';
-          const approvalStatus = pIdx === 0 ? (trip.approvalStatus || '') : '';
-          const tripDate = pIdx === 0 ? (trip.date ? formatDate(trip.date) : (trip.createdAt ? formatDate(trip.createdAt) : '')) : '';
+  // Selection State
+  const [selectedTripIds, setSelectedTripIds] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-          csv += `"${tripNo}","${clientName}","${origin}","${destination}","${lrNo}","${consignor}","${consignee}","${lrOrigin}","${lrDestination}","${lrMode}","${lrBox}","${lrWeight}","${vehicleNo}","${vehicleType}","${mode}","${freight}","${pickup}","${delivery}","${special}","${other}","${parking}","${labor}","${payment}","${approvalStatus}","${tripDate}"\n`;
-        });
-      } else {
-        const tripDate = trip.date ? formatDate(trip.date) : (trip.createdAt ? formatDate(trip.createdAt) : '');
-        csv += `"${trip.tripNo || ''}","${trip.clientName || ''}","${trip.origin || ''}","${trip.destination || ''}","","","","","","","","","${trip.vehicleNo || ''}","${trip.vehicleType || ''}","${trip.mode || ''}","","","","","","${trip.payment || ''}","${trip.approvalStatus || ''}","${tripDate}"\n`;
+  const handleToggleSelectTrip = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedTripIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleExport = () => {
+    if (filteredEntries.length === 0) return;
+    setShowExportModal(true);
+  };
+
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = filteredEntries;
+      if (selectedTripIds.length > 0) {
+        dataToExport = filteredEntries.filter((t, idx) => selectedTripIds.includes(t.id || t._id || idx));
       }
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Trip_MIS_Export_${formatDate(new Date())}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      await exportVehicleTripMisList({
+        trips: dataToExport,
+        format,
+        dateRange: { startDate, endDate },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const fileInputRef = useRef(null);
@@ -343,21 +327,9 @@ const TripMIS = () => {
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
            </div>
            
-            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={handleExportCSV}>
-              <Download size={16} style={{ marginRight: 6 }} /> Export CSV
-            </button>
-            
-            {isSuperAdmin && (
-              <select 
-                className="form-control" 
-                style={{ border: "1px solid #cbd5e1", height: "30px", fontSize: "0.8rem", width: "170px", padding: "0 5px", background: "white" }}
-                value={printHeader}
-                onChange={e => setPrintHeader(e.target.value)}
-              >
-                <option value="MULTIMARG">Header: Multimarg</option>
-                <option value="PRIME">Header: Prime Roadways</option>
-              </select>
-            )}
+             <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", fontWeight: 600 }} onClick={handleExport}>
+               <Download size={16} style={{ marginRight: 6, color: "#2563eb" }} /> Export
+             </button>
             
             <select 
                className="form-control" 
@@ -712,6 +684,23 @@ const TripMIS = () => {
         <Table 
           loading={false}
           headers={[
+            <div key="select-all-trip-mis" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={filteredEntries.length > 0 && filteredEntries.every((t, idx) => selectedTripIds.includes(t.id || t._id || idx))}
+                onChange={() => {
+                  const visibleIds = filteredEntries.map((t, idx) => t.id || t._id || idx);
+                  const allSelected = visibleIds.every(id => selectedTripIds.includes(id));
+                  if (allSelected) {
+                    setSelectedTripIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedTripIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title="Toggle Select All"
+              />
+            </div>,
             "Trip No & Route", "Client Name", "Date", "Vehicle Details", "Parcels & LR Details", "Total Box", "Total Weight", 
             user?.role === 'SuperAdmin' ? (
               <div style={{ textAlign: "center", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>
@@ -720,8 +709,19 @@ const TripMIS = () => {
           ]}
           data={filteredEntries}
           emptyMessage="No vehicle trip MIS entries added yet. Click 'Add Vehicle Trip MIS Entry' to start."
-          renderRow={(item, idx) => (
-            <tr key={idx} style={{ display: typeof printOnlyId !== 'undefined' && printOnlyId && printOnlyId !== item.id ? 'none' : '' }}>
+          renderRow={(item, idx) => {
+            const itemId = item.id || item._id || idx;
+            const isSelected = selectedTripIds.includes(itemId);
+            return (
+            <tr key={idx} style={{ display: typeof printOnlyId !== 'undefined' && printOnlyId && printOnlyId !== item.id ? 'none' : '', backgroundColor: isSelected ? "rgba(37, 99, 235, 0.08)" : undefined }}>
+              <td style={{ width: "40px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectTrip(itemId)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                />
+              </td>
               <td className="font-semibold" style={{ color: "#1e3a8a", whiteSpace: "nowrap" }}>
                 <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>{item.tripNo || "-"}</div>
                 <div style={{ fontSize: "0.75rem", color: "#475569", fontWeight: "600", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
@@ -988,7 +988,8 @@ const TripMIS = () => {
                 </div>
               </td>
             </tr>
-          )}
+            );
+          }}
         />
       </div>
 
@@ -1483,6 +1484,17 @@ const TripMIS = () => {
           </div>
         </div>
       )}
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Vehicle Trip MIS"
+        itemCount={selectedTripIds.length > 0 ? selectedTripIds.length : filteredEntries.length}
+        subtitle={selectedTripIds.length > 0 ? `Exporting ${selectedTripIds.length} selected vehicle trip(s)` : `Exporting all ${filteredEntries.length} vehicle trips`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };
