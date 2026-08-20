@@ -2,10 +2,8 @@ node_modules/
 .env*
 !.env.example
 .DS_Store
-dist/
 build/
 backend/uploads/
-frontend/dist/
 frontend/build/
 .vscode/
 npm-debug.log
