@@ -60,6 +60,49 @@ exports.restoreTrash = async (req, res) => {
     // Delete from trash
     await db.mongoDb.collection('trash').deleteOne({ _id: new ObjectId(id) });
 
+    // Sync accounting logic based on restored collection type
+    const { delCache } = require('../config/redis');
+    const { recalculatePartyPayments } = require('../utils/paymentUtils');
+    const { emitDataUpdated } = require('../utils/socket');
+
+    if (originalCollection === 'cashEntries') {
+      await recalculatePartyPayments(document.partyType, document.partyName);
+      await Promise.all([
+        delCache('cashEntries'),
+        delCache('bills'),
+        delCache('purchases'),
+        delCache('outstanding'),
+        delCache('openingBalances')
+      ]);
+      emitDataUpdated('cashEntries', 'create');
+      emitDataUpdated('outstanding', 'update');
+    } else if (originalCollection === 'bills') {
+      await recalculatePartyPayments('Client', document.client || document.billedTo);
+      await Promise.all([
+        delCache('bills'),
+        delCache('outstanding'),
+        delCache('openingBalances')
+      ]);
+      emitDataUpdated('bills', 'create');
+    } else if (originalCollection === 'purchases') {
+      await recalculatePartyPayments('Vendor', document.vendor);
+      await Promise.all([
+        delCache('purchases'),
+        delCache('outstanding'),
+        delCache('openingBalances')
+      ]);
+      emitDataUpdated('purchases', 'create');
+    } else if (originalCollection === 'outstanding') {
+      await Promise.all([
+        delCache('outstanding'),
+        delCache('openingBalances')
+      ]);
+      emitDataUpdated('outstanding', 'create');
+    } else if (originalCollection === 'bookings') {
+      await delCache('bookings');
+      emitDataUpdated('bookings', 'create');
+    }
+
     res.status(200).json({ success: true, message: 'Item restored successfully' });
   } catch (error) {
     console.error('Error restoring trash item:', error);

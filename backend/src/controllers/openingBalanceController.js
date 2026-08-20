@@ -4,12 +4,78 @@ const { delCache } = require("../config/redis");
 
 const CACHE_KEY = "openingBalances";
 
-// 1. Get Opening Balances
+// Helper to recalculate and sync opening balances with active cash sheet
+const recalculateOpeningBalances = async () => {
+  try {
+    const [openingSnap, cashSnap, adjSnap] = await Promise.all([
+      db.collection("openingBalances").get(),
+      db.collection("cashEntries").get(),
+      db.collection("outstanding").get()
+    ]);
+
+    const cashEntries = cashSnap.docs.map((d) => d.data());
+    const adjustments = adjSnap.docs.map((d) => d.data());
+
+    for (const doc of openingSnap.docs) {
+      const data = doc.data();
+      if (data.isManual) continue;
+
+      const partyNorm = (data.partyName || "").toLowerCase().trim();
+      const partyType = data.partyType || "Client";
+
+      // Calculate paid amount from active cashEntries
+      const partyCash = cashEntries.filter(
+        (c) =>
+          c.partyType === partyType &&
+          (c.partyName || "").toLowerCase().trim() === partyNorm
+      );
+      let totalPaidPrior = 0;
+      partyCash.forEach((c) => {
+        const amt = Number(c.amount) || 0;
+        if (partyType === "Client") {
+          if (c.type === "in") totalPaidPrior += amt;
+          else if (c.type === "out") totalPaidPrior -= amt;
+        } else {
+          if (c.type === "out") totalPaidPrior += amt;
+          else if (c.type === "in") totalPaidPrior -= amt;
+        }
+      });
+
+      const totalBilledPrior = Number(data.totalBilledPrior) || 0;
+      const totalTdsPrior = Number(data.totalTdsPrior) || 0;
+      const totalDebtPrior = Number(data.totalDebtPrior) || 0;
+
+      const newOutstanding = Number(
+        (totalBilledPrior - totalPaidPrior - totalTdsPrior - totalDebtPrior).toFixed(2)
+      );
+
+      // If 0 billed, 0 paid, and 0 outstanding, clean up phantom entry
+      if (totalBilledPrior === 0 && totalPaidPrior === 0 && Math.abs(newOutstanding) < 0.01) {
+        await db.collection("openingBalances").doc(doc.id).delete();
+      } else {
+        await db.collection("openingBalances").doc(doc.id).update({
+          totalPaidPrior: Number(totalPaidPrior.toFixed(2)),
+          openingOutstanding: newOutstanding,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+    await delCache(CACHE_KEY);
+  } catch (e) {
+    console.error("recalculateOpeningBalances error:", e.message);
+  }
+};
+
+// 1. Get Opening Balances (with auto sync)
 exports.getOpeningBalances = async (req, res) => {
   try {
-    const { financialYear, partyType, search } = req.query;
-    let query = db.collection("openingBalances");
+    const { financialYear, partyType, search, sync } = req.query;
 
+    if (sync === "true") {
+      await recalculateOpeningBalances();
+    }
+
+    let query = db.collection("openingBalances");
     const snapshot = await query.get();
     let entries = [];
     snapshot.forEach((doc) => entries.push({ id: doc.id, ...doc.data() }));

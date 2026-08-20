@@ -106,20 +106,27 @@ const OpeningOutstanding = () => {
   }, [modalOpen, closeFYModalOpen]);
 
   // Fetch Data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceSync = false) => {
     setLoading(true);
     try {
+      const url = forceSync ? `${API}/opening-balances?sync=true` : `${API}/opening-balances`;
       const [openRes, clientsRes, vendorsRes] = await Promise.all([
-        axios.get(`${API}/opening-balances`),
+        axios.get(url),
         axios.get(`${API}/clients`),
         axios.get(`${API}/vendors`)
       ]);
-      if (openRes.data.success) setOpeningBalances(openRes.data.data || []);
-      if (clientsRes.data.success) setClients(clientsRes.data.data || []);
-      if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
+      if (openRes.data.success) {
+        setOpeningBalances(openRes.data.data || []);
+      }
+      if (clientsRes.data.success) {
+        setClients(clientsRes.data.data || []);
+      }
+      if (vendorsRes.data.success) {
+        setVendors(vendorsRes.data.data || []);
+      }
     } catch (err) {
-      console.error("Failed to load opening balances:", err);
-      addToast("Failed to load opening balances", "error");
+      console.error("Fetch opening balances error:", err);
+      addToast("Failed to fetch opening balances", "error");
     } finally {
       setLoading(false);
     }
@@ -353,7 +360,7 @@ const OpeningOutstanding = () => {
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             className="btn btn-secondary"
             style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}
           >

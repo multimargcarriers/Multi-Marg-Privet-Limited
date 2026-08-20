@@ -18,24 +18,59 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             partyName: { $regex: regex }
         }).toArray();
 
-        let totalPaid = 0;
+        // Separate Direct Bill-Tagged Payments vs General Payments
+        const billSpecificMap = {};
+        let generalPaid = 0;
+
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
-            if (doc.type === "in") totalPaid += amt;
-            else if (doc.type === "out") totalPaid -= amt;
+            const netAmt = (doc.type === "in") ? amt : -amt;
+            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                billSpecificMap[bNo] = (billSpecificMap[bNo] || 0) + netAmt;
+            } else {
+                generalPaid += netAmt;
+            }
         });
 
+        // 1. Clear Prior Opening Outstanding FIRST with General Payments
+        const openDoc = await db.mongoDb.collection("openingBalances").findOne({
+            partyType: "Client",
+            partyName: { $regex: regex }
+        });
+
+        let remainingGeneral = generalPaid;
+        let openingPaid = 0;
+
+        if (openDoc) {
+            const openBilled = Number(openDoc.totalBilledPrior || openDoc.openingOutstanding) || 0;
+            const openTds = Number(openDoc.totalTdsPrior) || 0;
+            const openDebt = Number(openDoc.totalDebtPrior) || 0;
+            const maxPayable = Math.max(0, openBilled - openTds - openDebt);
+
+            openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
+            remainingGeneral -= openingPaid;
+
+            const newOpeningDue = Number((openBilled - openingPaid - openTds - openDebt).toFixed(2));
+            await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                totalPaidPrior: Number(openingPaid.toFixed(2)),
+                openingOutstanding: newOpeningDue,
+                updatedAt: new Date().toISOString()
+            });
+        }
+
+        // 2. Cascade Remaining General Payments + Direct Payments to Bills
         const billsDocs = await db.mongoDb.collection("bills").find({
             client: { $regex: regex }
         }).toArray();
         
         billsDocs.sort((a, b) => {
             const parseBill = (bill) => {
-                const billNo = bill.billNo || "";
+                const billNo = bill.billNo || bill.invoice || "";
                 const parts = billNo.split('/');
                 if (parts.length >= 3) {
-                    const yearPart = parts[1]; // "25-26" or "2025-2026"
-                    const seqPart = parts[2]; // "0247"
+                    const yearPart = parts[1];
+                    const seqPart = parts[2];
                     let yearStart = 0;
                     if (yearPart.includes('-')) {
                         const yearStr = yearPart.split('-')[0];
@@ -66,16 +101,27 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             return new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0);
         });
 
-        let remaining = totalPaid;
         for (const bill of billsDocs) {
             const billTotal = Number(bill.total || bill.amount) || 0;
-            const applied = remaining > 0 ? Math.min(billTotal, remaining) : 0;
-            remaining -= applied;
+            const bNo = String(bill.invoice || bill.billNo || '').trim().toLowerCase();
+            const directPaid = billSpecificMap[bNo] || 0;
+
+            let billPaid = directPaid;
+            const unappliedAfterDirect = Math.max(0, billTotal - directPaid);
+
+            if (remainingGeneral > 0 && unappliedAfterDirect > 0) {
+                const generalForThisBill = Math.min(unappliedAfterDirect, remainingGeneral);
+                billPaid += generalForThisBill;
+                remainingGeneral -= generalForThisBill;
+            }
+
+            const newStatus = billPaid >= billTotal ? "Paid" : (billPaid > 0 ? "Partial" : "Unpaid");
             
-            const newStatus = applied >= billTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
-            
-            if (bill.paidAmount !== applied || bill.status !== newStatus) {
-                await db.collection("bills").doc(bill.id || bill._id.toString()).update({ paidAmount: applied, status: newStatus });
+            if (bill.paidAmount !== billPaid || bill.status !== newStatus) {
+                await db.collection("bills").doc(bill.id || bill._id.toString()).update({
+                    paidAmount: Number(billPaid.toFixed(2)),
+                    status: newStatus
+                });
             }
         }
         await delCache("bills");
@@ -92,13 +138,48 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             partyName: { $regex: regex }
         }).toArray();
 
-        let totalPaid = 0;
+        // Separate Direct Purchase-Tagged Payments vs General Payments
+        const purchaseSpecificMap = {};
+        let generalPaid = 0;
+
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
-            if (doc.type === "out") totalPaid += amt;
-            else if (doc.type === "in") totalPaid -= amt;
+            const netAmt = (doc.type === "out") ? amt : -amt;
+            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                purchaseSpecificMap[bNo] = (purchaseSpecificMap[bNo] || 0) + netAmt;
+            } else {
+                generalPaid += netAmt;
+            }
         });
 
+        // 1. Clear Prior Opening Outstanding FIRST with General Payments
+        const openDoc = await db.mongoDb.collection("openingBalances").findOne({
+            partyType: "Vendor",
+            partyName: { $regex: regex }
+        });
+
+        let remainingGeneral = generalPaid;
+        let openingPaid = 0;
+
+        if (openDoc) {
+            const openBilled = Number(openDoc.totalBilledPrior || openDoc.openingOutstanding) || 0;
+            const openTds = Number(openDoc.totalTdsPrior) || 0;
+            const openDebt = Number(openDoc.totalDebtPrior) || 0;
+            const maxPayable = Math.max(0, openBilled - openTds - openDebt);
+
+            openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
+            remainingGeneral -= openingPaid;
+
+            const newOpeningDue = Number((openBilled - openingPaid - openTds - openDebt).toFixed(2));
+            await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                totalPaidPrior: Number(openingPaid.toFixed(2)),
+                openingOutstanding: newOpeningDue,
+                updatedAt: new Date().toISOString()
+            });
+        }
+
+        // 2. Cascade Remaining General Payments + Direct Payments to Purchases
         const purchasesDocs = await db.mongoDb.collection("purchases").find({
             vendor: { $regex: regex }
         }).toArray();
@@ -108,8 +189,8 @@ const recalculatePartyPayments = async (partyType, partyName) => {
                 const billNo = bill.billNo || "";
                 const parts = billNo.split('/');
                 if (parts.length >= 3) {
-                    const yearPart = parts[1]; // "25-26" or "2025-2026"
-                    const seqPart = parts[2]; // "0247"
+                    const yearPart = parts[1];
+                    const seqPart = parts[2];
                     let yearStart = 0;
                     if (yearPart.includes('-')) {
                         const yearStr = yearPart.split('-')[0];
@@ -140,16 +221,27 @@ const recalculatePartyPayments = async (partyType, partyName) => {
             return new Date(a.createdAt || a.date || 0) - new Date(b.createdAt || b.date || 0);
         });
 
-        let remaining = totalPaid;
         for (const purchase of purchasesDocs) {
-            const purchaseTotal = Number(purchase.total) || 0;
-            const applied = remaining > 0 ? Math.min(purchaseTotal, remaining) : 0;
-            remaining -= applied;
+            const purchaseTotal = Number(purchase.total || purchase.amount) || 0;
+            const bNo = String(purchase.billNo || '').trim().toLowerCase();
+            const directPaid = purchaseSpecificMap[bNo] || 0;
+
+            let purchasePaid = directPaid;
+            const unappliedAfterDirect = Math.max(0, purchaseTotal - directPaid);
+
+            if (remainingGeneral > 0 && unappliedAfterDirect > 0) {
+                const generalForThisBill = Math.min(unappliedAfterDirect, remainingGeneral);
+                purchasePaid += generalForThisBill;
+                remainingGeneral -= generalForThisBill;
+            }
+
+            const newStatus = purchasePaid >= purchaseTotal ? "Paid" : (purchasePaid > 0 ? "Partial" : "Unpaid");
             
-            const newStatus = applied >= purchaseTotal ? "Paid" : (applied > 0 ? "Partial" : "Unpaid");
-            
-            if (purchase.paidAmount !== applied || purchase.status !== newStatus) {
-                await db.collection("purchases").doc(purchase.id || purchase._id.toString()).update({ paidAmount: applied, status: newStatus });
+            if (purchase.paidAmount !== purchasePaid || purchase.status !== newStatus) {
+                await db.collection("purchases").doc(purchase.id || purchase._id.toString()).update({
+                    paidAmount: Number(purchasePaid.toFixed(2)),
+                    status: newStatus
+                });
             }
         }
         await delCache("purchases");

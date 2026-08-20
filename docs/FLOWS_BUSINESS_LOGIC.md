@@ -97,7 +97,7 @@ $$\text{Chargeable Weight} = \max(\text{Actual Physical Weight}, \text{Volumetri
 
 ---
 
-### D. Cash Sheet Settlements (`CashSheet.jsx`)
+### D. Cash Sheet Settlements & Payment Allocation Hierarchy (`CashSheet.jsx` / `paymentUtils.js`)
 All physical and electronic money transfers are logged in `cashEntries`:
 * **Client Receipts (`type: 'in'`)**:
   * Added to client paid total.
@@ -105,6 +105,12 @@ All physical and electronic money transfers are logged in `cashEntries`:
   * Added to vendor paid total.
 * **Reversals / Bounces (`type: 'in'` for vendor or `type: 'out'` for client)**:
   * Subtracted accordingly to maintain exact bank balance parity.
+
+#### 🎯 Payment Allocation Hierarchy:
+1. **Direct Bill-Tagged Payments**: If a payment is created with a specific `billNo`, it is **directly applied** to clear that specific invoice (`paidAmount = min(billTotal, paymentAmount)`).
+2. **General Payments (No Specific Bill)**:
+   * **Stage 1 (Opening Outstanding 1st)**: The general payment is first applied to offset/clear the party's **Prior FY Opening Outstanding** balance in `openingBalances`.
+   * **Stage 2 (FIFO Current Bills)**: Any remaining general payment cascading past the opening balance is sequentially applied to the party's earliest active unpaid invoices in FIFO order.
 
 ---
 
@@ -195,3 +201,12 @@ sequenceDiagram
    * `Train` (`TRAIN`)
    * `Air` (`AIR`)
    Legacy terms (`Flight`, `Rail`, `Surface`, `Express`) are permanently mapped and converted.
+
+4. **Trash & Restoration Accounting Lifecycle**:
+   * When an item (Cash Entry, Bill, Purchase, Adjustment) is deleted, `dbAdapter.js` moves it to the `trash` collection and **removes it from the active collection**.
+   * It is treated as deleted: its amounts are excluded from all active ledgers, outstanding calculations, and opening balances.
+   * When an item is **restored** from the Trash (`POST /api/trash/restore/:id`), the system immediately:
+     * Re-inserts the original document.
+     * Recalculates party payment allocations via `recalculatePartyPayments`.
+     * Resynchronizes `bills`, `purchases`, `outstanding`, `openingBalances`, and `cashEntries`.
+     * Busts dependent Redis caches and emits real-time WebSocket events.
