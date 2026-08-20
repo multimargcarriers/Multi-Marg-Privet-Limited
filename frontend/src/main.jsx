@@ -243,6 +243,12 @@ const rewriteUrl = (url) => {
 const originalGet = axios.get;
 axios.get = async function (url, config) {
   url = rewriteUrl(url);
+
+  // Strictly bypass caching for auth and profile endpoints
+  if (typeof url === 'string' && url.includes('/api/auth')) {
+    return originalGet.call(this, url, { ...config, params: { ...config?.params, _t: Date.now() } });
+  }
+
   const cacheKey = `GET_${url}`;
   const now = Date.now();
   const cachedData = appDB.memGet(cacheKey);

@@ -243,8 +243,14 @@ const Profile = () => {
       if (response.data?.success) {
         addToast(`${galleryType === 'photo' ? 'Avatar' : 'Banner'} updated successfully!`, "success");
         const updatedUser = response.data.data.user;
-        if (galleryType === 'photo' && updatedUser?.photo) setPhotoPreview(updatedUser.photo);
-        if (galleryType === 'banner' && updatedUser?.banner) setBannerPreview(updatedUser.banner);
+        if (galleryType === 'photo') {
+          const newPhoto = updatedUser?.photo || updatedUser?.avatar || updatedUser?.photoUrl || url;
+          setPhotoPreview(newPhoto);
+        }
+        if (galleryType === 'banner') {
+          const newBanner = updatedUser?.banner || updatedUser?.bannerUrl || url;
+          setBannerPreview(newBanner);
+        }
         updateUser(updatedUser, response.data.data.token);
       } else {
         addToast(response.data?.message || "Failed to update asset", "error");
