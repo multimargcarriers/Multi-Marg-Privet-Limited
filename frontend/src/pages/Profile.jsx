@@ -84,7 +84,7 @@ const Profile = () => {
       setName(user.name || '');
       setEmail(user.email || '');
       setEmployeeId(user.employeeId || '');
-      setUsername((user.username || '').toLowerCase());
+      setUsername(user.username || '');
       setBloodGroup(user.bloodGroup || '');
       const userPhoto = user.photo || user.avatar || user.picture || null;
       if (userPhoto) setPhotoPreview(userPhoto);
@@ -238,7 +238,7 @@ const Profile = () => {
   const handleSubmit = async (e, skipConfirm = false) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    if (username && username !== (user?.username || '').toLowerCase() && !skipConfirm) {
+    if (username && username !== (user?.username || '') && !skipConfirm) {
       setShowConfirmDialog(true);
       return;
     }
@@ -255,7 +255,7 @@ const Profile = () => {
         if (employeeId) payload.employeeId = employeeId;
       }
       if (username) {
-        payload.username = username.toLowerCase();
+        payload.username = username.trim();
       }
       if (password) {
         payload.password = password;

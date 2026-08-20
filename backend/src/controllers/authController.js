@@ -528,13 +528,16 @@ exports.put_profile_2 = async (req, res) => {
   if (bloodGroup !== undefined) updates.bloodGroup = String(bloodGroup).trim();
 
   if (username !== undefined && String(username).trim()) {
-    const lowerUsername = String(username).toLowerCase().trim();
+    const rawUsername = String(username).trim();
+    const lowerUsername = rawUsername.toLowerCase();
     if (lowerUsername !== (req.user.username || '').toLowerCase()) {
       const userCheck = await db.collection("users").where("username", "==", lowerUsername).get();
       let taken = false;
       userCheck.forEach(d => { if (String(d.id) !== String(userId)) taken = true; });
       if (taken) return error(res, { message: "Username already exists. Please choose another one.", statusCode: 400 });
-      updates.username = lowerUsername;
+      updates.username = rawUsername;
+    } else if (rawUsername !== req.user.username) {
+      updates.username = rawUsername;
     }
   }
 
