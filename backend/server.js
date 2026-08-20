@@ -438,10 +438,7 @@ async function initializeBackgroundServices() {
 }
 
 async function startServer() {
-  // 1. Initialize MongoDB (usually fast)
-  await initializeServices();
-
-  // 2. Start listening immediately (guarantees calling listen() within Hostinger's 3-second limit)
+  // Start listening synchronously FIRST (guarantees calling listen() in <50ms for Hostinger)
   const server = app.listen(PORT, async () => {
     // Initialize Socket.IO
     socketUtil.init(server);
@@ -453,10 +450,15 @@ async function startServer() {
     logger.info(`  API: http://localhost:${PORT}/api`);
     logger.info(`========================================`);
 
-    // 3. Initialize background services & crons asynchronously
-    await initializeBackgroundServices();
-    initAnalyticsCron();
-    initCloudinaryCleanupCron();
+    // Initialize database & background services asynchronously
+    try {
+      await initializeServices();
+      await initializeBackgroundServices();
+      initAnalyticsCron();
+      initCloudinaryCleanupCron();
+    } catch (svcErr) {
+      logger.error("Background services initialization error:", svcErr);
+    }
   });
 
 

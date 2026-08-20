@@ -96,8 +96,11 @@ async function initRedis() {
       url,
       socket: {
         reconnectStrategy: (retries) => {
-          // Exponential backoff reconnect strategy that doesn't terminate permanently
-          const delay = Math.min(1000 * Math.pow(2, retries), 15000);
+          if (retries > 3) {
+            console.warn(`[Redis] Reconnect attempts exceeded (${retries}). Using fast in-memory cache.`);
+            return new Error("Redis connection offline");
+          }
+          const delay = Math.min(1000 * Math.pow(2, retries), 5000);
           console.warn(`[Redis] Connection offline. Reconnection attempt #${retries} in ${delay}ms...`);
           return delay;
         }
