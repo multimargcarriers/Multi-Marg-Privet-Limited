@@ -118,33 +118,48 @@ const Profile = () => {
     return null;
   };
 
+  const fileToDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePhotoClick = () => fileInputRef.current.click();
   const handleBannerClick = () => bannerInputRef.current.click();
 
   const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         addToast("Image must be less than 5MB", "error");
         return;
       }
-      setPhotoPreview(URL.createObjectURL(file));
-      setShowGallery(false);
-
       try {
+        const dataUrl = await fileToDataURL(file);
+        setPhotoPreview(dataUrl);
+        setShowGallery(false);
         setIsLoading(true);
-        const formData = new FormData();
-        formData.append('photo', file);
 
-        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const payload = {
+          photoData: dataUrl,
+          fileName: file.name
+        };
+
+        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, payload, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
         if (response.data?.success) {
           addToast("Avatar uploaded and updated successfully!", "success");
           const updatedUser = response.data.data.user;
-          const newPhoto = updatedUser?.photo || updatedUser?.avatar || updatedUser?.photoUrl;
-          if (newPhoto) setPhotoPreview(newPhoto);
+          const newPhoto = updatedUser?.photo || updatedUser?.avatar || updatedUser?.photoUrl || dataUrl;
+          setPhotoPreview(newPhoto);
           updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update avatar", "error");
@@ -158,29 +173,35 @@ const Profile = () => {
   };
 
   const handleBannerChange = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
         addToast("Banner image must be less than 10MB", "error");
         return;
       }
-      setBannerPreview(URL.createObjectURL(file));
-      setShowGallery(false);
-
       try {
+        const dataUrl = await fileToDataURL(file);
+        setBannerPreview(dataUrl);
+        setShowGallery(false);
         setIsLoading(true);
-        const formData = new FormData();
-        formData.append('banner', file);
 
-        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, formData, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const payload = {
+          bannerData: dataUrl,
+          fileName: file.name
+        };
+
+        const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/profile`, payload, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
         if (response.data?.success) {
           addToast("Banner uploaded and updated successfully!", "success");
           const updatedUser = response.data.data.user;
-          const newBanner = updatedUser?.banner || updatedUser?.bannerUrl;
-          if (newBanner) setBannerPreview(newBanner);
+          const newBanner = updatedUser?.banner || updatedUser?.bannerUrl || dataUrl;
+          setBannerPreview(newBanner);
           updateUser(updatedUser, response.data.data.token);
         } else {
           addToast(response.data?.message || "Failed to update banner", "error");

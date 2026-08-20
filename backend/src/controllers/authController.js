@@ -22,6 +22,7 @@ const {
 } = require("../middleware/upload");
 const {
   uploadFile,
+  uploadBase64,
   deleteFile
 } = require("../config/cloudinary");
 const bcrypt = require("bcryptjs");
@@ -477,15 +478,54 @@ exports.put_profile_2 = async (req, res) => {
     newId,
     employeeId,
     username,
-    bloodGroup
+    bloodGroup,
+    photoData,
+    bannerData,
+    fileName
   } = req.body;
   console.log("=== PUT PROFILE ===");
-  console.log("req.body:", req.body);
+  console.log("req.body keys:", Object.keys(req.body || {}));
   console.log("req.files:", req.files ? Object.keys(req.files) : "none");
 
   let photoUrl = req.body.photoUrl || undefined;
   let bannerUrl = req.body.bannerUrl || undefined;
 
+  // 1. Direct Base64 upload to Cloudinary (reliable pattern matching POD flow)
+  if (photoData) {
+    try {
+      const uploadResult = await uploadBase64(photoData, {
+        folder: "avatars",
+        originalName: fileName || `avatar_${userId}_${Date.now()}.jpg`
+      });
+      if (uploadResult && uploadResult.success && uploadResult.url) {
+        photoUrl = uploadResult.url;
+        console.log("[Auth Controller] Avatar uploaded to Cloudinary:", photoUrl);
+      } else {
+        console.error("[Auth Controller] Cloudinary avatar upload failed:", uploadResult?.message);
+      }
+    } catch (err) {
+      console.error("[Auth Controller] Cloudinary avatar exception:", err.message);
+    }
+  }
+
+  if (bannerData) {
+    try {
+      const uploadResult = await uploadBase64(bannerData, {
+        folder: "banners",
+        originalName: fileName || `banner_${userId}_${Date.now()}.jpg`
+      });
+      if (uploadResult && uploadResult.success && uploadResult.url) {
+        bannerUrl = uploadResult.url;
+        console.log("[Auth Controller] Banner uploaded to Cloudinary:", bannerUrl);
+      } else {
+        console.error("[Auth Controller] Cloudinary banner upload failed:", uploadResult?.message);
+      }
+    } catch (err) {
+      console.error("[Auth Controller] Cloudinary banner exception:", err.message);
+    }
+  }
+
+  // 2. Multer fallback (if multipart/form-data with files is sent)
   if (req.files) {
     if (req.files.photo && req.files.photo.length > 0) {
       try {
@@ -633,17 +673,24 @@ exports.put_profile_2 = async (req, res) => {
       ...updatedDoc.data(),
     };
   }
-delete updatedUserData.password;
+  delete updatedUserData.password;
 
-// Generate new token with updated user data
-const token = generateToken(updatedUserData);
-return success(res, {
-  message: "Profile updated successfully",
-  data: {
-    user: updatedUserData,
-    token
-  }
-});
+  // Invalidate any user caches so stale profile is never returned
+  try {
+    const { delCache } = require("../config/redis");
+    await delCache(`user:${userId}`);
+    await delCache(`auth:me:${userId}`);
+  } catch (cErr) {}
+
+  // Generate new token with updated user data
+  const token = generateToken(updatedUserData);
+  return success(res, {
+    message: "Profile updated successfully",
+    data: {
+      user: updatedUserData,
+      token
+    }
+  });
 };
 
 
