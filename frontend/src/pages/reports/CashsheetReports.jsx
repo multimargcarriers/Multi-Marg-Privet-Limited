@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { Search, Download,  Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
+import { Search, Download, Trash2, FileSpreadsheet, IndianRupee, PieChart } from "lucide-react";
 import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
 import { useDialog } from "../../context/DialogContext";
 import RupeeIcon from "../../components/RupeeIcon";
+import ExportModal from "../../components/ExportModal";
+import { exportCashSheetList } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -15,6 +17,8 @@ const CashsheetReports = () => {
   const [filters, setFilters] = useState({ fr: "", to: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchCash();
@@ -68,32 +72,37 @@ const CashsheetReports = () => {
     setData(filtered);
   };
 
+  // Selection State
+  const [selectedCashIds, setSelectedCashIds] = useState([]);
+
+  const handleToggleSelectCash = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedCashIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleExport = () => {
     if (data.length === 0) return;
-    const headers = ["Date", "Party", "Type", "Amount", "Remarks"];
-    const csvContent = [
-      headers.join(","),
-      ...data.map(row => {
-        const dateStr = row.date ? formatDate(row.date) : "";
-        return [
-          `"${dateStr}"`,
-          `"${row.partyName || ""}"`,
-          `"${row.type || ""}"`,
-          parseFloat(row.amount || 0).toFixed(2),
-          `"${row.remarks || ""}"`
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Cashsheet_Report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = data;
+      if (selectedCashIds.length > 0) {
+        dataToExport = data.filter((b, idx) => selectedCashIds.includes(b.id || b._id || idx));
+      }
+      await exportCashSheetList({
+        entries: dataToExport,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -197,96 +206,107 @@ const CashsheetReports = () => {
           
           <div className="responsive-btn-group" style={{ marginTop: "1.5rem" }}>
             <button 
-              type="button" 
-              onClick={handleExport}
-              disabled={data.length === 0}
-              style={{
-                backgroundColor: "#e2e8f0",
-                color: "#475569",
-                border: "none",
-                padding: "0.65rem 1.5rem",
-                borderRadius: "8px",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                cursor: data.length === 0 ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                opacity: data.length === 0 ? 0.5 : 1
-              }}
+              type="submit" 
+              className="btn btn-primary" 
+              style={{ padding: "0.65rem 1.5rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, border: "none", background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "white" }}
             >
-              <Download size={16} /> EXPORT CSV
+              <Search size={16} /> Filter Data
             </button>
             <button 
-              type="submit" 
-              style={{
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "white",
-                border: "none",
-                padding: "0.65rem 2.5rem",
-                borderRadius: "8px",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)",
-              }}
+              type="button" 
+              onClick={handleExport} 
+              className="btn btn-secondary" 
+              style={{ padding: "0.65rem 1.5rem", borderRadius: "8px", display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", color: "#334155" }}
             >
-              <Search size={16} /> FILTER REPORT
+              <Download size={16} /> Export
             </button>
           </div>
         </div>
       </form>
 
-      {/* STATS CARDS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Cash In</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#16a34a", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalCashIn.toFixed(2)}
+      {/* METRIC CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "1.5rem" }}>
+        <div style={{ background: "white", padding: "1.5rem", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 600 }}>Total Cash In</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16a34a", marginTop: "0.5rem", display: "flex", alignItems: "center" }}>
+                <RupeeIcon size={20} />&nbsp;{stats.totalCashIn.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "12px" }}>
+              <IndianRupee size={24} color="#16a34a" />
             </div>
           </div>
-          <div style={{ background: "#dcfce7", padding: "12px", borderRadius: "12px" }}><IndianRupee size={24} color="#16a34a" /></div>
         </div>
 
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Total Cash Out</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.totalCashOut.toFixed(2)}
+        <div style={{ background: "white", padding: "1.5rem", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 600 }}>Total Cash Out</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#ef4444", marginTop: "0.5rem", display: "flex", alignItems: "center" }}>
+                <RupeeIcon size={20} />&nbsp;{stats.totalCashOut.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px" }}>
+              <IndianRupee size={24} color="#ef4444" />
             </div>
           </div>
-          <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px" }}><IndianRupee size={24} color="#ef4444" /></div>
         </div>
 
-        <div style={{ background: "white", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Net Balance</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: stats.netBalance >= 0 ? "#0f172a" : "#ef4444", marginTop: "4px", display: "flex", alignItems: "center" }}>
-               <RupeeIcon size={24} /> {stats.netBalance.toFixed(2)}
+        <div style={{ background: "white", padding: "1.5rem", borderRadius: "16px", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 600 }}>Net Balance</div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: stats.netBalance >= 0 ? "#0f172a" : "#ef4444", marginTop: "0.5rem", display: "flex", alignItems: "center" }}>
+                <RupeeIcon size={20} />&nbsp;{stats.netBalance.toFixed(2)}
+              </div>
+            </div>
+            <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}>
+              <PieChart size={24} color="#475569" />
             </div>
           </div>
-          <div style={{ background: "#f1f5f9", padding: "12px", borderRadius: "12px" }}><PieChart size={24} color="#64748b" /></div>
         </div>
       </div>
 
-      {/* TABLE */}
-      <div style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", borderBottom: "1px solid #e2e8f0", background: "#f8fafc", flexWrap: "wrap", gap: "10px" }}>
-          <div style={{ fontWeight: 700, color: "#0f172a" }}>CASH ENTRIES</div>
-        </div>
-
-        <Table
+      {/* DATA TABLE */}
+      <div style={{ background: "white", borderRadius: "16px", border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02)" }}>
+        <Table 
           loading={loading}
-          pagination={true}
-          headers={["#", "Date", "Party", "Particulars", "Cash In", "Cash Out", "Delete"]}
           data={data}
-          renderRow={(item, idx) => (
-            <tr key={item.id || idx} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
-              <td style={{ padding: "1rem", fontWeight: 600, color: "#64748b" }}>{idx + 1}</td>
+          headers={[
+            <div key="select-all-cash-rep" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={data.length > 0 && data.every((b, idx) => selectedCashIds.includes(b.id || b._id || idx))}
+                onChange={() => {
+                  const visibleIds = data.map((b, idx) => b.id || b._id || idx);
+                  const allSelected = visibleIds.every(id => selectedCashIds.includes(id));
+                  if (allSelected) {
+                    setSelectedCashIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedCashIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#16a34a" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Date", "Party Name", "Remarks", "Cash In (₹)", "Cash Out (₹)", "Actions"
+          ]}
+          renderRow={(item, index) => {
+            const itemId = item.id || item._id || index;
+            const isSelected = selectedCashIds.includes(itemId);
+            return (
+            <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", backgroundColor: isSelected ? "rgba(22, 163, 74, 0.08)" : undefined }}>
+              <td style={{ width: "40px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectCash(itemId)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#16a34a" }}
+                />
+              </td>
               <td style={{ padding: "1rem", color: "#475569" }}>{item.date ? formatDate(item.date) : "-"}</td>
               <td style={{ padding: "1rem" }}>
                 <div style={{ fontWeight: 600, color: "#0f172a", textTransform: "uppercase" }}>{item.partyName || "—"}</div>
@@ -309,9 +329,21 @@ const CashsheetReports = () => {
                 </button>
               </td>
             </tr>
-          )}
+            );
+          }}
         />
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Cash Sheet Report"
+        itemCount={selectedCashIds.length > 0 ? selectedCashIds.length : data.length}
+        subtitle={selectedCashIds.length > 0 ? `Exporting ${selectedCashIds.length} selected cash entry(ies)` : `Exporting all ${data.length} cash entries`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

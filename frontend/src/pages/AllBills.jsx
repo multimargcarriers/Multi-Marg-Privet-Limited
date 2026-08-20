@@ -17,6 +17,8 @@ import { formatDate } from '../utils/formatters';
 import StatsPanel from "../components/StatsPanel";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
+import ExportModal from "../components/ExportModal";
+import { exportSalesBillsList } from "../utils/excelExport";
 
 const AllBills = () => {
   const { user } = useContext(AuthContext);
@@ -356,28 +358,54 @@ const AllBills = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const exportToCSV = () => {
+  // Row Selection State
+  const [selectedBillIds, setSelectedBillIds] = useState([]);
+
+  const handleToggleSelectBill = (id) => {
+    if (!id) return;
+    setSelectedBillIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const isAllVisibleSelected = useMemo(() => {
+    const ids = sortedData.map(b => b.id).filter(Boolean);
+    return ids.length > 0 && ids.every(id => selectedBillIds.includes(id));
+  }, [sortedData, selectedBillIds]);
+
+  const handleToggleSelectAll = () => {
+    const ids = sortedData.map(b => b.id).filter(Boolean);
+    if (isAllVisibleSelected) {
+      setSelectedBillIds(prev => prev.filter(id => !ids.includes(id)));
+    } else {
+      setSelectedBillIds(prev => Array.from(new Set([...prev, ...ids])));
+    }
+  };
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExecuteExport = async ({ format }) => {
     if (filtered.length === 0) {
       addToast("No data to export", "warning");
       return;
     }
-    const exportData = filtered.map(b => ({
-      "Bill No": b.invoice || b.billNo,
-      "Client": b.client || b.billedTo,
-      "Total Amt": parseFloat(b.amount || b.total || 0).toFixed(2),
-      "Received": parseFloat(b.paidAmount || 0).toFixed(2),
-      "Pending": (parseFloat(b.amount || b.total || 0) - parseFloat(b.paidAmount || 0)).toFixed(2),
-      "Date": formatDate(b.invoice_date || b.date || b.createdAt),
-      "Status": b.status
-    }));
-    const csv = Papa.unparse(exportData);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bills_export.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+    try {
+      setIsExporting(true);
+      let dataToExport = sortedData;
+      if (selectedBillIds.length > 0) {
+        dataToExport = sortedData.filter(b => selectedBillIds.includes(b.id));
+      }
+      await exportSalesBillsList({
+        bills: dataToExport,
+        format,
+        dateRange: { startDate: fromDate, endDate: toDate },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+      addToast("Failed to export bills", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -404,7 +432,7 @@ const AllBills = () => {
               </label>
             </>
           )}
-          <button className="btn btn-secondary page-header-btn" onClick={exportToCSV}>
+          <button className="btn btn-secondary page-header-btn" onClick={() => setShowExportModal(true)}>
             <Download size={16} /> Export
           </button>
           <button 
@@ -543,9 +571,21 @@ const AllBills = () => {
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table 
           pagination={true}
-          headers={["Bill No", "Client", "Total Amt", "Received", "TDS", "DEBT", "Pending", "Date", "Status", "Actions"]}
+          headers={[
+            <div key="select-all-bills" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={isAllVisibleSelected}
+                onChange={handleToggleSelectAll}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title={isAllVisibleSelected ? "Deselect All" : "Select All"}
+              />
+            </div>,
+            "Bill No", "Client", "Total Amt", "Received", "TDS", "DEBT", "Pending", "Date", "Status", "Actions"
+          ]}
           data={sortedData}
           renderRow={(item, index) => {
+            const isSelected = selectedBillIds.includes(item.id);
             const totalAmt = parseFloat(item.amount || item.total || 0);
             const receivedAmt = parseFloat(item.paidAmount || 0);
             const billNo = String(item.invoice || item.billNo || item.id || '').toLowerCase().trim();
@@ -556,7 +596,15 @@ const AllBills = () => {
             const pendingAmt = Math.max(0, totalAmt - receivedAmt - billTds - billDebit);
             
             return (
-            <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+            <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", opacity: item.isOfflinePending ? 0.7 : 1, backgroundColor: isSelected ? "rgba(59, 130, 246, 0.08)" : undefined }}>
+              <td style={{ width: "40px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectBill(item.id)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                />
+              </td>
               <td style={{ padding: "1rem", fontWeight: "700", color: "#0f172a", whiteSpace: "nowrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   {item.invoice || item.billNo || item.id?.slice(-6) || index + 1}
@@ -774,6 +822,19 @@ const AllBills = () => {
         </div>,
         document.body
       )}
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Sales Invoices"
+        itemCount={selectedBillIds.length > 0 ? selectedBillIds.length : sortedData.length}
+        subtitle={selectedBillIds.length > 0 
+          ? `Exporting ${selectedBillIds.length} selected invoice(s)` 
+          : (search || fromDate || toDate || filterStatus !== 'All' ? `Exporting ${sortedData.length} filtered invoice(s)` : `Exporting all ${sortedData.length} invoices`)}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

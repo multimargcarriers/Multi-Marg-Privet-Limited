@@ -33,6 +33,9 @@ import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import RupeeIcon from '../components/RupeeIcon';
 import CreatableDropdown from "../components/CreatableDropdown";
+import ExportModal from "../components/ExportModal";
+import { exportCashSheetList } from "../utils/excelExport";
+import { Download } from "lucide-react";
 import QuickAddModal from "../components/QuickAddModal";
 import { BadgeContext } from "../context/BadgeContext";
 import { useSync } from "../context/SyncContext";
@@ -61,6 +64,37 @@ const CashSheet = () => {
   const [filterSearch, setFilterSearch] = useState("");
   const [filterPartyType, setFilterPartyType] = useState("All");
   const [filterType, setFilterType] = useState("All");
+
+  // Selection State
+  const [selectedCashIds, setSelectedCashIds] = useState([]);
+
+  const handleToggleSelectCash = (id) => {
+    if (!id) return;
+    setSelectedCashIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = filteredEntries;
+      if (selectedCashIds.length > 0) {
+        dataToExport = filteredEntries.filter(b => selectedCashIds.includes(b.id || b._id));
+      }
+      await exportCashSheetList({
+        entries: dataToExport,
+        format,
+        dateRange: { startDate: "", endDate: "" },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const displayEntries = useMemo(() => {
     const pending = (syncQueue || [])
@@ -511,6 +545,26 @@ const CashSheet = () => {
             {importingVendor ? "Importing..." : "Import Vendor CSV"}
           </button>
           
+          <button
+            onClick={() => setShowExportModal(true)}
+            style={{
+              background: "#16a34a",
+              border: "none",
+              color: "white",
+              padding: "0.45rem 0.85rem",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+            }}
+          >
+            <Download size={14} />
+            Export
+          </button>
+
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -1067,16 +1121,45 @@ const CashSheet = () => {
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["Date", "Type", "Amount", "Party", "Remarks", "Voucher", "Actions"]}
+          headers={[
+            <div key="select-all-cash" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={filteredEntries.length > 0 && filteredEntries.every(b => selectedCashIds.includes(b.id || b._id))}
+                onChange={() => {
+                  const visibleIds = filteredEntries.map(b => b.id || b._id).filter(Boolean);
+                  const allSelected = visibleIds.every(id => selectedCashIds.includes(id));
+                  if (allSelected) {
+                    setSelectedCashIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedCashIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#16a34a" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Date", "Type", "Amount", "Party", "Remarks", "Voucher", "Actions"
+          ]}
           data={filteredEntries}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
+            const itemId = item.id || item._id;
+            const isSelected = selectedCashIds.includes(itemId);
             const isIncome = item.type === "in" || item.type === "income";
             const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
 
             return (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+              <tr key={itemId || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1, backgroundColor: isSelected ? "rgba(22, 163, 74, 0.08)" : undefined }}>
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectCash(itemId)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#16a34a" }}
+                  />
+                </td>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> {item.date ? formatDate(item.date) : "-"}
@@ -1204,6 +1287,19 @@ const CashSheet = () => {
         initialMode={studioMode}
         initialImageSrc={studioInitialSrc}
         onSave={handleStudioSave}
+      />
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Cash Sheet Statement"
+        itemCount={selectedCashIds.length > 0 ? selectedCashIds.length : filteredEntries.length}
+        subtitle={selectedCashIds.length > 0 
+          ? `Exporting ${selectedCashIds.length} selected cash entry(ies)` 
+          : (filterSearch || filterPartyType !== 'All' || filterType !== 'All' ? `Exporting ${filteredEntries.length} filtered cash entry(ies)` : `Exporting all ${filteredEntries.length} cash entries`)}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
       />
     </div>
   );

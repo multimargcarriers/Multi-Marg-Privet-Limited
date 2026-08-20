@@ -19,6 +19,9 @@ import { SettingsContext } from "../context/SettingsContext";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
 import { useSync } from "../context/SyncContext";
+import { useToast } from "../context/ToastContext";
+import ExportModal from "../components/ExportModal";
+import { exportBookingsList } from "../utils/excelExport";
 
 const BookingsList = () => {
   const { syncQueue } = useSync();
@@ -26,6 +29,7 @@ const BookingsList = () => {
   const { globalSettings } = useContext(SettingsContext);
   const { clearBadge } = useContext(BadgeContext);
   const { confirm } = useDialog();
+  const { addToast } = useToast();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const canAccessPod = isSuperAdmin || user?.role === 'Admin' || user?.permissions?.includes('pod') || true;
 
@@ -57,6 +61,38 @@ const BookingsList = () => {
   const [boxModalOpen, setBoxModalOpen] = useState(false);
   const [selectedBookingForBox, setSelectedBookingForBox] = useState(null);
   const [boxMap, setBoxMap] = useState({});
+
+  // Selection state
+  const [selectedBookingIds, setSelectedBookingIds] = useState([]);
+
+  const handleToggleSelectBooking = (id) => {
+    if (!id) return;
+    setSelectedBookingIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = sortedData;
+      if (selectedBookingIds.length > 0) {
+        dataToExport = sortedData.filter(b => selectedBookingIds.includes(b.id || b._id));
+      }
+      await exportBookingsList({
+        bookings: dataToExport,
+        format,
+        dateRange: { startDate, endDate },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Local Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -149,6 +185,30 @@ const BookingsList = () => {
     } catch (err) { console.error("Clear bookings error", err); }
   };
 
+  const handleDelete = async (id) => {
+    if (!id) return;
+    const isConfirmed = await confirm({
+      title: "Delete Booking",
+      message: "Are you sure you want to permanently delete this booking? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    });
+    if (!isConfirmed) return;
+
+    setBookings(prev => prev.filter(b => b.id !== id && b._id !== id));
+    try {
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/bookings/${id}`);
+      if (res.data?.success) {
+        addToast("Booking deleted successfully", "success");
+      }
+      fetchAllData();
+    } catch (err) {
+      console.error("Delete booking error", err);
+      addToast(err.response?.data?.message || "Failed to delete booking", "error");
+      fetchAllData();
+    }
+  };
+
   const displayBookings = useMemo(() => {
     const pending = (syncQueue || [])
       .filter(req => req.method === 'post' && req.url.includes('/bookings'))
@@ -203,7 +263,7 @@ const BookingsList = () => {
     });
   }, [displayBookings, search, startDate, endDate]);
 
-  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght" });
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght", dateKey: "createdAt" });
 
   // Pagination logic
   const totalPages = Math.ceil(sortedData.length / entriesPerPage);
@@ -247,6 +307,28 @@ const BookingsList = () => {
 
         {/* Right Side: Tools */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowExportModal(true)}
+            style={{
+              padding: '0 1.25rem',
+              height: '42px',
+              fontSize: '0.92rem',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Download size={16} /> EXPORT
+          </button>
+
           {globalSettings?.integrations?.enableCsvImport !== false && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               {/* Bookings (AWB) CSV */}
@@ -381,6 +463,52 @@ const BookingsList = () => {
         </div>
       </div>
 
+      {/* Select All / Batch Action Toolbar */}
+      {currentEntries.length > 0 && (
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "#ffffff",
+          padding: "0.65rem 1rem",
+          borderRadius: "8px",
+          border: "1px solid #cbd5e1",
+          marginBottom: "1rem",
+        }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", color: "#334155" }}>
+            <input
+              type="checkbox"
+              checked={currentEntries.length > 0 && currentEntries.every(b => selectedBookingIds.includes(b.id || b._id))}
+              onChange={() => {
+                const visibleIds = currentEntries.map(b => b.id || b._id).filter(Boolean);
+                const allSelected = visibleIds.every(id => selectedBookingIds.includes(id));
+                if (allSelected) {
+                  setSelectedBookingIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                } else {
+                  setSelectedBookingIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                }
+              }}
+              style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+            />
+            <span>Select All Visible ({currentEntries.length})</span>
+          </label>
+
+          {selectedBookingIds.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "0.8rem", color: "#2563eb", fontWeight: "700" }}>
+                {selectedBookingIds.length} booking(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedBookingIds([])}
+                style={{ background: "transparent", border: "none", color: "#64748b", fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline" }}
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <TablePageSkeleton />
       ) : currentEntries.length === 0 ? (
@@ -392,6 +520,8 @@ const BookingsList = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {currentEntries.map((item, index) => {
+            const itemId = item.id || item._id;
+            const isSelected = selectedBookingIds.includes(itemId);
             const displayParcels = item.invoiceDetails && item.invoiceDetails.length > 0
               ? item.invoiceDetails.filter(inv => inv.invoiceNo || inv.partNumber || inv.ewayBill || inv.invoiceValue)
               : (item.parcels || []);
@@ -400,17 +530,25 @@ const BookingsList = () => {
             const hasBox = boxMap[item.awb || item.lrNo || item.id];
             const hasPodEntry = podMap[item.awb || item.lrNo || item.id];
             return (
-              <div key={item.id || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: item.isOfflinePending ? "2px dashed #f59e0b" : undefined }}>
+              <div key={itemId || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: isSelected ? "2px solid #2563eb" : (item.isOfflinePending ? "2px dashed #f59e0b" : undefined), background: isSelected ? "#f8faff" : undefined }}>
 
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
                   <div className="booking-card-header-left">
-                    <h4 className="booking-client-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {item.client || item.consignor || "UNKNOWN CLIENT"}
-                      {item.isOfflinePending && (
-                        <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
-                      )}
-                    </h4>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectBooking(itemId)}
+                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                      />
+                      <h4 className="booking-client-name" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                        {item.client || item.consignor || "UNKNOWN CLIENT"}
+                        {item.isOfflinePending && (
+                          <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
+                        )}
+                      </h4>
+                    </div>
                     <div className="booking-meta-row">
                       <span className="booking-meta-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                         AWB: {awb}
@@ -501,7 +639,7 @@ const BookingsList = () => {
                             </>
                           )}
                           {canModify && (
-                            <button onClick={() => handleDelete(item.id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
+                            <button onClick={() => handleDelete(item.id || item._id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
                           )}
                         </>
                       );
@@ -669,13 +807,23 @@ const BookingsList = () => {
           booking={selectedBookingForTracking}
           onNavigateToTracking={(awb) => navigate(`/tracking?awb=${awb}`)}
           onSuccess={() => {
-            // We can optionally refresh data here, 
-            // though bookings list doesn't actively display tracking statuses yet.
-            // If they are added later, fetchAllData() would refresh them.
             fetchAllData(); 
           }}
         />
       </AnimatePresence>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export AWB Bookings & Consignments"
+        itemCount={selectedBookingIds.length > 0 ? selectedBookingIds.length : sortedData.length}
+        subtitle={selectedBookingIds.length > 0 
+          ? `Exporting ${selectedBookingIds.length} selected booking(s)` 
+          : (search || startDate || endDate ? `Exporting ${sortedData.length} filtered booking(s)` : `Exporting all ${sortedData.length} bookings`)}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

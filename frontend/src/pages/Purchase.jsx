@@ -34,6 +34,9 @@ import QuickAddModal from "../components/QuickAddModal";
 import StatsPanel from "../components/StatsPanel";
 import SortDropdown from "../components/SortDropdown";
 import useTableSort from "../hooks/useTableSort";
+import ExportModal from "../components/ExportModal";
+import { exportPurchaseBillsList } from "../utils/excelExport";
+import { Download } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -118,6 +121,37 @@ const Purchase = () => {
   const [studioOpen, setStudioOpen] = useState(false);
   const [studioMode, setStudioMode] = useState("camera"); // 'camera' | 'editor'
   const [studioInitialSrc, setStudioInitialSrc] = useState(null);
+
+  // Selection State
+  const [selectedPurchaseIds, setSelectedPurchaseIds] = useState([]);
+
+  const handleToggleSelectPurchase = (id) => {
+    if (!id) return;
+    setSelectedPurchaseIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = sortedData;
+      if (selectedPurchaseIds.length > 0) {
+        dataToExport = sortedData.filter(b => selectedPurchaseIds.includes(b.id));
+      }
+      await exportPurchaseBillsList({
+        purchases: dataToExport,
+        format,
+        dateRange: { startDate: fromDate, endDate: toDate },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const fileInputRef = useRef(null);
 
@@ -546,6 +580,15 @@ const Purchase = () => {
         </div>
 
         <div className="page-header-actions">
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="page-header-btn"
+            style={{ background: "#16a34a", color: "white", borderColor: "#16a34a", fontWeight: 700 }}
+          >
+            <Download size={14} />
+            Export
+          </button>
+
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -1054,11 +1097,31 @@ const Purchase = () => {
       {/* TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "TDS", "Balance", "Status", "Bill Image", "Actions"]}
+          headers={[
+            <div key="select-all-purchases" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={sortedData.length > 0 && sortedData.every(b => selectedPurchaseIds.includes(b.id))}
+                onChange={() => {
+                  const visibleIds = sortedData.map(b => b.id).filter(Boolean);
+                  const allSelected = visibleIds.every(id => selectedPurchaseIds.includes(id));
+                  if (allSelected) {
+                    setSelectedPurchaseIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedPurchaseIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#8b5cf6" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "TDS", "Balance", "Status", "Bill Image", "Actions"
+          ]}
           data={sortedData}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
+            const isSelected = selectedPurchaseIds.includes(item.id);
             const fileUrl = getSafeCloudinaryPdfUrl(item.cloudinaryUrl || item.voucherUrl || (item.fileName ? `${API.replace('/api', '')}/uploads/${item.fileName}` : null));
             const bNo = (item.billNo || '').toLowerCase();
             const vName = (item.vendor || '').toLowerCase();
@@ -1067,7 +1130,15 @@ const Purchase = () => {
               .reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
 
             return (
-              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
+              <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", opacity: item.isOfflinePending ? 0.7 : 1, backgroundColor: isSelected ? "rgba(139, 92, 246, 0.08)" : undefined }}>
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectPurchase(item.id)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#8b5cf6" }}
+                  />
+                </td>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> {item.date ? formatDate(item.date) : "-"}
@@ -1464,6 +1535,19 @@ const Purchase = () => {
         </div>,
         document.body
       )}
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Purchase Bills & Expenses"
+        itemCount={selectedPurchaseIds.length > 0 ? selectedPurchaseIds.length : sortedData.length}
+        subtitle={selectedPurchaseIds.length > 0 
+          ? `Exporting ${selectedPurchaseIds.length} selected purchase bill(s)` 
+          : (search || fromDate || toDate || statusFilter !== 'All' ? `Exporting ${sortedData.length} filtered purchase bill(s)` : `Exporting all ${sortedData.length} purchase bills`)}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

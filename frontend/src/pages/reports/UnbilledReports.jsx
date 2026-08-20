@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Download
 } from "lucide-react";
+import ExportModal from "../../components/ExportModal";
+import { exportUnbilledReport } from "../../utils/excelExport";
 
 // Robust Date Formatter that handles DD-MM-YYYY, ISO strings, and timestamp objects
 const formatRowDate = (dateVal) => {
@@ -171,45 +173,40 @@ const UnbilledReports = () => {
     setFilters({ fr: "", to: "", search: "" });
   };
 
+  // Selection State
+  const [selectedUnbilledIds, setSelectedUnbilledIds] = useState([]);
+
+  const handleToggleSelectUnbilled = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedUnbilledIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   const handleExport = () => {
     if (filteredData.length === 0) return;
-    const headers = [
-      "AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", 
-      "Mode", "Box", "Chargeable Wt", "Billed To / Client", "Freight", "Remarks"
-    ];
-    
-    const csvContent = [
-      headers.join(","),
-      ...filteredData.map(row => {
-        const awbNo = getAwbNo(row);
-        const dateObj = getBookingDateObj(row);
-        const dateStr = dateObj ? String(dateObj.getDate()).padStart(2, '0') + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + dateObj.getFullYear() : "";
-        return [
-          `"${awbNo}"`,
-          `"${dateStr}"`,
-          `"${row.consignor || ""}"`,
-          `"${row.consignee || ""}"`,
-          `"${row.origin || ""}"`,
-          `"${row.destination || ""}"`,
-          `"${row.mode || ""}"`,
-          getBoxCount(row),
-          getChargeableWeight(row),
-          `"${getBilledTo(row)}"`,
-          getFreightAmount(row),
-          `"${row.remarks || row.status || ""}"`
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Unbilled_Reports.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = filteredData;
+      if (selectedUnbilledIds.length > 0) {
+        dataToExport = filteredData.filter((b, idx) => selectedUnbilledIds.includes(b.id || b._id || getAwbNo(b) || idx));
+      }
+      await exportUnbilledReport({
+        unbilled: dataToExport,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePrint = () => {
@@ -646,6 +643,23 @@ const UnbilledReports = () => {
           loading={loading}
           pagination={true}
           headers={[
+            <div key="select-all-unbilled-rep" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={filteredData.length > 0 && filteredData.every((b, idx) => selectedUnbilledIds.includes(b.id || b._id || getAwbNo(b) || idx))}
+                onChange={() => {
+                  const visibleIds = filteredData.map((b, idx) => b.id || b._id || getAwbNo(b) || idx);
+                  const allSelected = visibleIds.every(id => selectedUnbilledIds.includes(id));
+                  if (allSelected) {
+                    setSelectedUnbilledIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedUnbilledIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title="Toggle Select All"
+              />
+            </div>,
             "AWB No",
             "Date",
             "Consignor",
@@ -661,6 +675,8 @@ const UnbilledReports = () => {
           ]}
           data={filteredData}
           renderRow={(item, index) => {
+            const itemId = item.id || item._id || getAwbNo(item) || index;
+            const isSelected = selectedUnbilledIds.includes(itemId);
             const awbNo = getAwbNo(item);
             const dateStr = formatRowDate(item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.createdAt || item.created_at);
             const consignor = item.consignor || "-";
@@ -681,8 +697,19 @@ const UnbilledReports = () => {
                 style={{
                   borderBottom: "1px solid #f1f5f9",
                   transition: "background-color 0.15s",
+                  backgroundColor: isSelected ? "rgba(59, 130, 246, 0.08)" : undefined,
                 }}
               >
+                {/* SELECT CHECKBOX */}
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectUnbilled(itemId)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                  />
+                </td>
+
                 {/* AWB NO */}
                 <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap" }}>
                   <span
@@ -811,6 +838,17 @@ const UnbilledReports = () => {
           }}
         />
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Unbilled Shipments Report"
+        itemCount={selectedUnbilledIds.length > 0 ? selectedUnbilledIds.length : filteredData.length}
+        subtitle={selectedUnbilledIds.length > 0 ? `Exporting ${selectedUnbilledIds.length} selected unbilled shipment(s)` : `Exporting all ${filteredData.length} unbilled shipments`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

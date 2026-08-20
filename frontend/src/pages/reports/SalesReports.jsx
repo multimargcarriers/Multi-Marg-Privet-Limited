@@ -4,6 +4,8 @@ import Table from "../../components/Table";
 import { Search, Download, TrendingUp, IndianRupee, PieChart, FileText } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatDate } from "../../utils/formatters";
+import ExportModal from "../../components/ExportModal";
+import { exportSalesBillsList } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -11,6 +13,8 @@ const SalesReports = () => {
   const [data, setData] = useState([]);
   const [filters, setFilters] = useState({ fr: "", to: "", search: "" });
   const [loading, setLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => { fetchSales(); }, []);
 
@@ -48,34 +52,37 @@ const SalesReports = () => {
     return list;
   }, [data, filters.search]);
 
+  // Selection State
+  const [selectedSaleIds, setSelectedSaleIds] = useState([]);
+
+  const handleToggleSelectSale = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedSaleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleExport = () => {
     if (filteredData.length === 0) return;
-    const headers = ["Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredData.map(row => {
-        const dateStr = row.createdAt ? formatDate(row.createdAt) : "";
-        return [
-          `"${row.billNo || ""}"`,
-          `"${dateStr}"`,
-          `"${row.client || ""}"`,
-          `"${row.lrNo || ""}"`,
-          row.status ? row.status.toUpperCase() : "PENDING",
-          parseFloat(row.taxable || row.amount || 0).toFixed(2),
-          parseFloat(row.total || row.amount || 0).toFixed(2)
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Sales_Report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = filteredData;
+      if (selectedSaleIds.length > 0) {
+        dataToExport = filteredData.filter((b, idx) => selectedSaleIds.includes(b.id || b._id || b.billNo || idx));
+      }
+      await exportSalesBillsList({
+        bills: dataToExport,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const stats = useMemo(() => {
@@ -243,10 +250,40 @@ const SalesReports = () => {
         <Table
           loading={loading}
           pagination={true}
-          headers={["Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"]}
+          headers={[
+            <div key="select-all-sales" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={filteredData.length > 0 && filteredData.every((b, idx) => selectedSaleIds.includes(b.id || b._id || b.billNo || idx))}
+                onChange={() => {
+                  const visibleIds = filteredData.map((b, idx) => b.id || b._id || b.billNo || idx);
+                  const allSelected = visibleIds.every(id => selectedSaleIds.includes(id));
+                  if (allSelected) {
+                    setSelectedSaleIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedSaleIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Invoice No", "Date", "Client", "LR No", "Status", "Taxable", "Total"
+          ]}
           data={filteredData}
-          renderRow={(item, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
+          renderRow={(item, index) => {
+            const itemId = item.id || item._id || item.billNo || index;
+            const isSelected = selectedSaleIds.includes(itemId);
+            return (
+            <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", backgroundColor: isSelected ? "rgba(59, 130, 246, 0.08)" : undefined }}>
+              <td style={{ width: "40px", textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleToggleSelectSale(itemId)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                />
+              </td>
               <td style={{ padding: "1rem", fontWeight: 600, color: "#3b82f6" }}>{item.billNo || "-"}</td>
               <td style={{ padding: "1rem", color: "#475569" }}>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
               <td style={{ padding: "1rem", fontWeight: 600, color: "#334155" }}>{item.client || "-"}</td>
@@ -283,9 +320,21 @@ const SalesReports = () => {
                 <span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}><RupeeIcon size={14} />&nbsp;{parseFloat(item.total || item.amount || 0).toFixed(2)}</span>
               </td>
             </tr>
-          )}
+            );
+          }}
         />
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Sales Report"
+        itemCount={selectedSaleIds.length > 0 ? selectedSaleIds.length : filteredData.length}
+        subtitle={selectedSaleIds.length > 0 ? `Exporting ${selectedSaleIds.length} selected invoice(s)` : `Exporting all ${filteredData.length} invoices`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

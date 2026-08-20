@@ -4,16 +4,20 @@ import Table from "../../components/Table";
 import { Search, Download, ShoppingCart, IndianRupee, PieChart, Users, Calendar } from "lucide-react";
 import RupeeIcon from "../../components/RupeeIcon";
 import { formatDate } from "../../utils/formatters";
+import ExportModal from "../../components/ExportModal";
+import { exportPurchaseBillsList } from "../../utils/excelExport";
 
 const PurchaseReports = () => {
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]);
   const [filters, setFilters] = useState({ search: "", fr: "", to: "" });
   const [loading, setLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const _handleSearch = (e) => {
     if (e) e.preventDefault();
-    fetchData(); // Refetch or refilter based on requirements, but wait, data is fetched once. Let's filter locally if possible, or refetch. Actually, we should refilter locally if we already have the raw data.
+    fetchData();
   };
 
   const fetchAndFilter = async () => {
@@ -57,37 +61,37 @@ const PurchaseReports = () => {
     fetchAndFilter();
   };
 
+  // Selection State
+  const [selectedPurchaseIds, setSelectedPurchaseIds] = useState([]);
+
+  const handleToggleSelectPurchase = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedPurchaseIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleExport = () => {
     if (data.length === 0) return;
-    const headers = ["Date", "Vendor", "Bill No", "Taxable", "GST", "Total", "Paid", "Balance", "Status"];
-    const csvContent = [
-      headers.join(","),
-      ...data.map(row => {
-        const dateStr = row.date ? formatDate(row.date) : (row.createdAt ? formatDate(row.createdAt) : "");
-        const balance = Math.max(0, parseFloat(row.total || 0) - parseFloat(row.paidAmount || 0));
-        return [
-          `"${dateStr}"`,
-          `"${row.vendor || ""}"`,
-          `"${row.billNo || ""}"`,
-          parseFloat(row.taxable || 0).toFixed(2),
-          parseFloat(row.gst || 0).toFixed(2),
-          parseFloat(row.total || 0).toFixed(2),
-          parseFloat(row.paidAmount || 0).toFixed(2),
-          balance.toFixed(2),
-          `"${row.status || ""}"`
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Purchase_Bills_Report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = data;
+      if (selectedPurchaseIds.length > 0) {
+        dataToExport = data.filter((b, idx) => selectedPurchaseIds.includes(b.id || b._id || b.billNo || idx));
+      }
+      await exportPurchaseBillsList({
+        purchases: dataToExport,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -285,14 +289,43 @@ const PurchaseReports = () => {
         </div>
 
         <Table
-          headers={["Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status"]}
+          headers={[
+            <div key="select-all-purchase-rep" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={data.length > 0 && data.every((b, idx) => selectedPurchaseIds.includes(b.id || b._id || b.billNo || idx))}
+                onChange={() => {
+                  const visibleIds = data.map((b, idx) => b.id || b._id || b.billNo || idx);
+                  const allSelected = visibleIds.every(id => selectedPurchaseIds.includes(id));
+                  if (allSelected) {
+                    setSelectedPurchaseIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedPurchaseIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#8b5cf6" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "Date", "Vendor", "Bill No", "Taxable/GST", "Total", "Paid", "Balance", "Status"
+          ]}
           data={data}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
+            const itemId = item.id || item._id || item.billNo || index;
+            const isSelected = selectedPurchaseIds.includes(itemId);
             const balance = Math.max(0, parseFloat(item.total || 0) - parseFloat(item.paidAmount || 0));
             return (
-              <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem" }}>
+              <tr key={index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.9rem", backgroundColor: isSelected ? "rgba(139, 92, 246, 0.08)" : undefined }}>
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectPurchase(itemId)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#8b5cf6" }}
+                  />
+                </td>
                 <td style={{ padding: "1rem", color: "#475569" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> {item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : "-")}
@@ -359,6 +392,17 @@ const PurchaseReports = () => {
           }}
         />
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Purchase Bills Report"
+        itemCount={selectedPurchaseIds.length > 0 ? selectedPurchaseIds.length : data.length}
+        subtitle={selectedPurchaseIds.length > 0 ? `Exporting ${selectedPurchaseIds.length} selected purchase bill(s)` : `Exporting all ${data.length} purchase bills`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

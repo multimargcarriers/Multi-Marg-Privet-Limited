@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus,  FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter } from "lucide-react";
+import { Plus, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter, Layers, FileSpreadsheet, CheckSquare, Square, Building2 } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
-
-import { TablePageSkeleton, } from '../components/SkeletonLoader';
+import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
 
 import { formatAllCaps, formatDate } from "../utils/formatters";
+import { exportVendorShipMis } from "../utils/excelExport";
+import ExportModal from "../components/ExportModal";
 import { useNotification } from "../context/NotificationContext";
 import { useToast } from "../context/ToastContext";
 import { useSocketSync } from "../hooks/useSocketSync";
@@ -40,7 +42,12 @@ const Trips = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [modeFilter, setModeFilter] = useState("ROAD");
+  const [modeFilter, setModeFilter] = useState("ALL");
+  const [selectedTripIds, setSelectedTripIds] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState("excel"); // 'excel' | 'csv'
+  const [exportBranding, setExportBranding] = useState("MULTIMARG"); // 'MULTIMARG' | 'PRIME'
+  const [isExporting, setIsExporting] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -185,80 +192,51 @@ const Trips = () => {
     }
   };
 
-  const handlePreviewManifest = (id) => {
-    window.open(`/print-manifest/${id}`, "_blank");
+  const matchesMode = (tripMode, targetFilter) => {
+    if (targetFilter === 'ALL') return true;
+    const m = String(tripMode || '').toUpperCase();
+    if (targetFilter === 'ROAD') return m === 'ROAD';
+    if (targetFilter === 'TRAIN') return m === 'TRAIN' || m === 'RAIL';
+    if (targetFilter === 'AIR') return m === 'AIR' || m === 'FLIGHT';
+    return false;
   };
 
-  const handleDownloadManifest = (id) => {
-    window.open(`/print-manifest/${id}?download=true`, "_blank");
+  const handleOpenExportModal = () => {
+    setShowExportModal(true);
   };
 
-  const exportToCSV = () => {
-    const dataToExport = filteredTrips;
-
-    if (dataToExport.length === 0) {
-      addToast("No trips to export", "warning");
-      return;
-    }
-
-    const headers = ["SL Number", "Mode", "Date", "Vehicle No", "Type", "AWB No", "CD No", "Vendor", "Origin", "Destination", "Material Details", "Status"];
-    const rows = [];
-    dataToExport.forEach((item, index) => {
-      const isPending = item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved');
-      const formattedDate = item.date ? formatDate(item.date) : "-";
-      
-      if (item.materialDetails && item.materialDetails.length > 0) {
-        item.materialDetails.forEach((m, mIdx) => {
-          const matDetailsStr = `LR: ${m.lrNo || '-'} | Client: ${m.clientName || '-'} | Box: ${m.box || 0} | Wt: ${m.weight || 0} | ChWt: ${m.chWeight || 0}`;
-          
-          rows.push([
-            mIdx === 0 ? index + 1 : "",
-            mIdx === 0 ? (item.mode || "-") : "",
-            mIdx === 0 ? formattedDate : "",
-            mIdx === 0 ? (item.vehicleNo || "-") : "",
-            mIdx === 0 ? (item.type || "-") : "",
-            mIdx === 0 ? (item.awbNo || "-") : "",
-            mIdx === 0 ? (item.cdNo || "-") : "",
-            mIdx === 0 ? (item.vendor || "-") : "",
-            mIdx === 0 ? (item.origin || "-") : "",
-            mIdx === 0 ? (item.destination || "-") : "",
-            matDetailsStr,
-            mIdx === 0 ? isPending : ""
-          ]);
-        });
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let tripsToExport = [];
+      if (selectedTripIds.length > 0) {
+        tripsToExport = displayTrips.filter(t => selectedTripIds.includes(t.id));
       } else {
-        rows.push([
-          index + 1,
-          item.mode || "-",
-          formattedDate,
-          item.vehicleNo || "-",
-          item.type || "-",
-          item.awbNo || "-",
-          item.cdNo || "-",
-          item.vendor || "-",
-          item.origin || "-",
-          item.destination || "-",
-          "-",
-          isPending
-        ]);
+        tripsToExport = activeFilteredTrips;
       }
-    });
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
+      if (tripsToExport.length === 0) {
+        addToast("No trips found to export", "warning");
+        setIsExporting(false);
+        return;
+      }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Vendor_Ship_MIS_${modeFilter}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    addToast("Export successful", "success");
+      const modeLabel = selectedTripIds.length > 0 ? `Selected (${tripsToExport.length})` : modeFilter;
+
+      await exportVendorShipMis({
+        trips: tripsToExport,
+        modeFilter: modeLabel,
+        dateRange: { startDate, endDate },
+        format,
+      });
+      addToast(`Vendor Ship MIS ${format.toUpperCase()} downloaded successfully!`, "success");
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error:", err);
+      addToast("Failed to export: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const updateMaterialRow = (index, field, value) => {
@@ -388,6 +366,35 @@ const Trips = () => {
     return Array.from(set).sort();
   }, [displayTrips]);
 
+  const activeFilteredTrips = useMemo(() => {
+    return filteredTrips.filter(t => matchesMode(t.mode, modeFilter));
+  }, [filteredTrips, modeFilter]);
+
+  const isAllVisibleSelected = useMemo(() => {
+    const visibleIds = activeFilteredTrips.map(t => t.id).filter(Boolean);
+    return visibleIds.length > 0 && visibleIds.every(id => selectedTripIds.includes(id));
+  }, [activeFilteredTrips, selectedTripIds]);
+
+  const handleToggleSelectAll = () => {
+    const visibleIds = activeFilteredTrips.map(t => t.id).filter(Boolean);
+    if (isAllVisibleSelected) {
+      setSelectedTripIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    } else {
+      setSelectedTripIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleToggleSelectTrip = (id) => {
+    if (!id) return;
+    setSelectedTripIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTripIds([]);
+  };
+
   const calculateTotalChWeight = (tripsList, modeList) => {
     return tripsList
       .filter(t => modeList.includes((t.mode || "").toLowerCase()))
@@ -400,165 +407,224 @@ const Trips = () => {
   const tripsStats = useMemo(() => {
     return {
       totalAmount: filteredTrips.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0),
+      totalTripsInMode: activeFilteredTrips.length,
       trainChWeight: calculateTotalChWeight(filteredTrips, ['train', 'rail']),
       flightChWeight: calculateTotalChWeight(filteredTrips, ['air', 'flight']),
       roadChWeight: calculateTotalChWeight(filteredTrips, ['road']),
     };
-  }, [filteredTrips]);
+  }, [filteredTrips, activeFilteredTrips]);
 
   if (loading) return <TablePageSkeleton />;
 
-  const renderTripRow = (item, index) => (
-    <tr key={item.id || index} style={{ opacity: item.isOfflinePending ? 0.7 : 1 }}>
-     <td className="font-semibold">
-       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-         {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Offline Sync" />}
-         {index + 1}
-       </div>
-     </td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.mode || "-"}</td>
-     <td style={{ whiteSpace: 'nowrap' }}>{item.date ? formatDate(item.date) : "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.vehicleNo || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.type || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.awbNo || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.cdNo || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.vendor || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.origin || "-"}</td>
-     <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.destination || "-"}</td>
-     <td style={{ padding: "6px" }}>
-       {item.materialDetails && item.materialDetails.length > 0 ? (
-          <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-            <table style={{ width: "100%", fontSize: "0.7rem", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead style={{ background: "#f8fafc", position: "sticky", top: 0, zIndex: 1 }}>
-                <tr>
-                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>LR No</th>
-                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>Client</th>
-                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Box</th>
-                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Wt.</th>
-                  <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Ch.Wt.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {item.materialDetails.map((m, idx) => (
-                  <tr key={idx} style={{ borderBottom: idx < item.materialDetails.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
-                    <td style={{ padding: "6px 8px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap" }}>{m.lrNo || "-"}</td>
-                    <td style={{ padding: "6px 8px", color: "#334155", whiteSpace: "nowrap" }} title={m.clientName}>{m.clientName || "-"}</td>
-                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.box || "0"}</td>
-                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.weight || "0"}</td>
-                    <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center", fontWeight: "600" }}>{m.chWeight || "0"}</td>
+  const renderTripRow = (item, index) => {
+    const isSelected = selectedTripIds.includes(item.id);
+    return (
+      <tr key={item.id || index} style={{ opacity: item.isOfflinePending ? 0.7 : 1, backgroundColor: isSelected ? "rgba(59, 130, 246, 0.08)" : undefined }}>
+       <td style={{ width: "40px", textAlign: "center" }}>
+         <input
+           type="checkbox"
+           checked={isSelected}
+           onChange={() => handleToggleSelectTrip(item.id)}
+           style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+         />
+       </td>
+       <td className="font-semibold">
+         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+           {item.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Offline Sync" />}
+           {index + 1}
+         </div>
+       </td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+         <span style={{
+           padding: "2px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: 700,
+           background: String(item.mode).toUpperCase() === 'ROAD' ? '#d1fae5' : String(item.mode).toUpperCase() === 'TRAIN' || String(item.mode).toUpperCase() === 'RAIL' ? '#fae8ff' : '#e0f2fe',
+           color: String(item.mode).toUpperCase() === 'ROAD' ? '#065f46' : String(item.mode).toUpperCase() === 'TRAIN' || String(item.mode).toUpperCase() === 'RAIL' ? '#86198f' : '#0369a1',
+         }}>
+           {item.mode || "-"}
+         </span>
+       </td>
+       <td style={{ whiteSpace: 'nowrap' }}>{item.date ? formatDate(item.date) : "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap', fontWeight: 600 }}>{item.vehicleNo || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.type || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.awbNo || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.cdNo || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap', fontWeight: 600, color: "#1e3a8a" }}>{item.vendor || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.origin || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.destination || "-"}</td>
+       <td style={{ padding: "6px" }}>
+         {item.materialDetails && item.materialDetails.length > 0 ? (
+            <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px", background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+              <table style={{ width: "100%", fontSize: "0.7rem", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead style={{ background: "#f8fafc", position: "sticky", top: 0, zIndex: 1 }}>
+                  <tr>
+                    <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>LR No</th>
+                    <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>Client</th>
+                    <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Box</th>
+                    <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Wt.</th>
+                    <th style={{ padding: "6px 8px", color: "#475569", fontWeight: 600, borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap", textAlign: "center" }}>Ch.Wt.</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {item.materialDetails.map((m, idx) => (
+                    <tr key={idx} style={{ borderBottom: idx < item.materialDetails.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                      <td style={{ padding: "6px 8px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap" }}>{m.lrNo || "-"}</td>
+                      <td style={{ padding: "6px 8px", color: "#334155", whiteSpace: "nowrap" }} title={m.clientName}>{m.clientName || "-"}</td>
+                      <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.box || "0"}</td>
+                      <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.weight || "0"}</td>
+                      <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center", fontWeight: "600" }}>{m.chWeight || "0"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+         ) : "-"}
+       </td>
+       <td>
+         <span style={{
+             padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
+             background: item.isOfflinePending ? '#fef3c7' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
+             color: item.isOfflinePending ? '#b45309' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3',
+             display: "inline-flex", alignItems: "center", gap: "4px"
+         }}>
+           {item.isOfflinePending && <Clock size={12} />}
+           {item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved')}
+         </span>
+       </td>
+       <td>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
+            <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
+            <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
+            <button disabled={item.isOfflinePending} onClick={() => handleEdit(item)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Trip"><Edit size={16} /></button>
+            
+            {isAdminOrSuperAdmin && !item.isOfflinePending && (
+             <>
+               {String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? (
+                 <select
+                   value={item.approvalStatus || 'Approved'}
+                   onChange={async (e) => {
+                     const newStatus = e.target.value;
+                     if (newStatus === (item.approvalStatus || 'Approved')) return;
+                     try {
+                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: newStatus });
+                       if(res.data.success) {
+                          const newTrips = [...trips];
+                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = newStatus;
+                          setTrips(newTrips);
+                          addToast(`Status changed to ${newStatus}`, "success");
+                       }
+                     } catch(_e) { addToast("Error updating status", "error"); }
+                   }}
+                   className="action-btn"
+                   style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none", fontSize: "0.75rem" }}
+                 >
+                   <option value="Approved">Approved</option>
+                   <option value="Pending">Pending</option>
+                   <option value="Rejected">Rejected</option>
+                 </select>
+               ) : (
+                 <>
+                   <button onClick={async () => {
+                     try {
+                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
+                       if(res.data.success) {
+                          const newTrips = [...trips];
+                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
+                          setTrips(newTrips);
+                          addToast("Trip Approved!", "success");
+                       }
+                     } catch(_e) { addToast("Error approving trip", "error"); }
+                   }} className="action-btn action-btn-success" style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                     <Check size={14} /> Approve
+                   </button>
+                   
+                   {item.approvalStatus !== 'Rejected' && (
+                     <button onClick={async () => {
+                       try {
+                         const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
+                         if(res.data.success) {
+                            const newTrips = [...trips];
+                            const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                            if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
+                            setTrips(newTrips);
+                            addToast("Trip Rejected", "success");
+                         }
+                       } catch(_e) { addToast("Error rejecting trip", "error"); }
+                     }} className="action-btn action-btn-danger" style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                       <X size={14} /> Reject
+                     </button>
+                   )}
+                   {item.approvalStatus !== 'Pending' && (
+                     <button onClick={async () => {
+                       try {
+                         const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
+                         if(res.data.success) {
+                            const newTrips = [...trips];
+                            const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                            if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
+                            setTrips(newTrips);
+                            addToast("Trip marked Pending", "success");
+                         }
+                       } catch(_e) { addToast("Error updating trip", "error"); }
+                     }} className="action-btn action-btn-warning" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                       <Clock size={14} /> Pending
+                     </button>
+                   )}
+                 </>
+               )}
+             </>
+            )}
+            {isSuperAdmin && !item.isOfflinePending && (
+              <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
+            )}
           </div>
-       ) : "-"}
-     </td>
-     <td>
-       <span style={{
-           padding: "4px 8px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "600",
-           background: item.isOfflinePending ? '#fef3c7' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#dcfce7' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#fee2e2' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#fef9c3' : '#e0e7ff',
-           color: item.isOfflinePending ? '#b45309' : String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? '#166534' : String(item.approvalStatus).toLowerCase() === 'rejected' ? '#991b1b' : String(item.approvalStatus).toLowerCase() === 'pending' ? '#854d0e' : '#3730a3',
-           display: "inline-flex", alignItems: "center", gap: "4px"
-       }}>
-         {item.isOfflinePending && <Clock size={12} />}
-         {item.isOfflinePending ? 'Pending Sync' : (item.approvalStatus || 'Approved')}
-       </span>
-     </td>
-     <td>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
-          <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
-          <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
-          <button disabled={item.isOfflinePending} onClick={() => handleEdit(item)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Trip"><Edit size={16} /></button>
-          
-          {isAdminOrSuperAdmin && !item.isOfflinePending && (
-           <>
-             {String(item.approvalStatus || 'Approved').toLowerCase() === 'approved' ? (
-               <select
-                 value={item.approvalStatus || 'Approved'}
-                 onChange={async (e) => {
-                   const newStatus = e.target.value;
-                   if (newStatus === (item.approvalStatus || 'Approved')) return;
-                   try {
-                     const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: newStatus });
-                     if(res.data.success) {
-                        const newTrips = [...trips];
-                        const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                        if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = newStatus;
-                        setTrips(newTrips);
-                        addToast(`Status changed to ${newStatus}`, "success");
-                     }
-                   } catch(_e) { addToast("Error updating status", "error"); }
-                 }}
-                 className="action-btn"
-                 style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none", fontSize: "0.75rem" }}
-               >
-                 <option value="Approved">Approved</option>
-                 <option value="Pending">Pending</option>
-                 <option value="Rejected">Rejected</option>
-               </select>
-             ) : (
-               <>
-                 <button onClick={async () => {
-                   try {
-                     const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
-                     if(res.data.success) {
-                        const newTrips = [...trips];
-                        const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                        if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
-                        setTrips(newTrips);
-                        addToast("Trip Approved!", "success");
-                     }
-                   } catch(_e) { addToast("Error approving trip", "error"); }
-                 }} className="action-btn action-btn-success" style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                   <Check size={14} /> Approve
-                 </button>
-                 
-                 {item.approvalStatus !== 'Rejected' && (
-                   <button onClick={async () => {
-                     try {
-                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
-                       if(res.data.success) {
-                          const newTrips = [...trips];
-                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
-                          setTrips(newTrips);
-                          addToast("Trip Rejected", "success");
-                       }
-                     } catch(_e) { addToast("Error rejecting trip", "error"); }
-                   }} className="action-btn action-btn-danger" style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                     <X size={14} /> Reject
-                   </button>
-                 )}
-                 {item.approvalStatus !== 'Pending' && (
-                   <button onClick={async () => {
-                     try {
-                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
-                       if(res.data.success) {
-                          const newTrips = [...trips];
-                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
-                          setTrips(newTrips);
-                          addToast("Trip marked Pending", "success");
-                       }
-                     } catch(_e) { addToast("Error updating trip", "error"); }
-                   }} className="action-btn action-btn-warning" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                     <Clock size={14} /> Pending
-                   </button>
-                 )}
-               </>
-             )}
-           </>
-         )}
-         {isSuperAdmin && !item.isOfflinePending && (
-           <button onClick={() => handleDelete(item.id)} style={{ background: "rgba(220, 38, 38, 0.1)", border: "none", color: "#dc2626", padding: "6px", borderRadius: "8px", cursor: "pointer" }} title="Delete Trip">Delete</button>
-         )}
-       </div>
-     </td>
-   </tr>
-  );
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div>
+      {/* Batch Selection Sticky Banner */}
+      {selectedTripIds.length > 0 && (
+        <div style={{
+          background: "linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)",
+          color: "white",
+          padding: "10px 18px",
+          borderRadius: "10px",
+          marginBottom: "1.25rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 10px 25px -5px rgba(30, 58, 138, 0.3)",
+          animation: "fadeIn 0.2s ease-in-out"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ background: "#3b82f6", color: "white", padding: "3px 10px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700 }}>
+              {selectedTripIds.length} SELECTED
+            </span>
+            <span style={{ fontSize: "0.9rem", color: "#e2e8f0" }}>
+              Ready to export selected entries
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              onClick={handleClearSelection}
+              style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "white", borderRadius: "6px", padding: "6px 14px", fontSize: "0.82rem", cursor: "pointer", fontWeight: 600 }}
+            >
+              Clear Selection
+            </button>
+            <button
+              onClick={handleOpenExportModal}
+              style={{ background: "#10b981", border: "none", color: "white", borderRadius: "6px", padding: "6px 18px", fontSize: "0.82rem", cursor: "pointer", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 8px rgba(16, 185, 129, 0.4)" }}
+            >
+              <Download size={15} /> Export Selected ({selectedTripIds.length})
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', marginBottom: '1.5rem', gap: '1rem' }} className="no-print">
         {/* Left Side: Refresh */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -588,10 +654,10 @@ const Trips = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
           <button 
             className="page-header-btn page-header-btn-primary" 
-            onClick={exportToCSV}
-            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+            onClick={handleOpenExportModal}
+            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', gap: "8px" }}
           >
-            EXPORT CSV
+            <Download size={18} /> EXPORT
           </button>
         </div>
       </div>
@@ -806,20 +872,25 @@ const Trips = () => {
       <div className="glass-panel no-print" style={{ padding: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           {[
+            { key: "ALL", label: "ALL TRIPS", color: "#3b82f6", icon: <Layers size={18} /> },
             { key: "ROAD", label: "ROAD TRIP", color: "#10b981", icon: <Truck size={18} /> },
             { key: "TRAIN", label: "TRAIN TRIP", color: "#a21caf", icon: <Train size={18} /> },
             { key: "AIR", label: "AIR TRIP", color: "#0ea5e9", icon: <Plane size={18} /> },
-          ].map(({ key, label, color, icon }) => (
-            <button key={key}
-              onClick={() => setModeFilter(key)}
-              style={{
-                flex: 1, padding: "0.75rem", borderRadius: 12, border: modeFilter === key ? `2px solid ${color}` : "1px solid rgba(0, 0, 0, 0.1)",
-                background: modeFilter === key ? `${color}10` : "transparent", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s"
-              }}>
-              {icon && React.cloneElement(icon, { color: modeFilter === key ? color : "var(--text-muted)" })}
-              <span style={{ color: modeFilter === key ? color : "var(--text-dark)" }}>{label}</span>
-            </button>
-          ))}
+          ].map(({ key, label, color, icon }) => {
+            const count = filteredTrips.filter(t => matchesMode(t.mode, key)).length;
+            const isActive = modeFilter === key;
+            return (
+              <button key={key}
+                onClick={() => setModeFilter(key)}
+                style={{
+                  flex: 1, padding: "0.75rem", borderRadius: 12, border: isActive ? `2px solid ${color}` : "1px solid rgba(0, 0, 0, 0.1)",
+                  background: isActive ? `${color}15` : "transparent", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s"
+                }}>
+                {icon && React.cloneElement(icon, { color: isActive ? color : "var(--text-muted)" })}
+                <span style={{ color: isActive ? color : "var(--text-dark)" }}>{label} ({count})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -975,7 +1046,6 @@ const Trips = () => {
             width: 100%;
             justify-content: center;
           }
-          /* Hide less critical drop downs on mobile by default to keep it neat */
           .aws-mobile-hide {
             display: none !important;
           }
@@ -1074,29 +1144,62 @@ const Trips = () => {
       )}
 
       <div className="glass-panel" style={{ padding: "1.5rem" }}>
-        <h4 style={{ marginBottom: "1rem", color: modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)', borderBottom: `2px solid ${modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : modeFilter === 'AIR' ? '#0ea5e9' : 'var(--primary-color)'}`, paddingBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", textTransform: 'uppercase' }}>
-           {modeFilter === 'ROAD' ? <Truck size={20} /> : modeFilter === 'TRAIN' ? <Train size={20} /> : modeFilter === 'AIR' ? <Plane size={20} /> : <ClipboardList size={20} />}
-           {`${modeFilter} TRIP`} ({filteredTrips.filter(t => {
-             if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
-             if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
-             if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
-             return false;
-           }).length})
+        <h4 style={{
+          marginBottom: "1rem",
+          color: modeFilter === 'ALL' ? '#3b82f6' : modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : '#0ea5e9',
+          borderBottom: `2px solid ${modeFilter === 'ALL' ? '#3b82f6' : modeFilter === 'ROAD' ? '#10b981' : modeFilter === 'TRAIN' ? '#a21caf' : '#0ea5e9'}`,
+          paddingBottom: "0.5rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          textTransform: 'uppercase'
+        }}>
+           {modeFilter === 'ALL' ? <Layers size={20} /> : modeFilter === 'ROAD' ? <Truck size={20} /> : modeFilter === 'TRAIN' ? <Train size={20} /> : <Plane size={20} />}
+           {`${modeFilter === 'ALL' ? 'ALL' : modeFilter} TRIP RECORD`} ({activeFilteredTrips.length})
         </h4>
         <Table
           loading={loading}
           pagination={true}
           defaultEntries={10}
-          headers={["SL Number", "Mode", "Date", "Vehicle No", "Type", "AWB No", "CD No", "Vendor", "Origin", "Destination", "Material Details", "Status", "Actions"]}
-          data={filteredTrips.filter(t => {
-            if (modeFilter === 'ROAD') return String(t.mode).toUpperCase() === 'ROAD';
-            if (modeFilter === 'TRAIN') return String(t.mode).toUpperCase() === 'TRAIN' || String(t.mode).toUpperCase() === 'RAIL';
-            if (modeFilter === 'AIR') return String(t.mode).toUpperCase() === 'AIR' || String(t.mode).toUpperCase() === 'FLIGHT';
-            return false;
-          })}
+          headers={[
+            <div key="select-all" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={isAllVisibleSelected}
+                onChange={handleToggleSelectAll}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                title={isAllVisibleSelected ? "Deselect All Visible" : "Select All Visible"}
+              />
+            </div>,
+            "SL Number",
+            "Mode",
+            "Date",
+            "Vehicle / Flight / Train No",
+            "Type",
+            "AWB No",
+            "CD No",
+            "Vendor",
+            "Origin",
+            "Destination",
+            "Material Details",
+            "Status",
+            "Actions"
+          ]}
+          data={activeFilteredTrips}
           renderRow={renderTripRow}
         />
       </div>
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Vendor Ship MIS Report"
+        itemCount={selectedTripIds.length > 0 ? selectedTripIds.length : activeFilteredTrips.length}
+        subtitle={selectedTripIds.length > 0 ? `Exporting ${selectedTripIds.length} selected row(s)` : `Exporting all ${activeFilteredTrips.length} row(s) in ${modeFilter} mode`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
+      />
     </div>
   );
 };

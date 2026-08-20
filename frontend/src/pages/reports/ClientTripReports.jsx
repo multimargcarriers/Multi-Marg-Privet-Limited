@@ -6,6 +6,8 @@ import Table from "../../components/Table";
 import { formatDate } from "../../utils/formatters";
 import { Search, Download, Map, Truck, Users, Activity } from "lucide-react";
 import RupeeIcon from "../../components/RupeeIcon";
+import ExportModal from "../../components/ExportModal";
+import { exportClientTripReport } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -16,6 +18,8 @@ const ClientTripReports = () => {
   const [filters, setFilters] = useState({ client: "", fr: "", to: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -118,39 +122,37 @@ const ClientTripReports = () => {
     }).format(amount || 0);
   };
 
+  // Selection State
+  const [selectedTripIds, setSelectedTripIds] = useState([]);
+
+  const handleToggleSelectTrip = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedTripIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleExport = () => {
     if (data.length === 0) return;
-    const headers = ["Trip No", "Date", "Vehicle Type", "Vehicle No", "Vendor", "Origin", "Destination", "Client", "Description", "Box", "Chg. Wt", "Total"];
-    const csvContent = [
-      headers.join(","),
-      ...data.map(row => {
-        const dateStr = row.date ? formatDate(row.date) : "";
-        return [
-          `"${row.tripNo || ""}"`,
-          `"${dateStr}"`,
-          `"${row.vehicleType || ""}"`,
-          `"${row.vehicleNo || ""}"`,
-          `"${row.vendor || ""}"`,
-          `"${row.origin || ""}"`,
-          `"${row.destination || ""}"`,
-          `"${row.client || ""}"`,
-          `"${row.description || ""}"`,
-          row.box || "0",
-          row.chargeableWeight || "0",
-          parseFloat(row.amount || row.totalAmount || 0).toFixed(2)
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Client_Trip_Report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = data;
+      if (selectedTripIds.length > 0) {
+        dataToExport = data.filter((b, idx) => selectedTripIds.includes(b.id || b._id || b.tripNo || idx));
+      }
+      await exportClientTripReport({
+        trips: dataToExport,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -334,10 +336,40 @@ const ClientTripReports = () => {
           <Table
             loading={loading}
             pagination={true}
-            headers={["Trip No", "Date", "Vehicle Type", "Vehicle No", "Vendor", "Origin", "Destination", "Client", "Description", "Box", "Chg. Wt", "Total"]}
+            headers={[
+              <div key="select-all-client-trip-rep" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={data.length > 0 && data.every((b, idx) => selectedTripIds.includes(b.id || b._id || b.tripNo || idx))}
+                  onChange={() => {
+                    const visibleIds = data.map((b, idx) => b.id || b._id || b.tripNo || idx);
+                    const allSelected = visibleIds.every(id => selectedTripIds.includes(id));
+                    if (allSelected) {
+                      setSelectedTripIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                    } else {
+                      setSelectedTripIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                    }
+                  }}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#0ea5e9" }}
+                  title="Toggle Select All"
+                />
+              </div>,
+              "Trip No", "Date", "Vehicle Type", "Vehicle No", "Vendor", "Origin", "Destination", "Client", "Description", "Box", "Chg. Wt", "Total"
+            ]}
             data={data}
-            renderRow={(item, idx) => (
-              <tr key={item.id || idx} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: idx % 2 === 0 ? "#f8fafc" : "white" }}>
+            renderRow={(item, idx) => {
+              const itemId = item.id || item._id || item.tripNo || idx;
+              const isSelected = selectedTripIds.includes(itemId);
+              return (
+              <tr key={itemId} style={{ borderBottom: "1px solid #e2e8f0", backgroundColor: isSelected ? "rgba(14, 165, 233, 0.08)" : (idx % 2 === 0 ? "#f8fafc" : "white") }}>
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectTrip(itemId)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#0ea5e9" }}
+                  />
+                </td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#0891b2", fontWeight: 600, whiteSpace: "nowrap" }}>{item.tripNo || "-"}</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", whiteSpace: "nowrap" }}>{item.date ? formatDate(item.date) : "-"}</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", whiteSpace: "nowrap" }}>{item.vehicleType || "-"}</td>
@@ -351,7 +383,8 @@ const ClientTripReports = () => {
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#475569", whiteSpace: "nowrap" }}>{item.chargeableWeight || "0"} kg</td>
                 <td style={{ padding: "12px", fontSize: "0.85rem", color: "#0f172a", fontWeight: 700, whiteSpace: "nowrap" }}>{formatCurrency(item.amount || item.totalAmount)}</td>
               </tr>
-            )}
+              );
+            }}
           />
         </div>
       </div>
@@ -362,6 +395,17 @@ const ClientTripReports = () => {
         onSave={handleModalSave}
         type={modalType}
         initialName={modalInitialName}
+      />
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export Client Trip Report"
+        itemCount={selectedTripIds.length > 0 ? selectedTripIds.length : data.length}
+        subtitle={selectedTripIds.length > 0 ? `Exporting ${selectedTripIds.length} selected trip(s)` : `Exporting all ${data.length} trips`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
       />
     </div>
   );

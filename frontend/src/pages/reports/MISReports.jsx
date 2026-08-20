@@ -5,6 +5,8 @@ import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import { Search, Download, FileSpreadsheet, Activity, Package, Layers } from "lucide-react";
 import { formatDate } from "../../utils/formatters";
+import ExportModal from "../../components/ExportModal";
+import { exportBookingsList } from "../../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -83,45 +85,41 @@ const MISReports = () => {
     finally { setLoading(false); }
   };
 
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Selection State
+  const [selectedMisIds, setSelectedMisIds] = useState([]);
+
+  const handleToggleSelectMis = (id) => {
+    if (id === undefined || id === null) return;
+    setSelectedMisIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const handleExport = () => {
     if (data.length === 0) return;
-    const headers = ["Awb No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part Number", "Box", "Quantity", "Chargeable Weight", "Status"];
-    const csvContent = [
-      headers.join(","),
-      ...data.map(row => {
-        const awb = row.awb || row.consignment || row.lrNumber || row.lrNo || row.lr_number || row.awbNo || (row.id ? String(row.id).slice(-6) : "");
-        const rawDate = row.date || row.dispatch_date || row.bookingDate || row.booking_date || row.createdAt || row.created_at;
-        const dateStr = rawDate ? (/^\d{2}-\d{2}-\d{4}$/.test(String(rawDate)) ? String(rawDate) : formatDate(rawDate)) : "";
-        const boxCount = row.box || row.boxes || row.noOfPackages || row.packages || row.qty || "";
-        const chgWt = row.charge_wt || row.chargeable_weight || row.chargedWeight || row.chargeableWeight || row.weight || row.actual_wt || "0";
-        return [
-          `"${awb}"`,
-          `"${dateStr}"`,
-          `"${row.consignor || ""}"`,
-          `"${row.consignee || ""}"`,
-          row.origin || "",
-          row.destination || "",
-          row.mode || "",
-          `"${row.invoiceNo || row.invoice || ""}"`,
-          `"${row.invoiceDate ? formatDate(row.invoiceDate) : ""}"`,
-          `"${row.partNumber || row.partNo || ""}"`,
-          boxCount,
-          row.actualWeight || row.quantity || "",
-          chgWt,
-          row.status || "SHIPMENT BOOKED"
-        ].join(",");
-      })
-    ].join("\n");
+    setShowExportModal(true);
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "MIS_Report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExecuteExport = async ({ format, company }) => {
+    try {
+      setIsExporting(true);
+      let dataToExport = data;
+      if (selectedMisIds.length > 0) {
+        dataToExport = data.filter((b, idx) => selectedMisIds.includes(b.id || b._id || b.awb || idx));
+      }
+      await exportBookingsList({
+        bookings: dataToExport,
+        companyHeader: company,
+        format,
+        dateRange: { startDate: filters.fr, endDate: filters.to },
+      });
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Export error", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const stats = useMemo(() => {
@@ -307,16 +305,45 @@ const MISReports = () => {
         <Table
           loading={loading}
           pagination={true}
-          headers={["AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part No", "Box", "Qty", "Chg Wt", "Status"]}
+          headers={[
+            <div key="select-all-mis" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <input
+                type="checkbox"
+                checked={data.length > 0 && data.every((b, idx) => selectedMisIds.includes(b.id || b._id || b.awb || idx))}
+                onChange={() => {
+                  const visibleIds = data.map((b, idx) => b.id || b._id || b.awb || idx);
+                  const allSelected = visibleIds.every(id => selectedMisIds.includes(id));
+                  if (allSelected) {
+                    setSelectedMisIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                  } else {
+                    setSelectedMisIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                  }
+                }}
+                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#d946ef" }}
+                title="Toggle Select All"
+              />
+            </div>,
+            "AWB No", "Date", "Consignor", "Consignee", "Origin", "Destination", "Mode", "Invoice", "Invoice Date", "Part No", "Box", "Qty", "Chg Wt", "Status"
+          ]}
           data={data}
           renderRow={(item, index) => {
+            const itemId = item.id || item._id || item.awb || index;
+            const isSelected = selectedMisIds.includes(itemId);
             const awb = item.awb || item.consignment || item.lrNumber || item.lrNo || item.lr_number || item.awbNo || (item.id ? String(item.id).slice(-6) : "-");
             const rawDate = item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.createdAt || item.created_at;
             const dateStr = rawDate ? (/^\d{2}-\d{2}-\d{4}$/.test(String(rawDate)) ? String(rawDate) : formatDate(rawDate)) : "-";
             const boxCount = item.box || item.boxes || item.noOfPackages || item.packages || item.qty || "-";
             const chgWt = item.charge_wt || item.chargeable_weight || item.chargedWeight || item.chargeableWeight || item.weight || item.actual_wt || "0";
             return (
-              <tr key={index} style={{ borderBottom: "1px solid #f8fafc", fontSize: "0.8rem", color: "#475569" }}>
+              <tr key={index} style={{ borderBottom: "1px solid #f8fafc", fontSize: "0.8rem", color: "#475569", backgroundColor: isSelected ? "rgba(217, 70, 239, 0.08)" : undefined }}>
+                <td style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectMis(itemId)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#d946ef" }}
+                  />
+                </td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap", fontWeight: "600", color: "#c026d3" }}>{awb}</td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{dateStr}</td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
@@ -350,6 +377,17 @@ const MISReports = () => {
         onSave={handleModalSave}
         type={modalType}
         initialName={modalInitialName}
+      />
+
+      {/* Unified Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Export MIS Shipment Report"
+        itemCount={selectedMisIds.length > 0 ? selectedMisIds.length : data.length}
+        subtitle={selectedMisIds.length > 0 ? `Exporting ${selectedMisIds.length} selected shipment(s)` : `Exporting all ${data.length} shipments`}
+        isExporting={isExporting}
+        onExport={handleExecuteExport}
       />
     </div>
   );
