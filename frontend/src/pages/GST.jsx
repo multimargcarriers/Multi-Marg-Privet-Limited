@@ -3,6 +3,7 @@ import axios from "axios";
 
 import RupeeIcon from '../components/RupeeIcon';
 import Table from '../components/Table';
+import { toExportCaps } from "../utils/excelExport";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -27,15 +28,15 @@ const GST = () => {
 
   const handleExport = () => {
     if (data.length === 0) return;
-    const headers = ["Date", "Invoice No", "Client", "GSTIN", "SAC/HSN", "Taxable Value", "IGST", "CGST", "SGST", "Total Tax", "Grand Total"];
+    const headers = ["DATE", "INVOICE NO", "CLIENT", "GSTIN", "SAC/HSN", "TAXABLE VALUE", "IGST", "CGST", "SGST", "TOTAL TAX", "GRAND TOTAL"];
     const csvContent = [
-      headers.join(","),
+      headers.map(h => toExportCaps(h)).join(","),
       ...data.map(row => [
-        row.date || "",
-        row.invoice || "",
-        `"${row.client || ""}"`,
-        row.gstin || "",
-        row.sac || "",
+        toExportCaps(row.date || ""),
+        toExportCaps(row.invoice || ""),
+        `"${toExportCaps(row.client || "")}"`,
+        toExportCaps(row.gstin || ""),
+        toExportCaps(row.sac || ""),
         row.taxable || 0,
         row.igst || 0,
         row.cgst || 0,

@@ -28,6 +28,55 @@ async function fetchImageBuffer(url) {
 }
 
 /**
+ * Converts any text value to ALL CAPS for Excel and CSV exports,
+ * while preserving email addresses (e.g. info@multimarg.com) and website URLs (e.g. www.multimarg.com) in lowercase.
+ */
+export function toExportCaps(val) {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "number" || typeof val === "boolean") return val;
+
+  const str = String(val).trim();
+  if (!str) return "";
+
+  // If the entire string is an email address
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(str)) {
+    return str.toLowerCase();
+  }
+
+  // If the entire string is a website URL or web domain
+  if (/^(https?:\/\/|www\.)[^\s]+$/i.test(str)) {
+    return str.toLowerCase();
+  }
+
+  // If string contains email or website embedded inside other text
+  if (str.includes("@") || /https?:\/\/|www\./i.test(str)) {
+    const emails = [];
+    const urls = [];
+    let processed = str
+      .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/gi, (match) => {
+        emails.push(match.toLowerCase());
+        return `___EMAIL_${emails.length - 1}___`;
+      })
+      .replace(/\b(https?:\/\/[^\s]+|www\.[^\s]+)/gi, (match) => {
+        urls.push(match.toLowerCase());
+        return `___URL_${urls.length - 1}___`;
+      })
+      .toUpperCase();
+
+    emails.forEach((email, i) => {
+      processed = processed.replace(`___EMAIL_${i}___`, email);
+    });
+    urls.forEach((url, i) => {
+      processed = processed.replace(`___URL_${i}___`, url);
+    });
+
+    return processed;
+  }
+
+  return str.toUpperCase();
+}
+
+/**
  * Converts column index (1-based) to letter (A, B, ..., Z, AA, AB...)
  */
 function getColumnLetter(colIndex) {
@@ -57,9 +106,8 @@ export async function buildProfessionalExcelReport({
 
   const companyName = "MULTIMARG CARRIERS PVT. LTD.";
   const companyAddress = "LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153";
-  const companyContact = "Contact: +91 5944-324033  |  Email: info@multimarg.com  |  Website: www.multimarg.com";
+  const companyContact = "CONTACT: +91 5944-324033  |  EMAIL: info@multimarg.com  |  WEBSITE: www.multimarg.com";
   const companyTaxInfo = "GSTIN: 05AANCM3054E1ZN  |  PAN: AANCM3054E1ZN";
-  const companyTagline = "EXPRESS CARGO & SUPPLY CHAIN MANAGEMENT SERVICES";
 
   const primaryColorHex = "FF1E3A8A"; // Deep Navy Blue
   const secondaryColorHex = "FFDBEAFE"; // Soft Blue
@@ -86,12 +134,11 @@ export async function buildProfessionalExcelReport({
   }));
 
   // 2. Set Row Heights for Header Section
-  worksheet.getRow(1).height = 28;
+  worksheet.getRow(1).height = 26;
   worksheet.getRow(2).height = 18;
   worksheet.getRow(3).height = 18;
   worksheet.getRow(4).height = 18;
-  worksheet.getRow(5).height = 18;
-  worksheet.getRow(6).height = 8;  // Spacer
+  worksheet.getRow(5).height = 6;  // Spacer
 
   // 3. Company Logo (Fully Square, Large & Crisp on Top Left)
   const logoBuffer = await fetchImageBuffer("/mc.png");
@@ -103,7 +150,7 @@ export async function buildProfessionalExcelReport({
       });
       worksheet.addImage(imageId, {
         tl: { col: 0.15, row: 0.15 },
-        ext: { width: 100, height: 100 },
+        ext: { width: 90, height: 90 },
       });
     } catch (_imgErr) {
       console.warn("Could not insert logo image into Excel:", _imgErr);
@@ -121,37 +168,30 @@ export async function buildProfessionalExcelReport({
   titleCell.font = { name: "Calibri", size: 16, bold: true, color: { argb: primaryColorHex } };
   titleCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 2: Tagline / Business Scope
+  // Row 2: Registered Address
   worksheet.mergeCells(`${headerStartLetter}2:${lastColLetter}2`);
-  const taglineCell = worksheet.getCell(`${headerStartLetter}2`);
-  taglineCell.value = companyTagline;
-  taglineCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF475569" } };
-  taglineCell.alignment = { horizontal: "center", vertical: "middle" };
-
-  // Row 3: Registered Address
-  worksheet.mergeCells(`${headerStartLetter}3:${lastColLetter}3`);
-  const addrCell = worksheet.getCell(`${headerStartLetter}3`);
+  const addrCell = worksheet.getCell(`${headerStartLetter}2`);
   addrCell.value = companyAddress;
   addrCell.font = { name: "Calibri", size: 9.5, color: { argb: "FF334155" } };
   addrCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 4: GSTIN & PAN Details
-  worksheet.mergeCells(`${headerStartLetter}4:${lastColLetter}4`);
-  const taxCell = worksheet.getCell(`${headerStartLetter}4`);
+  // Row 3: GSTIN & PAN Details
+  worksheet.mergeCells(`${headerStartLetter}3:${lastColLetter}3`);
+  const taxCell = worksheet.getCell(`${headerStartLetter}3`);
   taxCell.value = companyTaxInfo;
   taxCell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF0F172A" } };
   taxCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 5: Contact Details
-  worksheet.mergeCells(`${headerStartLetter}5:${lastColLetter}5`);
-  const contactCell = worksheet.getCell(`${headerStartLetter}5`);
+  // Row 4: Contact Details
+  worksheet.mergeCells(`${headerStartLetter}4:${lastColLetter}4`);
+  const contactCell = worksheet.getCell(`${headerStartLetter}4`);
   contactCell.value = companyContact;
   contactCell.font = { name: "Calibri", size: 9, color: { argb: "FF334155" } };
   contactCell.alignment = { horizontal: "center", vertical: "middle" };
 
-  // 5. Report Banner (Row 7)
-  worksheet.mergeCells(`A7:${lastColLetter}7`);
-  const bannerCell = worksheet.getCell("A7");
+  // 5. Report Banner (Row 6)
+  worksheet.mergeCells(`A6:${lastColLetter}6`);
+  const bannerCell = worksheet.getCell("A6");
   bannerCell.value = `${reportTitle} ${subtitle ? ` - ${subtitle}` : ""}`.toUpperCase();
   bannerCell.font = { name: "Calibri", size: 11.5, bold: true, color: { argb: "FFFFFFFF" } };
   bannerCell.alignment = { horizontal: "center", vertical: "middle" };
@@ -160,38 +200,38 @@ export async function buildProfessionalExcelReport({
     pattern: "solid",
     fgColor: { argb: primaryColorHex },
   };
-  worksheet.getRow(7).height = 26;
+  worksheet.getRow(6).height = 26;
 
-  // 6. Metadata Info Bar (Row 8)
+  // 6. Metadata Info Bar (Row 7)
   const halfCol = Math.floor(totalColCount / 2);
   const midLeftLetter = getColumnLetter(halfCol);
   const midRightLetter = getColumnLetter(halfCol + 1);
 
-  worksheet.mergeCells(`A8:${midLeftLetter}8`);
-  const metaLeft = worksheet.getCell("A8");
+  worksheet.mergeCells(`A7:${midLeftLetter}7`);
+  const metaLeft = worksheet.getCell("A7");
   metaLeft.value = `Exported Date: ${formatDate(new Date())}   |   Total Records: ${rows.length}`;
   metaLeft.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF334155" } };
   metaLeft.alignment = { horizontal: "left", vertical: "middle" };
 
-  worksheet.mergeCells(`${midRightLetter}8:${lastColLetter}8`);
-  const metaRight = worksheet.getCell(`${midRightLetter}8`);
+  worksheet.mergeCells(`${midRightLetter}7:${lastColLetter}7`);
+  const metaRight = worksheet.getCell(`${midRightLetter}7`);
   metaRight.value = "Generated from Multimarg ERP System";
   metaRight.font = { name: "Calibri", size: 9, bold: true, color: { argb: primaryColorHex } };
   metaRight.alignment = { horizontal: "right", vertical: "middle" };
-  worksheet.getRow(8).height = 20;
+  worksheet.getRow(7).height = 20;
 
   for (let c = 1; c <= totalColCount; c++) {
     const colRef = getColumnLetter(c);
-    const cell = worksheet.getCell(`${colRef}8`);
+    const cell = worksheet.getCell(`${colRef}7`);
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: secondaryColorHex } };
     cell.border = { bottom: { style: "thin", color: { argb: borderColorHex } } };
   }
 
-  // Row 9: Buffer row
-  worksheet.getRow(9).height = 6;
+  // Row 8: Buffer row
+  worksheet.getRow(8).height = 6;
 
-  // 7. Table Headers (Row 10)
-  const tableHeaderNames = columns.map((col) => col.header);
+  // 7. Table Headers (Row 9)
+  const tableHeaderNames = columns.map((col) => toExportCaps(col.header));
   const headerRow = worksheet.addRow(tableHeaderNames);
   headerRow.height = 26;
   headerRow.eachCell((cell, colNumber) => {
@@ -215,14 +255,15 @@ export async function buildProfessionalExcelReport({
     };
   });
 
-  // 8. Data Rows
-  let currentRowIndex = 11;
+  // 8. Data Rows (Row 10 onwards)
+  let currentRowIndex = 10;
 
   rows.forEach((rowArr, rIdx) => {
     const isZebra = rIdx % 2 === 1;
     const rowBg = isZebra ? lightZebraHex : "FFFFFFFF";
 
-    const dataRow = worksheet.addRow(rowArr);
+    const formattedRowArr = rowArr.map((val) => toExportCaps(val));
+    const dataRow = worksheet.addRow(formattedRowArr);
     dataRow.height = 20;
 
     dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -315,9 +356,12 @@ export async function buildProfessionalExcelReport({
  */
 export function exportGenericCSV({ headers = [], rows = [], filename = "Export.csv" }) {
   const csvContent = [
-    headers.join(","),
+    headers.map((h) => toExportCaps(h)).join(","),
     ...rows.map((row) =>
-      row.map((val) => `"${String(val !== undefined && val !== null ? val : "").replace(/"/g, '""')}"`).join(",")
+      row.map((val) => {
+        const processed = toExportCaps(val);
+        return `"${String(processed !== undefined && processed !== null ? processed : "").replace(/"/g, '""')}"`;
+      }).join(",")
     ),
   ].join("\n");
 
