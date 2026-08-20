@@ -390,6 +390,32 @@ const quotesRoutes = require("./src/routes/quotes");
 app.use("/api/quotes", quotesRoutes);
 
 // ============================================================
+// Serve Frontend Static Assets (Full-stack Deployment)
+// ============================================================
+const fs = require("fs");
+const candidateDistPaths = [
+  path.join(__dirname, "../frontend/dist"),
+  path.join(__dirname, "dist"),
+  path.join(__dirname, "public")
+];
+
+let activeDistPath = null;
+for (const distPath of candidateDistPaths) {
+  if (fs.existsSync(path.join(distPath, "index.html"))) {
+    activeDistPath = distPath;
+    break;
+  }
+}
+
+if (activeDistPath) {
+  app.use(express.static(activeDistPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(activeDistPath, "index.html"));
+  });
+}
+
+// ============================================================
 // Error Handling
 // ============================================================
 
