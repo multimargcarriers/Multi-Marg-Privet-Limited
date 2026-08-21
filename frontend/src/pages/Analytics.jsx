@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import RupeeIcon from '../components/RupeeIcon';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -35,6 +36,7 @@ const Analytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('financials');
+  const { token } = useAuth();
   
   // Filters
   const [dateRange, setDateRange] = useState("all_time");
@@ -101,7 +103,11 @@ const Analytics = () => {
       if (endDate) query += `&endDate=${endDate}T23:59:59.999Z`;
       if (debouncedClientSearch) query += `&client=${encodeURIComponent(debouncedClientSearch)}`;
 
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics/advanced${query}`);
+      const authToken = token || localStorage.getItem('token');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/analytics/advanced${query}`,
+        { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} }
+      );
       if (response.data.success) {
         setData(response.data.data);
       }

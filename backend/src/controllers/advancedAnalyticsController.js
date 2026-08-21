@@ -5,285 +5,222 @@ const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const parseAnyDate = (dStr) => {
+  if (!dStr) return null;
+  if (dStr instanceof Date) return isNaN(dStr.getTime()) ? null : dStr;
+  if (typeof dStr === 'number') {
+    const d = new Date(dStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const str = String(dStr).trim();
+  const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    const d = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+const getGroupKey = (dateObj, groupBy) => {
+  if (!dateObj) return "Unknown";
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  if (groupBy === "day") return `${y}-${m}-${d}`;
+  if (groupBy === "year") return `${y}`;
+  if (groupBy === "week") {
+    const startOfYear = new Date(y, 0, 1);
+    const pastDaysOfYear = (dateObj - startOfYear) / 86400000;
+    const weekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+    return `${y}-W${String(weekNum).padStart(2, '0')}`;
+  }
+  return `${y}-${m}`;
+};
+
 exports.getAdvancedAnalytics = async (req, res) => {
   try {
     const { startDate, endDate, groupBy = "month", client } = req.query;
-
     const mongoDb = db.mongoDb;
-    if (!mongoDb) {
-      throw new Error("MongoDB connection not found in adapter.");
-    }
 
-    // 1. Setup Base Queries
-    let matchQuery = {};
-    if (startDate || endDate) {
-      const createdAtQuery = {};
-      if (startDate) createdAtQuery.$gte = startDate;
-      if (endDate) createdAtQuery.$lte = endDate;
-      matchQuery.createdAt = createdAtQuery;
-    }
+    const fromMillis = startDate ? new Date(startDate).getTime() : null;
+    const toMillis = endDate ? new Date(endDate).getTime() : null;
+    const clientRegex = client && client.trim() ? new RegExp(escapeRegExp(client.trim()), "i") : null;
 
-    if (client && client.trim() !== "") {
-      const escapedClient = escapeRegExp(client);
-      matchQuery.client = { $regex: new RegExp(`^${escapedClient}$`, "i") };
-    }
-
-    // Grouping Date Formatter
-    let dateGroupFormat = "%Y-%m";
-    if (groupBy === "day") {
-      dateGroupFormat = "%Y-%m-%d";
-    } else if (groupBy === "year") {
-      dateGroupFormat = "%Y";
-    }
-
-    let dateGroupId = { $dateToString: { format: dateGroupFormat, date: { $toDate: "$createdAt" } } };
-    let dateGroupIdDate = { $dateToString: { format: dateGroupFormat, date: { $toDate: "$date" } } };
-
-    if (groupBy === "week") {
-      dateGroupId = {
-        $concat: [
-          { $toString: { $isoWeekYear: { $toDate: "$createdAt" } } },
-          "-W",
-          { $toString: { $isoWeek: { $toDate: "$createdAt" } } }
-        ]
-      };
-      dateGroupIdDate = {
-        $concat: [
-          { $toString: { $isoWeekYear: { $toDate: "$date" } } },
-          "-W",
-          { $toString: { $isoWeek: { $toDate: "$date" } } }
-        ]
-      };
-    }
-
-    const safeToDouble = (field) => ({
-      $convert: { input: field, to: "double", onError: 0, onNull: 0 }
-    });
-
-    // --- PIPELINES ---
-
-    // A. Financial Totals (Bills)
-    const financialPipeline = [
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) },
-          paidAmount: { $sum: safeToDouble("$paidAmount") },
-          taxLiability: { $sum: { $add: [safeToDouble("$cgst"), safeToDouble("$sgst"), safeToDouble("$igst")] } },
-          totalBills: { $sum: 1 }
-        }
-      }
-    ];
-
-    // B. Purchases (Expenses)
-    let purchaseMatchQuery = {};
-    if (startDate || endDate) {
-      const pDateQuery = {};
-      if (startDate) pDateQuery.$gte = startDate;
-      if (endDate) pDateQuery.$lte = endDate;
-      purchaseMatchQuery.date = pDateQuery;
-    }
-
-    const expensesPipeline = [
-      { $match: purchaseMatchQuery },
-      {
-        $group: {
-          _id: null,
-          totalExpenses: { $sum: safeToDouble("$total") }
-        }
-      }
-    ];
-
-    // C. Revenue & Expense Trend over time
-    const revenueTrendPipeline = [
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: dateGroupId,
-          revenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ];
-
-    const expenseTrendPipeline = [
-      { $match: purchaseMatchQuery },
-      {
-        $group: {
-          _id: dateGroupIdDate,
-          expense: { $sum: safeToDouble("$total") }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ];
-
-    // D. Bookings / Trips
-    let bookingsMatchQuery = { ...matchQuery };
-    if (client && client.trim() !== "") {
-      delete bookingsMatchQuery.client; // Bookings usually have 'clientName' or 'company_name'
-      const escapedClient = escapeRegExp(client);
-      bookingsMatchQuery.$or = [
-        { clientName: { $regex: new RegExp(`^${escapedClient}$`, "i") } },
-        { company_name: { $regex: new RegExp(`^${escapedClient}$`, "i") } }
-      ];
-    }
-
-    const bookingsTrendPipeline = [
-      { $match: bookingsMatchQuery },
-      {
-        $group: {
-          _id: dateGroupId,
-          trips: { $sum: 1 },
-          unbilledRevenue: {
-            $sum: {
-              $cond: [
-                { $and: [{ $ne: ["$status", "Billed"] }, { $ne: ["$status", "billed"] }] },
-                safeToDouble({ $ifNull: ["$totalAmount", { $ifNull: ["$freight_charge", 0] }] }),
-                0
-              ]
-            }
-          }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ];
-
-    const originDestinationPipeline = [
-      { $match: bookingsMatchQuery },
-      {
-        $group: {
-          _id: { origin: "$origin", destination: "$destination" },
-          trips: { $sum: 1 }
-        }
-      },
-      { $sort: { trips: -1 } },
-      { $limit: 10 }
-    ];
-
-    // E. Mode Distribution
-    const modeDistributionPipeline = [
-      { $match: bookingsMatchQuery },
-      {
-        $group: {
-          _id: { $toLower: "$mode" },
-          count: { $sum: 1 }
-        }
-      }
-    ];
-
-    // F. Client Insights (Only if no specific client is filtered)
-    const clientSalesPipeline = [
-      { $match: matchQuery },
-      {
-        $group: {
-          _id: "$client",
-          revenue: { $sum: safeToDouble({ $ifNull: ["$total", { $ifNull: ["$amount", 0] }] }) },
-          paid: { $sum: safeToDouble("$paidAmount") }
-        }
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 15 }
-    ];
-
-    // G. Cash Flow
-    let cashFlowMatchQuery = {};
-    if (startDate || endDate) {
-      const cDateQuery = {};
-      if (startDate) cDateQuery.$gte = startDate;
-      if (endDate) cDateQuery.$lte = endDate;
-      cashFlowMatchQuery.date = cDateQuery;
-    }
-
-    const cashFlowPipeline = [
-      { $match: cashFlowMatchQuery },
-      {
-        $group: {
-          _id: dateGroupIdDate,
-          cashIn: { $sum: { $cond: [{ $eq: ["$type", "in"] }, safeToDouble("$amount"), 0] } },
-          cashOut: { $sum: { $cond: [{ $eq: ["$type", "out"] }, safeToDouble("$amount"), 0] } }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ];
-
-    // 2. Execute all pipelines concurrently
-    const [
-      financialResult,
-      expenseResult,
-      revenueTrendResult,
-      expenseTrendResult,
-      bookingsTrendResult,
-      originDestResult,
-      modeResult,
-      clientSalesResult,
-      cashFlowResult,
-      totalBookingsResult
-    ] = await Promise.all([
-      mongoDb.collection("bills").aggregate(financialPipeline).toArray(),
-      mongoDb.collection("purchases").aggregate(expensesPipeline).toArray(),
-      mongoDb.collection("bills").aggregate(revenueTrendPipeline).toArray(),
-      mongoDb.collection("purchases").aggregate(expenseTrendPipeline).toArray(),
-      mongoDb.collection("bookings").aggregate(bookingsTrendPipeline).toArray(),
-      mongoDb.collection("bookings").aggregate(originDestinationPipeline).toArray(),
-      mongoDb.collection("bookings").aggregate(modeDistributionPipeline).toArray(),
-      mongoDb.collection("bills").aggregate(clientSalesPipeline).toArray(),
-      mongoDb.collection("cashEntries").aggregate(cashFlowPipeline).toArray(),
-      mongoDb.collection("bookings").countDocuments(bookingsMatchQuery)
+    // Fetch collections in parallel
+    const [bills, purchases, bookings, cashEntries] = await Promise.all([
+      mongoDb ? mongoDb.collection("bills").find({}).toArray() : db.collection("bills").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
+      mongoDb ? mongoDb.collection("purchases").find({}).toArray() : db.collection("purchases").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
+      mongoDb ? mongoDb.collection("bookings").find({}).toArray() : db.collection("bookings").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
+      mongoDb ? mongoDb.collection("cash").find({}).toArray().catch(() => mongoDb.collection("cashEntries").find({}).toArray().catch(() => [])) : []
     ]);
 
-    // 3. Format Data
-    const financial = financialResult[0] || { totalRevenue: 0, paidAmount: 0, taxLiability: 0, totalBills: 0 };
-    financial.outstandingReceivables = financial.totalRevenue - financial.paidAmount;
-    financial.totalExpenses = (expenseResult[0] || {}).totalExpenses || 0;
-
-    // Merge Revenue and Expense Trend
-    const financeTrendMap = {};
-    revenueTrendResult.forEach(item => {
-      if (item._id) financeTrendMap[item._id] = { name: item._id, revenue: item.revenue || 0, expense: 0 };
-    });
-    expenseTrendResult.forEach(item => {
-      if (item._id) {
-        if (!financeTrendMap[item._id]) financeTrendMap[item._id] = { name: item._id, revenue: 0, expense: 0 };
-        financeTrendMap[item._id].expense = item.expense || 0;
+    // 1. Filter Bills
+    const filteredBills = bills.filter(b => {
+      const d = parseAnyDate(b.date || b.createdAt);
+      if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
+      if (toMillis && (!d || d.getTime() > toMillis)) return false;
+      if (clientRegex) {
+        const clientVal = b.client || b.clientName || '';
+        if (!clientRegex.test(clientVal)) return false;
       }
+      return true;
     });
+
+    // 2. Filter Purchases
+    const filteredPurchases = purchases.filter(p => {
+      const d = parseAnyDate(p.date || p.createdAt);
+      if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
+      if (toMillis && (!d || d.getTime() > toMillis)) return false;
+      return true;
+    });
+
+    // 3. Filter Bookings
+    const filteredBookings = bookings.filter(bk => {
+      const d = parseAnyDate(bk.date || bk.createdAt);
+      if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
+      if (toMillis && (!d || d.getTime() > toMillis)) return false;
+      if (clientRegex) {
+        const cVal = bk.clientName || bk.company_name || bk.consignor || bk.consignee || '';
+        if (!clientRegex.test(cVal)) return false;
+      }
+      return true;
+    });
+
+    // 4. Financial Calculations
+    let totalRevenue = 0;
+    let paidAmount = 0;
+    let taxLiability = 0;
+    const financeTrendMap = {};
+    const clientSalesMap = {};
+
+    filteredBills.forEach(b => {
+      const rev = parseFloat(b.total || b.amount || b.grand_total || 0) || 0;
+      const paid = parseFloat(b.paidAmount || b.paid || 0) || 0;
+      const tax = parseFloat(b.taxLiability || ((parseFloat(b.cgst || 0) + parseFloat(b.sgst || 0) + parseFloat(b.igst || 0)))) || 0;
+      
+      totalRevenue += rev;
+      paidAmount += paid;
+      taxLiability += tax;
+
+      const d = parseAnyDate(b.date || b.createdAt);
+      const groupKey = getGroupKey(d, groupBy);
+      if (!financeTrendMap[groupKey]) {
+        financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
+      }
+      financeTrendMap[groupKey].revenue += rev;
+
+      const cName = b.client || b.clientName || "Unknown";
+      if (!clientSalesMap[cName]) {
+        clientSalesMap[cName] = { name: cName, revenue: 0, paid: 0 };
+      }
+      clientSalesMap[cName].revenue += rev;
+      clientSalesMap[cName].paid += paid;
+    });
+
+    // Expense calculations
+    let totalExpenses = 0;
+    filteredPurchases.forEach(p => {
+      const exp = parseFloat(p.total || p.amount || 0) || 0;
+      totalExpenses += exp;
+
+      const d = parseAnyDate(p.date || p.createdAt);
+      const groupKey = getGroupKey(d, groupBy);
+      if (!financeTrendMap[groupKey]) {
+        financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
+      }
+      financeTrendMap[groupKey].expense += exp;
+    });
+
     const financialTrendData = Object.values(financeTrendMap).sort((a, b) => a.name.localeCompare(b.name));
 
+    // Bookings & Route Insights
+    const bookingTrendMap = {};
+    const routeMap = {};
+    const modeMap = {};
     let unbilledRevenueTotal = 0;
-    const bookingsData = bookingsTrendResult.map(item => {
-      unbilledRevenueTotal += (item.unbilledRevenue || 0);
-      return { name: item._id, trips: item.trips || 0 };
-    });
 
-    const routeData = originDestResult.map(item => ({
-      name: `${item._id.origin || "Unknown"} -> ${item._id.destination || "Unknown"}`,
-      trips: item.trips
-    }));
-
-    const modeDistribution = modeResult.map(item => {
-      let name = "Unknown";
-      if (item._id) {
-        if (item._id.includes("air")) name = "Air";
-        else if (item._id.includes("train") || item._id.includes("rail")) name = "Train";
-        else if (item._id.includes("road")) name = "Road";
-        else name = String(item._id).charAt(0).toUpperCase() + String(item._id).slice(1);
+    filteredBookings.forEach(bk => {
+      const d = parseAnyDate(bk.date || bk.createdAt);
+      const groupKey = getGroupKey(d, groupBy);
+      if (!bookingTrendMap[groupKey]) {
+        bookingTrendMap[groupKey] = { name: groupKey, trips: 0 };
       }
-      return { name, value: item.count };
+      bookingTrendMap[groupKey].trips += 1;
+
+      const status = String(bk.status || '').toLowerCase();
+      if (status !== 'billed') {
+        const amt = parseFloat(bk.totalAmount || bk.freight_charge || bk.total || 0) || 0;
+        unbilledRevenueTotal += amt;
+      }
+
+      const org = (bk.origin || bk.from || 'Unknown').toUpperCase();
+      const dst = (bk.destination || bk.to || 'Unknown').toUpperCase();
+      const rKey = `${org} -> ${dst}`;
+      routeMap[rKey] = (routeMap[rKey] || 0) + 1;
+
+      const mKey = String(bk.mode || 'Road').toLowerCase();
+      modeMap[mKey] = (modeMap[mKey] || 0) + 1;
     });
 
-    const salesByClient = clientSalesResult.map(item => ({
-      name: item._id || "Unknown",
-      revenue: item.revenue || 0,
-      paid: item.paid || 0,
-      outstanding: (item.revenue || 0) - (item.paid || 0)
-    }));
+    const bookingsData = Object.values(bookingTrendMap).sort((a, b) => a.name.localeCompare(b.name));
+    const routeData = Object.entries(routeMap)
+      .map(([name, trips]) => ({ name, trips }))
+      .sort((a, b) => b.trips - a.trips)
+      .slice(0, 10);
 
-    const cashFlowData = cashFlowResult.map(item => ({ name: item._id, In: item.cashIn || 0, Out: item.cashOut || 0 }));
+    const modeDistribution = Object.entries(modeMap).map(([k, count]) => {
+      let name = "Road";
+      if (k.includes("air") || k.includes("flight")) name = "Air";
+      else if (k.includes("train") || k.includes("rail")) name = "Train";
+      else if (k.includes("road")) name = "Road";
+      else name = k.charAt(0).toUpperCase() + k.slice(1);
+      return { name, value: count };
+    });
+
+    const salesByClient = Object.values(clientSalesMap)
+      .map(c => ({
+        name: c.name,
+        revenue: c.revenue,
+        paid: c.paid,
+        outstanding: c.revenue - c.paid
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 15);
+
+    // Cash flow
+    const cashFlowMap = {};
+    (cashEntries || []).forEach(c => {
+      const d = parseAnyDate(c.date || c.createdAt);
+      if (fromMillis && (!d || d.getTime() < fromMillis)) return;
+      if (toMillis && (!d || d.getTime() > toMillis)) return;
+
+      const groupKey = getGroupKey(d, groupBy);
+      if (!cashFlowMap[groupKey]) {
+        cashFlowMap[groupKey] = { name: groupKey, In: 0, Out: 0 };
+      }
+      const amt = parseFloat(c.amount || 0) || 0;
+      const type = String(c.type || '').toLowerCase();
+      if (type === 'in' || type === 'income') {
+        cashFlowMap[groupKey].In += amt;
+      } else {
+        cashFlowMap[groupKey].Out += amt;
+      }
+    });
+
+    const cashFlowData = Object.values(cashFlowMap).sort((a, b) => a.name.localeCompare(b.name));
 
     return success(res, "Advanced Analytics fetched successfully", {
-      financial,
-      totalBookings: totalBookingsResult,
+      financial: {
+        totalRevenue,
+        paidAmount,
+        taxLiability,
+        totalBills: filteredBills.length,
+        outstandingReceivables: totalRevenue - paidAmount,
+        totalExpenses
+      },
+      totalBookings: filteredBookings.length,
       unbilledRevenue: unbilledRevenueTotal,
       financialTrendData,
       bookingsData,

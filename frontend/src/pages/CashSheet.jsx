@@ -39,11 +39,14 @@ import { Download } from "lucide-react";
 import QuickAddModal from "../components/QuickAddModal";
 import { BadgeContext } from "../context/BadgeContext";
 import { useSync } from "../context/SyncContext";
+import { useSettings } from "../context/SettingsContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const CashSheet = () => {
   const { user } = useContext(AuthContext);
+  const { globalSettings } = useSettings();
+  const enableCsvImport = globalSettings?.integrations?.enableCsvImport !== false;
   const { syncQueue } = useSync();
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
@@ -489,61 +492,65 @@ const CashSheet = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input 
-            type="file" 
-            accept=".csv" 
-            ref={csvInputRef} 
-            style={{ display: "none" }} 
-            onChange={handleImport} 
-          />
-          <button
-            onClick={() => csvInputRef.current?.click()}
-            disabled={importing}
-            style={{
-              background: "#3b82f6",
-              border: "none",
-              color: "white",
-              padding: "0.45rem 0.85rem",
-              borderRadius: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: 600,
-              fontSize: "0.8rem"
-            }}
-          >
-            <FileText size={14} />
-            {importing ? "Importing..." : "Import CSV"}
-          </button>
-          <input 
-            type="file" 
-            accept=".csv" 
-            ref={csvVendorInputRef} 
-            style={{ display: "none" }} 
-            onChange={handleVendorImport} 
-          />
-          <button
-            onClick={() => csvVendorInputRef.current?.click()}
-            disabled={importingVendor}
-            style={{
-              background: "#10b981",
-              border: "none",
-              color: "white",
-              padding: "0.45rem 0.85rem",
-              borderRadius: "8px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: 600,
-              fontSize: "0.8rem"
-            }}
-          >
-            <FileText size={14} />
-            {importingVendor ? "Importing..." : "Import Vendor CSV"}
-          </button>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+          {enableCsvImport && (
+            <>
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={csvInputRef} 
+                style={{ display: "none" }} 
+                onChange={handleImport} 
+              />
+              <button
+                onClick={() => csvInputRef.current?.click()}
+                disabled={importing}
+                style={{
+                  background: "#3b82f6",
+                  border: "none",
+                  color: "white",
+                  padding: "0.45rem 0.85rem",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                  fontSize: "0.8rem"
+                }}
+              >
+                <FileText size={14} />
+                {importing ? "Importing..." : "Import CSV"}
+              </button>
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={csvVendorInputRef} 
+                style={{ display: "none" }} 
+                onChange={handleVendorImport} 
+              />
+              <button
+                onClick={() => csvVendorInputRef.current?.click()}
+                disabled={importingVendor}
+                style={{
+                  background: "#10b981",
+                  border: "none",
+                  color: "white",
+                  padding: "0.45rem 0.85rem",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 600,
+                  fontSize: "0.8rem"
+                }}
+              >
+                <FileText size={14} />
+                {importingVendor ? "Importing..." : "Import Vendor CSV"}
+              </button>
+            </>
+          )}
           
           <button
             onClick={() => setShowExportModal(true)}
