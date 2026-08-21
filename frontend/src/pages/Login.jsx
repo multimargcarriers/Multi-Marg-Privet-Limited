@@ -20,6 +20,9 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [pendingAuth, setPendingAuth] = useState(null);
+  const [step2Password, setStep2Password] = useState('');
+  const [showStep2PasswordInput, setShowStep2PasswordInput] = useState(false);
+  const [showStep2PasswordText, setShowStep2PasswordText] = useState(false);
   
   // UI states
   const [loading, setLoading] = useState(false);
@@ -79,6 +82,32 @@ const Login = () => {
     } catch (err) {
       console.error("Device auth error:", err);
       setError('Device verification error. Tap below to verify.');
+    } finally {
+      setDeviceAuthLoading(false);
+    }
+  };
+
+  const handleStep2PasswordVerify = async (e) => {
+    if (e) e.preventDefault();
+    if (!step2Password) {
+      setError('Please enter your account password.');
+      return;
+    }
+    setDeviceAuthLoading(true);
+    setError('');
+    try {
+      const emailVal = pendingAuth?.user?.email || pendingAuth?.user?.username || email;
+      const res = await axios.post(`${API_URL}/api/auth/login`, {
+        email: emailVal,
+        password: step2Password
+      });
+      if (res.data?.success) {
+        login(pendingAuth.user, pendingAuth.token);
+      } else {
+        setError('Incorrect password. Please try again.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Password verification failed. Try again.');
     } finally {
       setDeviceAuthLoading(false);
     }
@@ -844,7 +873,7 @@ const Login = () => {
                 border: '1.5px solid #e2e8f0',
                 borderRadius: '16px',
                 padding: '1.25rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
                 textAlign: 'center'
               }}>
                 <div style={{
@@ -883,51 +912,114 @@ const Login = () => {
                 padding: '0.75rem 1rem',
                 fontSize: '0.82rem',
                 color: '#1e40af',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
                 lineHeight: '1.45',
                 textAlign: 'center'
               }}>
-                Device screen lock or fingerprint verification is <strong>compulsory</strong> to access your account.
+                Device authentication is <strong>compulsory</strong>. Verify using your device fingerprint/screen lock or enter your account password.
               </div>
 
-              <button
-                type="button"
-                onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
-                disabled={deviceAuthLoading}
-                className="btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginBottom: '0.85rem'
-                }}
-              >
-                <Fingerprint size={22} className={deviceAuthLoading ? "spin-animation" : ""} />
-                <span>{deviceAuthLoading ? 'Verifying Device...' : 'Scan Fingerprint / Device Lock'}</span>
-              </button>
+              {!showStep2PasswordInput ? (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
+                    disabled={deviceAuthLoading}
+                    className="btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      marginBottom: '0.85rem'
+                    }}
+                  >
+                    <Fingerprint size={22} className={deviceAuthLoading ? "spin-animation" : ""} />
+                    <span>{deviceAuthLoading ? 'Verifying Device...' : 'Scan Fingerprint / Device Lock'}</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => login(pendingAuth.user, pendingAuth.token)}
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '10px',
-                  padding: '0.65rem 1rem',
-                  color: '#475569',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  width: '100%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px'
-                }}
-              >
-                <ShieldCheck size={16} color="#16a34a" /> Confirm Device Access
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowStep2PasswordInput(true)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      padding: '0.65rem 1rem',
+                      color: '#334155',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      width: '100%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Key size={15} color="#2563eb" /> Verify with Account Password
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleStep2PasswordVerify}>
+                  <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                    <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
+                    <input 
+                      type={showStep2PasswordText ? "text" : "password"} 
+                      className="input-field"
+                      placeholder="Enter account password..." 
+                      value={step2Password}
+                      onChange={(e) => setStep2Password(e.target.value)}
+                      required 
+                      autoFocus
+                      autoComplete="current-password"
+                    />
+                    <button 
+                      type="button" 
+                      className="password-toggle-btn" 
+                      onClick={() => setShowStep2PasswordText(!showStep2PasswordText)} 
+                      tabIndex="-1"
+                    >
+                      {showStep2PasswordText ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={deviceAuthLoading || !step2Password}
+                    className="btn-primary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      marginBottom: '0.75rem'
+                    }}
+                  >
+                    <ShieldCheck size={18} />
+                    <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Password & Unlock'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setShowStep2PasswordInput(false); triggerDeviceVerification(pendingAuth.user, pendingAuth.token); }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px'
+                    }}
+                  >
+                    <Fingerprint size={15} /> Switch to Fingerprint / Device Screen Lock
+                  </button>
+                </form>
+              )}
             </div>
           )}
 

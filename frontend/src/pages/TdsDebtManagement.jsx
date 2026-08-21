@@ -102,8 +102,12 @@ const TdsDebtManagement = () => {
     }
   }, [form, editingId]);
 
+  const isFetchingRef = useRef(false);
+
   // Fetch all initial data
   const fetchInitialData = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setLoading(true);
     try {
       const [clientsRes, billsRes, adjRes, vendorsRes, purchasesRes, openRes] = await Promise.all([
@@ -125,6 +129,7 @@ const TdsDebtManagement = () => {
       console.error("Error loading data", error);
       addToast("Failed to fetch records", "error");
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
   }, [addToast]);

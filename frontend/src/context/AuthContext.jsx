@@ -84,6 +84,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const isScreenLockedRef = useRef(isScreenLocked);
+  useEffect(() => {
+    isScreenLockedRef.current = isScreenLocked;
+  }, [isScreenLocked]);
+
   // -------------------------------------------------------------
   // 5-Minute Inactivity & Background Biometric Lock Screen Engine
   // -------------------------------------------------------------
@@ -108,17 +113,16 @@ export const AuthProvider = ({ children }) => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkElapsedInactivity();
-        lastActiveTimeRef.current = Date.now();
       }
     };
 
     const handleWindowFocus = () => {
       checkElapsedInactivity();
-      lastActiveTimeRef.current = Date.now();
     };
 
-    // User interaction events reset on-screen activity
+    // User interaction events reset on-screen activity ONLY when unlocked
     const recordUserActivity = () => {
+      if (isScreenLockedRef.current) return;
       const now = Date.now();
       lastActiveTimeRef.current = now;
       localStorage.setItem('mm_last_active', now.toString());
@@ -131,6 +135,7 @@ export const AuthProvider = ({ children }) => {
 
     // Periodic check every 10s for inactive on-screen sessions (>= 5 minutes idle)
     const intervalId = setInterval(() => {
+      if (isScreenLockedRef.current) return;
       const lastActive = localStorage.getItem('mm_last_active') || lastActiveTimeRef.current;
       const idleElapsed = Date.now() - parseInt(lastActive, 10);
       if (idleElapsed >= INACTIVITY_LOCK_MS) {

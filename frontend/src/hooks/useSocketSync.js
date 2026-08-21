@@ -17,6 +17,7 @@ export const getSocket = () => {
 
 export const useSocketSync = (moduleName, onSyncCallback) => {
   const callbackRef = useRef(onSyncCallback);
+  const debounceTimerRef = useRef(null);
 
   // Keep callback reference updated without triggering re-renders
   useEffect(() => {
@@ -28,16 +29,24 @@ export const useSocketSync = (moduleName, onSyncCallback) => {
 
     const handleDataUpdate = (data) => {
       if (data && data.module === moduleName) {
-        // Trigger the provided callback to silently refresh data
-        if (callbackRef.current) {
-          callbackRef.current();
+        // Debounce multiple rapid socket updates to batch into a single background fetch
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
         }
+        debounceTimerRef.current = setTimeout(() => {
+          if (callbackRef.current) {
+            callbackRef.current();
+          }
+        }, 500);
       }
     };
 
     socket.on("data_updated", handleDataUpdate);
 
     return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       socket.off("data_updated", handleDataUpdate);
     };
   }, [moduleName]);

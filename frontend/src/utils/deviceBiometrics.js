@@ -65,9 +65,10 @@ export const promptDeviceScreenLock = async (user) => {
         { alg: -257, type: "public-key" } // RS256
       ],
       authenticatorSelection: {
-        authenticatorAttachment: "platform", // Forces device fingerprint / screen lock / Touch ID / Windows Hello
+        authenticatorAttachment: "platform", // Forces direct device fingerprint / Touch ID / Windows Hello / local screen PIN
         userVerification: "required",        // Forces fingerprint or device screen lock PIN
-        residentKey: "preferred"
+        residentKey: "discouraged",          // Bypasses Google Passkey Cloud account sync
+        requireResidentKey: false
       },
       timeout: 60000,
       attestation: "none"

@@ -116,8 +116,12 @@ const OutstandingFinalSheet = () => {
   const [explanationKey, setExplanationKey] = useState(null);
   const { holdingKey, holdProgress, getHoldProps } = useHoldToExplain(setExplanationKey, 5000);
 
+  const isFetchingRef = useRef(false);
+
   // Fetch all core datasets
   const fetchAllData = useCallback(async (showLoader = true) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     if (showLoader) setLoading(true);
     try {
       const [
@@ -151,6 +155,7 @@ const OutstandingFinalSheet = () => {
         addToast("Failed to load outstanding data", "error");
       }
     } finally {
+      isFetchingRef.current = false;
       if (showLoader) setLoading(false);
     }
   }, [addToast]);
