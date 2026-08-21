@@ -325,19 +325,21 @@ const VendorMIS = () => {
              <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
            </div>
            
-           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", fontWeight: 600 }} onClick={handleExport}>
-             <Download size={16} style={{ marginRight: 6, color: "#2563eb" }} /> Export
-           </button>
-           
-           <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
-             <Printer size={16} style={{ marginRight: 6 }} /> Print All
-           </button>
-           
-           {!showVendorMisForm && (
-             <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
-               <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor Vehicle MIS Entry
-             </button>
-           )}
+            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", fontWeight: 600 }} onClick={handleExport}>
+              <Download size={16} style={{ marginRight: 6, color: "#2563eb" }} /> Export
+            </button>
+            
+            {isAdminOrSuperAdmin && (
+              <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
+                <Printer size={16} style={{ marginRight: 6 }} /> Print All
+              </button>
+            )}
+            
+            {!showVendorMisForm && isAdminOrSuperAdmin && (
+              <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
+                <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor Vehicle MIS Entry
+              </button>
+            )}
          </div>
       </div>
       
@@ -518,18 +520,20 @@ const VendorMIS = () => {
           <span style={{ color: "#94a3b8" }}>-</span>
           <input type="date" className="aws-date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
         </div>
-        <button
-          type="button"
-          className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
-          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-        >
-          <Filter size={16} />
-          {showAdvancedFilters ? "Hide Dropdowns" : "Show Dropdowns"}
-        </button>
+        {isAdminOrSuperAdmin && (
+          <button
+            type="button"
+            className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            <Filter size={16} />
+            {showAdvancedFilters ? "Hide Dropdowns" : "Show Dropdowns"}
+          </button>
+        )}
       </div>
 
-      {/* Dropdown Filters Grid */}
-      {showAdvancedFilters && (
+      {/* Dropdown Filters Grid (Admin only) */}
+      {showAdvancedFilters && isAdminOrSuperAdmin && (
         <div className="no-print aws-filters-panel">
           <div className="aws-filter-group">
             <label className="aws-filter-label">Vendor</label>
@@ -1064,15 +1068,15 @@ const VendorMIS = () => {
                       <Zap size={14} /> Feed Rate
                     </button>
                   )}
-                  {(isAdminOrSuperAdmin || (isVendorUser && item.approvalStatus !== 'Approved')) && (
+                  {isAdminOrSuperAdmin && (
                     <button onClick={() => {
                       setVendorMisForm(item);
                       setEditingId(item.id);
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowVendorMisForm(true);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} className="action-btn action-btn-primary" title={isVendorUser ? "Enter / Update Trip Amount" : "Edit Entry"}>
-                      <Edit size={14} /> {isVendorUser ? "Full Edit" : "Edit"}
+                    }} className="action-btn action-btn-primary" title="Edit Entry">
+                      <Edit size={14} /> Edit
                     </button>
                   )}
                   {(!isAdminOrSuperAdmin && item.approvalStatus === 'Approved') && (
@@ -1080,16 +1084,18 @@ const VendorMIS = () => {
                       <Lock size={12} /> Locked
                     </span>
                   )}
-                  <button 
-                    onClick={() => {
-                      appDB.set("printSingleTripData", item);
-                      window.open(`/print-vendor-trip/mis-print`, '_blank');
-                    }}
-                    className="action-btn action-btn-light"
-                    title="Print Single Vendor Trip"
-                  >
-                    <Printer size={14} /> Print
-                  </button>
+                  {isAdminOrSuperAdmin && (
+                    <button 
+                      onClick={() => {
+                        appDB.set("printSingleTripData", item);
+                        window.open(`/print-vendor-trip/mis-print`, '_blank');
+                      }}
+                      className="action-btn action-btn-light"
+                      title="Print Single Vendor Trip"
+                    >
+                      <Printer size={14} /> Print
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

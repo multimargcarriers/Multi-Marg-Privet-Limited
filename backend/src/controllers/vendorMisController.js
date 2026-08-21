@@ -113,16 +113,43 @@ exports.put_id_3 = async (req, res) => {
     return error(res, "Only Admin can approve trip entries.", 403);
   }
 
+  // Non-admins (vendors) can ONLY update amount & others
+  if (!isAdmin) {
+    const existingDetails = existingData.details || [];
+    const incomingDetails = req.body.details || [];
+
+    const mergedDetails = existingDetails.map((d, idx) => {
+      const inc = incomingDetails[idx] || {};
+      return {
+        ...d,
+        amount: inc.amount !== undefined ? String(inc.amount) : (d.amount || "0"),
+        others: inc.others !== undefined ? String(inc.others) : (d.others || "0")
+      };
+    });
+
+    const totalAmount = mergedDetails.reduce((s, d) => s + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
+
+    const updatePayload = {
+      details: mergedDetails,
+      totalAmount: totalAmount,
+      approvalStatus: 'Submitted',
+      updatedAt: new Date().toISOString(),
+      lastModifiedBy: user.name || user.email || 'Vendor'
+    };
+
+    await db.collection("vendor_mis").doc(id).update(updatePayload);
+    await delCache(CACHE_KEY);
+
+    return success(res, "Vendor MIS amount updated successfully", {
+      id,
+      ...existingData,
+      ...updatePayload
+    });
+  }
+
   const updatePayload = { ...req.body };
   delete updatePayload.id;
   delete updatePayload.remarks; // Remarks are updated via addRemark endpoint
-
-  // If vendor is updating an amount, mark status as 'Submitted' for Admin review if currently Pending
-  if (!isAdmin && updatePayload.approvalStatus === undefined) {
-    if (existingData.approvalStatus === 'Pending' || !existingData.approvalStatus) {
-      updatePayload.approvalStatus = 'Submitted';
-    }
-  }
 
   updatePayload.updatedAt = new Date().toISOString();
   updatePayload.lastModifiedBy = user.name || user.email || 'User';
