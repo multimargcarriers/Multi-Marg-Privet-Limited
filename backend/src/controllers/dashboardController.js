@@ -23,46 +23,64 @@ exports.get_stats_1 = async (req, res) => {
       analyticsData = await runAnalyticsAggregation();
     }
     
-    // Fetch recent activity in parallel
+    // Fetch recent activity in parallel with real fields
     const [recentBookingsSnapshot, recentTripsSnapshot] = await Promise.all([
-      db.collection("bookings").orderBy("createdAt", "desc").limit(10).get(),
-      db.collection("trips").orderBy("createdAt", "desc").limit(10).get()
+      db.mongoDb.collection("bookings").find().sort({ createdAt: -1, date: -1 }).limit(10).toArray(),
+      db.mongoDb.collection("trips").find().sort({ createdAt: -1, date: -1 }).limit(10).toArray()
     ]);
     
     const recentActivity = [];
     
-    recentBookingsSnapshot.forEach(d => {
-      const bk = d.data();
+    recentBookingsSnapshot.forEach(bk => {
+      const lrNumber = bk.awb || bk.consignment || bk.lrNumber || bk.lrNo || (bk._id ? String(bk._id).substring(0, 8) : 'N/A');
+      const consignorName = typeof bk.consignor === 'string' ? bk.consignor : (bk.consignor?.name || bk.consignor_name || '');
+      const consigneeName = typeof bk.consignee === 'string' ? bk.consignee : (bk.consignee?.name || bk.consignee_name || '');
+      const originCity = bk.origin || bk.from || bk.originCity || '';
+      const destCity = bk.destination || bk.to || bk.destCity || '';
+
+      const route = originCity && destCity ? `${originCity.toUpperCase()} → ${destCity.toUpperCase()}` : (originCity || destCity || 'General Dispatch');
+      const party = consignorName && consigneeName ? `${consignorName.toUpperCase()} to ${consigneeName.toUpperCase()}` : (consignorName || consigneeName || '');
+
       recentActivity.push({
-        id: d.id,
+        id: bk._id || bk.id,
         type: 'booking',
-        title: `LR Generated: ${bk.lrNo || d.id.substring(0, 8)}`,
-        subtitle: `${bk.consignor?.name || 'Unknown'} → ${bk.consignee?.name || 'Unknown'}`,
-        timestamp: bk.createdAt,
-        status: bk.status || 'Pending'
+        title: `AWB #${lrNumber}`,
+        subtitle: party ? `${route} • ${party}` : route,
+        origin: originCity,
+        destination: destCity,
+        party: party,
+        timestamp: bk.createdAt || bk.date,
+        status: bk.status || 'UNBILLED'
       });
     });
     
-    recentTripsSnapshot.forEach(d => {
-      const tp = d.data();
+    recentTripsSnapshot.forEach(tp => {
+      const vehicle = tp.vehicleNo && tp.vehicleNo !== 'na' ? tp.vehicleNo.toUpperCase() : 'LINE-HAUL';
+      const vendorName = tp.vendor ? `(${tp.vendor.toUpperCase()})` : '';
+      const originCity = tp.origin || tp.from || '';
+      const destCity = tp.destination || tp.to || '';
+      const route = originCity && destCity ? `${originCity.toUpperCase()} → ${destCity.toUpperCase()}` : (originCity || destCity || 'Transit Route');
+
       recentActivity.push({
-        id: d.id,
+        id: tp._id || tp.id,
         type: 'trip',
-        title: `Trip Created: ${tp.vehicleNo || 'Vehicle'}`,
-        subtitle: `${tp.origin || 'Unknown'} → ${tp.destination || 'Unknown'}`,
-        timestamp: tp.createdAt,
+        title: `Trip Manifest: ${vehicle} ${vendorName}`.trim(),
+        subtitle: route,
+        origin: originCity,
+        destination: destCity,
+        timestamp: tp.createdAt || tp.date,
         status: tp.status || 'Active'
       });
     });
     
     // Sort combined activity by timestamp desc
     recentActivity.sort((a, b) => {
-      const dateA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp || 0).getTime();
-      const dateB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp || 0).getTime();
+      const dateA = new Date(a.timestamp || 0).getTime();
+      const dateB = new Date(b.timestamp || 0).getTime();
       return dateB - dateA;
     });
     
-    analyticsData.recentActivity = recentActivity.slice(0, 7);
+    analyticsData.recentActivity = recentActivity.slice(0, 8);
     return analyticsData;
   }, 120);
 
