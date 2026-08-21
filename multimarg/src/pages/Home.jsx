@@ -648,8 +648,8 @@ const Home = () => {
               <p style={{ fontSize: '1rem', color: 'var(--primary-red)', fontWeight: '600', marginBottom: '0.25rem' }}>
                 <Phone size={14} style={{ display: 'inline', marginRight: '5px' }}/> +91-9876543210
               </p>
-              <p style={{ fontSize: '0.95rem', color: 'var(--primary-blue)', fontWeight: '500' }}>
-                <Mail size={14} style={{ display: 'inline', marginRight: '5px' }}/> info@multimargcarriers.co.in
+              <p style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size={14} style={{ display: 'inline', marginRight: '5px' }}/> info@multimarg.com
               </p>
             </div>
           </div>

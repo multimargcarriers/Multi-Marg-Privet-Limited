@@ -796,17 +796,78 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* Integrations Toggles */}
+            {/* Integrations & Access Policies */}
             <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 <div style={{ backgroundColor: '#f8fafc', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}><Server size={20} /></div>
-                <h5 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>External Integrations</h5>
+                <h5 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>Integrations & Access Policies</h5>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* 1. Global Booking Window Policy */}
+                <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.95rem', color: '#0f172a', fontWeight: '700', display: 'block' }}>
+                        Global Booking Visibility Window
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                        Allow staff & non-admin users to view all AWB bookings within active window.
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => handleToggle('integrations', 'enableGlobalBookingWindow')} 
+                      style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: (globalSettings.integrations?.enableGlobalBookingWindow !== false) ? '#10b981' : '#94a3b8' }}
+                      title="Toggle Global Booking Visibility Window"
+                    >
+                      {(globalSettings.integrations?.enableGlobalBookingWindow !== false) ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                    </button>
+                  </div>
+
+                  {(globalSettings.integrations?.enableGlobalBookingWindow !== false) && (
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#334155' }}>Show All Bookings For:</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Days from booking date before becoming private to creator</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={globalSettings.integrations?.globalBookingWindowDays ?? 10}
+                          onChange={async (e) => {
+                            const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                            const updated = {
+                              ...globalSettings,
+                              integrations: {
+                                ...globalSettings.integrations,
+                                globalBookingWindowDays: val
+                              }
+                            };
+                            await updateGlobalSettings(updated);
+                          }}
+                          style={{ width: '70px', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #94a3b8', textAlign: 'center', fontWeight: '700', fontSize: '0.9rem' }}
+                        />
+                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>Days</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <p style={{ margin: '0.6rem 0 0 0', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
+                    {(globalSettings.integrations?.enableGlobalBookingWindow !== false) 
+                      ? `🟢 Active: All staff see bookings for the first ${globalSettings.integrations?.globalBookingWindowDays ?? 10} days. After that, bookings are visible permanently only to the user who created them (Super Admins retain full permanent access).`
+                      : `🔴 Off: Non-admin users only see bookings they personally created.`}
+                  </p>
+                </div>
+
+                {/* Other Integrations Toggles */}
                 {Object.entries(globalSettings.integrations || {}).map(([key, value]) => {
+                  if (key === 'enableGlobalBookingWindow' || key === 'globalBookingWindowDays') return null;
                   let label = `${key} Integration`;
                   if (key === 'enableBulkDelete') label = 'Enable Bulk Delete / Clear All Features';
                   if (key === 'enableCsvImport') label = 'Enable CSV Import & Template Download';
+                  if (key === 'redis') label = 'Redis In-Memory Key Caching';
+                  if (key === 'cloudinary') label = 'Cloudinary Document & Image Storage';
                   
                   return (
                     <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

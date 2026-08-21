@@ -1,11 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEOHead from '../components/SEOHead';
 
 const API = `${import.meta.env.VITE_API_URL || ''}/api`;
+
+const formatCleanDate = (dateStr) => {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = String(dmyMatch[1]).padStart(2, '0');
+    const month = String(dmyMatch[2]).padStart(2, '0');
+    const year = dmyMatch[3];
+    return `${day}-${month}-${year}`;
+  }
+  return dateStr;
+};
+
+const formatCleanDateTime = (dateStr) => {
+  if (!dateStr) return "N/A";
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${mins}`;
+  }
+  return formatCleanDate(dateStr);
+};
 
 const getStatusIcon = (status) => {
   switch (status) {
@@ -42,6 +75,8 @@ const TrackShipment = () => {
   const [trackingResult, setTrackingResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [showPodModal, setShowPodModal] = useState(false);
+  const [selectedPodUrl, setSelectedPodUrl] = useState('');
   const searchStarted = useRef(false);
 
   const performSearch = async (awb) => {
@@ -94,6 +129,7 @@ const TrackShipment = () => {
 
   const latestStatus = trackingResult?.tracking?.[0]?.status || '';
   const isDelivered = latestStatus === 'Delivered';
+  const mainPodUrl = trackingResult?.booking?.podUrl || trackingResult?.tracking?.find(t => t.podUrl)?.podUrl || null;
 
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
@@ -257,7 +293,7 @@ const TrackShipment = () => {
                   boxShadow: 'var(--shadow-md)',
                   marginBottom: '2rem'
                 }}>
-                  {/* Header with AWB and Status */}
+                  {/* Header with AWB, Status, and POD Eye Button */}
                   <div style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -272,7 +308,35 @@ const TrackShipment = () => {
                       <p style={{ color: 'var(--text-light)', fontSize: '0.85rem', marginBottom: '0.2rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Tracking Number</p>
                       <h2 style={{ color: 'var(--primary-blue)', margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)' }}>{trackingResult.tracking[0]?.awb}</h2>
                     </div>
-                    <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      {mainPodUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPodUrl(mainPodUrl);
+                            setShowPodModal(true);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 1.1rem',
+                            backgroundColor: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '50px',
+                            fontWeight: '700',
+                            fontSize: '0.88rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(37,99,235,0.1)'
+                          }}
+                          title="View Proof of Delivery (POD)"
+                        >
+                          <Eye size={16} /> View POD
+                        </button>
+                      )}
+
                       <span style={{ 
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -292,21 +356,6 @@ const TrackShipment = () => {
 
                   {/* Shipment Details Grid */}
                   {trackingResult.booking && (() => {
-                    const parseDateString = (dateStr) => {
-                      if (!dateStr) return "-";
-                      let parsed = new Date(dateStr);
-                      if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString('en-IN');
-                      const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-                      if (dmyMatch) {
-                        const day = parseInt(dmyMatch[1], 10);
-                        const month = parseInt(dmyMatch[2], 10) - 1;
-                        const year = parseInt(dmyMatch[3], 10);
-                        parsed = new Date(year, month, day);
-                        if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString('en-IN');
-                      }
-                      return dateStr;
-                    };
-
                     const b = trackingResult.booking;
                     const boxVal = b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount;
 
@@ -384,7 +433,7 @@ const TrackShipment = () => {
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
                             <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Booking Date</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{parseDateString(b.date)}</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{formatCleanDate(b.date || b.dispatch_date)}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
                             <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Client</span>
@@ -454,7 +503,6 @@ const TrackShipment = () => {
                     {trackingResult.tracking.map((entry, index) => {
                       const isLatest = index === 0;
                       const color = getStatusColor(entry.status);
-                      const isCompleted = index > 0 || entry.status === 'Delivered';
                       
                       return (
                         <div key={entry.id || index} style={{ 
@@ -506,13 +554,14 @@ const TrackShipment = () => {
                                 whiteSpace: 'nowrap'
                               }}>
                                 <Clock size={12} />
-                                {entry.date ? new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                                {formatCleanDateTime(entry.date || entry.updatedAt)}
                               </span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4b5563', fontSize: '0.95rem' }}>
                               <MapPin size={14} color="#9ca3af" />
                               <span style={{ fontWeight: 500, textTransform: 'uppercase' }}>{entry.location || 'Location not provided'}</span>
                             </div>
+
                             {entry.remarks && (
                               <div style={{ 
                                 marginTop: '0.5rem', 
@@ -527,6 +576,33 @@ const TrackShipment = () => {
                                 "{entry.remarks}"
                               </div>
                             )}
+
+                            {entry.podUrl && (
+                              <div style={{ marginTop: '0.6rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedPodUrl(entry.podUrl);
+                                    setShowPodModal(true);
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '0.35rem 0.75rem',
+                                    backgroundColor: '#ecfdf5',
+                                    color: '#059669',
+                                    border: '1px solid #a7f3d0',
+                                    borderRadius: '6px',
+                                    fontWeight: '700',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <Eye size={14} /> View Attached POD
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -539,6 +615,124 @@ const TrackShipment = () => {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* POD Viewer Modal */}
+      {showPodModal && selectedPodUrl && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '700px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '1.2rem 1.5rem',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#f8fafc'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileText size={20} color="#2563eb" />
+                <h4 style={{ margin: 0, color: '#0f172a', fontWeight: 700, fontSize: '1.1rem' }}>
+                  Proof of Delivery (POD)
+                </h4>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <a
+                  href={selectedPodUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    backgroundColor: '#eff6ff',
+                    color: '#2563eb',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    border: '1px solid #bfdbfe'
+                  }}
+                >
+                  <Download size={14} /> Open / Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowPodModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#64748b',
+                    padding: '0.3rem',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={22} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{
+              padding: '1.5rem',
+              flex: 1,
+              overflowY: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#0f172a'
+            }}>
+              {selectedPodUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={selectedPodUrl}
+                  title="POD PDF Document"
+                  style={{ width: '100%', height: '500px', border: 'none', borderRadius: '8px', background: '#fff' }}
+                />
+              ) : (
+                <img
+                  src={selectedPodUrl}
+                  alt="Proof of Delivery Document"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '65vh',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

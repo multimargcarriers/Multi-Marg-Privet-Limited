@@ -90,8 +90,8 @@ const Privacy = () => {
               </p>
 
               <h2 style={{ color: 'var(--primary-blue)', marginBottom: '1rem' }}>7. Contact Us</h2>
-              <p style={{ marginBottom: '0' }}>
-                If you have any questions about this privacy policy or our privacy practices, please contact us at privacy@multimargcarriers.com.
+              <p style={{ lineHeight: '1.7', color: 'var(--text-light)', marginBottom: '1rem' }}>
+                If you have any questions about this privacy policy or our privacy practices, please contact us at privacy@multimarg.com.
               </p>
             </div>
           </motion.div>

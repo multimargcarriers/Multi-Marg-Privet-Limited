@@ -87,8 +87,8 @@ const Terms = () => {
               </p>
 
               <h2 style={{ color: 'var(--primary-blue)', marginBottom: '1rem' }}>8. Contact Us</h2>
-              <p style={{ marginBottom: '0' }}>
-                If you have any questions about these Terms, please contact us at info@multimargcarriers.com.
+              <p style={{ lineHeight: '1.7', color: 'var(--text-light)', marginBottom: '1rem' }}>
+                If you have any questions about these Terms, please contact us at info@multimarg.com.
               </p>
             </div>
           </motion.div>

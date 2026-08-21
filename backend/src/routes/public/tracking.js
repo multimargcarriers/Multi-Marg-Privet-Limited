@@ -67,7 +67,7 @@ router.get('/:awb', async (req, res) => {
       
       const cleanSearch = baseAwb.toLowerCase();
       if (bAwb === cleanSearch || bAwb.includes(cleanSearch) || lowercaseVariations.includes(bAwb) || docId.toLowerCase().includes(cleanSearch)) {
-        booking = {
+          booking = {
           id: docId,
           origin: b.origin || null,
           destination: b.destination || null,
@@ -78,7 +78,9 @@ router.get('/:awb', async (req, res) => {
           mode: b.mode || null,
           box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount || null,
           invoiceDetails: b.invoiceDetails || [],
-          parcels: b.parcels || []
+          parcels: b.parcels || [],
+          podUrl: b.podUrl || b.pod || b.pod_url || b.podImage || null,
+          podUploaded: !!(b.podUrl || b.pod || b.pod_url || b.podImage)
         };
       }
     });
@@ -138,6 +140,12 @@ router.get('/:awb', async (req, res) => {
       }) : null;
 
       if (podDoc) {
+        const pUrl = podDoc.podUrl || podDoc.cloudinaryUrl || podDoc.url || null;
+        if (pUrl) {
+          booking.podUrl = pUrl;
+          booking.podUploaded = true;
+        }
+
         const hasDeliveredStatus = entries.some(e => String(e.status || '').toLowerCase().includes("delivered"));
         if (!hasDeliveredStatus) {
           const podDate = podDoc.uploadedAt || podDoc.createdAt || new Date().toISOString();
@@ -149,9 +157,15 @@ router.get('/:awb', async (req, res) => {
             location: destLocation,
             date: podDate,
             remarks: "Proof of Delivery (POD) uploaded. Shipment delivered at destination.",
-            podUrl: podDoc.podUrl || podDoc.cloudinaryUrl || null,
+            podUrl: pUrl,
             updatedAt: podDate
           });
+        } else {
+          // Attach podUrl to existing delivered entry if missing
+          const delEntry = entries.find(e => String(e.status || '').toLowerCase().includes("delivered"));
+          if (delEntry && !delEntry.podUrl) {
+            delEntry.podUrl = pUrl;
+          }
         }
       }
 

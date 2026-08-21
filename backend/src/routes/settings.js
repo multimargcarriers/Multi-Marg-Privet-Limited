@@ -182,7 +182,9 @@ const defaultSettings = {
     redis: true,
     cloudinary: true,
     enableBulkDelete: false,
-    enableCsvImport: true
+    enableCsvImport: true,
+    enableGlobalBookingWindow: true,
+    globalBookingWindowDays: 10
   },
   modules: {
     masters: true,
@@ -220,6 +222,8 @@ router.get("/config", async (req, res) => {
     if (!settings.integrations) settings.integrations = { ...defaultSettings.integrations };
     if (settings.integrations.enableBulkDelete === undefined) settings.integrations.enableBulkDelete = false;
     if (settings.integrations.enableCsvImport === undefined) settings.integrations.enableCsvImport = true;
+    if (settings.integrations.enableGlobalBookingWindow === undefined) settings.integrations.enableGlobalBookingWindow = true;
+    if (settings.integrations.globalBookingWindowDays === undefined) settings.integrations.globalBookingWindowDays = 10;
     
     return success(res, "Global configuration fetched", settings);
   } catch (err) {

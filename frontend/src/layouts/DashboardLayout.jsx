@@ -76,8 +76,14 @@ const DashboardLayout = () => {
                 MULTIMARG CARRIERS
               </span>
             </div>
-            <div>
-              &copy; {new Date().getFullYear()} Multimarg Carriers Private Limited. All rights reserved.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <span>
+                Support: <a href="mailto:info@multimarg.com" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>info@multimarg.com</a>
+              </span>
+              <span>•</span>
+              <span>
+                &copy; {new Date().getFullYear()} Multimarg Carriers Private Limited. All rights reserved.
+              </span>
             </div>
           </footer>
         </main>

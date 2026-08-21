@@ -93,7 +93,7 @@ const Footer = () => {
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <Mail size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span><a href="mailto:info@multimargcarriers.co.in" style={{ color: '#cbd5e1', textDecoration: 'none' }}>info@multimargcarriers.co.in</a></span>
+                <span><a href="mailto:info@multimarg.com" style={{ color: '#cbd5e1', textDecoration: 'none' }}>info@multimarg.com</a></span>
               </li>
             </ul>
           </div>  

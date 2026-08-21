@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
@@ -12,6 +12,39 @@ import { useSync } from "../context/SyncContext";
 import "../index.css"; 
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
+
+const formatCleanDate = (dateStr) => {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = String(dmyMatch[1]).padStart(2, '0');
+    const month = String(dmyMatch[2]).padStart(2, '0');
+    const year = dmyMatch[3];
+    return `${day}-${month}-${year}`;
+  }
+  return dateStr;
+};
+
+const formatCleanDateTime = (dateStr) => {
+  if (!dateStr) return "N/A";
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${mins}`;
+  }
+  return formatCleanDate(dateStr);
+};
 
 const Tracking = () => {
   const { user, hasPermission } = useContext(AuthContext);
@@ -64,6 +97,8 @@ const Tracking = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
   const [modalInitialName, setModalInitialName] = useState("");
+  const [showPodModal, setShowPodModal] = useState(false);
+  const [selectedPodUrl, setSelectedPodUrl] = useState("");
 
   const handleCreateNew = (type, name) => {
     setModalType(type);
@@ -565,65 +600,96 @@ const Tracking = () => {
               <div>
                 
                 {/* SHIPMENT DETAILS CARD (Auto-populated from LR) */}
-                {selectedSearchBooking && (
-                  <div style={{
-                    background: "linear-gradient(to right, #f8fafc, #f1f5f9)",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "12px",
-                    padding: "1.25rem",
-                    marginBottom: "2rem",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-                  }}>
-                    <h5 style={{ margin: "0 0 1rem 0", color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <Package size={18} color="#0284c7" /> Shipment Overview
-                    </h5>
-                    <div className="tracking-overview-grid">
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Origin</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "-"}</div>
+                {selectedSearchBooking && (() => {
+                  const mainPodUrl = selectedSearchBooking.podUrl || selectedSearchBooking.pod || trackingHistory.find(t => t.podUrl)?.podUrl || null;
+                  
+                  return (
+                    <div style={{
+                      background: "linear-gradient(to right, #f8fafc, #f1f5f9)",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "12px",
+                      padding: "1.25rem",
+                      marginBottom: "2rem",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                        <h5 style={{ margin: 0, color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <Package size={18} color="#0284c7" /> Shipment Overview
+                        </h5>
+                        {mainPodUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPodUrl(mainPodUrl);
+                              setShowPodModal(true);
+                            }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.4rem",
+                              padding: "0.4rem 0.9rem",
+                              backgroundColor: "#eff6ff",
+                              color: "#2563eb",
+                              border: "1px solid #bfdbfe",
+                              borderRadius: "6px",
+                              fontWeight: "700",
+                              fontSize: "0.85rem",
+                              cursor: "pointer",
+                              transition: "all 0.2s"
+                            }}
+                            title="View Proof of Delivery (POD)"
+                          >
+                            <Eye size={15} /> View POD
+                          </button>
+                        )}
                       </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Destination</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
-                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
-                        <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                          {selectedSearchBooking.date || selectedSearchBooking.dispatch_date 
-                            ? new Date(selectedSearchBooking.date || selectedSearchBooking.dispatch_date).toLocaleDateString('en-IN') 
-                            : "-"}
+
+                      <div className="tracking-overview-grid">
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Origin</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "-"}</div>
                         </div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                          {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Destination</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "-"}</div>
                         </div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                          {(() => {
-                            const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
-                            return bVal ? `${bVal} Pcs` : "-";
-                          })()}
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
+                          <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}</div>
                         </div>
-                      </div>
-                      <div>
-                        <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? (selectedSearchBooking.mode.toUpperCase() === "RAIL" ? "TRAIN" : selectedSearchBooking.mode.toUpperCase()) : "-"}</div>
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
+                          <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                            {formatCleanDate(selectedSearchBooking.date || selectedSearchBooking.dispatch_date)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                            {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                            {(() => {
+                              const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
+                              return bVal ? `${bVal} Pcs` : "-";
+                            })()}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? (selectedSearchBooking.mode.toUpperCase() === "RAIL" ? "TRAIN" : selectedSearchBooking.mode.toUpperCase()) : "-"}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div className="tracking-timeline-container">
                   {/* Vertical Line */}
@@ -632,11 +698,9 @@ const Tracking = () => {
                 {trackingHistory.map((entry, index) => {
                   const isLatest = index === 0; 
                   const color = getStatusColor(entry.status);
-                  const isDelivered = trackingHistory.some(t => t.status === "Delivered");
-                  const _canModify = isAdmin || !isDelivered;
 
                   return (
-                    <div key={entry.id} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem" }}>
+                    <div key={entry.id || index} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem" }}>
                       
                       <div style={{ 
                         width: "44px", 
@@ -661,7 +725,7 @@ const Tracking = () => {
                           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                             <span style={{ fontSize: "0.85rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "20px", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                               <Clock size={12} />
-                              {entry.date ? new Date(entry.date).toLocaleDateString('en-GB') : "N/A"}
+                              {formatCleanDateTime(entry.date || entry.updatedAt)}
                             </span>
                           </div>
                         </div>
@@ -677,6 +741,33 @@ const Tracking = () => {
                         {entry.remarks && (
                           <div style={{ fontSize: "0.9rem", color: "#6b7280", background: "#f9fafb", padding: "0.75rem", borderRadius: "8px", borderLeft: "3px solid #d1d5db", fontStyle: "italic" }}>
                             "{entry.remarks}"
+                          </div>
+                        )}
+
+                        {entry.podUrl && (
+                          <div style={{ marginTop: "0.6rem" }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedPodUrl(entry.podUrl);
+                                setShowPodModal(true);
+                              }}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.35rem",
+                                padding: "0.35rem 0.75rem",
+                                backgroundColor: "#ecfdf5",
+                                color: "#059669",
+                                border: "1px solid #a7f3d0",
+                                borderRadius: "6px",
+                                fontWeight: "700",
+                                fontSize: "0.8rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              <Eye size={14} /> View Attached POD
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1000,6 +1091,124 @@ const Tracking = () => {
         type={modalType}
         initialName={modalInitialName}
       />
+
+      {/* Proof of Delivery (POD) Viewer Modal */}
+      {showPodModal && selectedPodUrl && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 99999,
+          padding: "1rem"
+        }}>
+          <div style={{
+            backgroundColor: "#ffffff",
+            borderRadius: "16px",
+            maxWidth: "700px",
+            width: "100%",
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)"
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "1.2rem 1.5rem",
+              borderBottom: "1px solid #e2e8f0",
+              background: "#f8fafc"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <FileText size={20} color="#2563eb" />
+                <h4 style={{ margin: 0, color: "#0f172a", fontWeight: 700, fontSize: "1.1rem" }}>
+                  Proof of Delivery (POD)
+                </h4>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <a
+                  href={selectedPodUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  style={{
+                    padding: "0.4rem 0.8rem",
+                    backgroundColor: "#eff6ff",
+                    color: "#2563eb",
+                    borderRadius: "6px",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    border: "1px solid #bfdbfe"
+                  }}
+                >
+                  <Download size={14} /> Open / Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowPodModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#64748b",
+                    padding: "0.3rem",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <X size={22} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{
+              padding: "1.5rem",
+              flex: 1,
+              overflowY: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#0f172a"
+            }}>
+              {selectedPodUrl.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={selectedPodUrl}
+                  title="POD PDF Document"
+                  style={{ width: "100%", height: "500px", border: "none", borderRadius: "8px", background: "#fff" }}
+                />
+              ) : (
+                <img
+                  src={selectedPodUrl}
+                  alt="Proof of Delivery Document"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "65vh",
+                    objectFit: "contain",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

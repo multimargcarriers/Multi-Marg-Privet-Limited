@@ -261,8 +261,16 @@ exports.getRoot_2 = async (req, res) => {
       box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount
     }));
   } else {
-    // Apply Row-Level Security
-    filteredData = filterByAccess(data, req.user, "bookings");
+    // Fetch global configuration for booking visibility policy
+    const settings = await getOrSet("global_config", async () => {
+      if (db && db.mongoDb) {
+        return await db.mongoDb.collection("system_settings").findOne({ type: "global_config" });
+      }
+      return null;
+    }, 3600);
+
+    // Apply Row-Level Security with dynamic visibility window
+    filteredData = filterByAccess(data, req.user, "bookings", settings);
   }
   
   return success(res, "Bookings fetched successfully", filteredData);
