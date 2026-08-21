@@ -746,7 +746,7 @@ const CreateBooking = () => {
         <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>4. Cargo Details</h5>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Box<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>No. of Packages / Boxes<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <input type="number" className="form-control" name="box" placeholder="Qty" value={formData.box} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>

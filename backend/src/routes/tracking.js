@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const { db } = require("../config/database");
-const { v4: uuidv4 } = require("uuid");
-const { success, created, error } = require("../utils/response");
+const { getRoot_1, get_awb_2, postRoot_3, delete_id_4, put_id_5, postBulk_6 } = require('../controllers/trackingController');
+const { body } = require("express-validator");
 const { asyncHandler } = require("../middleware/errorHandler");
-const { getOrSet, delCache } = require("../config/redis");
-const { body, validationResult } = require("express-validator");
-const { getRoot_1, get_awb_2, postRoot_3, delete_id_4, put_id_5 } = require('../controllers/trackingController');
 
-const CACHE_KEY = "tracking";
+// Bulk tracking update
+router.post(
+  "/bulk",
+  asyncHandler(postBulk_6)
+);
 
 // Get all tracking entries
 router.get(

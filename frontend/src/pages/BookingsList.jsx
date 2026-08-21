@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2 } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -49,6 +49,7 @@ const BookingsList = () => {
   // Tracking modal state
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedBookingForTracking, setSelectedBookingForTracking] = useState(null);
+  const [bulkBookingsForTracking, setBulkBookingsForTracking] = useState([]);
 
   const handleCopyAwb = (e, awbStr) => {
     e.stopPropagation();
@@ -140,9 +141,9 @@ const BookingsList = () => {
       // Build Tracking map
       if (trackingRes.data.success && Array.isArray(trackingRes.data.data)) {
         const map = {};
-        const sorted = trackingRes.data.data.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sorted = [...trackingRes.data.data].sort((a, b) => new Date(a.updatedAt || a.date || a.createdAt) - new Date(b.updatedAt || b.date || b.createdAt));
         sorted.forEach(t => {
-          if (t.awb) map[String(t.awb).trim().toLowerCase()] = t.status;
+          if (t.awb) map[String(t.awb).trim().toLowerCase()] = t;
         });
         setTrackingMap(map);
       }
@@ -494,10 +495,35 @@ const BookingsList = () => {
           </label>
 
           {selectedBookingIds.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "0.8rem", color: "#2563eb", fontWeight: "700" }}>
                 {selectedBookingIds.length} booking(s) selected
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
+                  setBulkBookingsForTracking(selectedList);
+                  setSelectedBookingForTracking(null);
+                  setTrackingModalOpen(true);
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.45rem 0.9rem",
+                  borderRadius: "7px",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(37,99,235,0.25)"
+                }}
+              >
+                <Truck size={14} /> Bulk Update Tracking ({selectedBookingIds.length})
+              </button>
               <button
                 onClick={() => setSelectedBookingIds([])}
                 style={{ background: "transparent", border: "none", color: "#64748b", fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline" }}
@@ -563,6 +589,12 @@ const BookingsList = () => {
                       <span className="booking-meta-badge">{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</span>
                       <span className="booking-meta-badge">{(item.origin || "-")} → {(item.destination || "-")}</span>
                       {item.mode && <span className="booking-meta-badge">{item.mode}</span>}
+                      
+                      {/* Package / Box Count Badge */}
+                      <span className="booking-meta-badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Package size={13} color="#2563eb" /> Pkg: {item.box || item.boxes || item.packages || item.packageCount || item.pieces || (item.dimensions && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
+                      </span>
+
                       {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
                         <span className="booking-meta-badge" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center' }}>
                           Dims: {item.dimensions.filter(d => d.length || d.breadth || d.height).map((d, dIdx) => `${d.length || 0}x${d.breadth || 0}x${d.height || 0}cm (${d.boxCount || 0} Pcs)`).join(', ')}
@@ -570,13 +602,81 @@ const BookingsList = () => {
                       )}
                     </div>
                   </div>
-                  <div className="booking-card-header-right">
-                    <div className="booking-freight">
-                      <RupeeIcon size={12} /> {parseFloat(item.freight_charge || item.freight || item.frieght || item.weight || 0).toFixed(2)}
-                    </div>
+                  <div className="booking-card-header-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {(() => {
+                      const awbLower = String(awb || '').trim().toLowerCase();
+                      const track = trackingMap[awbLower];
+                      const status = (typeof track === 'object' ? track?.status : track) || 'Picked Up';
+                      const location = (typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub';
+
+                      let bg = '#eff6ff';
+                      let color = '#2563eb';
+                      let border = '#bfdbfe';
+                      let icon = <Truck size={13} />;
+
+                      if (status === 'Delivered') {
+                        bg = '#ecfdf5';
+                        color = '#059669';
+                        border = '#a7f3d0';
+                        icon = <CheckCircle2 size={13} />;
+                      } else if (status === 'Out for Delivery') {
+                        bg = '#fffbeb';
+                        color = '#d97706';
+                        border = '#fde68a';
+                        icon = <Truck size={13} />;
+                      } else if (status === 'Reached Hub') {
+                        bg = '#f5f3ff';
+                        color = '#7c3aed';
+                        border = '#ddd6fe';
+                        icon = <MapPin size={13} />;
+                      } else if (status === 'Picked Up') {
+                        bg = '#f0fdf4';
+                        color = '#16a34a';
+                        border = '#bbf7d0';
+                        icon = <Package size={13} />;
+                      } else if (status === 'Delayed') {
+                        bg = '#fff7ed';
+                        color = '#ea580c';
+                        border = '#fed7aa';
+                        icon = <Clock size={13} />;
+                      }
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                          <span
+                            onClick={() => {
+                              setSelectedBookingForTracking(item);
+                              setBulkBookingsForTracking([]);
+                              setTrackingModalOpen(true);
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              fontSize: '0.80rem',
+                              fontWeight: 800,
+                              background: bg,
+                              color: color,
+                              border: `1px solid ${border}`,
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                              transition: 'transform 0.15s'
+                            }}
+                            title="Click to update tracking checkpoint"
+                          >
+                            {icon} {status}
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <MapPin size={11} color="#94a3b8" /> {location}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {isSuperAdmin && (
-                      <span style={{ background: "#e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", color: "#334155", fontWeight: "600", marginTop: "4px", display: "inline-block" }}>
-                        Entered By: {item.clerk_name || "Admin"}
+                      <span style={{ background: "#e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.72rem", color: "#334155", fontWeight: "600", marginTop: "2px", display: "inline-block" }}>
+                        Clerk: {item.clerk_name || "Admin"}
                       </span>
                     )}
                   </div>
@@ -624,7 +724,8 @@ const BookingsList = () => {
                   <div className="booking-actions-left">
                     {(() => {
                       const awbLower = String(awb).trim().toLowerCase();
-                      const isDelivered = trackingMap[awbLower] === 'Delivered';
+                      const trackObj = trackingMap[awbLower];
+                      const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
                       const canModify = (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
 
                       return (
@@ -803,11 +904,14 @@ const BookingsList = () => {
           onClose={() => {
             setTrackingModalOpen(false);
             setSelectedBookingForTracking(null);
+            setBulkBookingsForTracking([]);
           }}
           booking={selectedBookingForTracking}
+          bulkBookings={bulkBookingsForTracking}
           onNavigateToTracking={(awb) => navigate(`/tracking?awb=${awb}`)}
           onSuccess={() => {
             fetchAllData(); 
+            setSelectedBookingIds([]);
           }}
         />
       </AnimatePresence>
