@@ -103,24 +103,25 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
       position: 'fixed',
       inset: 0,
       zIndex: 999999,
-      background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 1) 100%)',
-      backdropFilter: 'blur(16px)',
+      background: 'rgba(15, 23, 42, 0.45)',
+      backdropFilter: 'blur(20px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: '1.25rem',
-      color: '#ffffff',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      color: '#0f172a',
+      fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       boxSizing: 'border-box'
     }}>
       <div style={{
-        background: 'rgba(30, 41, 59, 0.85)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
+        background: '#ffffff',
+        border: '1px solid rgba(226, 232, 240, 0.9)',
         borderRadius: '24px',
-        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+        padding: 'clamp(1.75rem, 4vw, 2.5rem)',
         width: '100%',
-        maxWidth: '430px',
-        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 35px rgba(59, 130, 246, 0.15)',
+        maxWidth: '420px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)',
         textAlign: 'center',
         position: 'relative',
         boxSizing: 'border-box'
@@ -130,18 +131,18 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '5px 12px',
+          padding: '5px 14px',
           borderRadius: '20px',
-          background: 'rgba(59, 130, 246, 0.15)',
-          border: '1px solid rgba(96, 165, 250, 0.3)',
-          color: '#93c5fd',
+          background: '#eff6ff',
+          border: '1px solid #dbeafe',
+          color: '#1d4ed8',
           fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
-          marginBottom: '1.5rem'
+          marginBottom: '1.25rem'
         }}>
-          <ShieldCheck size={14} color="#60a5fa" />
+          <ShieldCheck size={14} color="#2563eb" />
           <span>Device Security Lock</span>
         </div>
 
@@ -150,15 +151,15 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: '1.75rem'
+          marginBottom: '1.25rem'
         }}>
           <div style={{
             width: '80px',
             height: '80px',
             borderRadius: '50%',
             padding: '3px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-            boxShadow: '0 0 30px rgba(59, 130, 246, 0.45)',
+            background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+            boxShadow: '0 4px 18px rgba(37, 99, 235, 0.25)',
             marginBottom: '0.85rem',
             display: 'flex',
             alignItems: 'center',
@@ -182,7 +183,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -195,19 +196,20 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
             )}
           </div>
 
-          <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
             {user?.name || user?.fullName || 'Authenticated User'}
           </h3>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '3px', fontWeight: 500 }}>
+          <span style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '3px', fontWeight: 500 }}>
             {user?.email || user?.username}
           </span>
           <span style={{
             marginTop: '6px',
             fontSize: '0.72rem',
-            background: 'rgba(255, 255, 255, 0.08)',
+            background: '#f1f5f9',
+            border: '1px solid #e2e8f0',
             padding: '3px 10px',
             borderRadius: '6px',
-            color: '#cbd5e1',
+            color: '#334155',
             fontWeight: 600
           }}>
             {user?.role || 'Staff'} • Multi-Marg
@@ -216,27 +218,27 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
 
         {/* Status / Inactivity Notice */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
           borderRadius: '12px',
           padding: '0.75rem 1rem',
           fontSize: '0.8rem',
-          color: '#cbd5e1',
-          marginBottom: '1.5rem',
-          lineHeight: '1.4'
+          color: '#475569',
+          marginBottom: '1.25rem',
+          lineHeight: '1.45'
         }}>
-          Session locked after 5 minutes of inactivity. Authenticate with device screen lock or fingerprint to continue.
+          Session locked after 5 minutes of inactivity or background use. Authenticate to resume work.
         </div>
 
         {/* Error Alert */}
         {errorMsg && (
           <div style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(248, 113, 113, 0.3)',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
             borderRadius: '10px',
             padding: '0.65rem 0.85rem',
             fontSize: '0.78rem',
-            color: '#fca5a5',
+            color: '#b91c1c',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
@@ -257,49 +259,53 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
               style={{
                 width: '100%',
                 padding: '0.85rem 1.25rem',
-                borderRadius: '14px',
+                borderRadius: '12px',
                 border: 'none',
                 background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
-                fontSize: '0.95rem',
+                fontSize: '0.92rem',
                 fontWeight: 700,
                 cursor: authenticating ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
-                boxShadow: '0 4px 15px rgba(37, 99, 235, 0.4)',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                 transition: 'all 0.2s ease',
                 marginBottom: '0.75rem'
               }}
             >
               <Fingerprint size={22} className={authenticating ? "spin-animation" : ""} />
-              {authenticating ? 'Verifying Device...' : 'Unlock with Fingerprint / Device Lock'}
+              {authenticating ? 'Verifying Device...' : 'Unlock with Fingerprint / Screen Lock'}
             </button>
 
             <button
               type="button"
               onClick={() => setShowPasswordMode(true)}
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '10px',
+                color: '#334155',
                 fontSize: '0.82rem',
                 cursor: 'pointer',
                 fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
-                padding: '6px 10px'
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '0.65rem 1rem',
+                width: '100%',
+                transition: 'all 0.15s ease'
               }}
             >
-              <KeyRound size={14} /> Or enter account password
+              <KeyRound size={15} color="#2563eb" /> Or enter account password
             </button>
           </div>
         ) : (
           <form onSubmit={handlePasswordUnlock}>
-            <div style={{ position: 'relative', marginBottom: '0.85rem' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type={showPasswordText ? 'text' : 'password'}
                 placeholder="Enter account password..."
@@ -308,12 +314,12 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 autoFocus
                 style={{
                   width: '100%',
-                  height: '44px',
+                  height: '42px',
                   padding: '0 40px 0 38px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  background: 'rgba(15, 23, 42, 0.8)',
-                  color: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#0f172a',
                   fontSize: '0.88rem',
                   outline: 'none',
                   boxSizing: 'border-box'
@@ -343,9 +349,9 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
                 fontSize: '0.9rem',
                 fontWeight: 700,
@@ -354,7 +360,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
                 marginBottom: '0.75rem'
               }}
             >
@@ -368,7 +374,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#60a5fa',
+                  color: '#2563eb',
                   fontSize: '0.82rem',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -385,14 +391,14 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         )}
 
         {/* Footer: Switch Account */}
-        <div style={{ marginTop: '1.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '1rem' }}>
+        <div style={{ marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.85rem' }}>
           <button
             type="button"
             onClick={onLogout}
             style={{
               background: 'none',
               border: 'none',
-              color: '#ef4444',
+              color: '#dc2626',
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',

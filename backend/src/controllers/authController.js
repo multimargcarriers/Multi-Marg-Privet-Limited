@@ -425,6 +425,7 @@ exports.post_login_1 = async (req, res) => {
   // Fallback if no role/permissions are set in DB for existing users
   if (!userData.role) userData.role = "SuperAdmin";
   if (!userData.permissions) userData.permissions = ["all"];
+  if (userData.twoFactorEnabled === undefined) userData.twoFactorEnabled = true;
 
   // --- ADD GEO-IP TRACKING & LOGGING ---
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
@@ -1010,5 +1011,27 @@ exports.post_force_logout = async (req, res) => {
   } catch (err) {
     console.error("[ForceLogout] Error:", err);
     return res.status(500).json({ success: false, message: "Failed to force logout user" });
+  }
+};
+
+// Toggle 2-Step Device Biometric Verification for a specific user ID
+exports.toggle_two_factor = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { enabled } = req.body;
+    const is2Fa = enabled !== false;
+
+    const userDocRef = db.collection("users").doc(userId);
+    await userDocRef.update({
+      twoFactorEnabled: is2Fa
+    });
+
+    return success(res, {
+      message: `2-Step device verification ${is2Fa ? "enabled" : "disabled"} successfully`,
+      data: { twoFactorEnabled: is2Fa }
+    });
+  } catch (err) {
+    console.error("[toggle_two_factor] Error:", err);
+    return res.status(500).json({ success: false, message: "Failed to update 2-step verification preference" });
   }
 };

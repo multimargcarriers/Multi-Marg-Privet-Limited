@@ -95,6 +95,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user || !token) return;
 
+    // If user has disabled 2-Step verification, skip the inactivity lock
+    if (user?.twoFactorEnabled === false) {
+      setIsScreenLocked(false);
+      sessionStorage.removeItem('is_device_locked');
+      return;
+    }
+
     // Check if user was inactive or away for >= 5 minutes
     const checkElapsedInactivity = () => {
       const lastActive = localStorage.getItem('mm_last_active');

@@ -125,9 +125,14 @@ const Login = () => {
       const res = await axios.post(`${API_URL}/api/auth/google-login`, { idToken });
       if (res.data.success) {
         const authData = res.data.data;
-        setPendingAuth(authData);
-        setView('device_auth');
-        setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+        const requires2Fa = authData.user?.twoFactorEnabled !== false;
+        if (requires2Fa) {
+          setPendingAuth(authData);
+          setView('device_auth');
+          setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+        } else {
+          login(authData.user, authData.token);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Google Sign-In failed. Access denied.');
@@ -215,10 +220,17 @@ const Login = () => {
 
       if (response.data.success) {
         const authData = response.data.data;
-        setPendingAuth(authData);
-        setView('device_auth');
-        // Trigger device verification step
-        setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+        const requires2Fa = authData.user?.twoFactorEnabled !== false;
+
+        if (requires2Fa) {
+          setPendingAuth(authData);
+          setView('device_auth');
+          // Trigger device verification step
+          setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+        } else {
+          // If 2-step verification is turned OFF for this user, log in directly!
+          login(authData.user, authData.token);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Server error. Please try again.');

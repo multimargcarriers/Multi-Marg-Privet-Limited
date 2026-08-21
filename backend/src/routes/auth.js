@@ -17,7 +17,8 @@ const {
   get_activity,
   get_failed_google_logins,
   delete_failed_google_login,
-  post_force_logout
+  post_force_logout,
+  toggle_two_factor
 } = require('../controllers/authController');
 
 const profileUpload = createUploadMiddleware("avatars", {
@@ -103,6 +104,12 @@ router.post(
   "/force-logout/:id",
   authenticateToken,
   asyncHandler(post_force_logout)
+);
+
+router.post(
+  "/toggle-2fa",
+  authenticateToken,
+  asyncHandler(toggle_two_factor)
 );
 
 module.exports = router;

@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard } from 'lucide-react';
+import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard, Fingerprint } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import IDCardFront from '../components/IDCardFront';
@@ -28,6 +28,15 @@ const Profile = () => {
   const [bannerPreview, setBannerPreview] = useState(user?.banner || null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled !== false);
+  const [toggling2Fa, setToggling2Fa] = useState(false);
+
+  useEffect(() => {
+    if (user?.twoFactorEnabled !== undefined) {
+      setTwoFactorEnabled(user.twoFactorEnabled !== false);
+    }
+  }, [user]);
 
   const [defaultAssets, setDefaultAssets] = useState({ avatars: [], banners: [] });
   const [showGallery, setShowGallery] = useState(false);
@@ -218,6 +227,33 @@ const Profile = () => {
   const openGallery = (type) => {
     setGalleryType(type);
     setShowGallery(true);
+  };
+
+  const handleToggle2FA = async () => {
+    setToggling2Fa(true);
+    const nextState = !twoFactorEnabled;
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
+        { enabled: nextState },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setTwoFactorEnabled(nextState);
+        updateUser({ ...user, twoFactorEnabled: nextState });
+        addToast(
+          nextState 
+            ? "Device Biometric & 2-Step Verification Enabled (Required on Login & 5-min Inactivity)" 
+            : "2-Step Verification Disabled (Direct ID & Password login active for this account)", 
+          "success"
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle 2FA:", err);
+      addToast(err.response?.data?.message || "Failed to update 2-step verification preference", "error");
+    } finally {
+      setToggling2Fa(false);
+    }
   };
 
   const handleSelectGallery = async (url) => {
@@ -605,13 +641,69 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Shield size={20} color="#107C41" /> Two-step verification</h3>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '600px' }}>Protect your account with an extra layer of security. We will ask for a verification code when you sign in from a new device.</p>
+              <div style={{ background: 'var(--surface-color)', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                  <div style={{ flex: 1, minWidth: '280px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                      <Fingerprint size={22} color="#0078D4" />
+                      <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)', fontWeight: 700 }}>
+                        Device Biometric & 2-Step Verification
+                      </h3>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: twoFactorEnabled ? 'rgba(16, 124, 65, 0.12)' : '#f1f5f9',
+                        color: twoFactorEnabled ? '#107C41' : '#64748b'
+                      }}>
+                        {twoFactorEnabled ? 'ENABLED' : 'DISABLED'}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '620px' }}>
+                      Require device fingerprint, screen lock PIN, or secondary password when logging in and after 5 minutes of inactivity. When disabled, standard ID & password will grant immediate access for this account.
+                    </p>
                   </div>
-                  <button style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#0078D4', border: '1px solid #0078D4', borderRadius: '4px', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}>Set up 2FA</button>
+                  
+                  {/* Apple / Modern Toggle Switch */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleToggle2FA}
+                      disabled={toggling2Fa}
+                      aria-label="Toggle 2-Step Verification"
+                      style={{
+                        width: '56px',
+                        height: '30px',
+                        borderRadius: '15px',
+                        background: twoFactorEnabled ? '#0078D4' : '#cbd5e1',
+                        position: 'relative',
+                        border: 'none',
+                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                        transition: 'background-color 0.25s ease',
+                        padding: 0,
+                        outline: 'none',
+                        boxShadow: twoFactorEnabled ? '0 0 10px rgba(0, 120, 212, 0.35)' : 'none'
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          position: 'absolute',
+                          top: '3px',
+                          left: twoFactorEnabled ? '29px' : '3px',
+                          transition: 'left 0.25s ease',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                        }}
+                      />
+                    </button>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: twoFactorEnabled ? '#0078D4' : '#64748b' }}>
+                      {twoFactorEnabled ? 'Active' : 'Off'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
