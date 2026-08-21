@@ -1028,27 +1028,42 @@ const VendorMIS = () => {
                           <td style={{ padding: "8px 12px", color: "#475569" }}>{p.handoverTo || "-"}</td>
                           <td style={{ padding: "8px 12px", color: "#64748b" }}>{p.others || "0"}</td>
                           <td style={{ padding: "8px 12px", fontWeight: "600", color: "#10b981" }}>
-                            {isVendorUser && item.approvalStatus !== 'Approved' ? (
-                              <button
-                                type="button"
-                                onClick={() => setQuickAmountModal({ entry: item, detailIndex: i, amount: (p.amount && p.amount !== "0") ? p.amount : "", others: p.others || "0" })}
-                                style={{
-                                  background: (parseFloat(p.amount) || 0) > 0 ? "#ecfdf5" : "#eff6ff",
-                                  border: (parseFloat(p.amount) || 0) > 0 ? "1px solid #6ee7b7" : "2px dashed #2563eb",
-                                  color: (parseFloat(p.amount) || 0) > 0 ? "#047857" : "#1d4ed8",
-                                  fontWeight: 800,
-                                  padding: "5px 10px",
-                                  borderRadius: "6px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "4px",
-                                  fontSize: "0.82rem"
-                                }}
-                                title="Click to feed or change amount"
-                              >
-                                {(parseFloat(p.amount) || 0) > 0 ? `₹ ${parseFloat(p.amount).toFixed(2)} ✏️` : `⚡ Feed Rate (₹)`}
-                              </button>
+                            {isVendorUser ? (
+                              String(item.approvalStatus || '').toLowerCase() === 'approved' ? (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px", fontSize: "0.8rem", fontWeight: 700 }}>
+                                  <Lock size={12} style={{ color: "#16a34a" }} /> ₹ {parseFloat(p.amount || 0).toFixed(2)}
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQuickAmountModal({
+                                      entry: item,
+                                      details: (item.details || []).map(d => ({
+                                        ...d,
+                                        amount: (d.amount && d.amount !== "0") ? d.amount : "",
+                                        others: (d.others !== undefined && d.others !== null) ? d.others : "0"
+                                      }))
+                                    });
+                                  }}
+                                  style={{
+                                    background: (parseFloat(p.amount) || 0) > 0 ? "#ecfdf5" : "#eff6ff",
+                                    border: (parseFloat(p.amount) || 0) > 0 ? "1px solid #6ee7b7" : "2px dashed #2563eb",
+                                    color: (parseFloat(p.amount) || 0) > 0 ? "#047857" : "#1d4ed8",
+                                    fontWeight: 800,
+                                    padding: "5px 10px",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    fontSize: "0.82rem"
+                                  }}
+                                  title="Click to feed or change rate"
+                                >
+                                  {(parseFloat(p.amount) || 0) > 0 ? `₹ ${parseFloat(p.amount).toFixed(2)} ✏️` : `⚡ Feed Rate (₹)`}
+                                </button>
+                              )
                             ) : (
                               <span>₹ {parseFloat(p.amount || 0).toFixed(2)}</span>
                             )}
@@ -1241,15 +1256,30 @@ const VendorMIS = () => {
                       </button>
                     </>
                   )}
-                  {isVendorUser && item.approvalStatus !== 'Approved' && (
-                    <button 
-                      onClick={() => setQuickAmountModal({ entry: item, detailIndex: 0, amount: (item.details?.[0]?.amount && item.details?.[0]?.amount !== "0") ? item.details[0].amount : "", others: item.details?.[0]?.others || "0" })}
-                      className="action-btn"
-                      style={{ background: "#2563eb", color: "#fff", fontWeight: 700, padding: "6px 12px", borderRadius: "6px", border: "none", display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
-                      title="1-Click Quick Amount Feed"
-                    >
-                      <Zap size={14} /> Feed Rate
-                    </button>
+                  {isVendorUser && (
+                    String(item.approvalStatus || '').toLowerCase() === 'approved' ? (
+                      <span style={{ fontSize: "0.75rem", color: "#166534", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "5px 10px", borderRadius: "6px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }} title="This entry is Approved and locked">
+                        <Lock size={13} /> Approved (Locked)
+                      </span>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setQuickAmountModal({
+                            entry: item,
+                            details: (item.details || []).map(d => ({
+                              ...d,
+                              amount: (d.amount && d.amount !== "0") ? d.amount : "",
+                              others: (d.others !== undefined && d.others !== null) ? d.others : "0"
+                            }))
+                          });
+                        }}
+                        className="action-btn"
+                        style={{ background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", color: "#fff", fontWeight: 700, padding: "6px 12px", borderRadius: "6px", border: "none", display: "inline-flex", alignItems: "center", gap: "5px", cursor: "pointer", boxShadow: "0 2px 4px rgba(37,99,235,0.3)" }}
+                        title="Enter and submit rates"
+                      >
+                        <Zap size={14} /> Feed Rates ({item.details?.length || 1} {item.details?.length === 1 ? 'Trip' : 'Trips'})
+                      </button>
+                    )
                   )}
                   {isAdminOrSuperAdmin && (
                     <button onClick={() => {
@@ -1261,11 +1291,6 @@ const VendorMIS = () => {
                     }} className="action-btn action-btn-primary" title="Edit Entry">
                       <Edit size={14} /> Edit
                     </button>
-                  )}
-                  {(!isAdminOrSuperAdmin && item.approvalStatus === 'Approved') && (
-                    <span style={{ fontSize: "0.72rem", color: "#166534", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "4px 8px", borderRadius: "4px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }} title="This entry is Approved and locked">
-                      <Lock size={12} /> Locked
-                    </span>
                   )}
                   {isAdminOrSuperAdmin && (
                     <button 
@@ -1578,7 +1603,7 @@ const VendorMIS = () => {
         </div>
       , document.body)}
 
-      {/* 1-Click Quick Amount Feed Modal for Vendors */}
+      {/* Multi-Trip Quick Rate Feed Modal for Vendors */}
       {quickAmountModal && createPortal(
         <div style={{
           position: "fixed",
@@ -1598,27 +1623,35 @@ const VendorMIS = () => {
             background: "#ffffff",
             borderRadius: "16px",
             width: "95%",
-            maxWidth: "500px",
+            maxWidth: quickAmountModal.details?.length > 1 ? "680px" : "520px",
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
             overflow: "hidden",
             border: "1px solid #cbd5e1"
           }}>
-            {/* Header */}
+            {/* Modal Header */}
             <div style={{
               background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
               color: "#ffffff",
-              padding: "1.25rem 1.5rem",
+              padding: "1.15rem 1.4rem",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between"
+              justifyContent: "space-between",
+              flexShrink: 0
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ background: "rgba(255,255,255,0.2)", padding: "8px", borderRadius: "10px" }}>
                   <Truck size={22} color="#fff" />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, color: "#fff", fontSize: "1.1rem", fontWeight: 700 }}>Enter Trip Amount</h4>
-                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.8)" }}>Multimarg Logistics Transporter Rate Feed</span>
+                  <h4 style={{ margin: 0, color: "#fff", fontSize: "1.05rem", fontWeight: 700 }}>
+                    ⚡ Feed Rates — {quickAmountModal.entry?.vendorName || "Transporter"}
+                  </h4>
+                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.85)" }}>
+                    {quickAmountModal.details?.length || 1} {(quickAmountModal.details?.length || 1) === 1 ? 'Trip Record' : 'Trips in Single Book'}
+                  </span>
                 </div>
               </div>
               <button
@@ -1629,47 +1662,25 @@ const VendorMIS = () => {
               </button>
             </div>
 
-            {/* Trip Info Card */}
-            <div style={{ padding: "1.25rem 1.5rem 0.5rem" }}>
-              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "0.85rem 1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.82rem" }}>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Route</span>
-                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.from || 'N/A'} ➔ {quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.to || 'N/A'}</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Vehicle No</span>
-                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.vehicleNo || 'N/A'}</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Date</span>
-                  <strong style={{ color: "#0f172a" }}>{formatDate(quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.date || quickAmountModal.entry?.createdAt)}</strong>
-                </div>
-                <div>
-                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Cargo Particulars</span>
-                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.particular || 'General Cargo'}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Input Form */}
+            {/* Scrollable Form Body */}
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                const amountNum = parseFloat(quickAmountModal.amount) || 0;
-                if (amountNum <= 0) {
-                  addToast("Please enter a valid trip amount", "error");
+                const rows = quickAmountModal.details || [];
+                const hasInvalid = rows.some(r => (parseFloat(r.amount) || 0) <= 0);
+                if (hasInvalid) {
+                  addToast("Please provide a valid rate (greater than ₹ 0) for all trips", "error");
                   return;
                 }
-                const othersNum = parseFloat(quickAmountModal.others) || 0;
-                const entry = quickAmountModal.entry;
-                const updatedDetails = [...(entry.details || [])];
-                updatedDetails[quickAmountModal.detailIndex] = {
-                  ...updatedDetails[quickAmountModal.detailIndex],
-                  amount: String(amountNum),
-                  others: String(othersNum)
-                };
+
+                const updatedDetails = rows.map(r => ({
+                  ...r,
+                  amount: String(parseFloat(r.amount) || 0),
+                  others: String(parseFloat(r.others) || 0)
+                }));
                 const totalAmount = updatedDetails.reduce((s, d) => s + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
-                
+                const entry = quickAmountModal.entry;
+
                 try {
                   const res = await axios.put(`${API}/vendor-mis/${entry.id}`, {
                     details: updatedDetails,
@@ -1680,92 +1691,125 @@ const VendorMIS = () => {
                   if (res.data.success) {
                     setVendorMisEntries(prev => prev.map(v => v.id === entry.id ? { ...v, details: updatedDetails, totalAmount, approvalStatus: 'Submitted' } : v));
                     setQuickAmountModal(null);
-                    addToast(`₹ ${totalAmount.toFixed(2)} submitted to Admin successfully!`, "success");
+                    addToast(`₹ ${totalAmount.toFixed(2)} submitted for ${updatedDetails.length} ${updatedDetails.length === 1 ? 'trip' : 'trips'} to Admin!`, "success");
                   }
                 } catch(_err) {
-                  addToast("Failed to submit amount", "error");
+                  addToast("Failed to submit rates", "error");
                 }
               }}
-              style={{ padding: "1.25rem 1.5rem" }}
+              style={{ padding: "1.25rem 1.4rem", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "1rem" }}
             >
-              <div style={{ marginBottom: "1rem" }}>
-                <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
-                  Trip Rate / Vehicle Hire Amount (₹)*
-                </label>
-                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                  <span style={{ position: "absolute", left: "14px", fontSize: "1.3rem", fontWeight: 700, color: "#2563eb" }}>₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    autoFocus
-                    required
-                    placeholder="e.g. 15000"
-                    value={quickAmountModal.amount}
-                    onChange={e => setQuickAmountModal({ ...quickAmountModal, amount: e.target.value })}
-                    style={{
-                      width: "100%",
-                      fontSize: "1.4rem",
-                      fontWeight: 800,
-                      color: "#1e3a8a",
-                      padding: "12px 14px 12px 38px",
-                      borderRadius: "10px",
-                      border: "2px solid #3b82f6",
-                      outline: "none",
-                      boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.15)",
-                      background: "#f0fdf4"
-                    }}
-                  />
-                </div>
+              {/* Trip Rows */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {(quickAmountModal.details || []).map((row, idx) => (
+                  <div key={idx} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "0.85rem 1rem" }}>
+                    {/* Header of Trip Card */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "0.4rem" }}>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e3a8a", textTransform: "uppercase" }}>
+                        Trip #{idx + 1}: {row.from || 'ORIGIN'} ➔ {row.to || 'DEST'}
+                      </span>
+                      <span style={{ fontSize: "0.72rem", background: "#e0e7ff", color: "#4338ca", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>
+                        {row.vehicleNo || 'Vehicle N/A'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.75rem", color: "#64748b", marginBottom: "0.75rem" }}>
+                      <div><strong>Date:</strong> {formatDate(row.date || quickAmountModal.entry?.createdAt)}</div>
+                      <div><strong>Cargo:</strong> {row.particular || 'General Cargo'}</div>
+                    </div>
+
+                    {/* Inputs */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+                      <div>
+                        <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "4px" }}>
+                          Trip Rate (₹)*
+                        </label>
+                        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                          <span style={{ position: "absolute", left: "10px", fontSize: "1rem", fontWeight: 700, color: "#2563eb" }}>₹</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            placeholder="e.g. 15000"
+                            value={row.amount}
+                            onChange={e => {
+                              const updated = [...quickAmountModal.details];
+                              updated[idx] = { ...updated[idx], amount: e.target.value };
+                              setQuickAmountModal({ ...quickAmountModal, details: updated });
+                            }}
+                            style={{
+                              width: "100%",
+                              fontSize: "1.05rem",
+                              fontWeight: 700,
+                              color: "#1e3a8a",
+                              padding: "8px 10px 8px 28px",
+                              borderRadius: "8px",
+                              border: "1.5px solid #3b82f6",
+                              outline: "none",
+                              background: "#ffffff"
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", display: "block", marginBottom: "4px" }}>
+                          Others / Toll / Detention (₹)
+                        </label>
+                        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                          <span style={{ position: "absolute", left: "10px", fontSize: "0.9rem", color: "#94a3b8" }}>₹</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={row.others}
+                            onChange={e => {
+                              const updated = [...quickAmountModal.details];
+                              updated[idx] = { ...updated[idx], others: e.target.value };
+                              setQuickAmountModal({ ...quickAmountModal, details: updated });
+                            }}
+                            style={{
+                              width: "100%",
+                              fontSize: "0.95rem",
+                              padding: "8px 10px 8px 26px",
+                              borderRadius: "8px",
+                              border: "1px solid #cbd5e1",
+                              outline: "none",
+                              background: "#ffffff"
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div style={{ marginBottom: "1.25rem" }}>
-                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", display: "block", marginBottom: "4px" }}>
-                  Other Charges / Toll / Detention (₹) (Optional)
-                </label>
-                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                  <span style={{ position: "absolute", left: "12px", fontSize: "0.95rem", color: "#94a3b8" }}>₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={quickAmountModal.others}
-                    onChange={e => setQuickAmountModal({ ...quickAmountModal, others: e.target.value })}
-                    style={{
-                      width: "100%",
-                      fontSize: "0.95rem",
-                      padding: "8px 12px 8px 30px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Live Total Calculation Preview */}
+              {/* Total Calculation Preview */}
               <div style={{
                 background: "#eff6ff",
                 border: "1px solid #bfdbfe",
                 borderRadius: "10px",
-                padding: "0.85rem 1rem",
+                padding: "0.85rem 1.15rem",
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "1.25rem"
+                alignItems: "center"
               }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#1e40af" }}>Total Amount to Quote:</span>
-                <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "#1e3a8a" }}>
-                  ₹ {((parseFloat(quickAmountModal.amount) || 0) + (parseFloat(quickAmountModal.others) || 0)).toFixed(2)}
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e40af" }}>
+                  Total MIS Payable ({(quickAmountModal.details || []).length} {(quickAmountModal.details || []).length === 1 ? 'Trip' : 'Trips'}):
+                </span>
+                <span style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e3a8a" }}>
+                  ₹ {(quickAmountModal.details || []).reduce((s, d) => s + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0).toFixed(2)}
                 </span>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              {/* Modal Buttons */}
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "0.5rem" }}>
                 <button
                   type="button"
                   onClick={() => setQuickAmountModal(null)}
                   style={{
-                    padding: "10px 18px",
+                    padding: "9px 18px",
                     background: "#f1f5f9",
                     border: "1px solid #cbd5e1",
                     borderRadius: "8px",
@@ -1780,12 +1824,12 @@ const VendorMIS = () => {
                 <button
                   type="submit"
                   style={{
-                    padding: "10px 24px",
+                    padding: "9px 22px",
                     background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
                     border: "none",
                     borderRadius: "8px",
                     fontWeight: 700,
-                    fontSize: "0.95rem",
+                    fontSize: "0.9rem",
                     color: "#ffffff",
                     cursor: "pointer",
                     boxShadow: "0 4px 12px rgba(16, 185, 129, 0.35)",
@@ -1794,7 +1838,7 @@ const VendorMIS = () => {
                     gap: "6px"
                   }}
                 >
-                  <Check size={18} /> Submit Rate to Admin
+                  <Check size={16} /> Submit {(quickAmountModal.details || []).length === 1 ? 'Rate' : `All ${(quickAmountModal.details || []).length} Rates`} to Admin
                 </button>
               </div>
             </form>
