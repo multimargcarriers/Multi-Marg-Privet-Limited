@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -26,12 +27,18 @@ import {
   ShieldCheck,
   Scale,
   Calendar,
-  Filter
+  Filter,
+  Info,
+  HelpCircle,
+  X,
+  RotateCcw,
+  SlidersHorizontal
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { useDialog } from "../context/DialogContext";
 import Table from "../components/Table";
 import ExportModal from "../components/ExportModal";
+import { CalculationExplanationModal, useHoldToExplain, HoldProgressOverlay } from "../components/CalculationExplanationModal";
 import { buildProfessionalExcelReport, exportGenericCSV, toExportCaps } from "../utils/excelExport";
 import { useSocketSync } from "../hooks/useSocketSync";
 
@@ -63,11 +70,14 @@ const formatCleanDate = (dateVal) => {
 
 const normalizePartyKey = (name) => {
   if (!name) return "";
-  return String(name)
+  let s = String(name)
     .toLowerCase()
     .trim()
     .replace(/[\s\-_.,/()]+/g, " ")
     .trim();
+  if (s === "sky 4 logistics" || s === "sky 4") s = "sky 4 pune";
+  if (s === "cj darcl") s = "cj darcl logistics limited";
+  return s;
 };
 
 const OutstandingFinalSheet = () => {
@@ -91,14 +101,20 @@ const OutstandingFinalSheet = () => {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'paid' | 'partial' | 'unpaid'
-  const [balanceFilter, setBalanceFilter] = useState("all"); // 'all' | 'due_only' | 'zero_only'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'due_only' | 'zero_only' | 'paid' | 'partial' | 'unpaid'
+  const [amountRangeFilter, setAmountRangeFilter] = useState("all"); // 'all' | 'high' (>5L) | 'medium' (1L-5L) | 'low' (<1L) | 'zero' (0)
+  const [recoveryRateFilter, setRecoveryRateFilter] = useState("all"); // 'all' | 'rate_0' | 'rate_1_50' | 'rate_51_99' | 'rate_100'
+  const [sortBy, setSortBy] = useState("due_desc"); // 'due_desc' | 'due_asc' | 'name_asc' | 'name_desc' | 'billed_desc' | 'paid_desc' | 'rate_desc' | 'rate_asc'
   const [expandedParty, setExpandedParty] = useState(null); // Party Name or ID
   const [drilldownTab, setDrilldownTab] = useState("bills"); // 'bills' | 'cash' | 'adjustments' | 'opening'
 
   // Export modal state
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Universal Explanation Modal State (Cards & Table Columns)
+  const [explanationKey, setExplanationKey] = useState(null);
+  const { holdingKey, holdProgress, getHoldProps } = useHoldToExplain(setExplanationKey, 5000);
 
   // Fetch all core datasets
   const fetchAllData = useCallback(async (showLoader = true) => {
@@ -723,51 +739,125 @@ const OutstandingFinalSheet = () => {
   }, [clientKpis, vendorKpis]);
 
   // -------------------------------------------------------------
-  // 4. Filtered Lists for UI
+  // 4. Advanced Multi-Filter & Sorting Engine for UI
   // -------------------------------------------------------------
-  const filteredClientList = useMemo(() => {
-    return clientMasterList.filter((c) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        c.partyName.toLowerCase().includes(q) ||
-        c.code.toLowerCase().includes(q) ||
-        c.gst.toLowerCase().includes(q);
+  const filterAndSortList = useCallback((list) => {
+    const q = searchQuery.toLowerCase().trim();
 
-      const matchStatus =
-        statusFilter === "all" ||
-        c.status === statusFilter;
+    let result = list.filter((p) => {
+      // 1. Live Text Search (Name, Code, GSTIN)
+      if (q) {
+        const matchSearch =
+          p.partyName.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          p.gst.toLowerCase().includes(q);
+        if (!matchSearch) return false;
+      }
 
-      const matchBalance =
-        balanceFilter === "all" ||
-        (balanceFilter === "due_only" && c.netOutstandingDue > 0.01) ||
-        (balanceFilter === "zero_only" && c.netOutstandingDue <= 0.01);
+      // 2. Status Filter
+      if (statusFilter === "due_only" && p.netOutstandingDue <= 0.01) return false;
+      if (statusFilter === "zero_only" && p.netOutstandingDue > 0.01) return false;
+      if (statusFilter === "paid" && p.status !== "paid") return false;
+      if (statusFilter === "partial" && p.status !== "partial") return false;
+      if (statusFilter === "unpaid" && p.status !== "unpaid") return false;
 
-      return matchSearch && matchStatus && matchBalance;
+      // 3. Amount Range Filter
+      if (amountRangeFilter === "high" && p.netOutstandingDue < 500000) return false;
+      if (amountRangeFilter === "medium" && (p.netOutstandingDue < 100000 || p.netOutstandingDue >= 500000)) return false;
+      if (amountRangeFilter === "low" && (p.netOutstandingDue <= 0.01 || p.netOutstandingDue >= 100000)) return false;
+      if (amountRangeFilter === "zero" && p.netOutstandingDue > 0.01) return false;
+
+      // 4. Recovery Rate Filter
+      if (recoveryRateFilter === "rate_0" && p.recoveryPercent !== 0) return false;
+      if (recoveryRateFilter === "rate_1_50" && (p.recoveryPercent <= 0 || p.recoveryPercent > 50)) return false;
+      if (recoveryRateFilter === "rate_51_99" && (p.recoveryPercent <= 50 || p.recoveryPercent >= 100)) return false;
+      if (recoveryRateFilter === "rate_100" && p.recoveryPercent < 100) return false;
+
+      return true;
     });
-  }, [clientMasterList, searchQuery, statusFilter, balanceFilter]);
 
-  const filteredVendorList = useMemo(() => {
-    return vendorMasterList.filter((v) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        v.partyName.toLowerCase().includes(q) ||
-        v.code.toLowerCase().includes(q) ||
-        v.gst.toLowerCase().includes(q);
-
-      const matchStatus =
-        statusFilter === "all" ||
-        v.status === statusFilter;
-
-      const matchBalance =
-        balanceFilter === "all" ||
-        (balanceFilter === "due_only" && v.netOutstandingDue > 0.01) ||
-        (balanceFilter === "zero_only" && v.netOutstandingDue <= 0.01);
-
-      return matchSearch && matchStatus && matchBalance;
+    // 5. Dynamic Sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "due_desc":
+          return (b.netOutstandingDue || 0) - (a.netOutstandingDue || 0);
+        case "due_asc":
+          return (a.netOutstandingDue || 0) - (b.netOutstandingDue || 0);
+        case "name_asc":
+          return (a.partyName || "").localeCompare(b.partyName || "");
+        case "name_desc":
+          return (b.partyName || "").localeCompare(a.partyName || "");
+        case "billed_desc":
+          return (b.totalInvoiced || 0) - (a.totalInvoiced || 0);
+        case "paid_desc":
+          return (b.totalPaid || 0) - (a.totalPaid || 0);
+        case "rate_desc":
+          return (b.recoveryPercent || 0) - (a.recoveryPercent || 0);
+        case "rate_asc":
+          return (a.recoveryPercent || 0) - (b.recoveryPercent || 0);
+        default:
+          return (b.netOutstandingDue || 0) - (a.netOutstandingDue || 0);
+      }
     });
-  }, [vendorMasterList, searchQuery, statusFilter, balanceFilter]);
+
+    return result;
+  }, [searchQuery, statusFilter, amountRangeFilter, recoveryRateFilter, sortBy]);
+
+  const filteredClientList = useMemo(() => filterAndSortList(clientMasterList), [filterAndSortList, clientMasterList]);
+  const filteredVendorList = useMemo(() => filterAndSortList(vendorMasterList), [filterAndSortList, vendorMasterList]);
+
+  // Check if any filter is active
+  const isFilterActive =
+    searchQuery.trim() !== "" ||
+    statusFilter !== "all" ||
+    amountRangeFilter !== "all" ||
+    recoveryRateFilter !== "all";
+
+  // Dynamic KPIs (synchronously calculated based on the active filtered records)
+  const dynamicClientKpis = useMemo(() => {
+    const list = filteredClientList;
+    const totalInvoiced = list.reduce((sum, c) => sum + (c.totalInvoiced || 0), 0);
+    const totalPaid = list.reduce((sum, c) => sum + (c.totalPaid || 0), 0);
+    const totalTds = list.reduce((sum, c) => sum + (c.totalTds || 0), 0);
+    const totalDebt = list.reduce((sum, c) => sum + (c.totalDebt || 0), 0);
+    const totalDue = list.reduce((sum, c) => sum + (c.netOutstandingDue || 0), 0);
+    const recoveryRate = totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0;
+    return { totalInvoiced, totalPaid, totalTds, totalDebt, totalDue, recoveryRate };
+  }, [filteredClientList]);
+
+  const dynamicVendorKpis = useMemo(() => {
+    const list = filteredVendorList;
+    const totalInvoiced = list.reduce((sum, v) => sum + (v.totalInvoiced || 0), 0);
+    const totalPaid = list.reduce((sum, v) => sum + (v.totalPaid || 0), 0);
+    const totalTds = list.reduce((sum, v) => sum + (v.totalTds || 0), 0);
+    const totalDebt = list.reduce((sum, v) => sum + (v.totalDebt || 0), 0);
+    const totalDue = list.reduce((sum, v) => sum + (v.netOutstandingDue || 0), 0);
+    const recoveryRate = totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0;
+    return { totalInvoiced, totalPaid, totalTds, totalDebt, totalDue, recoveryRate };
+  }, [filteredVendorList]);
+
+  const dynamicCompanyKpis = useMemo(() => {
+    const netLiquidPosition = dynamicClientKpis.totalDue - dynamicVendorKpis.totalDue;
+    return {
+      netReceivables: dynamicClientKpis.totalDue,
+      netPayables: dynamicVendorKpis.totalDue,
+      netLiquidPosition,
+      isPositive: netLiquidPosition >= 0
+    };
+  }, [dynamicClientKpis, dynamicVendorKpis]);
+
+  // Active KPIs displayed on summary cards (dynamic when filtered, otherwise global)
+  const displayClientKpis = isFilterActive ? dynamicClientKpis : clientKpis;
+  const displayVendorKpis = isFilterActive ? dynamicVendorKpis : vendorKpis;
+  const displayCompanyKpis = isFilterActive ? dynamicCompanyKpis : companyKpis;
+
+  const handleClearAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setAmountRangeFilter("all");
+    setRecoveryRateFilter("all");
+    setSortBy("due_desc");
+  };
 
   // -------------------------------------------------------------
   // 5. Unified Transaction Audit Stream
@@ -1070,39 +1160,81 @@ const OutstandingFinalSheet = () => {
         </div>
       </div>
 
-      {/* KPI Cards Section */}
+      {/* KPI Cards Section (Hold any card for 5s to view its full calculation formula) */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {/* Card 1: Net Client Receivables */}
-        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "1.2rem", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
+        <div
+          {...getHoldProps("money_to_receive", "Hold for 5s to view Money to Receive calculation formula")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "1.2rem",
+            border: isFilterActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+            boxShadow: isFilterActive ? "0 4px 12px rgba(37,99,235,0.08)" : "0 2px 4px rgba(0,0,0,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            cursor: "pointer",
+            userSelect: "none"
+          }}
+        >
+          <HoldProgressOverlay active={holdingKey === "money_to_receive"} progress={holdProgress} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
-              Money to Receive (Customers)
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
+                Money to Receive (Customers)
+              </span>
+              {isFilterActive && (
+                <span style={{ fontSize: "0.65rem", background: "#eff6ff", color: "#2563eb", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", border: "1px solid #bfdbfe" }}>
+                  Filtered
+                </span>
+              )}
+            </div>
             <div style={{ background: "#eff6ff", padding: "6px", borderRadius: "8px" }}>
               <Users size={18} color="#2563eb" />
             </div>
           </div>
           <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "#1e3a8a", marginBottom: "0.25rem" }}>
-            {formatCurrency(clientKpis.totalDue)}
+            {formatCurrency(displayClientKpis.totalDue)}
           </div>
           <div style={{ fontSize: "0.76rem", color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-            <span>Billed: {formatCurrency(clientKpis.totalInvoiced)}</span>
-            <span style={{ color: "#16a34a", fontWeight: 700 }}>{Math.round(clientKpis.recoveryRate)}% Received</span>
+            <span>Billed: {formatCurrency(displayClientKpis.totalInvoiced)}</span>
+            <span style={{ color: "#16a34a", fontWeight: 700 }}>{Math.round(displayClientKpis.recoveryRate)}% Received</span>
           </div>
         </div>
 
         {/* Card 2: Total Recovered / Paid */}
-        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "1.2rem", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
+        <div
+          {...getHoldProps("total_money_received", "Hold for 5s to view Total Money Received calculation formula")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "1.2rem",
+            border: isFilterActive ? "1px solid #86efac" : "1px solid #e2e8f0",
+            boxShadow: isFilterActive ? "0 4px 12px rgba(22,163,74,0.08)" : "0 2px 4px rgba(0,0,0,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            cursor: "pointer",
+            userSelect: "none"
+          }}
+        >
+          <HoldProgressOverlay active={holdingKey === "total_money_received"} progress={holdProgress} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
-              Total Money Received
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
+                Total Money Received
+              </span>
+              {isFilterActive && (
+                <span style={{ fontSize: "0.65rem", background: "#f0fdf4", color: "#16a34a", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", border: "1px solid #bbf7d0" }}>
+                  Filtered
+                </span>
+              )}
+            </div>
             <div style={{ background: "#f0fdf4", padding: "6px", borderRadius: "8px" }}>
               <ArrowDownLeft size={18} color="#16a34a" />
             </div>
           </div>
           <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "#16a34a", marginBottom: "0.25rem" }}>
-            {formatCurrency(clientKpis.totalPaid)}
+            {formatCurrency(displayClientKpis.totalPaid)}
           </div>
           <div style={{ fontSize: "0.76rem", color: "#64748b" }}>
             Direct cash & bank collections recorded
@@ -1110,61 +1242,121 @@ const OutstandingFinalSheet = () => {
         </div>
 
         {/* Card 3: TDS Deducted */}
-        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "1.2rem", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
+        <div
+          {...getHoldProps("tds_and_discounts", "Hold for 5s to view TDS & Discounts calculation formula")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "1.2rem",
+            border: isFilterActive ? "1px solid #fde68a" : "1px solid #e2e8f0",
+            boxShadow: isFilterActive ? "0 4px 12px rgba(217,119,6,0.08)" : "0 2px 4px rgba(0,0,0,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            cursor: "pointer",
+            userSelect: "none"
+          }}
+        >
+          <HoldProgressOverlay active={holdingKey === "tds_and_discounts"} progress={holdProgress} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
-              TDS (Tax) & Discounts
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
+                TDS (Tax) & Discounts
+              </span>
+              {isFilterActive && (
+                <span style={{ fontSize: "0.65rem", background: "#fef3c7", color: "#d97706", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+                  Filtered
+                </span>
+              )}
+            </div>
             <div style={{ background: "#fef3c7", padding: "6px", borderRadius: "8px" }}>
               <Percent size={18} color="#d97706" />
             </div>
           </div>
           <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "#d97706", marginBottom: "0.25rem" }}>
-            {formatCurrency(clientKpis.totalTds)}
+            {formatCurrency(displayClientKpis.totalTds)}
           </div>
           <div style={{ fontSize: "0.76rem", color: "#64748b" }}>
-            Discounts / Debts: {formatCurrency(clientKpis.totalDebt)}
+            Discounts / Debts: {formatCurrency(displayClientKpis.totalDebt)}
           </div>
         </div>
 
         {/* Card 4: Net Vendor Payables */}
-        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "1.2rem", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
+        <div
+          {...getHoldProps("money_to_pay", "Hold for 5s to view Money to Pay (Vendors) calculation formula")}
+          style={{
+            background: "#ffffff",
+            borderRadius: "14px",
+            padding: "1.2rem",
+            border: isFilterActive ? "1px solid #fecdd3" : "1px solid #e2e8f0",
+            boxShadow: isFilterActive ? "0 4px 12px rgba(225,29,72,0.08)" : "0 2px 4px rgba(0,0,0,0.03)",
+            position: "relative",
+            overflow: "hidden",
+            cursor: "pointer",
+            userSelect: "none"
+          }}
+        >
+          <HoldProgressOverlay active={holdingKey === "money_to_pay"} progress={holdProgress} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
-              Money to Pay (Vendors)
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "#64748b", letterSpacing: "0.5px" }}>
+                Money to Pay (Vendors)
+              </span>
+              {isFilterActive && (
+                <span style={{ fontSize: "0.65rem", background: "#fff1f2", color: "#e11d48", fontWeight: 700, padding: "1px 5px", borderRadius: "4px", border: "1px solid #fecdd3" }}>
+                  Filtered
+                </span>
+              )}
+            </div>
             <div style={{ background: "#fff1f2", padding: "6px", borderRadius: "8px" }}>
               <Building2 size={18} color="#e11d48" />
             </div>
           </div>
           <div style={{ fontSize: "1.45rem", fontWeight: 800, color: "#e11d48", marginBottom: "0.25rem" }}>
-            {formatCurrency(vendorKpis.totalDue)}
+            {formatCurrency(displayVendorKpis.totalDue)}
           </div>
           <div style={{ fontSize: "0.76rem", color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-            <span>Purchases: {formatCurrency(vendorKpis.totalInvoiced)}</span>
-            <span style={{ color: "#16a34a", fontWeight: 700 }}>{Math.round(vendorKpis.recoveryRate)}% Paid</span>
+            <span>Purchases: {formatCurrency(displayVendorKpis.totalInvoiced)}</span>
+            <span style={{ color: "#16a34a", fontWeight: 700 }}>{Math.round(displayVendorKpis.recoveryRate)}% Paid</span>
           </div>
         </div>
 
         {/* Card 5: Net Liquid Position */}
-        <div style={{
-          background: companyKpis.isPositive ? "linear-gradient(135deg, #065f46 0%, #047857 100%)" : "linear-gradient(135deg, #991b1b 0%, #b91c1c 100%)",
-          borderRadius: "14px",
-          padding: "1.2rem",
-          color: "#ffffff",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", letterSpacing: "0.5px" }}>
-              Net Balance
-            </span>
+        <div
+          {...getHoldProps("net_balance", "Hold for 5s to view Net Balance master calculation formula")}
+          style={{
+            background: displayCompanyKpis.isPositive ? "linear-gradient(135deg, #065f46 0%, #047857 100%)" : "linear-gradient(135deg, #991b1b 0%, #b91c1c 100%)",
+            borderRadius: "14px",
+            padding: "1.2rem",
+            color: "#ffffff",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            position: "relative",
+            overflow: "hidden",
+            cursor: "pointer",
+            userSelect: "none"
+          }}
+        >
+          <HoldProgressOverlay active={holdingKey === "net_balance"} progress={holdProgress} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", color: "rgba(255,255,255,0.9)", letterSpacing: "0.5px" }}>
+                Net Balance
+              </span>
+              {isFilterActive && (
+                <span style={{ fontSize: "0.65rem", background: "rgba(255,255,255,0.25)", color: "#ffffff", fontWeight: 700, padding: "1px 5px", borderRadius: "4px" }}>
+                  Filtered
+                </span>
+              )}
+            </div>
             <ShieldCheck size={18} color="#ffffff" />
           </div>
-          <div style={{ fontSize: "1.45rem", fontWeight: 800, marginBottom: "0.25rem" }}>
-            {formatCurrency(companyKpis.netLiquidPosition)}
+          <div style={{ fontSize: "1.45rem", fontWeight: 800, marginBottom: "0.2rem" }}>
+            {formatCurrency(displayCompanyKpis.netLiquidPosition)}
           </div>
-          <div style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.85)" }}>
-            {companyKpis.isPositive ? "Money to receive is more than money to pay" : "Money to pay is more than money to receive"}
+          <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.9)", fontWeight: "600", marginBottom: "0.2rem" }}>
+            Formula: [Customers Due] - [Vendors Due]
+          </div>
+          <div style={{ fontSize: "0.70rem", color: "rgba(255,255,255,0.8)" }}>
+            {formatCurrency(displayClientKpis.totalDue)} - {formatCurrency(displayVendorKpis.totalDue)}
           </div>
         </div>
       </div>
@@ -1282,63 +1474,192 @@ const OutstandingFinalSheet = () => {
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
+
+
+      {/* Advanced Multi-Filter Controls Bar */}
       <div style={{
         background: "#ffffff",
         borderRadius: "12px",
-        padding: "1rem 1.25rem",
+        padding: "0.85rem 1.25rem",
         border: "1px solid #e2e8f0",
-        marginBottom: "1.25rem",
+        marginBottom: "1rem",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "1rem",
+        gap: "0.85rem",
         flexWrap: "wrap"
       }}>
         {/* Search Input */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: "260px", background: "#f8fafc", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-          <Search size={18} color="#64748b" />
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: "240px", background: "#f8fafc", padding: "0.45rem 0.85rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+          <Search size={17} color="#64748b" />
           <input
             type="text"
             placeholder={activeTab === "clients" ? "Search customer name, code, GSTIN..." : activeTab === "vendors" ? "Search vendor name, code, GSTIN..." : "Search all records, bill no, name..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ border: "none", outline: "none", background: "transparent", width: "100%", fontSize: "0.9rem", color: "#1e293b" }}
+            style={{ border: "none", outline: "none", background: "transparent", width: "100%", fontSize: "0.88rem", color: "#1e293b" }}
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: "2px", display: "flex", alignItems: "center" }}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
-        {/* Filter Controls (For Clients and Vendors) */}
+        {/* Filter Dropdowns (For Clients and Vendors) */}
         {activeTab !== "stream" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b" }}>Status:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+            {/* Status Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#64748b" }}>Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ padding: "0.45rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
+                style={{ padding: "0.42rem 0.65rem", borderRadius: "7px", border: "1px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
               >
-                <option value="all">All</option>
-                <option value="paid">Settled / Paid</option>
-                <option value="partial">Partially Paid</option>
-                <option value="unpaid">Pending / Unpaid</option>
+                <option value="all">All Status</option>
+                <option value="due_only">Pending Dues Only (&gt; ₹0)</option>
+                <option value="zero_only">Settled (₹0 Due)</option>
+                <option value="unpaid">0% Unpaid (Red)</option>
+                <option value="partial">1-99% Partially Paid (Yellow)</option>
+                <option value="paid">100% Fully Settled (Green)</option>
               </select>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b" }}>Balance:</span>
+            {/* Amount Range Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#64748b" }}>Amount:</span>
               <select
-                value={balanceFilter}
-                onChange={(e) => setBalanceFilter(e.target.value)}
-                style={{ padding: "0.45rem 0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
+                value={amountRangeFilter}
+                onChange={(e) => setAmountRangeFilter(e.target.value)}
+                style={{ padding: "0.42rem 0.65rem", borderRadius: "7px", border: "1px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
               >
                 <option value="all">All Balances</option>
-                <option value="due_only">Pending Balance (&gt; ₹0)</option>
-                <option value="zero_only">Zero Balance (₹0 Due)</option>
+                <option value="high">High (&ge; ₹5 Lakhs)</option>
+                <option value="medium">Medium (₹1L - ₹5L)</option>
+                <option value="low">Low (&lt; ₹1 Lakh)</option>
+                <option value="zero">Zero (₹0 Due)</option>
               </select>
             </div>
+
+            {/* Recovery Rate Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#64748b" }}>Recovery:</span>
+              <select
+                value={recoveryRateFilter}
+                onChange={(e) => setRecoveryRateFilter(e.target.value)}
+                style={{ padding: "0.42rem 0.65rem", borderRadius: "7px", border: "1px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
+              >
+                <option value="all">All Rates</option>
+                <option value="rate_0">0% Collected</option>
+                <option value="rate_1_50">1% to 50% Collected</option>
+                <option value="rate_51_99">51% to 99% Collected</option>
+                <option value="rate_100">100% Fully Settled</option>
+              </select>
+            </div>
+
+            {/* Sort By Dropdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#64748b" }}>Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ padding: "0.42rem 0.65rem", borderRadius: "7px", border: "1px solid #cbd5e1", fontSize: "0.82rem", background: "#ffffff", fontWeight: 600, color: "#334155" }}
+              >
+                <option value="due_desc">Highest Due ↓</option>
+                <option value="due_asc">Lowest Due ↑</option>
+                <option value="name_asc">Name (A → Z)</option>
+                <option value="name_desc">Name (Z → A)</option>
+                <option value="billed_desc">Highest Billed ↓</option>
+                <option value="paid_desc">Highest Paid/Recd ↓</option>
+                <option value="rate_desc">Highest Recovery % ↓</option>
+                <option value="rate_asc">Lowest Recovery % ↑</option>
+              </select>
+            </div>
+
+            {/* Clear All Filters Button */}
+            {isFilterActive && (
+              <button
+                type="button"
+                onClick={handleClearAllFilters}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "0.42rem 0.75rem",
+                  borderRadius: "7px",
+                  border: "1px solid #fca5a5",
+                  background: "#fff1f2",
+                  color: "#e11d48",
+                  fontSize: "0.80rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease"
+                }}
+                title="Reset all filters and alphabet selectors"
+              >
+                <RotateCcw size={13} /> Reset Filters
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Dynamic Active Filters Summary Banner */}
+      {isFilterActive && activeTab !== "stream" && (
+        <div style={{
+          background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+          border: "1px solid #bfdbfe",
+          borderRadius: "10px",
+          padding: "0.6rem 1rem",
+          marginBottom: "1rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          fontSize: "0.82rem",
+          color: "#1e3a8a"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+              <SlidersHorizontal size={14} color="#2563eb" /> Active Filter Results:
+            </span>
+            <span style={{ background: "#ffffff", padding: "2px 8px", borderRadius: "5px", fontWeight: 700, color: "#2563eb", border: "1px solid #bfdbfe" }}>
+              {activeTab === "clients" ? filteredClientList.length : filteredVendorList.length} of {activeTab === "clients" ? clientMasterList.length : vendorMasterList.length} Parties
+            </span>
+
+            <span>|</span>
+            <span>Filtered Invoiced: <strong>{formatCurrency(activeTab === "clients" ? displayClientKpis.totalInvoiced : displayVendorKpis.totalInvoiced)}</strong></span>
+            <span>|</span>
+            <span>Filtered Paid: <strong>{formatCurrency(activeTab === "clients" ? displayClientKpis.totalPaid : displayVendorKpis.totalPaid)}</strong></span>
+            <span>|</span>
+            <span>Filtered Due: <strong style={{ color: "#e11d48" }}>{formatCurrency(activeTab === "clients" ? displayClientKpis.totalDue : displayVendorKpis.totalDue)}</strong></span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearAllFilters}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#2563eb",
+              fontWeight: 700,
+              fontSize: "0.80rem",
+              textDecoration: "underline",
+              cursor: "pointer",
+              padding: 0
+            }}
+          >
+            Clear All Filters
+          </button>
+        </div>
+      )}
 
       {/* Main Table Content */}
       {loading ? (
@@ -1351,15 +1672,96 @@ const OutstandingFinalSheet = () => {
           <Table
             minWidth="1650px"
             headers={[
-              { label: "Company / Person Name", align: "left", minWidth: "280px" },
-              { label: "Old Pending Balance", align: "right", minWidth: "160px" },
-              { label: "This Year Bills", align: "right", minWidth: "150px" },
-              { label: "Total Billed", align: "right", minWidth: "150px" },
-              { label: activeTab === "clients" ? "Money Received" : "Money Paid", align: "right", minWidth: "150px" },
-              { label: "TDS (Tax)", align: "right", minWidth: "130px" },
-              { label: "Discounts / Debts", align: "right", minWidth: "130px" },
-              { label: "Final Pending Due", align: "right", minWidth: "170px" },
-              { label: "Payment Progress", align: "center", minWidth: "120px" },
+              {
+                label: (
+                  <div {...getHoldProps("col_party_name", "Hold for 5s to view Company Account details")} style={{ position: "relative", cursor: "pointer", userSelect: "none" }}>
+                    <span>Company / Person Name</span>
+                    <HoldProgressOverlay active={holdingKey === "col_party_name"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "left",
+                minWidth: "280px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_old_pending", "Hold for 5s to view Old Pending Balance formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>Old Pending Balance</span>
+                    <HoldProgressOverlay active={holdingKey === "col_old_pending"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "160px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_this_year_bills", "Hold for 5s to view Current Year Invoices formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>{activeTab === "clients" ? "This Year Bills" : "This Year Purchases"}</span>
+                    <HoldProgressOverlay active={holdingKey === "col_this_year_bills"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "150px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_total_billed", "Hold for 5s to view Total Cumulative Billed formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>Total Billed</span>
+                    <HoldProgressOverlay active={holdingKey === "col_total_billed"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "150px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_money_received", "Hold for 5s to view Cash & Bank Collections formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>{activeTab === "clients" ? "Money Received" : "Money Paid"}</span>
+                    <HoldProgressOverlay active={holdingKey === "col_money_received"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "150px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_tds", "Hold for 5s to view TDS (Tax) credit formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>TDS (Tax)</span>
+                    <HoldProgressOverlay active={holdingKey === "col_tds"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "130px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_discounts", "Hold for 5s to view Discounts & Adjustments formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>Discounts / Debts</span>
+                    <HoldProgressOverlay active={holdingKey === "col_discounts"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "130px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_final_due", "Hold for 5s to view Final Pending Due formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "right", width: "100%" }}>
+                    <span>Final Pending Due</span>
+                    <HoldProgressOverlay active={holdingKey === "col_final_due"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "right",
+                minWidth: "170px"
+              },
+              {
+                label: (
+                  <div {...getHoldProps("col_payment_progress", "Hold for 5s to view Payment Progress formula")} style={{ position: "relative", cursor: "pointer", userSelect: "none", textAlign: "center", width: "100%" }}>
+                    <span>Payment Progress</span>
+                    <HoldProgressOverlay active={holdingKey === "col_payment_progress"} progress={holdProgress} />
+                  </div>
+                ),
+                align: "center",
+                minWidth: "120px"
+              },
               { label: "Status", align: "center", minWidth: "110px" },
               { label: "Details", align: "center", minWidth: "100px" }
             ]}
@@ -1826,6 +2228,13 @@ const OutstandingFinalSheet = () => {
         subtitle={`Exporting ${activeTab === "clients" ? filteredClientList.length : filteredVendorList.length} party records`}
         itemCount={activeTab === "clients" ? filteredClientList.length : filteredVendorList.length}
         isExporting={isExporting}
+      />
+
+      {/* Universal Calculation Explanation Modal */}
+      <CalculationExplanationModal
+        isOpen={Boolean(explanationKey)}
+        onClose={() => setExplanationKey(null)}
+        explanationKey={explanationKey}
       />
     </div>
   );

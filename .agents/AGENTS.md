@@ -83,6 +83,46 @@ sequenceDiagram
 ---
 
 ## 🎨 3. Frontend & Design Guidelines
-- **Modals and Popups**: Always render modals and popups using React Portals (`createPortal`) to ensure they are fixed to the viewport center. Use responsive auto-fit grids so content fits dynamically without requiring vertical scrolling to find or interact with the popup.
+- **Modals and Popups**: Always render modals and popups using React Portals (`createPortal(..., document.body)`) to ensure they are fixed to the viewport center. Use background scroll locking (`document.body.style.overflow = "hidden"`) and contained internal scrolling (`overscrollBehavior: "contain"`).
+- **Table Cell Text Wrapping**: Print/Invoice and summary tables must allow multi-line text wrapping (`wordBreak: "break-word"`, `overflowWrap: "break-word"`, `whiteSpace: "normal"`, `lineHeight: "1.15"`) so that long station names (e.g. `DELHI-AIRPORT`, `GREATER NOIDA`) and reference codes never exceed cell boundaries.
 - **Date Format**: Always display dates in `DD-MM-YYYY` format globally across the app.
 - **Number Formatting**: All amounts should be displayed in Indian number format (e.g. `₹XX,XX,XXX.XX`) using `toLocaleString('en-IN')`.
+
+---
+
+## 🔒 4. MANDATORY INVARIANT: LOGISTICS FLOWS & CALCULATION INTEGRITY
+
+> [!CAUTION]
+> **DO NOT DISTURB OR ALTER ANY ACCOUNTING/LOGISTICS CONNECTIONS, FORMULAS, OR CALCULATION ENGINES.**
+> These connections form the foundational core of the logistics software and must remain 100% accurate at all times.
+
+### Mandatory Rules for All Agents & Changes:
+1. **Master Net Position Formula**:
+   $$\text{Total Net Balance} = \text{Total Money to Receive (Customers)} - \text{Total Money to Pay (Vendors)}$$
+   - Customer Due: $(\text{Old Prior FY Balance} + \text{Current Year Billed Invoices}) - \text{Cash Received} - \text{TDS} - \text{Discounts}$
+   - Vendor Due: $(\text{Old Vendor Prior FY Balance} + \text{Current Year Purchases}) - \text{Cash Paid} - \text{TDS} - \text{Discounts}$
+
+2. **Prior Year Opening Balances (Before 31st March)**:
+   - Historical prior dues must always be incorporated using:
+     `effectivePriorBilled = Math.max(priorB, openDue + priorPaid + priorTds + priorDebt)`
+   - Never overwrite, zero out, or detach prior year opening balances during automated recalculations or client view filtering.
+
+3. **Party Name Normalization (`normalizePartyKey`)**:
+   - Always strip excess spaces, dashes, commas, dots, and case differences (`STARWAYS INDUSTRIES - CHAKAN`, `STARWAYS INDUSTRIES- CHAKAN`, `SKY 4 PUNE`, `CJ DARCL LOGISTICS LIMITED`) so that invoices, payments, adjustments, and opening balances unify under a single account.
+
+4. **Multi-Collection Cache Invalidation & WebSocket Sync**:
+   - Any create/update/delete/restore operation in `cashController.js`, `outstandingController.js`, `openingBalanceController.js`, `billsController.js`, `purchasesController.js`, or `trashController.js` must purge Redis caches across ALL related datasets:
+     `bills`, `purchases`, `outstanding`, `openingBalances`, `cashEntries`
+   - Real-time WebSocket events (`emitDataUpdated`) must be broadcasted so all open browser tabs update instantly without manual reloads.
+
+5. **Exclusion of Zero-Activity Accounts**:
+   - In master balance summaries, filter out inactive accounts that have 0 transactions, 0 bills, 0 payments, and 0 dues to keep reports clean and performant.
+
+### Mandatory Pre-Completion Verification Checklist:
+Before finishing ANY task or pull request, agents MUST verify:
+- [ ] Master calculation formulas match across `OutstandingFinalSheet.jsx` and `paymentUtils.js`.
+- [ ] Prior year opening balances reflect properly for all customers and vendors.
+- [ ] No table cell text overflows its boundaries on PDF/print views.
+- [ ] All modals mount through `createPortal(..., document.body)` and stay fixed in the viewport center.
+- [ ] Backend recalculation (`recalculateAllPayments()`) completes without errors.
+- [ ] Frontend builds cleanly with `npm run build` (0 syntax or bundling errors).

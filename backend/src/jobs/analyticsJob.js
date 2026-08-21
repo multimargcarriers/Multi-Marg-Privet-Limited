@@ -84,11 +84,11 @@ const runAnalyticsAggregation = async () => {
 
     // 2. Process Bookings via streaming cursor
     const bookingsCursor = mongoDb.collection("bookings").find({}, { 
-      projection: { status: 1, totalAmount: 1, freight_charge: 1, chargedWeight: 1, origin: 1 } 
+      projection: { status: 1, billed: 1, totalAmount: 1, freight_charge: 1, chargedWeight: 1, origin: 1 } 
     });
 
     for await (const booking of bookingsCursor) {
-      if (booking.status !== 'Billed' && booking.status !== 'billed') {
+      if (booking.billed === false || (booking.billed !== true && String(booking.status || "").toLowerCase() !== "billed")) {
         unbilledAwbCount++;
         let bookingRev = Number(booking.totalAmount) || Number(booking.freight_charge);
         if (!bookingRev && booking.chargedWeight) {
@@ -158,6 +158,27 @@ const runAnalyticsAggregation = async () => {
          outstandingPurchases += (amt - paid);
       }
     }
+
+    // 5. Process Opening Balances via streaming cursor
+    const openingCursor = mongoDb.collection("openingBalances").find({}, {
+      projection: { openingOutstanding: 1, initialOpeningDue: 1, totalBilledPrior: 1, amount: 1, partyType: 1, client: 1, vendor: 1 }
+    });
+
+    let clientOpeningDues = 0;
+    let vendorOpeningDues = 0;
+
+    for await (const op of openingCursor) {
+      const amt = Number(op.openingOutstanding || op.initialOpeningDue || op.totalBilledPrior || op.amount) || 0;
+      const pType = String(op.partyType || (op.vendor ? "vendor" : "client")).toLowerCase();
+      if (pType === "vendor") {
+        vendorOpeningDues += amt;
+      } else {
+        clientOpeningDues += amt;
+      }
+    }
+
+    outstandingReceivables += clientOpeningDues;
+    outstandingPurchases += vendorOpeningDues;
 
     // Compile results
     let bookingsData = Object.keys(bookingsCount).map(city => ({

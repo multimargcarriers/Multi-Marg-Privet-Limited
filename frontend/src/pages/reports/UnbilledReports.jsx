@@ -104,7 +104,7 @@ const UnbilledReports = () => {
       if (res.data.success) {
         let bookings = res.data.data || [];
         // Keep only bookings that are NOT billed
-        bookings = bookings.filter((b) => b.status !== "Billed");
+        bookings = bookings.filter((b) => b.billed === false || (b.billed !== true && String(b.status || "").toLowerCase() !== "billed"));
         setData(bookings);
       }
     } catch (err) {
@@ -660,36 +660,36 @@ const UnbilledReports = () => {
                 title="Toggle Select All"
               />
             </div>,
-            "AWB No",
-            "Date",
-            "Consignor",
-            "Consignee",
-            "Origin",
-            "Destination",
-            "Mode",
-            "Box",
-            "Chargeable Wt",
-            "Billed To / Client",
-            "Freight (₹)",
-            "Remarks",
+            "AWB NO",
+            "DATE",
+            "CONSIGNOR",
+            "CONSIGNEE",
+            "ORIGIN",
+            "DESTINATION",
+            "MODE",
+            "BOX",
+            "CHARGEABLE WT",
+            "BILLED TO / CLIENT",
+            "FREIGHT (₹)",
+            "REMARKS",
           ]}
           data={filteredData}
           renderRow={(item, index) => {
             const itemId = item.id || item._id || getAwbNo(item) || index;
             const isSelected = selectedUnbilledIds.includes(itemId);
-            const awbNo = getAwbNo(item);
+            const awbNo = String(getAwbNo(item)).toUpperCase();
             const dateStr = formatRowDate(item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.createdAt || item.created_at);
-            const consignor = item.consignor || "-";
-            const consignee = item.consignee || "-";
-            const origin = (item.origin || "-").toUpperCase();
-            const destination = (item.destination || "-").toUpperCase();
-            const mode = (item.mode || "Road").toUpperCase();
+            const consignor = String(item.consignor || "-").toUpperCase();
+            const consignee = String(item.consignee || "-").toUpperCase();
+            const origin = String(item.origin || "-").toUpperCase();
+            const destination = String(item.destination || "-").toUpperCase();
+            const mode = String(item.mode || "ROAD").toUpperCase();
             const modeBadge = getModeBadge(mode);
             const boxCount = getBoxCount(item);
             const chargeWt = getChargeableWeight(item);
-            const billedTo = getBilledTo(item);
+            const billedTo = String(getBilledTo(item)).toUpperCase();
             const freightAmt = getFreightAmount(item);
-            const remarks = item.remarks || item.remark || item.notes || item.status || "UNBILLED";
+            const remarks = String(item.remarks || item.remark || item.notes || item.status || "UNBILLED").toUpperCase();
 
             return (
               <tr
@@ -723,6 +723,7 @@ const UnbilledReports = () => {
                       fontSize: "0.85rem",
                       letterSpacing: "0.02em",
                       display: "inline-block",
+                      textTransform: "uppercase"
                     }}
                   >
                     {awbNo}
@@ -739,12 +740,13 @@ const UnbilledReports = () => {
                   style={{
                     padding: "0.85rem 1rem",
                     color: "#1e293b",
-                    fontWeight: 500,
+                    fontWeight: 600,
                     fontSize: "0.85rem",
                     maxWidth: "190px",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    textTransform: "uppercase"
                   }}
                   title={consignor}
                 >
@@ -756,12 +758,13 @@ const UnbilledReports = () => {
                   style={{
                     padding: "0.85rem 1rem",
                     color: "#1e293b",
-                    fontWeight: 500,
+                    fontWeight: 600,
                     fontSize: "0.85rem",
                     maxWidth: "190px",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    textTransform: "uppercase"
                   }}
                   title={consignee}
                 >
@@ -769,12 +772,12 @@ const UnbilledReports = () => {
                 </td>
 
                 {/* ORIGIN */}
-                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", fontWeight: 600, color: "#475569", fontSize: "0.85rem" }}>
+                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", fontWeight: 700, color: "#475569", fontSize: "0.85rem", textTransform: "uppercase" }}>
                   {origin}
                 </td>
 
                 {/* DESTINATION */}
-                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", fontWeight: 600, color: "#0f172a", fontSize: "0.85rem" }}>
+                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", fontWeight: 700, color: "#0f172a", fontSize: "0.85rem", textTransform: "uppercase" }}>
                   {destination}
                 </td>
 
@@ -789,6 +792,7 @@ const UnbilledReports = () => {
                       borderRadius: "999px",
                       fontWeight: 700,
                       fontSize: "0.75rem",
+                      textTransform: "uppercase"
                     }}
                   >
                     {mode}
@@ -802,7 +806,7 @@ const UnbilledReports = () => {
 
                 {/* CHARGEABLE WT */}
                 <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", fontWeight: 700, color: "#1e293b", fontSize: "0.9rem" }}>
-                  {chargeWt.toLocaleString("en-IN", { maximumFractionDigits: 2 })} <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>kg</span>
+                  {chargeWt.toLocaleString("en-IN", { maximumFractionDigits: 2 })} <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b" }}>KG</span>
                 </td>
 
                 {/* BILLED TO / CLIENT */}
@@ -816,6 +820,7 @@ const UnbilledReports = () => {
                     maxWidth: "200px",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
+                    textTransform: "uppercase"
                   }}
                   title={billedTo}
                 >
@@ -830,7 +835,7 @@ const UnbilledReports = () => {
                 </td>
 
                 {/* REMARKS */}
-                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", color: "#64748b", fontSize: "0.8rem", fontStyle: "italic" }}>
+                <td style={{ padding: "0.85rem 1rem", whiteSpace: "nowrap", color: "#64748b", fontSize: "0.8rem", textTransform: "uppercase" }}>
                   {remarks}
                 </td>
               </tr>

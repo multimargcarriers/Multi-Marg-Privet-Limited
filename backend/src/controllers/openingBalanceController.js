@@ -2,6 +2,7 @@ const { db } = require("../config/database");
 const { success, created, error } = require("../utils/response");
 const { delCache } = require("../config/redis");
 const { recalculatePartyPayments, recalculateAllPayments } = require("../utils/paymentUtils");
+const { emitDataUpdated } = require("../utils/socket");
 
 const CACHE_KEY = "openingBalances";
 
@@ -9,7 +10,12 @@ const CACHE_KEY = "openingBalances";
 const recalculateOpeningBalances = async () => {
   try {
     await recalculateAllPayments();
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding")
+    ]);
   } catch (e) {
     console.error("recalculateOpeningBalances error:", e.message);
   }
@@ -95,13 +101,23 @@ exports.createOpeningBalance = async (req, res) => {
     };
 
     const docRef = await db.collection("openingBalances").add(docData);
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding")
+    ]);
 
     try {
       await recalculatePartyPayments(docData.partyType, docData.partyName);
     } catch (rErr) {
       console.error("Recalculate error after opening balance create:", rErr);
     }
+
+    emitDataUpdated("openingBalances", "create");
+    emitDataUpdated("bills", "update");
+    emitDataUpdated("purchases", "update");
+    emitDataUpdated("outstanding", "update");
 
     return created(res, "Opening balance created successfully", { id: docRef.id, ...docData });
   } catch (err) {
@@ -141,7 +157,12 @@ exports.updateOpeningBalance = async (req, res) => {
     };
 
     await db.collection("openingBalances").doc(id).update(updateData);
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding")
+    ]);
 
     // Re-evaluate party payments with the updated prior invoice amount
     try {
@@ -149,6 +170,11 @@ exports.updateOpeningBalance = async (req, res) => {
     } catch (rErr) {
       console.error("Recalculate error after opening balance update:", rErr);
     }
+
+    emitDataUpdated("openingBalances", "update");
+    emitDataUpdated("bills", "update");
+    emitDataUpdated("purchases", "update");
+    emitDataUpdated("outstanding", "update");
 
     return success(res, "Opening balance updated successfully", { id, ...existing, ...updateData });
   } catch (err) {
@@ -167,11 +193,21 @@ exports.deleteOpeningBalance = async (req, res) => {
     const partyName = doc.data().partyName;
 
     await db.collection("openingBalances").doc(id).delete(req.user);
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding")
+    ]);
 
     try {
       await recalculatePartyPayments(partyType, partyName);
     } catch (rErr) {}
+
+    emitDataUpdated("openingBalances", "delete");
+    emitDataUpdated("bills", "update");
+    emitDataUpdated("purchases", "update");
+    emitDataUpdated("outstanding", "update");
 
     return success(res, "Opening balance deleted successfully");
   } catch (err) {
@@ -184,7 +220,18 @@ exports.deleteOpeningBalance = async (req, res) => {
 exports.recalculateAllOpeningBalances = async (req, res) => {
   try {
     const result = await recalculateAllPayments();
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding")
+    ]);
+
+    emitDataUpdated("openingBalances", "update");
+    emitDataUpdated("bills", "update");
+    emitDataUpdated("purchases", "update");
+    emitDataUpdated("outstanding", "update");
+
     return success(res, "All opening balances, client & vendor payments, and bills recalculated successfully", result);
   } catch (err) {
     console.error("recalculateAllOpeningBalances error:", err);
