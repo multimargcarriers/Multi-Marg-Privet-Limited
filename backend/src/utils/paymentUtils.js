@@ -15,11 +15,24 @@ const debouncedAnalyticsAggregation = () => {
 };
 
 const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = false) => {
-    if (!partyType || !partyName) return;
+    if (!partyName) return;
 
-    const normType = String(partyType || '').trim().toLowerCase();
-    const escapedPartyName = escapeRegExp(partyName.trim());
-    const regex = new RegExp(`^${escapedPartyName}$`, "i");
+    let normType = String(partyType || '').trim().toLowerCase();
+    const cleanPartyName = String(partyName || '').trim();
+    const escapedPartyName = escapeRegExp(cleanPartyName);
+    const flexiblePattern = escapedPartyName.replace(/\s+/g, '\\s+');
+    const regex = new RegExp(`^\\s*${flexiblePattern}\\s*$`, "i");
+
+    if (normType !== 'client' && normType !== 'vendor') {
+        const isClient = await db.mongoDb.collection("clients").findOne({ name: { $regex: regex } }) || await db.mongoDb.collection("bills").findOne({ client: { $regex: regex } });
+        if (isClient) {
+            normType = 'client';
+        } else {
+            const isVendor = await db.mongoDb.collection("vendors").findOne({ name: { $regex: regex } }) || await db.mongoDb.collection("purchases").findOne({ vendor: { $regex: regex } });
+            if (isVendor) normType = 'vendor';
+            else normType = 'client'; // default to client
+        }
+    }
 
     if (normType === 'client') {
         // A. Fetch All Cash Entries for Client
@@ -36,7 +49,13 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
             const netAmt = (doc.type === "in") ? amt : -amt;
-            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            let bNo = String(doc.billNo || '').trim().toLowerCase();
+            if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
+                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i) || String(doc.remarks || '').match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                if (match) {
+                    bNo = match[0].toLowerCase();
+                }
+            }
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
                 billSpecificCashMap[bNo] = (billSpecificCashMap[bNo] || 0) + netAmt;
             } else {
@@ -60,7 +79,11 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
 
         adjDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
-            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            let bNo = String(doc.billNo || doc.linkedBillNo || '').trim().toLowerCase();
+            if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
+                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (match) bNo = match[0].toLowerCase();
+            }
             const part = String(doc.particulars || 'tds').trim().toLowerCase();
 
             if (part === 'tds') {
@@ -266,7 +289,13 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
             const netAmt = (doc.type === "out") ? amt : -amt;
-            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            let bNo = String(doc.billNo || '').trim().toLowerCase();
+            if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
+                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i) || String(doc.remarks || '').match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                if (match) {
+                    bNo = match[0].toLowerCase();
+                }
+            }
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
                 purchaseSpecificCashMap[bNo] = (purchaseSpecificCashMap[bNo] || 0) + netAmt;
             } else {
@@ -289,7 +318,11 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
 
         adjDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
-            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            let bNo = String(doc.billNo || doc.linkedBillNo || '').trim().toLowerCase();
+            if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
+                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (match) bNo = match[0].toLowerCase();
+            }
             const part = String(doc.particulars || 'tds').trim().toLowerCase();
 
             if (part === 'tds') {
@@ -540,12 +573,17 @@ const recalculateAllPayments = async () => {
         vendorsSnap.forEach(d => { const n = d.data().name; if (n) uniqueVendors.add(n.trim()); });
         purchasesSnap.forEach(d => { const n = d.data().vendor; if (n) uniqueVendors.add(n.trim()); });
 
-        for (const clientName of uniqueClients) {
-            await recalculatePartyPayments("Client", clientName, true);
+        const clientArray = Array.from(uniqueClients);
+        const chunkSize = 15;
+        for (let i = 0; i < clientArray.length; i += chunkSize) {
+            const chunk = clientArray.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(cName => recalculatePartyPayments("Client", cName, true)));
         }
 
-        for (const vendorName of uniqueVendors) {
-            await recalculatePartyPayments("Vendor", vendorName, true);
+        const vendorArray = Array.from(uniqueVendors);
+        for (let i = 0; i < vendorArray.length; i += chunkSize) {
+            const chunk = vendorArray.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(vName => recalculatePartyPayments("Vendor", vName, true)));
         }
 
         debouncedAnalyticsAggregation();
