@@ -33,7 +33,8 @@ import {
   Layers,
   Trash2,
   Calendar,
-  Globe
+  Globe,
+  Scale
 } from "lucide-react";
 
 export const menuItems = [
@@ -95,6 +96,13 @@ export const menuItems = [
         icon: <DollarSign size={18} />,
         permission: "cash_sheet",
         moduleKey: "cashEntries"
+      },
+      {
+        name: "Total Balances Summary",
+        path: "/outstanding/final-sheet",
+        icon: <Scale size={18} />,
+        permission: "accounts",
+        moduleKey: "outstanding"
       },
       {
         name: "TDS & Debt Adjustment",

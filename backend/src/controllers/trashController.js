@@ -84,6 +84,7 @@ exports.restoreTrash = async (req, res) => {
         delCache('openingBalances')
       ]);
       emitDataUpdated('bills', 'create');
+      emitDataUpdated('outstanding', 'update');
     } else if (originalCollection === 'purchases') {
       await recalculatePartyPayments('Vendor', document.vendor);
       await Promise.all([
@@ -92,15 +93,46 @@ exports.restoreTrash = async (req, res) => {
         delCache('openingBalances')
       ]);
       emitDataUpdated('purchases', 'create');
+      emitDataUpdated('outstanding', 'update');
     } else if (originalCollection === 'outstanding') {
+      await recalculatePartyPayments(document.partyType || 'Client', document.partyName || document.clientName || document.vendorName);
       await Promise.all([
         delCache('outstanding'),
+        delCache('bills'),
+        delCache('purchases'),
         delCache('openingBalances')
       ]);
       emitDataUpdated('outstanding', 'create');
+      emitDataUpdated('bills', 'update');
+      emitDataUpdated('purchases', 'update');
+    } else if (originalCollection === 'openingBalances') {
+      await recalculatePartyPayments(document.partyType, document.partyName);
+      await Promise.all([
+        delCache('openingBalances'),
+        delCache('outstanding'),
+        delCache('bills'),
+        delCache('purchases')
+      ]);
+      emitDataUpdated('openingBalances', 'create');
+      emitDataUpdated('outstanding', 'update');
+    } else if (originalCollection === 'clients') {
+      await delCache('clients');
+      emitDataUpdated('clients', 'create');
+    } else if (originalCollection === 'vendors') {
+      await delCache('vendors');
+      emitDataUpdated('vendors', 'create');
     } else if (originalCollection === 'bookings') {
       await delCache('bookings');
       emitDataUpdated('bookings', 'create');
+    } else if (originalCollection === 'trips') {
+      await delCache('trips');
+      emitDataUpdated('trips', 'create');
+    } else if (originalCollection === 'rates') {
+      await delCache('rates');
+      emitDataUpdated('rates', 'create');
+    } else if (originalCollection === 'branches') {
+      await delCache('branches');
+      emitDataUpdated('branches', 'create');
     }
 
     res.status(200).json({ success: true, message: 'Item restored successfully' });

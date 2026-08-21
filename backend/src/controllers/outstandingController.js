@@ -48,7 +48,12 @@ exports.postRoot_3 = async (req, res) => {
     entry.client = '';
   }
   const docRef = await db.collection("outstanding").add(entry);
-  await delCache(CACHE_KEY);
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bills"),
+    delCache("purchases"),
+    delCache("openingBalances")
+  ]);
 
   const partyName = entry.client || entry.vendor || entry.partyName;
   if (partyName) {
@@ -60,6 +65,10 @@ exports.postRoot_3 = async (req, res) => {
   }
 
   emitDataUpdated("outstanding", "create");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("purchases", "update");
+  emitDataUpdated("openingBalances", "update");
+
   return created(res, "Outstanding entry created successfully", {
     id: docRef.id,
     ...entry
@@ -73,7 +82,12 @@ exports.delete_id_4 = async (req, res) => {
   const data = doc.data();
 
   await db.collection("outstanding").doc(id).delete(req.user);
-  await delCache(CACHE_KEY);
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bills"),
+    delCache("purchases"),
+    delCache("openingBalances")
+  ]);
 
   const partyType = data.partyType ? (String(data.partyType).toLowerCase() === 'vendor' ? 'Vendor' : 'Client') : (data.vendor && !data.client ? 'Vendor' : 'Client');
   const partyName = data.client || data.vendor || data.partyName;
@@ -86,6 +100,10 @@ exports.delete_id_4 = async (req, res) => {
   }
 
   emitDataUpdated("outstanding", "delete");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("purchases", "update");
+  emitDataUpdated("openingBalances", "update");
+
   return success(res, "Outstanding entry deleted successfully");
 };
 
@@ -109,7 +127,12 @@ exports.put_id_5 = async (req, res) => {
   }
 
   await db.collection("outstanding").doc(id).update(updateData);
-  await delCache(CACHE_KEY);
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bills"),
+    delCache("purchases"),
+    delCache("openingBalances")
+  ]);
 
   const partyName = updateData.client || updateData.vendor || updateData.partyName || oldData.client || oldData.vendor;
   if (partyName) {
@@ -121,7 +144,13 @@ exports.put_id_5 = async (req, res) => {
     } catch (rErr) {
       console.error("Recalculate error after adjustment update:", rErr);
     }
-  } emitDataUpdated("outstanding", "update");
+  }
+
+  emitDataUpdated("outstanding", "update");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("purchases", "update");
+  emitDataUpdated("openingBalances", "update");
+
   return success(res, "Outstanding entry updated successfully", {
     id,
     ...updateData

@@ -58,8 +58,19 @@ exports.postRoot_2 = async (req, res) => {
   
   await recalculatePartyPayments(entry.partyType, entry.partyName);
 
-  await delCache(CACHE_KEY);
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bills"),
+    delCache("purchases"),
+    delCache("outstanding"),
+    delCache("openingBalances")
+  ]);
   emitDataUpdated("cashEntries", "create");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("purchases", "update");
+  emitDataUpdated("outstanding", "update");
+  emitDataUpdated("openingBalances", "update");
+
   return created(res, "Cash entry created successfully", {
     id: docRef.id,
     ...entry
@@ -91,7 +102,10 @@ exports.delete_id_3 = async (req, res) => {
     delCache("openingBalances")
   ]);
   emitDataUpdated("cashEntries", "delete");
+  emitDataUpdated("bills", "update");
+  emitDataUpdated("purchases", "update");
   emitDataUpdated("outstanding", "update");
+  emitDataUpdated("openingBalances", "update");
   await recalculatePartyPayments(data.partyType, data.partyName);
   return success(res, "Cash entry deleted successfully");
 };
@@ -142,10 +156,19 @@ exports.put_id_4 = async (req, res) => {
     delete updateData.id;
 
     await docRef.update(updateData);
-    await delCache(CACHE_KEY);
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("bills"),
+      delCache("purchases"),
+      delCache("outstanding"),
+      delCache("openingBalances")
+    ]);
     emitDataUpdated("cashEntries", "update");
+    emitDataUpdated("bills", "update");
+    emitDataUpdated("purchases", "update");
+    emitDataUpdated("outstanding", "update");
+    emitDataUpdated("openingBalances", "update");
     runAnalyticsAggregation().catch(e => console.error("Auto analytics sync failed", e));
-    
     
     const oldPartyName = doc.data().partyName;
     const oldPartyType = doc.data().partyType;

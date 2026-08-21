@@ -20,7 +20,10 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
     let normType = String(partyType || '').trim().toLowerCase();
     const cleanPartyName = String(partyName || '').trim();
     const escapedPartyName = escapeRegExp(cleanPartyName);
-    const flexiblePattern = escapedPartyName.replace(/\s+/g, '\\s+');
+    const flexiblePattern = escapedPartyName
+        .replace(/\\s\+|\\s\*/g, '\\s*')
+        .replace(/[-_\\/,\.]+/g, '[-\\s_\\/,\\.]*')
+        .replace(/\s+/g, '\\s*');
     const regex = new RegExp(`^\\s*${flexiblePattern}\\s*$`, "i");
 
     if (normType !== 'client' && normType !== 'vendor') {
@@ -113,12 +116,14 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
 
         if (openDoc) {
             let initialBaseline = 0;
-            if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) === 0 && (Number(openDoc.openingOutstanding || 0) === 0 || openDoc.isManual)) {
-                initialBaseline = 0;
-            } else if (openDoc.totalBilledPrior !== undefined && openDoc.totalBilledPrior !== null) {
-                initialBaseline = Number(openDoc.totalBilledPrior) || 0;
+            if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
+                initialBaseline = Number(openDoc.initialOpeningDue);
+            } else if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) > 0) {
+                initialBaseline = Number(openDoc.totalBilledPrior);
+            } else if (openDoc.openingOutstanding !== undefined && Number(openDoc.openingOutstanding) > 0) {
+                initialBaseline = Number(openDoc.openingOutstanding);
             } else {
-                initialBaseline = Number(openDoc.initialOpeningDue || openDoc.openingOutstanding || 0);
+                initialBaseline = 0;
             }
 
             const priorStaticTds = Number(openDoc.totalTdsPrior) || 0;
@@ -156,7 +161,7 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const totalPaidPriorUpdated = Number(openingPaid.toFixed(2));
 
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
-                initialOpeningDue: initialBaseline,
+                initialOpeningDue: openDoc.initialOpeningDue || initialBaseline,
                 totalBilledPrior: initialBaseline,
                 totalPaidPrior: totalPaidPriorUpdated,
                 totalTdsPrior: totalTdsPriorCombined,
@@ -352,12 +357,14 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
 
         if (openDoc) {
             let initialBaseline = 0;
-            if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) === 0 && (Number(openDoc.openingOutstanding || 0) === 0 || openDoc.isManual)) {
-                initialBaseline = 0;
-            } else if (openDoc.totalBilledPrior !== undefined && openDoc.totalBilledPrior !== null) {
-                initialBaseline = Number(openDoc.totalBilledPrior) || 0;
+            if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
+                initialBaseline = Number(openDoc.initialOpeningDue);
+            } else if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) > 0) {
+                initialBaseline = Number(openDoc.totalBilledPrior);
+            } else if (openDoc.openingOutstanding !== undefined && Number(openDoc.openingOutstanding) > 0) {
+                initialBaseline = Number(openDoc.openingOutstanding);
             } else {
-                initialBaseline = Number(openDoc.initialOpeningDue || openDoc.openingOutstanding || 0);
+                initialBaseline = 0;
             }
 
             const priorStaticTds = Number(openDoc.totalTdsPrior) || 0;
@@ -395,7 +402,7 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const totalPaidPriorUpdated = Number(openingPaid.toFixed(2));
 
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
-                initialOpeningDue: initialBaseline,
+                initialOpeningDue: openDoc.initialOpeningDue || initialBaseline,
                 totalBilledPrior: initialBaseline,
                 totalPaidPrior: totalPaidPriorUpdated,
                 totalTdsPrior: totalTdsPriorCombined,

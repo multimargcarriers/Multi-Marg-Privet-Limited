@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
@@ -19,16 +20,19 @@ import {
   RefreshCw,
   FileSpreadsheet,
   Building2,
-  Users
+  Users,
+  Scale
 } from "lucide-react";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
+import { useSocketSync } from "../hooks/useSocketSync";
 import Table from "../components/Table";
 import { formatDate } from "../utils/formatters";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const OpeningOutstanding = () => {
+  const navigate = useNavigate();
   const { confirm, alert: alertDialog } = useDialog();
   const { addToast } = useToast();
 
@@ -143,6 +147,14 @@ const OpeningOutstanding = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Real-time synchronization
+  useSocketSync("openingBalances", () => fetchData(false));
+  useSocketSync("outstanding", () => fetchData(false));
+  useSocketSync("bills", () => fetchData(false));
+  useSocketSync("purchases", () => fetchData(false));
+  useSocketSync("clients", () => fetchData(false));
+  useSocketSync("vendors", () => fetchData(false));
 
   // Available Financial Years in data
   const availableFYs = useMemo(() => {
@@ -367,6 +379,14 @@ const OpeningOutstanding = () => {
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Final Outstanding Sheet */}
+          <button
+            onClick={() => navigate("/outstanding/final-sheet")}
+            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.95rem", background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(37, 99, 235, 0.25)" }}
+          >
+            <Scale size={15} /> Total Balances Summary
+          </button>
+
           <button
             onClick={() => fetchData(true)}
             className="btn btn-secondary"

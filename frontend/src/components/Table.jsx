@@ -76,9 +76,17 @@ const Table = ({ headers, data, renderRow, loading = false, pagination = false, 
         <table className="table" style={{ width: "100%", minWidth, borderCollapse: "collapse" }}>
           <thead style={{ backgroundColor: "#f8fafc" }}>
             <tr>
-              {headers.map((header, index) => (
-                <th key={index} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.75rem", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>{header}</th>
-              ))}
+              {headers.map((header, index) => {
+                const label = typeof header === 'object' ? (header.label || header.name || header.title) : header;
+                const align = typeof header === 'object' && header.align ? header.align : 'left';
+                const colMinWidth = typeof header === 'object' && header.minWidth ? header.minWidth : undefined;
+                const colWidth = typeof header === 'object' && header.width ? header.width : undefined;
+                return (
+                  <th key={index} style={{ padding: "12px 16px", textAlign: align, minWidth: colMinWidth, width: colWidth, fontSize: "0.75rem", color: "#64748b", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                    {label}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
