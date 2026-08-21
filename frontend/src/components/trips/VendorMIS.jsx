@@ -315,106 +315,121 @@ const VendorMIS = () => {
   return (
     <div>
       <div className="no-print">
-      <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
-         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vendor Vehicle MIS</h3>
-         <div className="top-actions-container">
-           <div className="date-filter-group" style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-             <Filter size={16} color="#64748b" />
-             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={startDate} onChange={e => setStartDate(e.target.value)} />
-             <span style={{ color: "#94a3b8" }}>-</span>
-             <input type="date" className="form-control" style={{ border: "none", height: "30px", padding: "0 5px", fontSize: "0.8rem", width: "115px" }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+      <div className="header-flex" style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0, fontWeight: 700 }}>Vendor Vehicle MIS</h3>
+         {isAdminOrSuperAdmin && (
+           <div className="top-actions-container" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+             <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
+               <Printer size={15} style={{ marginRight: 5 }} /> Print All
+             </button>
+             {!showVendorMisForm && (
+               <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
+                 <Plus size={15} style={{ marginRight: 5 }} /> Add Vendor Vehicle MIS Entry
+               </button>
+             )}
            </div>
-           
-            <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1", fontWeight: 600 }} onClick={handleExport}>
-              <Download size={16} style={{ marginRight: 6, color: "#2563eb" }} /> Export
-            </button>
-            
-            {isAdminOrSuperAdmin && (
-              <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
-                <Printer size={16} style={{ marginRight: 6 }} /> Print All
-              </button>
-            )}
-            
-            {!showVendorMisForm && isAdminOrSuperAdmin && (
-              <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
-                <Plus size={16} style={{ marginRight: 6 }} /> Add Vendor Vehicle MIS Entry
-              </button>
-            )}
-         </div>
+         )}
       </div>
       
       <style>{`
         /* AWS Console Premium Theme Styles */
         .aws-search-container {
           display: flex;
-          gap: 1rem;
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
           align-items: center;
           width: 100%;
+          flex-wrap: wrap;
         }
         .aws-search-wrapper {
           position: relative;
-          flex: 1;
+          flex: 1 1 240px;
+          min-width: 200px;
         }
         .aws-input {
           width: 100%;
           height: 38px;
-          padding-left: 40px;
+          padding-left: 38px;
           padding-right: 12px;
-          border: 1px solid #aab7b8;
-          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
           background-color: #ffffff;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           color: #1e293b;
           transition: all 0.15s ease-in-out;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
         .aws-input:focus {
-          border-color: #ec7211;
-          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
           outline: none;
         }
         .aws-date-group {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          border: 1px solid #aab7b8;
-          border-radius: 4px;
-          padding: 0 0.75rem;
+          gap: 0.4rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 0 0.65rem;
           background: #ffffff;
           height: 38px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
         .aws-date-input {
           border: none;
-          height: 32px;
-          font-size: 0.85rem;
+          height: 30px;
+          font-size: 0.82rem;
           color: #1e293b;
           outline: none;
           background: transparent;
         }
-        .aws-btn-toggle {
-          display: flex;
+        .aws-btn-export {
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.45rem;
           height: 38px;
-          padding: 0 1rem;
+          padding: 0 1.1rem;
           background: #ffffff;
-          border: 1px solid #aab7b8;
-          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #1e293b;
+          cursor: pointer;
+          transition: all 0.15s ease-in-out;
+          white-space: nowrap;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .aws-btn-export:hover {
+          background: #f8fafc;
+          border-color: #2563eb;
+          color: #2563eb;
+        }
+        .aws-btn-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          height: 38px;
+          padding: 0 0.9rem;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
           font-weight: 600;
           font-size: 0.85rem;
           color: #545b64;
           cursor: pointer;
           transition: all 0.15s;
           white-space: nowrap;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
         .aws-btn-toggle:hover {
           background: #f8f9fa;
           border-color: #545b64;
         }
         .aws-btn-toggle.active {
-          background: #f1f5f9;
-          border-color: #ec7211;
-          color: #ec7211;
+          background: #eff6ff;
+          border-color: #2563eb;
+          color: #2563eb;
         }
         .aws-filters-panel {
           display: grid;
@@ -422,9 +437,9 @@ const VendorMIS = () => {
           gap: 1rem;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: #f8f9fa;
-          border: 1px solid #eaeded;
-          border-radius: 4px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
           animation: slideDown 0.2s ease-out;
         }
         .aws-filter-group {
@@ -436,13 +451,13 @@ const VendorMIS = () => {
           font-size: 0.75rem;
           font-weight: 700;
           text-transform: uppercase;
-          color: #545b64;
+          color: #64748b;
           letter-spacing: 0.5px;
         }
         .aws-select {
           height: 34px;
-          border: 1px solid #aab7b8;
-          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
           background-color: #ffffff;
           font-size: 0.85rem;
           color: #1e293b;
@@ -451,24 +466,24 @@ const VendorMIS = () => {
           transition: all 0.15s;
         }
         .aws-select:focus {
-          border-color: #ec7211;
-          box-shadow: 0 0 0 2px rgba(236, 114, 17, 0.15);
+          border-color: #2563eb;
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
         }
         .aws-btn-reset {
           height: 34px;
-          border: 1px solid #d5dbdb;
-          background: #fafafa;
-          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          background: #ffffff;
+          border-radius: 6px;
           font-weight: 600;
           font-size: 0.85rem;
-          color: #545b64;
+          color: #64748b;
           cursor: pointer;
           transition: all 0.15s;
           width: 100%;
         }
         .aws-btn-reset:hover {
-          background: #f2f2f2;
-          border-color: #aab7b8;
+          background: #f1f5f9;
+          color: #1e293b;
         }
 
         @keyframes slideDown {
@@ -481,7 +496,10 @@ const VendorMIS = () => {
           .aws-search-container {
             flex-direction: column;
             align-items: stretch;
-            gap: 0.75rem;
+            gap: 0.65rem;
+          }
+          .aws-search-wrapper {
+            width: 100%;
           }
           .aws-date-group {
             width: 100%;
@@ -491,43 +509,51 @@ const VendorMIS = () => {
             flex: 1;
             text-align: center;
           }
-          .aws-btn-toggle {
+          .aws-btn-export, .aws-btn-toggle {
             width: 100%;
             justify-content: center;
           }
-          /* Hide less critical drop downs on mobile by default to keep it neat */
           .aws-mobile-hide {
             display: none !important;
           }
         }
       `}</style>
 
-      {/* Global Search & Date Filters */}
+      {/* Unified Search Line with Date Filter and Export Button */}
       <div className="no-print aws-search-container">
         <div className="aws-search-wrapper">
-          <Search size={18} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <Search size={17} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
           <input 
             type="text" 
             className="aws-input" 
-            placeholder="Search by vendor name, vehicle no, origin, destination, particulars..." 
+            placeholder="Search by vehicle no, route, date, particulars, amount..." 
             value={searchQuery} 
             onChange={e => setSearchQuery(e.target.value)} 
           />
         </div>
         <div className="aws-date-group">
-          <Filter size={16} color="#64748b" />
+          <Filter size={15} color="#64748b" />
           <input type="date" className="aws-date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
           <span style={{ color: "#94a3b8" }}>-</span>
           <input type="date" className="aws-date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
         </div>
+        <button 
+          type="button" 
+          className="aws-btn-export" 
+          onClick={handleExport}
+          title="Export records to Excel / CSV"
+        >
+          <Download size={15} color="#2563eb" />
+          <span>Export</span>
+        </button>
         {isAdminOrSuperAdmin && (
           <button
             type="button"
             className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
-            <Filter size={16} />
-            {showAdvancedFilters ? "Hide Dropdowns" : "Show Dropdowns"}
+            <Filter size={15} />
+            <span>{showAdvancedFilters ? "Hide Dropdowns" : "Dropdowns"}</span>
           </button>
         )}
       </div>
