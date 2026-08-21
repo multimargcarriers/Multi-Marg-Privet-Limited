@@ -313,307 +313,464 @@ const VendorMIS = () => {
   }, [showVendorMisForm]);
 
   return (
-    <div>
+    <div className="vendor-mis-page-wrapper">
       <div className="no-print">
-      <div className="header-flex" style={{ marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0, fontWeight: 700 }}>Vendor Vehicle MIS</h3>
-         {isAdminOrSuperAdmin && (
-           <div className="top-actions-container" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-             <button className="btn" style={{ background: "white", border: "1px solid #cbd5e1" }} onClick={() => window.print()}>
-               <Printer size={15} style={{ marginRight: 5 }} /> Print All
-             </button>
-             {!showVendorMisForm && (
-               <button className="btn btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
-                 <Plus size={15} style={{ marginRight: 5 }} /> Add Vendor Vehicle MIS Entry
-               </button>
-             )}
-           </div>
-         )}
-      </div>
-      
-      <style>{`
-        /* AWS Console Premium Theme Styles */
-        .aws-search-container {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 1.5rem;
-          align-items: center;
-          width: 100%;
-          flex-wrap: wrap;
-        }
-        .aws-search-wrapper {
-          position: relative;
-          flex: 1 1 240px;
-          min-width: 200px;
-        }
-        .aws-input {
-          width: 100%;
-          height: 38px;
-          padding-left: 38px;
-          padding-right: 12px;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          background-color: #ffffff;
-          font-size: 0.88rem;
-          color: #1e293b;
-          transition: all 0.15s ease-in-out;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        .aws-input:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-          outline: none;
-        }
-        .aws-date-group {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          padding: 0 0.65rem;
-          background: #ffffff;
-          height: 38px;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        .aws-date-input {
-          border: none;
-          height: 30px;
-          font-size: 0.82rem;
-          color: #1e293b;
-          outline: none;
-          background: transparent;
-        }
-        .aws-btn-export {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.45rem;
-          height: 38px;
-          padding: 0 1.1rem;
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: #1e293b;
-          cursor: pointer;
-          transition: all 0.15s ease-in-out;
-          white-space: nowrap;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        .aws-btn-export:hover {
-          background: #f8fafc;
-          border-color: #2563eb;
-          color: #2563eb;
-        }
-        .aws-btn-toggle {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.45rem;
-          height: 38px;
-          padding: 0 0.9rem;
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: #545b64;
-          cursor: pointer;
-          transition: all 0.15s;
-          white-space: nowrap;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        .aws-btn-toggle:hover {
-          background: #f8f9fa;
-          border-color: #545b64;
-        }
-        .aws-btn-toggle.active {
-          background: #eff6ff;
-          border-color: #2563eb;
-          color: #2563eb;
-        }
-        .aws-filters-panel {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          padding: 1.25rem;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          animation: slideDown 0.2s ease-out;
-        }
-        .aws-filter-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        .aws-filter-label {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          color: #64748b;
-          letter-spacing: 0.5px;
-        }
-        .aws-select {
-          height: 34px;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          background-color: #ffffff;
-          font-size: 0.85rem;
-          color: #1e293b;
-          padding: 0 8px;
-          outline: none;
-          transition: all 0.15s;
-        }
-        .aws-select:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-        }
-        .aws-btn-reset {
-          height: 34px;
-          border: 1px solid #cbd5e1;
-          background: #ffffff;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 0.85rem;
-          color: #64748b;
-          cursor: pointer;
-          transition: all 0.15s;
-          width: 100%;
-        }
-        .aws-btn-reset:hover {
-          background: #f1f5f9;
-          color: #1e293b;
-        }
-
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Responsive Adjustments */
-        @media (max-width: 768px) {
-          .aws-search-container {
+        <style>{`
+          /* Strict Zero-Gap Enterprise AWS/Logistics Layout */
+          .vendor-mis-page-wrapper {
+            display: block;
+            width: 100%;
+          }
+          .vendor-mis-header-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 10px !important;
+            padding: 0.75rem 1rem !important;
+            margin-bottom: 0.75rem !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+          }
+          .mis-top-bar {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            flex-wrap: wrap !important;
+            gap: 0.4rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+          }
+          .mis-title-wrap {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+          }
+          .mis-main-heading {
+            font-size: 1.15rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+          }
+          .mis-portal-badge {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            background: #eff6ff !important;
+            border: 1px solid #bfdbfe !important;
+            color: #1d4ed8 !important;
+            font-size: 0.7rem !important;
+            font-weight: 700 !important;
+            padding: 2px 7px !important;
+            border-radius: 20px !important;
+            text-transform: uppercase !important;
+          }
+          .mis-header-actions {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+          }
+          .mis-action-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            height: 32px !important;
+            padding: 0 0.75rem !important;
+            border-radius: 6px !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.15s !important;
+          }
+          .mis-action-btn-outline {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #334155 !important;
+          }
+          .mis-action-btn-outline:hover {
+            background: #f8fafc !important;
+            border-color: #94a3b8 !important;
+          }
+          .mis-action-btn-primary {
+            background: #2563eb !important;
+            border: 1px solid #1d4ed8 !important;
+            color: #ffffff !important;
+          }
+          .mis-action-btn-primary:hover {
+            background: #1d4ed8 !important;
+          }
+          
+          /* Controls Bar: Strict Zero Gap */
+          .mis-controls-bar {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            flex-wrap: wrap !important;
+          }
+          .mis-search-export-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            flex: 1 1 300px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+          }
+          .mis-search-wrap {
+            position: relative !important;
+            flex: 1 1 auto !important;
+            display: flex !important;
+            align-items: center !important;
+            min-width: 0 !important;
+            height: 36px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .mis-search-ico {
+            position: absolute !important;
+            left: 10px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            color: #94a3b8 !important;
+            pointer-events: none !important;
+            z-index: 2 !important;
+          }
+          .mis-search-inp {
+            width: 100% !important;
+            height: 36px !important;
+            padding: 0 10px 0 32px !important;
+            margin: 0 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            background: #f8fafc !important;
+            font-size: 0.84rem !important;
+            color: #0f172a !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            line-height: normal !important;
+          }
+          .mis-search-inp:focus {
+            background: #ffffff !important;
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+          }
+          .mis-btn-export {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            height: 36px !important;
+            padding: 0 0.85rem !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            font-weight: 600 !important;
+            font-size: 0.8rem !important;
+            color: #1e293b !important;
+            cursor: pointer !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            margin: 0 !important;
+          }
+          .mis-btn-export:hover {
+            background: #f1f5f9 !important;
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+          }
+          .mis-date-controls-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+          }
+          .mis-date-wrap {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.3rem !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            padding: 0 0.5rem !important;
+            background: #f8fafc !important;
+            height: 36px !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            flex-shrink: 0 !important;
+          }
+          .mis-date-inp {
+            border: none !important;
+            height: 28px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 0.78rem !important;
+            color: #0f172a !important;
+            outline: none !important;
+            background: transparent !important;
+            width: 105px !important;
+          }
+          .mis-date-divider {
+            color: #94a3b8 !important;
+            font-size: 0.72rem !important;
+            padding: 0 2px !important;
+          }
+          .mis-btn-dropdowns {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            height: 36px !important;
+            padding: 0 0.7rem !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            font-weight: 600 !important;
+            font-size: 0.8rem !important;
+            color: #64748b !important;
+            cursor: pointer !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+            margin: 0 !important;
+          }
+          .mis-btn-dropdowns.active {
+            background: #eff6ff !important;
+            border-color: #2563eb !important;
+            color: #2563eb !important;
+          }
+          .aws-filters-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+          }
+          .aws-filter-group {
+            display: flex;
             flex-direction: column;
-            align-items: stretch;
-            gap: 0.65rem;
+            gap: 0.2rem;
           }
-          .aws-search-wrapper {
+          .aws-filter-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+          }
+          .aws-select {
+            height: 32px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #ffffff;
+            font-size: 0.82rem;
+            color: #1e293b;
+            padding: 0 6px;
+            outline: none;
+          }
+          .aws-btn-reset {
+            height: 32px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: #64748b;
+            cursor: pointer;
             width: 100%;
           }
-          .aws-date-group {
-            width: 100%;
-            justify-content: space-between;
-          }
-          .aws-date-input {
-            flex: 1;
-            text-align: center;
-          }
-          .aws-btn-export, .aws-btn-toggle {
-            width: 100%;
-            justify-content: center;
-          }
-          .aws-mobile-hide {
-            display: none !important;
-          }
-        }
-      `}</style>
 
-      {/* Unified Search Line with Date Filter and Export Button */}
-      <div className="no-print aws-search-container">
-        <div className="aws-search-wrapper">
-          <Search size={17} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-          <input 
-            type="text" 
-            className="aws-input" 
-            placeholder="Search by vehicle no, route, date, particulars, amount..." 
-            value={searchQuery} 
-            onChange={e => setSearchQuery(e.target.value)} 
-          />
+          /* Mobile Pixel-Perfect Layout */
+          @media (max-width: 768px) {
+            .vendor-mis-header-card {
+              padding: 0.65rem 0.75rem !important;
+              margin-bottom: 0.65rem !important;
+              gap: 0.45rem !important;
+            }
+            .mis-top-bar {
+              margin-bottom: 0 !important;
+            }
+            .mis-main-heading {
+              font-size: 1.1rem !important;
+            }
+            .mis-controls-bar {
+              flex-direction: column !important;
+              gap: 0.4rem !important;
+              align-items: stretch !important;
+            }
+            /* Row 1 on mobile: Search + Export Button */
+            .mis-search-export-row {
+              width: 100% !important;
+              flex: none !important;
+            }
+            .mis-search-wrap {
+              flex: 1 !important;
+            }
+            .mis-btn-export {
+              padding: 0 0.85rem !important;
+            }
+            /* Row 2 on mobile: Date filter in single full width */
+            .mis-date-controls-row {
+              width: 100% !important;
+            }
+            .mis-date-wrap {
+              width: 100% !important;
+              flex: 1 1 auto !important;
+              justify-content: space-between !important;
+              padding: 0 0.65rem !important;
+            }
+            .mis-date-inp {
+              width: 44% !important;
+              font-size: 0.76rem !important;
+              text-align: center !important;
+            }
+            .mis-btn-dropdowns {
+              padding: 0 0.65rem !important;
+            }
+            .aws-mobile-hide {
+              display: none !important;
+            }
+          }
+        `}</style>
+
+        {/* Enterprise Card Header & Controls */}
+        <div className="vendor-mis-header-card">
+          <div className="mis-top-bar">
+            <div className="mis-title-wrap">
+              <h3 className="mis-main-heading">Vendor Vehicle MIS</h3>
+              {isVendorUser && (
+                <span className="mis-portal-badge">
+                  <Truck size={12} /> {user?.vendorName || user?.vendor || 'Vendor Portal'}
+                </span>
+              )}
+            </div>
+
+            {isAdminOrSuperAdmin && (
+              <div className="mis-header-actions">
+                <button className="mis-action-btn mis-action-btn-outline" onClick={() => window.print()}>
+                  <Printer size={14} /> Print All
+                </button>
+                {!showVendorMisForm && (
+                  <button className="mis-action-btn mis-action-btn-primary" onClick={() => { setVendorMisForm(initialVendorMisForm); setEditingId(null); setEditingStatus(''); setShowVendorMisForm(true); }}>
+                    <Plus size={14} /> Add Entry
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mis-controls-bar">
+            {/* Top Row: Search Input + Export Button */}
+            <div className="mis-search-export-row">
+              <div className="mis-search-wrap">
+                <Search size={15} className="mis-search-ico" />
+                <input 
+                  type="text" 
+                  className="mis-search-inp" 
+                  placeholder="Search vehicle, route, particulars, amount..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                />
+              </div>
+
+              <button 
+                type="button" 
+                className="mis-btn-export" 
+                onClick={handleExport}
+                title="Export records to Excel / CSV"
+              >
+                <Download size={14} color="#2563eb" />
+                <span>Export</span>
+              </button>
+            </div>
+
+            {/* Bottom Row on Mobile / Inline on Desktop: Date Filter & Admin Filters */}
+            <div className="mis-date-controls-row">
+              <div className="mis-date-wrap">
+                <Filter size={13} color="#64748b" style={{ flexShrink: 0 }} />
+                <input type="date" className="mis-date-inp" value={startDate} onChange={e => setStartDate(e.target.value)} title="From Date" />
+                <span className="mis-date-divider">-</span>
+                <input type="date" className="mis-date-inp" value={endDate} onChange={e => setEndDate(e.target.value)} title="To Date" />
+              </div>
+
+              {isAdminOrSuperAdmin && (
+                <button
+                  type="button"
+                  className={`mis-btn-dropdowns ${showAdvancedFilters ? "active" : ""}`}
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                >
+                  <Filter size={14} />
+                  <span>{showAdvancedFilters ? "Hide" : "Filters"}</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="aws-date-group">
-          <Filter size={15} color="#64748b" />
-          <input type="date" className="aws-date-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <span style={{ color: "#94a3b8" }}>-</span>
-          <input type="date" className="aws-date-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        </div>
-        <button 
-          type="button" 
-          className="aws-btn-export" 
-          onClick={handleExport}
-          title="Export records to Excel / CSV"
-        >
-          <Download size={15} color="#2563eb" />
-          <span>Export</span>
-        </button>
-        {isAdminOrSuperAdmin && (
-          <button
-            type="button"
-            className={`aws-btn-toggle ${showAdvancedFilters ? "active" : ""}`}
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          >
-            <Filter size={15} />
-            <span>{showAdvancedFilters ? "Hide Dropdowns" : "Dropdowns"}</span>
-          </button>
+
+        {/* Dropdown Filters Grid (Admin only) */}
+        {showAdvancedFilters && isAdminOrSuperAdmin && (
+          <div className="aws-filters-panel">
+            <div className="aws-filter-group">
+              <label className="aws-filter-label">Vendor</label>
+              <select className="aws-select" value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)}>
+                <option value="">All Vendors</option>
+                {uniqueVendors.map((v, i) => <option key={i} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div className="aws-filter-group">
+              <label className="aws-filter-label">Vehicle No</label>
+              <select className="aws-select" value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}>
+                <option value="">All Vehicles</option>
+                {uniqueVehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div className="aws-filter-group">
+              <label className="aws-filter-label">Mode</label>
+              <select className="aws-select" value={selectedMode} onChange={e => setSelectedMode(e.target.value)}>
+                <option value="">All Modes</option>
+                {uniqueModes.map((m, i) => <option key={i} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="aws-filter-group aws-mobile-hide">
+              <label className="aws-filter-label">Row Status</label>
+              <select className="aws-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)}>
+                <option value="">All Row Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+            <div className="aws-filter-group aws-mobile-hide">
+              <label className="aws-filter-label">Overall Approval</label>
+              <select className="aws-select" value={selectedApprovalStatus} onChange={e => setSelectedApprovalStatus(e.target.value)}>
+                <option value="">All Approvals</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+            <div className="aws-filter-group" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="aws-btn-reset" onClick={() => {
+                setSelectedVendor("");
+                setSelectedVehicle("");
+                setSelectedMode("");
+                setSelectedStatus("");
+                setSelectedApprovalStatus("");
+                setStartDate("");
+                setEndDate("");
+                setSearchQuery("");
+              }}>Reset Filters</button>
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* Dropdown Filters Grid (Admin only) */}
-      {showAdvancedFilters && isAdminOrSuperAdmin && (
-        <div className="no-print aws-filters-panel">
-          <div className="aws-filter-group">
-            <label className="aws-filter-label">Vendor</label>
-            <select className="aws-select" value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)}>
-              <option value="">All Vendors</option>
-              {uniqueVendors.map((v, i) => <option key={i} value={v}>{v}</option>)}
-            </select>
-          </div>
-          <div className="aws-filter-group">
-            <label className="aws-filter-label">Vehicle No</label>
-            <select className="aws-select" value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}>
-              <option value="">All Vehicles</option>
-              {uniqueVehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
-            </select>
-          </div>
-          <div className="aws-filter-group">
-            <label className="aws-filter-label">Mode</label>
-            <select className="aws-select" value={selectedMode} onChange={e => setSelectedMode(e.target.value)}>
-              <option value="">All Modes</option>
-              {uniqueModes.map((m, i) => <option key={i} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="aws-filter-group aws-mobile-hide">
-            <label className="aws-filter-label">Row Status</label>
-            <select className="aws-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)}>
-              <option value="">All Row Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="aws-filter-group aws-mobile-hide">
-            <label className="aws-filter-label">Overall Approval</label>
-            <select className="aws-select" value={selectedApprovalStatus} onChange={e => setSelectedApprovalStatus(e.target.value)}>
-              <option value="">All Approvals</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-          <div className="aws-filter-group" style={{ justifyContent: "flex-end" }}>
-            <button type="button" className="aws-btn-reset" onClick={() => {
-              setSelectedVendor("");
-              setSelectedVehicle("");
-              setSelectedMode("");
-              setSelectedStatus("");
-              setSelectedApprovalStatus("");
-              setStartDate("");
-              setEndDate("");
-              setSearchQuery("");
-            }}>Reset Filters</button>
-          </div>
-        </div>
-      )}
 
       {showVendorMisForm && (
          <form className="glass-panel slide-down" style={{ padding: "2rem", marginBottom: "2rem" }} onSubmit={async e => {

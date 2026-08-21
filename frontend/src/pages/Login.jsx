@@ -288,7 +288,7 @@ const Login = () => {
             {/* Minimalist Logo Overlay */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', gap: '1.5rem' }}>
-                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
+                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" className="breathing-logo" style={{ width: '120px', height: '120px', objectFit: 'contain', borderRadius: '50%' }} />
                 <div>
                   <h2 style={{ 
                     margin: 0, 
@@ -402,89 +402,142 @@ const Login = () => {
             position: 'relative', 
             zIndex: 10,
             background: '#ffffff',
-            padding: '3.5rem 3rem',
+            padding: '2.75rem 2.25rem',
             borderRadius: '24px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 40px rgba(124, 58, 237, 0.03)',
-            border: '1px solid rgba(0,0,0,0.03)'
+            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+            border: 'none'
           }}>
             
-            {/* Mobile Logo */}
-            <div className="mobile-only-logo" style={{ display: 'none', marginBottom: '2.5rem' }}>
-              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', gap: '1rem' }}>
-                <img src="/circle_crop_logo.png" alt="Multi Marg Logo" style={{ width: '60px', height: '60px', objectFit: 'contain' }} />
-                <div>
-                  <h2 style={{ 
-                    margin: 0, 
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontSize: '1.25rem', 
-                    fontWeight: 800, 
-                    letterSpacing: '-0.02em', 
-                    background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    lineHeight: 1.1,
-                  }}>
-                    Multimarg Carriers Pvt Ltd
-                  </h2>
-                  <p style={{ 
-                    margin: 0, 
-                    fontFamily: "'Outfit', sans-serif", 
-                    fontSize: '0.7rem', 
-                    color: '#FF5A1F', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '2px', 
-                    fontWeight: 700 
-                  }}>
-                    Logistics Platform
-                  </p>
+            {/* Centered Brand Header */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '1.75rem' }}>
+              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none' }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img 
+                    src="/circle_crop_logo.png" 
+                    alt="Multimarg Logo" 
+                    className="breathing-logo"
+                    style={{ 
+                      width: '68px', 
+                      height: '68px', 
+                      objectFit: 'contain', 
+                      marginBottom: '0.75rem',
+                      borderRadius: '50%'
+                    }} 
+                  />
                 </div>
+                <h2 style={{ 
+                  margin: 0, 
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: '1.35rem', 
+                  fontWeight: 800, 
+                  letterSpacing: '-0.02em', 
+                  background: 'linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  lineHeight: 1.2
+                }}>
+                  Multimarg Carriers
+                </h2>
+                <p style={{ 
+                  margin: '0.2rem 0 0 0', 
+                  fontFamily: "'Outfit', sans-serif", 
+                  fontSize: '0.68rem', 
+                  color: '#FF5A1F', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '2.5px', 
+                  fontWeight: 700 
+                }}>
+                  Logistics Platform
+                </p>
               </a>
             </div>
 
           <style>{`
+            @keyframes logoBreathe {
+              0% {
+                transform: scale(1);
+                filter: drop-shadow(0 4px 10px rgba(255, 90, 31, 0.25));
+              }
+              50% {
+                transform: scale(1.08);
+                filter: drop-shadow(0 8px 25px rgba(255, 90, 31, 0.75)) drop-shadow(0 0 35px rgba(255, 138, 0, 0.5));
+              }
+              100% {
+                transform: scale(1);
+                filter: drop-shadow(0 4px 10px rgba(255, 90, 31, 0.25));
+              }
+            }
+            .breathing-logo {
+              animation: logoBreathe 3s ease-in-out infinite;
+              will-change: transform, filter;
+            }
             @media (max-width: 1100px) {
               .showcase-sidebar { display: none !important; }
-              .mobile-only-logo { display: block !important; }
-              .desktop-only-logo { display: none !important; }
-              .login-sidebar { flex: 1 !important; max-width: 100% !important; padding: 2rem !important; }
+              .login-sidebar { 
+                flex: 1 !important; 
+                max-width: 100% !important; 
+                padding: 1.5rem 1rem !important; 
+                background: linear-gradient(180deg, #f8fafc 0%, #ede9fe 100%) !important;
+                min-height: 100vh !important;
+              }
+              .login-form-container {
+                padding: 2.25rem 1.5rem !important;
+                border-radius: 20px !important;
+                box-shadow: 0 15px 35px -10px rgba(30, 27, 75, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.9) !important;
+              }
+            }
+            @media (max-width: 480px) {
+              .login-sidebar {
+                padding: 1rem 0.75rem !important;
+              }
+              .login-form-container {
+                padding: 1.75rem 1.25rem !important;
+                border-radius: 18px !important;
+              }
             }
             .input-group {
               position: relative;
-              margin-bottom: 1.25rem;
+              margin-bottom: 1.15rem;
             }
             .input-field {
               width: 100%;
-              background: #ffffff;
-              border: 1px solid #dadce0;
-              padding: 0.85rem 2.8rem 0.85rem 2.8rem;
-              border-radius: 4px;
-              color: #202124;
-              font-size: 1rem;
+              height: 48px;
+              background: #f8fafc;
+              border: 1.5px solid #e2e8f0;
+              padding: 0 2.8rem;
+              border-radius: 10px;
+              color: #0f172a;
+              font-size: 0.95rem;
               transition: all 0.2s ease;
               outline: none;
+              box-sizing: border-box;
             }
             .input-field:hover {
-              border-color: #9aa0a6;
+              border-color: #cbd5e1;
+              background: #ffffff;
             }
             .input-field:focus {
-              border-color: #1a73e8;
-              box-shadow: inset 0 0 0 1px #1a73e8;
+              border-color: #2563eb;
+              background: #ffffff;
+              box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
             }
             .input-field::placeholder {
-              color: #80868b;
+              color: #94a3b8;
             }
             .icon-wrapper {
               position: absolute;
-              left: 0.85rem;
+              left: 0.95rem;
               top: 50%;
               transform: translateY(-50%);
-              color: #5f6368;
+              color: #94a3b8;
               transition: color 0.2s ease;
               pointer-events: none;
+              display: flex;
+              align-items: center;
             }
             .input-group:focus-within .icon-wrapper {
-              color: #1a73e8;
+              color: #2563eb;
             }
             .password-toggle-btn {
               position: absolute;
@@ -493,56 +546,53 @@ const Login = () => {
               transform: translateY(-50%);
               background: transparent;
               border: none;
-              color: #5f6368;
+              color: #94a3b8;
               cursor: pointer;
-              padding: 0;
+              padding: 6px;
               display: flex;
               align-items: center;
               justify-content: center;
               transition: color 0.2s ease;
+              border-radius: 6px;
             }
             .password-toggle-btn:hover {
-              color: #202124;
-            }
-            .password-toggle-btn:focus {
-              outline: 2px solid rgba(26, 115, 232, 0.4);
-              outline-offset: 2px;
-              border-radius: 50%;
+              color: #0f172a;
+              background: rgba(0,0,0,0.04);
             }
             .btn-primary {
               width: 100%;
-              background: linear-gradient(90deg, #FF9900 0%, #a855f7 100%);
-              color: white;
+              height: 48px;
+              background: linear-gradient(135deg, #FF8A00 0%, #FF5A1F 50%, #E53935 100%);
+              color: #ffffff;
               border: none;
-              padding: 0.95rem;
-              border-radius: 8px;
-              font-size: 1.05rem;
-              font-weight: 600;
+              padding: 0 1.25rem;
+              border-radius: 10px;
+              font-size: 1rem;
+              font-weight: 700;
               cursor: pointer;
               transition: all 0.2s ease;
               display: flex;
               justify-content: center;
               align-items: center;
               gap: 0.5rem;
-              margin-top: 1.5rem;
-              box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+              box-shadow: 0 8px 20px rgba(255, 90, 31, 0.3);
             }
             .btn-primary:hover:not(:disabled) {
-              background: linear-gradient(90deg, #ea8a00 0%, #9333ea 100%);
-              box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3);
+              background: linear-gradient(135deg, #ea7b00 0%, #e04a12 50%, #cc2c28 100%);
+              box-shadow: 0 10px 24px rgba(255, 90, 31, 0.4);
               transform: translateY(-1px);
             }
             .btn-primary:active:not(:disabled) {
               transform: translateY(1px);
             }
             .btn-primary:disabled {
-              opacity: 0.6;
+              opacity: 0.65;
               cursor: not-allowed;
             }
             .link-btn {
               background: transparent;
               border: none;
-              color: #1a73e8;
+              color: #2563eb;
               font-size: 0.875rem;
               font-weight: 600;
               cursor: pointer;
@@ -550,49 +600,52 @@ const Login = () => {
               padding: 0;
             }
             .link-btn:hover {
-              color: #1557b0;
+              color: #1d4ed8;
               text-decoration: underline;
             }
             .alert-box {
               padding: 0.75rem 1rem;
-              border-radius: 4px;
-              margin-bottom: 1.5rem;
-              font-size: 0.9rem;
+              border-radius: 8px;
+              margin-bottom: 1.25rem;
+              font-size: 0.88rem;
               font-weight: 500;
               display: flex;
               align-items: flex-start;
-              gap: 0.75rem;
+              gap: 0.65rem;
             }
             .alert-error {
-              background: #fce8e6;
-              color: #c5221f;
-              border: 1px solid #fad2cf;
+              background: #fef2f2;
+              color: #b91c1c;
+              border: 1px solid #fecaca;
             }
             .alert-success {
-              background: #e6f4ea;
-              color: #137333;
-              border: 1px solid #ceead6;
+              background: #f0fdf4;
+              color: #15803d;
+              border: 1px solid #bbf7d0;
             }
             .google-btn {
               width: 100%;
+              height: 46px;
               display: flex;
               align-items: center;
               justify-content: center;
               gap: 0.75rem;
               background: #ffffff;
-              border: 1px solid #dadce0;
-              color: #3c4043;
-              font-family: "Google Sans", Roboto, Arial, sans-serif;
-              font-weight: 500;
-              font-size: 0.95rem;
-              height: 44px;
-              border-radius: 4px;
+              border: 1.5px solid #e2e8f0;
+              color: #334155;
+              font-family: inherit;
+              font-weight: 600;
+              font-size: 0.92rem;
+              border-radius: 10px;
               cursor: pointer;
-              transition: background-color 0.2s, box-shadow 0.2s;
+              transition: all 0.2s;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
             }
             .google-btn:hover {
-              background: #f8f9fa;
-              box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+              background: #f8fafc;
+              border-color: #cbd5e1;
+              color: #0f172a;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
             }
             .sr-only {
               position: absolute;
@@ -611,46 +664,40 @@ const Login = () => {
             <button 
               onClick={() => { setView('login'); setError(''); setSuccessMsg(''); }}
               className="link-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '2rem', textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '1.5rem', textDecoration: 'none' }}
             >
               <ArrowLeft size={16} /> Back to sign in
             </button>
           )}
 
-          <div style={{ marginBottom: '2.5rem', marginTop: view === 'login' ? '0' : '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            
-            {/* Branding Logo at Top of Form */}
-            <div className="desktop-only-logo" style={{ marginBottom: '1.5rem' }}>
-              <a href={import.meta.env.VITE_FRONTEND_URL || "http://localhost:5174"}>
-                <img src="/mc.png" alt="Multi Marg Logo" style={{ height: '56px', objectFit: 'contain' }} />
-              </a>
-            </div>
-
+          <div style={{ marginBottom: '1.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             {view === 'login' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Welcome <span style={{ color: '#7c3aed' }}>back!</span></h2>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Sign in to your Multi Marg account</p>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center', letterSpacing: '-0.02em' }}>
+                  Welcome <span style={{ color: '#FF5A1F' }}>back!</span>
+                </h2>
+                <p style={{ color: '#64748b', margin: 0, fontSize: '0.92rem', textAlign: 'center' }}>Sign in to your Multi Marg account</p>
               </>
             )}
             
             {view === 'forgot' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Account <span style={{ color: '#7c3aed' }}>recovery</span></h2>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Recover your Multi Marg Account</p>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center' }}>Account <span style={{ color: '#FF5A1F' }}>recovery</span></h2>
+                <p style={{ color: '#64748b', margin: 0, fontSize: '0.92rem', textAlign: 'center' }}>Recover your Multi Marg Account</p>
               </>
             )}
             
             {view === 'otp' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Verify it's <span style={{ color: '#7c3aed' }}>you</span></h2>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>We sent a code to your registered email for <strong>{email}</strong></p>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center' }}>Verify it's <span style={{ color: '#FF5A1F' }}>you</span></h2>
+                <p style={{ color: '#64748b', margin: 0, fontSize: '0.92rem', textAlign: 'center' }}>We sent a code to your registered email for <strong>{email}</strong></p>
               </>
             )}
             
             {view === 'reset' && (
               <>
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '0 0 0.5rem 0', fontFamily: "'Google Sans', Roboto, Arial, sans-serif", textAlign: 'center' }}>Change <span style={{ color: '#7c3aed' }}>password</span></h2>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '1.05rem', textAlign: 'center' }}>Create a strong password</p>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center' }}>Change <span style={{ color: '#FF5A1F' }}>password</span></h2>
+                <p style={{ color: '#64748b', margin: 0, fontSize: '0.92rem', textAlign: 'center' }}>Create a strong password</p>
               </>
             )}
           </div>
@@ -688,7 +735,7 @@ const Login = () => {
                 />
               </div>
 
-              <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+              <div className="input-group" style={{ marginBottom: '0.5rem' }}>
                 <label htmlFor="login-password" className="sr-only">Password</label>
                 <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
                 <input 
@@ -708,29 +755,29 @@ const Login = () => {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1.25rem', marginTop: '0.4rem' }}>
                 <button 
                   type="button" 
                   className="link-btn"
                   onClick={() => { setView('forgot'); setError(''); setSuccessMsg(''); }}
-                  style={{ color: '#7c3aed' }}
+                  style={{ color: '#2563eb' }}
                 >
                   Forgot password?
                 </button>
               </div>
 
-              <div style={{ marginTop: '1.5rem' }}>
+              <div>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', position: 'relative' }}>
                     <span>{loading ? 'Signing in...' : 'Sign in'}</span>
-                    {!loading && <ArrowRight size={18} style={{ position: 'absolute', right: '1rem' }} />}
+                    {!loading && <ArrowRight size={18} style={{ position: 'absolute', right: '0.5rem' }} />}
                   </div>
                 </button>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', margin: '2rem 0 1.5rem 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0 1.25rem 0' }}>
                 <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
-                <span style={{ padding: '0 1rem', color: '#64748b', fontSize: '0.85rem' }}>or</span>
+                <span style={{ padding: '0 0.85rem', color: '#94a3b8', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>or</span>
                 <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
               </div>
               
@@ -752,7 +799,7 @@ const Login = () => {
 
           {view === 'forgot' && (
             <form onSubmit={handleForgotPassword}>
-              <div className="input-group" style={{ marginBottom: '2rem' }}>
+              <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                 <label htmlFor="forgot-email" className="sr-only">Email, Username, or Emp Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
@@ -769,7 +816,7 @@ const Login = () => {
                 />
               </div>
               
-              <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ marginTop: '1.25rem' }}>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Sending...' : 'Next'}
                 </button>
@@ -798,7 +845,7 @@ const Login = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1.5rem' }}>
                 <button type="submit" className="btn-primary" disabled={loading || otp.length !== 6}>
                   {loading ? 'Verifying...' : 'Verify'}
                 </button>
@@ -807,7 +854,7 @@ const Login = () => {
                   type="button" 
                   className="link-btn"
                   onClick={handleForgotPassword}
-                  style={{ color: resendTimer > 0 ? '#80868b' : '#1a73e8', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', textAlign: 'center', width: '100%', marginTop: '0.5rem' }}
+                  style={{ color: resendTimer > 0 ? '#94a3b8' : '#2563eb', cursor: resendTimer > 0 ? 'not-allowed' : 'pointer', textAlign: 'center', width: '100%', marginTop: '0.25rem' }}
                   disabled={loading || resendTimer > 0}
                 >
                   {resendTimer > 0 ? `Resend code in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend code'}
@@ -839,7 +886,7 @@ const Login = () => {
                 </button>
               </div>
               
-              <div className="input-group" style={{ marginBottom: '2rem' }}>
+              <div className="input-group" style={{ marginBottom: '1.5rem' }}>
                 <label htmlFor="confirm-password" className="sr-only">Confirm new password</label>
                 <div className="icon-wrapper"><CheckCircle size={18} strokeWidth={2} /></div>
                 <input 
@@ -860,13 +907,17 @@ const Login = () => {
                 </button>
               </div>
               
-              <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ marginTop: '1.25rem' }}>
                 <button type="submit" className="btn-primary" disabled={loading || !newPassword || !confirmPassword}>
                   {loading ? 'Saving...' : 'Save password'}
                 </button>
               </div>
             </form>
           )}
+
+          <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8' }}>
+            © 2026 Multimarg Carriers Pvt Ltd
+          </div>
 
 
 
