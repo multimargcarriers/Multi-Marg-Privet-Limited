@@ -1,14 +1,15 @@
 import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff, Fingerprint, ShieldCheck, Smartphone } from 'lucide-react';
+import { promptDeviceScreenLock, isBiometricSupported } from '../utils/deviceBiometrics';
 
 import { useNavigate } from 'react-router-dom';
 import appDB from '../utils/appDB';
 
 const Login = () => {
   const navigate = useNavigate();
-  // View states: 'login', 'forgot', 'otp', 'reset'
+  // View states: 'login', 'forgot', 'otp', 'reset', 'device_auth'
   const [view, setView] = useState('login');
   
   // Form states
@@ -18,9 +19,11 @@ const Login = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
+  const [pendingAuth, setPendingAuth] = useState(null);
   
   // UI states
   const [loading, setLoading] = useState(false);
+  const [deviceAuthLoading, setDeviceAuthLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
@@ -55,42 +58,71 @@ const Login = () => {
   }, [resendTimer, view]);
   
   const { login, user, loading: authLoading } = useContext(AuthContext);
-  
-  useEffect(() => {
-    if (user && !authLoading) {
-      const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com';
-      const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
-      
-      let target = '/profile';
-      if (hasDashboard) {
-        target = '/dashboard';
-      } else if (user.role === 'Client' || user.role === 'Vendor') {
-        if (user.permissions && user.permissions.includes('tripmis')) {
-          target = '/trip-mis';
-        } else if (user.permissions && user.permissions.includes('vendormis')) {
-          target = '/vendor-mis';
-        } else if (user.permissions && user.permissions.includes('trips')) {
-          target = '/trips';
-        }
-      }
-      navigate(target, { replace: true });
-    }
-  }, [user, authLoading, navigate]);
-
-  if (authLoading || user) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
-        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
-      </div>
-    );
-  }
-
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  const triggerDeviceVerification = async (targetUser, targetToken) => {
+    const userObj = targetUser || pendingAuth?.user;
+    const tokenObj = targetToken || pendingAuth?.token;
+    if (!userObj || !tokenObj) return;
+
+    setDeviceAuthLoading(true);
+    setError('');
+    try {
+      const res = await promptDeviceScreenLock(userObj);
+      if (res.success) {
+        login(userObj, tokenObj);
+      } else if (res.reason === 'CANCELLED') {
+        setError('Device verification was cancelled. Tap below to scan fingerprint or authorize this device.');
+      } else {
+        setError(res.message || 'Device authentication required. Tap below to scan or confirm.');
+      }
+    } catch (err) {
+      console.error("Device auth error:", err);
+      setError('Device verification error. Tap below to verify.');
+    } finally {
+      setDeviceAuthLoading(false);
+    }
+  };
+
+  const handleGoogleCredentialResponse = async (response) => {
+    const idToken = response.credential;
+    if (!idToken) return;
+
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/google-login`, { idToken });
+      if (res.data.success) {
+        const authData = res.data.data;
+        setPendingAuth(authData);
+        setView('device_auth');
+        setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google Sign-In failed. Access denied.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerGoogleSignIn = () => {
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      setError('Google Sign-In SDK is initializing. Please try again in a moment.');
+      return;
+    }
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        window.google.accounts.id.prompt();
+      }
+    });
+  };
 
   // Google Sign-In SDK Initialization (run only once)
   const googleInitRef = React.useRef(false);
   useEffect(() => {
-    if (googleInitRef.current) return; // Prevent duplicate init (e.g., StrictMode double mount)
+    if (googleInitRef.current) return;
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!googleClientId) {
       console.error('Google Client ID missing');
@@ -120,39 +152,26 @@ const Login = () => {
     googleInitRef.current = true;
   }, []);
 
-  const handleGoogleCredentialResponse = async (response) => {
-    const idToken = response.credential;
-    if (!idToken) return;
-
-    setLoading(true);
-    setError('');
-    setSuccessMsg('');
-
-    try {
-      const res = await axios.post(`${API_URL}/api/auth/google-login`, { idToken });
-      if (res.data.success) {
-        login(res.data.data.user, res.data.data.token);
+  useEffect(() => {
+    if (user && !authLoading) {
+      const isSuperAdmin = user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com';
+      const hasDashboard = isSuperAdmin || (user.permissions && (user.permissions.includes('all') || user.permissions.includes('dashboard')));
+      
+      let target = '/profile';
+      if (hasDashboard) {
+        target = '/dashboard';
+      } else if (user.role === 'Client' || user.role === 'Vendor') {
+        if (user.permissions && user.permissions.includes('tripmis')) {
+          target = '/trip-mis';
+        } else if (user.permissions && user.permissions.includes('vendormis')) {
+          target = '/vendor-mis';
+        } else if (user.permissions && user.permissions.includes('trips')) {
+          target = '/trips';
+        }
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Google Sign-In failed. Access denied.');
-    } finally {
-      setLoading(false);
+      navigate(target, { replace: true });
     }
-  };
-
-  const triggerGoogleSignIn = () => {
-    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-      setError('Google Sign-In SDK is initializing. Please try again in a moment.');
-      return;
-    }
-    // Prompt the One Tap UI; initialization already performed in useEffect
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        // Retry prompt if not displayed or skipped
-        window.google.accounts.id.prompt();
-      }
-    });
-  };
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -166,7 +185,11 @@ const Login = () => {
       });
 
       if (response.data.success) {
-        login(response.data.data.user, response.data.data.token);
+        const authData = response.data.data;
+        setPendingAuth(authData);
+        setView('device_auth');
+        // Trigger device verification step
+        setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Server error. Please try again.');
@@ -251,6 +274,14 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  if (authLoading || user) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -680,6 +711,15 @@ const Login = () => {
               </>
             )}
             
+            {view === 'device_auth' && (
+              <>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center', letterSpacing: '-0.02em' }}>
+                  Device <span style={{ color: '#2563eb' }}>Verification</span>
+                </h2>
+                <p style={{ color: '#64748b', margin: 0, fontSize: '0.85rem', textAlign: 'center' }}>Step 2 of 2 • Compulsory device security check</p>
+              </>
+            )}
+
             {view === 'forgot' && (
               <>
                 <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.35rem 0', fontFamily: "inherit", textAlign: 'center' }}>Account <span style={{ color: '#FF5A1F' }}>recovery</span></h2>
@@ -795,6 +835,100 @@ const Login = () => {
                 Continue with Google
               </button>
             </form>
+          )}
+
+          {view === 'device_auth' && pendingAuth && (
+            <div style={{ width: '100%', textAlign: 'center' }}>
+              <div style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 0.75rem auto',
+                  color: '#ffffff',
+                  fontSize: '1.35rem',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
+                }}>
+                  {(pendingAuth.user?.name || pendingAuth.user?.email || 'U').slice(0, 2).toUpperCase()}
+                </div>
+                <h4 style={{ margin: '0 0 2px 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+                  {pendingAuth.user?.name || pendingAuth.user?.fullName || 'User'}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                  {pendingAuth.user?.email || pendingAuth.user?.username}
+                </p>
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle size={13} /> Password Verified
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(37, 99, 235, 0.06)',
+                border: '1px solid rgba(37, 99, 235, 0.2)',
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                fontSize: '0.82rem',
+                color: '#1e40af',
+                marginBottom: '1.5rem',
+                lineHeight: '1.45',
+                textAlign: 'center'
+              }}>
+                Device screen lock or fingerprint verification is <strong>compulsory</strong> to access your account.
+              </div>
+
+              <button
+                type="button"
+                onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
+                disabled={deviceAuthLoading}
+                className="btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '0.85rem'
+                }}
+              >
+                <Fingerprint size={22} className={deviceAuthLoading ? "spin-animation" : ""} />
+                <span>{deviceAuthLoading ? 'Verifying Device...' : 'Scan Fingerprint / Device Lock'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => login(pendingAuth.user, pendingAuth.token)}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '0.65rem 1rem',
+                  color: '#475569',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  width: '100%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ShieldCheck size={16} color="#16a34a" /> Confirm Device Access
+              </button>
+            </div>
           )}
 
           {view === 'forgot' && (

@@ -8,6 +8,7 @@ import { BadgeContext } from '../context/BadgeContext';
 import { useSync } from '../context/SyncContext';
 import QuickAddModal from './QuickAddModal';
 import axios from 'axios';
+import { getInitialsAvatar } from '../utils/avatar';
 import { } from '../context/ToastContext';
 
 const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
@@ -34,7 +35,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
       }
       return src;
     }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF9900&color=fff`;
+    return getInitialsAvatar(userName, '#FF9900', '#ffffff');
   };
 
   const [dropdownOpen, setDropdownOpen] = useState(false);

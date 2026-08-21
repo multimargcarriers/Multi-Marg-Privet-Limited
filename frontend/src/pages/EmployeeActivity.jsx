@@ -6,6 +6,7 @@ import { useDialog } from '../context/DialogContext';
 import axios from 'axios';
 import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint,  X } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
+import { getInitialsAvatar } from '../utils/avatar';
 
 const EmployeeActivity = () => {
   const { token, user } = useContext(AuthContext);
@@ -324,7 +325,7 @@ const EmployeeActivity = () => {
                         
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                           <img 
-                            src={emp.photo && !emp.photo.startsWith('/api') ? emp.photo : (emp.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${emp.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=f3f4f6&color=475569`)}
+                            src={emp.photo && !emp.photo.startsWith('/api') ? emp.photo : (emp.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${emp.photo}` : getInitialsAvatar(emp.name, '#f3f4f6', '#475569'))}
                             alt={emp.name}
                             style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '4px solid var(--surface-color)', backgroundColor: 'var(--surface-color)', boxShadow: 'var(--shadow-sm)' }}
                           />

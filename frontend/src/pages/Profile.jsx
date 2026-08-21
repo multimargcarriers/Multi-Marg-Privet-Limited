@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import IDCardFront from '../components/IDCardFront';
 import IDCardBack from '../components/IDCardBack';
 import { SettingsContext } from '../context/SettingsContext';
+import { getInitialsAvatar } from '../utils/avatar';
 
 const Profile = () => {
   const { user, updateUser, token, logout } = useContext(AuthContext);
@@ -102,7 +103,7 @@ const Profile = () => {
       }
       return src;
     }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0078D4&color=fff&size=150`;
+    return getInitialsAvatar(user?.name || 'User', '#0078D4', '#ffffff');
   };
 
   const getBannerUrl = () => {

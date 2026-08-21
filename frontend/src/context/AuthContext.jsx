@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useToast } from './ToastContext';
 import appDB from '../utils/appDB';
+import DeviceLockModal from '../components/DeviceLockModal';
 
 export const AuthContext = createContext();
 
@@ -14,10 +15,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isScreenLocked, setIsScreenLocked] = useState(() => {
+    return sessionStorage.getItem('is_device_locked') === 'true';
+  });
   const { addToast } = useToast();
   
   const navigate = useNavigate();
   const _location = useLocation();
+
+  const lastActiveTimeRef = useRef(Date.now());
+  const INACTIVITY_LOCK_MS = 5 * 60 * 1000; // 5 minutes inactivity / background threshold
 
   const normalizeUserData = (userData) => {
     if (!userData) return userData;
@@ -37,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         // Update token if the backend provided a fresh one (e.g. updated permissions)
         if (res.data.token) {
           setToken(res.data.token);
-          localStorage.setItem('token', res.data.token);  // token stays in localStorage for sync interceptor access
+          localStorage.setItem('token', res.data.token);
         }
       }
     } catch (e) {
@@ -59,7 +66,6 @@ export const AuthProvider = ({ children }) => {
         const cleanUser = normalizeUserData(storedUser);
         setUser(cleanUser);
         appDB.set('user', cleanUser);
-        // Instantly unlock UI if cached data exists (0s cold start)
         setLoading(false);
       }
       // Silently sync fresh data from DB in background
@@ -67,9 +73,8 @@ export const AuthProvider = ({ children }) => {
         if (!storedUser) setLoading(false);
       });
 
-      // Refresh token on window focus to handle IAM changes seamlessly
       const onFocus = () => {
-        const currentToken = localStorage.getItem('token');  // token stays in localStorage
+        const currentToken = localStorage.getItem('token');
         if (currentToken) fetchMe(currentToken);
       };
       window.addEventListener('focus', onFocus);
@@ -79,72 +84,96 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const logoutTimerId = useRef(null);
-  const warningTimerId = useRef(null);
-  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-  const WARNING_BEFORE_MS = 60 * 1000; // Show warning 1 minute before logout
-
+  // -------------------------------------------------------------
+  // 5-Minute Inactivity & Background Biometric Lock Screen Engine
+  // -------------------------------------------------------------
   useEffect(() => {
-    // Axios 401 Interceptor
-    const interceptor = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response && error.response.status === 401) {
-          console.error("401 Unauthorized triggered by:", error.config?.url);
-          logout();
-        }
-        return Promise.reject(error);
-      }
-    );
+    if (!user || !token) return;
 
-    const resetIdleTimer = () => {
-      if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
-      if (warningTimerId.current) clearTimeout(warningTimerId.current);
-      if (user && token) {
-        // Warning toast 1 minute before auto-logout
-        warningTimerId.current = setTimeout(() => {
-          addToast("Your session will expire in 1 minute due to inactivity. Move your mouse to stay logged in.", "warning");
-        }, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS);
-        
-        logoutTimerId.current = setTimeout(() => {
-          addToast("Session expired due to inactivity.", "warning");
-          logout();
-        }, IDLE_TIMEOUT_MS);
+    // Check if user was inactive or away for >= 5 minutes
+    const checkElapsedInactivity = () => {
+      const lastActive = localStorage.getItem('mm_last_active');
+      if (lastActive) {
+        const elapsed = Date.now() - parseInt(lastActive, 10);
+        if (elapsed >= INACTIVITY_LOCK_MS) {
+          setIsScreenLocked(true);
+          sessionStorage.setItem('is_device_locked', 'true');
+        }
       }
     };
 
-    // Event listeners for idle timeout — includes touch for mobile
-    const events = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'];
-    const handleActivity = () => resetIdleTimer();
-    
-    if (user && token) {
-      events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
-      resetIdleTimer();
-    }
+    // Check on mount/re-focus
+    checkElapsedInactivity();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkElapsedInactivity();
+        lastActiveTimeRef.current = Date.now();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      checkElapsedInactivity();
+      lastActiveTimeRef.current = Date.now();
+    };
+
+    // User interaction events reset on-screen activity
+    const recordUserActivity = () => {
+      const now = Date.now();
+      lastActiveTimeRef.current = now;
+      localStorage.setItem('mm_last_active', now.toString());
+    };
+
+    const activityEvents = ['mousemove', 'keydown', 'scroll', 'click', 'touchstart', 'touchmove'];
+    activityEvents.forEach(evt => window.addEventListener(evt, recordUserActivity, { passive: true }));
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    // Periodic check every 10s for inactive on-screen sessions (>= 5 minutes idle)
+    const intervalId = setInterval(() => {
+      const lastActive = localStorage.getItem('mm_last_active') || lastActiveTimeRef.current;
+      const idleElapsed = Date.now() - parseInt(lastActive, 10);
+      if (idleElapsed >= INACTIVITY_LOCK_MS) {
+        setIsScreenLocked(true);
+        sessionStorage.setItem('is_device_locked', 'true');
+      }
+    }, 10000);
 
     return () => {
-      axios.interceptors.response.eject(interceptor);
-      events.forEach(event => window.removeEventListener(event, handleActivity));
-      if (logoutTimerId.current) clearTimeout(logoutTimerId.current);
-      if (warningTimerId.current) clearTimeout(warningTimerId.current);
+      activityEvents.forEach(evt => window.removeEventListener(evt, recordUserActivity));
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      clearInterval(intervalId);
     };
   }, [user, token]);
+
+  const handleUnlockScreen = () => {
+    setIsScreenLocked(false);
+    sessionStorage.removeItem('is_device_locked');
+    const now = Date.now();
+    lastActiveTimeRef.current = now;
+    localStorage.setItem('mm_last_active', now.toString());
+    addToast('Device verified successfully', 'success');
+  };
 
   const login = (userData, userToken) => {
     const cleanUser = normalizeUserData(userData);
     setUser(cleanUser);
     setToken(userToken);
+    setIsScreenLocked(false);
+    sessionStorage.removeItem('is_device_locked');
+    sessionStorage.removeItem('bg_start_time');
+    lastActiveTimeRef.current = Date.now();
     appDB.set('user', cleanUser);
     localStorage.setItem('token', userToken);
 
-    // Determine initial route based on permissions
     const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimarg.com';
     const hasDashboard = isSuperAdmin || (userData.permissions && (userData.permissions.includes('all') || userData.permissions.includes('dashboard')));
     
     const savedRedirectUrl = localStorage.getItem('redirectUrl');
 
     if (savedRedirectUrl) {
-      localStorage.removeItem('redirectUrl');  // redirectUrl stays in localStorage
+      localStorage.removeItem('redirectUrl');
       navigate(savedRedirectUrl);
     } else if (hasDashboard) {
       navigate('/dashboard');
@@ -173,14 +202,13 @@ export const AuthProvider = ({ children }) => {
 
     setUser(null);
     setToken(null);
+    setIsScreenLocked(false);
     
-    // Clear IndexedDB cache
     try {
       await appDB.clear();
     } catch (err) {
       console.error("Failed to clear appDB during logout", err);
     }
-    // Clear localStorage (token, redirectUrl)
     localStorage.clear();
     sessionStorage.clear();
 
@@ -201,7 +229,6 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = (moduleName) => {
     if (!user) return false;
-    // Fallback for stale localStorage data
     if (user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com') return true;
     
     if (user.permissions && (user.permissions.includes('all') || user.permissions.includes(moduleName))) {
@@ -211,8 +238,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, fetchMe, hasPermission }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, token, loading, isScreenLocked, lockScreen: () => setIsScreenLocked(true), login, logout, updateUser, fetchMe, hasPermission }}>
+      {children}
+      {isScreenLocked && user && token && (
+        <DeviceLockModal
+          user={user}
+          onUnlock={handleUnlockScreen}
+          onLogout={logout}
+        />
+      )}
     </AuthContext.Provider>
   );
 };
