@@ -117,12 +117,14 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
       @media (max-width: 768px) {
         .topbar {
           padding: 0 0.75rem !important;
+          border-left: none !important;
+          border-right: none !important;
         }
         .topbar-left {
-          gap: 0.15rem !important;
+          gap: 0.25rem !important;
         }
         .topbar-right {
-          gap: 0.8rem !important;
+          gap: 0.6rem !important;
         }
         .font-size-adjuster {
           display: none !important;
@@ -135,8 +137,12 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
           height: 28px !important;
         }
         .topbar-logo {
-          height: 50px !important;
-          margin-left: -0.35rem !important;
+          height: 46px !important;
+          margin-left: -0.25rem !important;
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
         }
       }
     `}</style>
