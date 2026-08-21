@@ -196,14 +196,15 @@ const TdsDebtManagement = () => {
     openingBalances.forEach(o => {
       const priorTds = Number(o.totalTdsPrior) || 0;
       if (priorTds > 0) {
+        const isVendorParty = String(o.partyType || "").toLowerCase().trim() === "vendor";
         list.push({
           id: `prior_opening_${o.id}`,
           isPriorFYOpening: true,
           openingBalanceId: o.id,
           financialYear: o.financialYear || "2025-2026",
-          partyType: o.partyType || "Client",
-          client: o.partyName,
-          vendor: o.partyName,
+          partyType: isVendorParty ? "Vendor" : "Client",
+          client: isVendorParty ? "" : o.partyName,
+          vendor: isVendorParty ? o.partyName : "",
           particulars: "tds",
           amount: priorTds,
           date: o.asOfDate || "2026-03-31",
@@ -970,7 +971,7 @@ const TdsDebtManagement = () => {
         >
           👥 All Adjustments
           <span style={{ fontSize: "0.75rem", padding: "1px 7px", borderRadius: "10px", backgroundColor: partyFilter === "All" ? "rgba(255,255,255,0.2)" : "#e2e8f0", color: partyFilter === "All" ? "#fff" : "#475569", fontWeight: "800" }}>
-            {adjustments.length}
+            {allAdjustmentsCombined.length}
           </span>
         </button>
 
@@ -994,7 +995,7 @@ const TdsDebtManagement = () => {
         >
           👤 Client TDS & Debt (Sales)
           <span style={{ fontSize: "0.75rem", padding: "1px 7px", borderRadius: "10px", backgroundColor: partyFilter === "Client" ? "rgba(255,255,255,0.2)" : "#dbeafe", color: partyFilter === "Client" ? "#fff" : "#1d4ed8", fontWeight: "800" }}>
-            {adjustments.filter(a => a.partyType !== "Vendor" && !a.vendor).length}
+            {allAdjustmentsCombined.filter(a => String(a.partyType || "Client").toLowerCase().trim() !== "vendor").length}
           </span>
         </button>
 
@@ -1018,7 +1019,7 @@ const TdsDebtManagement = () => {
         >
           🏢 Vendor TDS & Deductions (Purchases)
           <span style={{ fontSize: "0.75rem", padding: "1px 7px", borderRadius: "10px", backgroundColor: partyFilter === "Vendor" ? "rgba(255,255,255,0.2)" : "#ede9fe", color: partyFilter === "Vendor" ? "#fff" : "#6d28d9", fontWeight: "800" }}>
-            {adjustments.filter(a => a.partyType === "Vendor" || !!a.vendor).length}
+            {allAdjustmentsCombined.filter(a => String(a.partyType || "").toLowerCase().trim() === "vendor").length}
           </span>
         </button>
       </div>

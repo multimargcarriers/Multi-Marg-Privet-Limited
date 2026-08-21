@@ -643,7 +643,7 @@ const OpeningOutstanding = () => {
           pagination={true}
           defaultEntries={25}
           renderRow={(item) => {
-            const isVendor = item.partyType === "Vendor";
+            const isVendor = String(item.partyType || "").toLowerCase().trim() === "vendor";
             return (
               <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                 <td style={{ padding: "12px 16px", fontWeight: "700", color: "#475569", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
