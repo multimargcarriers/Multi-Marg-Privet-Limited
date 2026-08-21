@@ -157,8 +157,14 @@ const Dashboard = () => {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard/sync`);
-      if (response.data.success) {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      let response;
+      try {
+        response = await axios.post(`${apiUrl}/api/dashboard/sync`);
+      } catch (_e) {
+        response = await axios.post(`${apiUrl}/api/analytics/sync`);
+      }
+      if (response.data?.success) {
         addToast('Dashboard analytics synchronized with database', 'success');
         await fetchStats();
       }
