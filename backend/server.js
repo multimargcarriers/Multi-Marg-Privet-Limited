@@ -186,10 +186,11 @@ app.use("/api/", limiter);
 // Strict Rate Limiting for Auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts
+  max: NODE_ENV === "development" ? 1000 : 100, // 100 failed attempts per 15 minutes
+  skipSuccessfulRequests: true, // Successful logins never count against the limit
   message: {
     success: false,
-    message: "Too many login attempts, please try again after 15 minutes.",
+    message: "Too many failed login attempts, please try again after 15 minutes.",
   },
   standardHeaders: true,
   legacyHeaders: false,
