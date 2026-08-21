@@ -1075,88 +1075,96 @@ const OutstandingFinalSheet = () => {
   };
 
   return (
-    <div className="page-container" style={{ padding: "1.5rem" }}>
-      {/* Header Section */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
+    <div className="page-container" style={{ padding: "clamp(0.75rem, 2vw, 1.5rem)", width: "100%", boxSizing: "border-box" }}>
+      {/* Enterprise Header Section */}
+      <div style={{
+        background: "#ffffff",
+        borderRadius: "12px",
+        border: "1px solid #e2e8f0",
+        padding: "1rem 1.25rem",
+        marginBottom: "1.25rem",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "10px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Scale size={26} color="#ffffff" />
+            <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "8px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Scale size={22} color="#ffffff" />
             </div>
             <div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: "clamp(1.15rem, 2.2vw, 1.45rem)", fontWeight: 800, letterSpacing: "-0.02em" }}>
                 Total Balances & Dues Summary
               </h2>
-              <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "0.85rem" }}>
-                Easy overall calculation of money to receive from customers and money to pay to vendors.
+              <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+                Comprehensive ledger of receivables from customers & payables to vendors
               </p>
             </div>
           </div>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="btn"
-            onClick={handleRecalculateAll}
-            disabled={recalculating}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#eff6ff",
-              color: "#1d4ed8",
-              border: "1px solid #bfdbfe",
-              fontWeight: 600,
-              padding: "0.55rem 1rem",
-              borderRadius: "8px",
-              cursor: "pointer"
-            }}
-            title="Recalculate all party balances live"
-          >
-            <RefreshCw size={16} className={recalculating ? "spinner" : ""} />
-            {recalculating ? "Recalculating..." : "Recalculate & Sync"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={handleRecalculateAll}
+              disabled={recalculating}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                border: "1px solid #bfdbfe",
+                fontWeight: 700,
+                padding: "0.45rem 0.85rem",
+                borderRadius: "8px",
+                cursor: recalculating ? "not-allowed" : "pointer",
+                fontSize: "0.82rem"
+              }}
+              title="Recalculate all party balances live"
+            >
+              <RefreshCw size={14} className={recalculating ? "spin-animation" : ""} />
+              {recalculating ? "Syncing..." : "Sync Live Dues"}
+            </button>
 
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setExportModalOpen(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#16a34a",
-              color: "#ffffff",
-              border: "none",
-              fontWeight: 600,
-              padding: "0.55rem 1.1rem",
-              borderRadius: "8px",
-              cursor: "pointer"
-            }}
-          >
-            <Download size={16} /> Export Sheet
-          </button>
+            <button
+              type="button"
+              onClick={() => setExportModalOpen(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 700,
+                padding: "0.45rem 0.95rem",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "0.82rem",
+                boxShadow: "0 2px 4px rgba(16, 185, 129, 0.25)"
+              }}
+            >
+              <Download size={14} /> Export Sheet
+            </button>
 
-          <button
-            type="button"
-            className="btn"
-            onClick={() => window.print()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#ffffff",
-              color: "#334155",
-              border: "1px solid #cbd5e1",
-              fontWeight: 600,
-              padding: "0.55rem 1rem",
-              borderRadius: "8px",
-              cursor: "pointer"
-            }}
-          >
-            <Printer size={16} /> Print
-          </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: "#f8fafc",
+                color: "#334155",
+                border: "1px solid #cbd5e1",
+                fontWeight: 600,
+                padding: "0.45rem 0.85rem",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "0.82rem"
+              }}
+            >
+              <Printer size={14} /> Print
+            </button>
+          </div>
         </div>
       </div>
 

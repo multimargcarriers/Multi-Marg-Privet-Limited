@@ -366,57 +366,69 @@ const OpeningOutstanding = () => {
   };
 
   return (
-    <div style={{ padding: "0 clamp(0.5rem, 2vw, 1.5rem)", width: "100%", boxSizing: "border-box" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h2 style={{ fontSize: "clamp(1.25rem, 3vw, 1.8rem)", color: "#1e293b", fontWeight: "700", margin: "0 0 0.25rem 0" }}>
-            Prior Financial Year Opening Outstandings
-          </h2>
-          <p style={{ color: "#64748b", fontSize: "clamp(0.75rem, 2vw, 0.9rem)", margin: 0 }}>
-            Stored prior financial year closing outstandings (before 31st March) carried forward as reference balances from 1st April.
-          </p>
+    <div style={{ padding: "clamp(0.75rem, 2vw, 1.5rem)", width: "100%", boxSizing: "border-box" }}>
+      {/* Enterprise Unified Header */}
+      <div style={{
+        background: "#ffffff",
+        borderRadius: "12px",
+        border: "1px solid #e2e8f0",
+        padding: "1rem 1.25rem",
+        marginBottom: "1.25rem",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+      }}>
+        {/* Top Title Row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.85rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
+          <div>
+            <h2 style={{ fontSize: "clamp(1.15rem, 2.2vw, 1.45rem)", color: "#0f172a", fontWeight: "800", margin: 0, letterSpacing: "-0.02em" }}>
+              Prior Financial Year Opening Balances
+            </h2>
+            <p style={{ color: "#64748b", fontSize: "0.8rem", margin: "2px 0 0", fontWeight: 500 }}>
+              Stored prior financial year closing outstandings (before 31st March) carried forward as reference balances
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={() => navigate("/outstanding/final-sheet")}
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.8rem", padding: "0.45rem 0.85rem", background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+            >
+              <Scale size={14} /> Balances Summary
+            </button>
+
+            <button
+              onClick={() => setCloseFYModalOpen(true)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.8rem", padding: "0.45rem 0.85rem", background: "#fffbeb", border: "1px solid #fde68a", color: "#b45309", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+            >
+              <Calendar size={14} /> Close Financial Year
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-          {/* Final Outstanding Sheet */}
-          <button
-            onClick={() => navigate("/outstanding/final-sheet")}
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.95rem", background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(37, 99, 235, 0.25)" }}
-          >
-            <Scale size={15} /> Total Balances Summary
-          </button>
+        {/* Action Controls Row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              onClick={() => handleOpenModal(null)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 1rem", background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", border: "none", color: "white", borderRadius: "8px", cursor: "pointer", fontWeight: "700", boxShadow: "0 2px 4px rgba(37, 99, 235, 0.25)" }}
+            >
+              <Plus size={16} /> Add Opening Balance
+            </button>
 
-          <button
-            onClick={() => fetchData(true)}
-            className="btn btn-secondary"
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}
-          >
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
+            <button
+              onClick={handleExportCSV}
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 0.85rem", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", fontWeight: "600", color: "#334155" }}
+            >
+              <Download size={14} /> Export Report
+            </button>
 
-          <button
-            onClick={handleExportCSV}
-            className="btn btn-secondary"
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}
-          >
-            <Download size={15} /> Export Report
-          </button>
-
-          <button
-            onClick={() => handleOpenModal(null)}
-            className="btn btn-primary"
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 1.15rem", background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(29, 78, 216, 0.25)" }}
-          >
-            <Plus size={16} /> Add Opening Balance
-          </button>
-
-          <button
-            onClick={() => setCloseFYModalOpen(true)}
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 1.15rem", background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "700", boxShadow: "0 2px 4px rgba(180, 83, 9, 0.25)" }}
-          >
-            <Calendar size={16} /> Close Financial Year
-          </button>
+            <button
+              onClick={() => fetchData(true)}
+              disabled={loading}
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 0.85rem", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: loading ? "not-allowed" : "pointer", fontWeight: "600", color: "#334155" }}
+            >
+              <RefreshCw size={14} className={loading ? "spin-animation" : ""} /> {loading ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </div>
       </div>
 

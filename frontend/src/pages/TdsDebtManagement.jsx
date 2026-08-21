@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
+import { useSettings } from "../context/SettingsContext";
 import { useSocketSync } from "../hooks/useSocketSync";
 import Table from "../components/Table";
 
@@ -33,6 +34,8 @@ const TdsDebtManagement = () => {
   const navigate = useNavigate();
   const { confirm, alert: alertDialog } = useDialog();
   const { addToast } = useToast();
+  const { globalSettings } = useSettings();
+  const enableCsvImport = globalSettings?.integrations?.enableCsvImport !== false;
 
   // States
   const [clients, setClients] = useState([]);
@@ -919,49 +922,76 @@ const TdsDebtManagement = () => {
   };
 
   return (
-    <div style={{ padding: "0 clamp(0.5rem, 2vw, 1.5rem)", width: "100%", boxSizing: "border-box" }}>
-      {/* Page Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h2 style={{ fontSize: "clamp(1.25rem, 3vw, 1.8rem)", color: "#1e293b", fontWeight: "700", margin: "0 0 0.25rem 0" }}>
-            TDS & Debt Adjustment Management
-          </h2>
-          <p style={{ color: "#64748b", fontSize: "clamp(0.75rem, 2vw, 0.9rem)", margin: 0 }}>
-            Manage tax deductions, client bad debts, and adjust ledger outstanding balances.
-          </p>
+    <div style={{ padding: "clamp(0.75rem, 2vw, 1.5rem)", width: "100%", boxSizing: "border-box" }}>
+      {/* Enterprise Unified Header & Action Bar */}
+      <div style={{
+        background: "#ffffff",
+        borderRadius: "12px",
+        border: "1px solid #e2e8f0",
+        padding: "1rem 1.25rem",
+        marginBottom: "1.25rem",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+      }}>
+        {/* Top Title Row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.85rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
+          <div>
+            <h2 style={{ fontSize: "clamp(1.15rem, 2.2vw, 1.45rem)", color: "#0f172a", fontWeight: "800", margin: 0, letterSpacing: "-0.02em" }}>
+              TDS & Debt Adjustment Management
+            </h2>
+            <p style={{ color: "#64748b", fontSize: "0.8rem", margin: "2px 0 0", fontWeight: 500 }}>
+              Manage tax deductions, client bad debts, and adjust ledger outstanding balances
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            <button 
+              onClick={() => navigate("/outstanding/final-sheet")} 
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.8rem", padding: "0.45rem 0.85rem", background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+            >
+              <Scale size={14} /> Balances Summary
+            </button>
+            <button 
+              onClick={() => navigate("/opening-outstanding")} 
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.8rem", padding: "0.45rem 0.85rem", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+            >
+              <Calendar size={14} /> Prior FY Balances
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-          {/* CSV Import */}
-          <label className="btn btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: isImporting ? "not-allowed" : "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}>
-            <Upload size={15} />
-            {isImporting ? "Importing..." : "Import CSV"}
-            <input type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportCSV} disabled={isImporting} />
-          </label>
 
-          {/* Export */}
-          <button onClick={handleExport} className="btn btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}>
-            <Download size={15} /> Export
-          </button>
+        {/* Action Controls Row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+            <button 
+              onClick={openForm} 
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 1rem", background: "linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)", border: "none", color: "#ffffff", borderRadius: "8px", cursor: "pointer", fontWeight: "700", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.25)" }}
+            >
+              <Plus size={16} /> Add Adjustment
+            </button>
 
-          {/* Final Outstanding Sheet */}
-          <button onClick={() => navigate("/outstanding/final-sheet")} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.95rem", background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(37, 99, 235, 0.25)" }}>
-            <Scale size={15} /> Total Balances Summary
-          </button>
+            <button 
+              onClick={handleExport} 
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 0.85rem", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", fontWeight: "600", color: "#334155" }}
+            >
+              <Download size={15} /> Export CSV
+            </button>
 
-          {/* Opening Balances */}
-          <button onClick={() => navigate("/opening-outstanding")} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.95rem", background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(2, 132, 199, 0.25)" }}>
-            <Calendar size={15} /> Prior FY Balances
-          </button>
+            {enableCsvImport && (
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: isImporting ? "not-allowed" : "pointer", fontWeight: "600", backgroundColor: "#f8fafc", color: "#334155" }}>
+                <Upload size={15} />
+                {isImporting ? "Importing..." : "Import CSV"}
+                <input type="file" accept=".csv" style={{ display: "none" }} onChange={handleImportCSV} disabled={isImporting} />
+              </label>
+            )}
 
-          {/* Recalculate & Sync All */}
-          <button onClick={handleRecalculateAll} disabled={recalculating} className="btn btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: recalculating ? "not-allowed" : "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}>
-            <RefreshCw size={15} className={recalculating ? "spin" : ""} style={{ animation: recalculating ? "spin 1s linear infinite" : "none" }} /> {recalculating ? "Recalculating..." : "Recalculate & Sync"}
-          </button>
-
-          {/* New Record */}
-          <button onClick={openForm} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 1.15rem", background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(79, 70, 229, 0.25)" }}>
-            <Plus size={16} /> Add Adjustment
-          </button>
+            <button 
+              onClick={handleRecalculateAll} 
+              disabled={recalculating} 
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: recalculating ? "not-allowed" : "pointer", fontWeight: "600", backgroundColor: "#f8fafc", color: "#334155" }}
+            >
+              <RefreshCw size={14} className={recalculating ? "spin-animation" : ""} /> {recalculating ? "Syncing..." : "Sync Ledger"}
+            </button>
+          </div>
         </div>
       </div>
 
