@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -46,8 +46,10 @@ const TripMIS = () => {
   const { token, user } = useContext(AuthContext);
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
+  const isClientUser = user?.role === 'Client' || user?.role?.toLowerCase() === 'client';
 
-  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "", freight: "", pickup: "", delivery: "", special: "", other: "", parking: "", labor: "" };
+  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "0", freight: "0", pickup: "0", delivery: "0", special: "0", other: "0", parking: "0", labor: "0" };
   const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
@@ -637,7 +639,7 @@ const TripMIS = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Freight</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Freight" value={parcel.freight} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].freight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required /></div>
+                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="0.00" value={parcel.freight !== undefined ? parcel.freight : "0"} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].freight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required={isVendorUser} /></div>
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Pickup</label>
@@ -960,7 +962,7 @@ const TripMIS = () => {
                       </button>
                     </>
                   )}
-                  {(isAdminOrSuperAdmin || (user?.role === 'Vendor' && item.createdBy === user?.id && item.approvalStatus !== 'Approved')) && (
+                  {(isAdminOrSuperAdmin || ((isVendorUser || isClientUser) && item.approvalStatus !== 'Approved')) && (
                     <button onClick={() => {
                       const safeParcels = (item.parcels || []).map(p => ({
                         ...initialParcel,
@@ -971,9 +973,14 @@ const TripMIS = () => {
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowTripListForm(true);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} className="action-btn action-btn-primary">
-                      <Edit size={14} /> Edit
+                    }} className="action-btn action-btn-primary" title={isVendorUser ? "Enter / Update Rate" : "Edit Details"}>
+                      <Edit size={14} /> {isVendorUser ? "Enter Amount" : "Edit"}
                     </button>
+                  )}
+                  {(!isAdminOrSuperAdmin && item.approvalStatus === 'Approved') && (
+                    <span style={{ fontSize: "0.72rem", color: "#166534", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "4px 8px", borderRadius: "4px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }} title="This entry is Approved and locked">
+                      <Lock size={12} /> Locked
+                    </span>
                   )}
                   <button 
                     onClick={() => {

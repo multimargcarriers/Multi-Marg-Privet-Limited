@@ -5,6 +5,26 @@ const { getOrSet, delCache } = require("../config/redis");
 
 const CACHE_KEY = "vendor_mis";
 
+// Helper to check if a record belongs to the authenticated vendor
+const matchVendorUser = (data, user) => {
+  if (!user) return false;
+  const vendorVal = String(data.vendorName || data.vendor || data.vendor_name || '').toLowerCase().trim();
+  const userName = String(user.name || '').toLowerCase().trim();
+  const userEmail = String(user.email || '').toLowerCase().trim();
+  const userVendor = String(user.vendorName || user.vendor || '').toLowerCase().trim();
+
+  if (userVendor && (vendorVal === userVendor || vendorVal.includes(userVendor) || userVendor.includes(vendorVal))) {
+    return true;
+  }
+  if (userName && (vendorVal === userName || vendorVal.includes(userName) || userName.includes(vendorVal))) {
+    return true;
+  }
+  if (data.vendorEmail && userEmail && String(data.vendorEmail).toLowerCase().trim() === userEmail) {
+    return true;
+  }
+  return data.createdBy === user.id;
+};
+
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
@@ -19,7 +39,7 @@ exports.getRoot_1 = async (req, res) => {
 
   let records = allRecords;
   if (!isAdmin) {
-    records = allRecords.filter(r => r.createdBy === user.id);
+    records = allRecords.filter(r => matchVendorUser(r, user));
   }
 
   return success(res, "Vendor MIS fetched successfully", records);
@@ -36,11 +56,10 @@ exports.postRoot_2 = async (req, res) => {
 
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
-  // Non-admins have their entries marked as 'Pending' automatically
   if (!isAdmin) {
     payload.approvalStatus = 'Pending';
   } else {
-    payload.approvalStatus = 'Approved';
+    payload.approvalStatus = payload.approvalStatus || 'Pending';
   }
 
   if (!payload.tripNo || payload.tripNo.trim() === '') {
@@ -76,29 +95,45 @@ exports.put_id_3 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isVendorOwner = matchVendorUser(existingData, user);
 
-  // Non-admins cannot update approvalStatus
-  if (!isAdmin && req.body.approvalStatus && req.body.approvalStatus !== existingData.approvalStatus) {
-    return error(res, "You are not allowed to approve or reject entries.", 403);
+  // Authorization check
+  if (!isAdmin && !isVendorOwner) {
+    return error(res, "You are not authorized to edit this trip entry.", 403);
   }
 
-  // Non-admins can only edit their own entries
-  if (!isAdmin && existingData.createdBy !== user.id) {
-    return error(res, "You are not authorized to edit this entry.", 403);
+  // Once Approved, vendor CANNOT edit anything (Locked)
+  if (!isAdmin && existingData.approvalStatus === 'Approved') {
+    return error(res, "This trip entry has been Approved and locked by Admin. Contact Admin to make changes.", 403);
   }
 
-  delete req.body.id;
-  delete req.body.remarks;
+  // Non-admins cannot set approvalStatus directly to 'Approved'
+  if (!isAdmin && req.body.approvalStatus && req.body.approvalStatus === 'Approved') {
+    return error(res, "Only Admin can approve trip entries.", 403);
+  }
 
-  await db.collection("vendor_mis").doc(id).update(req.body);
+  const updatePayload = { ...req.body };
+  delete updatePayload.id;
+  delete updatePayload.remarks; // Remarks are updated via addRemark endpoint
+
+  // If vendor is updating an amount, mark status as 'Submitted' for Admin review if currently Pending
+  if (!isAdmin && updatePayload.approvalStatus === undefined) {
+    if (existingData.approvalStatus === 'Pending' || !existingData.approvalStatus) {
+      updatePayload.approvalStatus = 'Submitted';
+    }
+  }
+
+  updatePayload.updatedAt = new Date().toISOString();
+  updatePayload.lastModifiedBy = user.name || user.email || 'User';
+
+  await db.collection("vendor_mis").doc(id).update(updatePayload);
   await delCache(CACHE_KEY);
 
   return success(res, "Vendor MIS updated successfully", {
     id,
     ...existingData,
-    ...req.body
+    ...updatePayload
   });
 };
 
@@ -111,9 +146,15 @@ exports.delete_id_4 = async (req, res) => {
 
   const existingData = doc.data();
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isVendorOwner = matchVendorUser(existingData, user);
 
-  if (!isAdmin && existingData.createdBy !== user.id) {
+  if (!isAdmin && !isVendorOwner) {
     return error(res, "You are not authorized to delete this entry.", 403);
+  }
+
+  // Vendors CANNOT delete approved entries
+  if (!isAdmin && existingData.approvalStatus === 'Approved') {
+    return error(res, "Approved trip entries cannot be deleted by vendors.", 403);
   }
 
   await db.collection("vendor_mis").doc(id).delete(req.user);
@@ -137,18 +178,17 @@ exports.addRemark_5 = async (req, res) => {
 
   const existingData = doc.data();
   const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isVendorOwner = matchVendorUser(existingData, user);
 
-  if (!isAdmin && existingData.createdBy !== user.id) {
+  if (!isAdmin && !isVendorOwner) {
     return error(res, "You are not authorized to comment on this entry.", 403);
   }
-  if (!isAdmin && existingData.approvalStatus === 'Approved') {
-    return error(res, "Remarks are closed because this entry is Approved.", 403);
-  }
 
+  // Remarks remain open for viewing and conversation even after approval
   const newRemark = {
     id: String(Date.now()),
     senderId: user.id,
-    senderName: user.name || (isAdmin ? 'Admin' : 'Vendor'),
+    senderName: user.name || (isAdmin ? 'Admin' : (user.vendorName || 'Vendor')),
     senderRole: user.role || 'Vendor',
     message: message.trim(),
     createdAt: new Date().toISOString()
@@ -156,6 +196,7 @@ exports.addRemark_5 = async (req, res) => {
 
   const updatedRemarks = [...(existingData.remarks || []), newRemark];
   await docRef.update({ remarks: updatedRemarks });
+  await delCache(CACHE_KEY);
 
   return success(res, "Remark added successfully", newRemark);
 };

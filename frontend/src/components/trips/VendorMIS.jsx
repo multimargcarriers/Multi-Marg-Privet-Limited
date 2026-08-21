@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, Zap } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps,  formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -21,15 +21,18 @@ const VendorMIS = () => {
   const { token, user } = useContext(AuthContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
 
-  const initialVendorMisRow = { handoverTo: "", date: "", from: "", vehicleNo: "", to: "", particular: "", mode: "", others: "", amount: "", status: "Pending" };
+  const initialVendorMisRow = { handoverTo: "", date: "", from: "", vehicleNo: "", to: "", particular: "", mode: "", others: "0", amount: "0", status: "Pending" };
   const getInitialVendorMisForm = () => ({
-    vendorName: !isSuperAdmin ? formatAllCaps(user?.name || "") : "",
+    vendorName: isVendorUser ? formatAllCaps(user?.vendorName || user?.vendor || user?.name || "") : "",
     details: [{ ...initialVendorMisRow }]
   });
   const initialVendorMisForm = getInitialVendorMisForm();
   
+  const [masterVendors, setMasterVendors] = useState([]);
   const [vendorMisEntries, setVendorMisEntries] = useState([]);
+  const [quickAmountModal, setQuickAmountModal] = useState(null);
   const [activeRemarksModal, setActiveRemarksModal] = useState(null);
   const [remarkText, setRemarkText] = useState("");
   const [submittingRemark, setSubmittingRemark] = useState(false);
@@ -283,6 +286,9 @@ const VendorMIS = () => {
     if(token) {
       axios.get(`${API}/vendor-mis`, { headers: { Authorization: `Bearer ${token}` } })
         .then(res => { if(res.data.success) setVendorMisEntries(res.data.data); })
+        .catch(err => console.error(err));
+      axios.get(`${API}/vendors`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => { if(res.data.success) setMasterVendors(res.data.data || []); })
         .catch(err => console.error(err));
     }
   }, [token]);
@@ -585,11 +591,17 @@ const VendorMIS = () => {
               if (!vendorMisForm.vendorName) return addToast("Vendor Name is required", "error");
               if (vendorMisForm.details.length === 0) return addToast("Add at least one detail row", "error");
               
-              const totalAmount = vendorMisForm.details.reduce((sum, d) => sum + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
+              const sanitizedDetails = vendorMisForm.details.map(d => ({
+                ...d,
+                amount: d.amount !== undefined && d.amount !== "" ? d.amount : "0",
+                others: d.others !== undefined && d.others !== "" ? d.others : "0"
+              }));
+
+              const totalAmount = sanitizedDetails.reduce((sum, d) => sum + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
               
               const newEntry = {
                 vendorName: vendorMisForm.vendorName,
-                details: vendorMisForm.details,
+                details: sanitizedDetails,
                 totalAmount: totalAmount,
                 createdAt: new Date().toISOString()
               };
@@ -624,10 +636,31 @@ const VendorMIS = () => {
             <div style={{ padding: "1.5rem", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "2rem" }}>
               <div className="form-group" style={{ maxWidth: "400px" }}>
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Vendor Name<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-                {isSuperAdmin ? (
-                  <input type="text" className="form-control" placeholder="Enter Vendor Name" value={vendorMisForm.vendorName} onChange={e => setVendorMisForm({...vendorMisForm, vendorName: formatAllCaps(e.target.value)})} required />
+                {isAdminOrSuperAdmin ? (
+                  <>
+                    <input 
+                      type="text" 
+                      list="master-vendors-datalist"
+                      className="form-control" 
+                      placeholder="Select from Master Vendors or Enter Name" 
+                      value={vendorMisForm.vendorName} 
+                      onChange={e => setVendorMisForm({...vendorMisForm, vendorName: formatAllCaps(e.target.value)})} 
+                      required 
+                    />
+                    <datalist id="master-vendors-datalist">
+                      {masterVendors.map((v, i) => (
+                        <option key={i} value={v.vendorName || v.name || v.vendor} />
+                      ))}
+                    </datalist>
+                  </>
                 ) : (
-                  <input type="text" className="form-control" value={vendorMisForm.vendorName} readOnly style={{ background: "#f3f4f6", cursor: "not-allowed" }} />
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={vendorMisForm.vendorName || user?.vendorName || user?.name || ''} 
+                    readOnly 
+                    style={{ background: "#f3f4f6", cursor: "not-allowed", fontWeight: 700, color: "#1e3a8a" }} 
+                  />
                 )}
               </div>
             </div>
@@ -682,14 +715,37 @@ const VendorMIS = () => {
                       <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Vehicle No" value={detail.vehicleNo} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].vehicleNo = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
                     </div>
                     <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Others (₹)</label>
-                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Others" value={detail.others} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].others = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} />
+                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Others (₹)</span>
+                        {isAdminOrSuperAdmin && <span style={{ fontSize: "0.68rem", color: "#2563eb", fontWeight: "normal", textTransform: "none" }}>(Default ₹0)</span>}
+                      </label>
+                      <input 
+                        className="form-control" 
+                        type="number" 
+                        step="0.01" 
+                        style={{ fontSize: "0.85rem", padding: "8px", borderColor: isVendorUser ? "#3b82f6" : undefined, background: isVendorUser ? "#eff6ff" : undefined }} 
+                        placeholder="0.00" 
+                        value={detail.others !== undefined ? detail.others : "0"} 
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].others = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} 
+                      />
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
                     <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Amount (₹)</label>
-                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Amount" value={detail.amount} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].amount = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
+                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Amount (₹)</span>
+                        {isAdminOrSuperAdmin && <span style={{ fontSize: "0.68rem", color: "#2563eb", fontWeight: "normal", textTransform: "none" }}>(Default ₹0 - can be left for vendor)</span>}
+                      </label>
+                      <input 
+                        className="form-control" 
+                        type="number" 
+                        step="0.01" 
+                        style={{ fontSize: "0.85rem", padding: "8px", borderColor: isVendorUser ? "#3b82f6" : undefined, background: isVendorUser ? "#eff6ff" : undefined }} 
+                        placeholder="0.00" 
+                        value={detail.amount !== undefined ? detail.amount : "0"} 
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].amount = e.target.value; setVendorMisForm({...vendorMisForm, details: newDetails}); }} 
+                        required={isVendorUser} 
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Handover To</label>
@@ -784,7 +840,32 @@ const VendorMIS = () => {
                           <td style={{ padding: "8px 12px", color: "#475569" }}>{p.mode || "-"}</td>
                           <td style={{ padding: "8px 12px", color: "#475569" }}>{p.handoverTo || "-"}</td>
                           <td style={{ padding: "8px 12px", color: "#64748b" }}>{p.others || "0"}</td>
-                          <td style={{ padding: "8px 12px", fontWeight: "600", color: "#10b981" }}>{parseFloat(p.amount||0).toFixed(2)}</td>
+                          <td style={{ padding: "8px 12px", fontWeight: "600", color: "#10b981" }}>
+                            {isVendorUser && item.approvalStatus !== 'Approved' ? (
+                              <button
+                                type="button"
+                                onClick={() => setQuickAmountModal({ entry: item, detailIndex: i, amount: (p.amount && p.amount !== "0") ? p.amount : "", others: p.others || "0" })}
+                                style={{
+                                  background: (parseFloat(p.amount) || 0) > 0 ? "#ecfdf5" : "#eff6ff",
+                                  border: (parseFloat(p.amount) || 0) > 0 ? "1px solid #6ee7b7" : "2px dashed #2563eb",
+                                  color: (parseFloat(p.amount) || 0) > 0 ? "#047857" : "#1d4ed8",
+                                  fontWeight: 800,
+                                  padding: "5px 10px",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  fontSize: "0.82rem"
+                                }}
+                                title="Click to feed or change amount"
+                              >
+                                {(parseFloat(p.amount) || 0) > 0 ? `₹ ${parseFloat(p.amount).toFixed(2)} ✏️` : `⚡ Feed Rate (₹)`}
+                              </button>
+                            ) : (
+                              <span>₹ {parseFloat(p.amount || 0).toFixed(2)}</span>
+                            )}
+                          </td>
                           <td style={{ padding: "8px 12px" }}>
                             {isAdminOrSuperAdmin ? (
                               <select 
@@ -973,16 +1054,31 @@ const VendorMIS = () => {
                       </button>
                     </>
                   )}
-                  {(isAdminOrSuperAdmin || (user?.role === 'Vendor' && item.createdBy === user?.id && item.approvalStatus !== 'Approved')) && (
+                  {isVendorUser && item.approvalStatus !== 'Approved' && (
+                    <button 
+                      onClick={() => setQuickAmountModal({ entry: item, detailIndex: 0, amount: (item.details?.[0]?.amount && item.details?.[0]?.amount !== "0") ? item.details[0].amount : "", others: item.details?.[0]?.others || "0" })}
+                      className="action-btn"
+                      style={{ background: "#2563eb", color: "#fff", fontWeight: 700, padding: "6px 12px", borderRadius: "6px", border: "none", display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+                      title="1-Click Quick Amount Feed"
+                    >
+                      <Zap size={14} /> Feed Rate
+                    </button>
+                  )}
+                  {(isAdminOrSuperAdmin || (isVendorUser && item.approvalStatus !== 'Approved')) && (
                     <button onClick={() => {
                       setVendorMisForm(item);
                       setEditingId(item.id);
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowVendorMisForm(true);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} className="action-btn action-btn-primary">
-                      <Edit size={14} /> Edit
+                    }} className="action-btn action-btn-primary" title={isVendorUser ? "Enter / Update Trip Amount" : "Edit Entry"}>
+                      <Edit size={14} /> {isVendorUser ? "Full Edit" : "Edit"}
                     </button>
+                  )}
+                  {(!isAdminOrSuperAdmin && item.approvalStatus === 'Approved') && (
+                    <span style={{ fontSize: "0.72rem", color: "#166534", background: "#dcfce7", border: "1px solid #bbf7d0", padding: "4px 8px", borderRadius: "4px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }} title="This entry is Approved and locked">
+                      <Lock size={12} /> Locked
+                    </span>
                   )}
                   <button 
                     onClick={() => {
@@ -1289,6 +1385,230 @@ const VendorMIS = () => {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      , document.body)}
+
+      {/* 1-Click Quick Amount Feed Modal for Vendors */}
+      {quickAmountModal && createPortal(
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+          padding: "1rem"
+        }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            width: "95%",
+            maxWidth: "500px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+            overflow: "hidden",
+            border: "1px solid #cbd5e1"
+          }}>
+            {/* Header */}
+            <div style={{
+              background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+              color: "#ffffff",
+              padding: "1.25rem 1.5rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ background: "rgba(255,255,255,0.2)", padding: "8px", borderRadius: "10px" }}>
+                  <Truck size={22} color="#fff" />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, color: "#fff", fontSize: "1.1rem", fontWeight: 700 }}>Enter Trip Amount</h4>
+                  <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.8)" }}>Multimarg Logistics Transporter Rate Feed</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setQuickAmountModal(null)}
+                style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", padding: "4px" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Trip Info Card */}
+            <div style={{ padding: "1.25rem 1.5rem 0.5rem" }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "0.85rem 1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", fontSize: "0.82rem" }}>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Route</span>
+                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.from || 'N/A'} ➔ {quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.to || 'N/A'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Vehicle No</span>
+                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.vehicleNo || 'N/A'}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Date</span>
+                  <strong style={{ color: "#0f172a" }}>{formatDate(quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.date || quickAmountModal.entry?.createdAt)}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase" }}>Cargo Particulars</span>
+                  <strong style={{ color: "#0f172a" }}>{quickAmountModal.entry?.details?.[quickAmountModal.detailIndex]?.particular || 'General Cargo'}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Input Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const amountNum = parseFloat(quickAmountModal.amount) || 0;
+                if (amountNum <= 0) {
+                  addToast("Please enter a valid trip amount", "error");
+                  return;
+                }
+                const othersNum = parseFloat(quickAmountModal.others) || 0;
+                const entry = quickAmountModal.entry;
+                const updatedDetails = [...(entry.details || [])];
+                updatedDetails[quickAmountModal.detailIndex] = {
+                  ...updatedDetails[quickAmountModal.detailIndex],
+                  amount: String(amountNum),
+                  others: String(othersNum)
+                };
+                const totalAmount = updatedDetails.reduce((s, d) => s + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
+                
+                try {
+                  const res = await axios.put(`${API}/vendor-mis/${entry.id}`, {
+                    details: updatedDetails,
+                    totalAmount: totalAmount,
+                    approvalStatus: 'Submitted'
+                  }, { headers: { Authorization: `Bearer ${token}` } });
+
+                  if (res.data.success) {
+                    setVendorMisEntries(prev => prev.map(v => v.id === entry.id ? { ...v, details: updatedDetails, totalAmount, approvalStatus: 'Submitted' } : v));
+                    setQuickAmountModal(null);
+                    addToast(`₹ ${totalAmount.toFixed(2)} submitted to Admin successfully!`, "success");
+                  }
+                } catch(_err) {
+                  addToast("Failed to submit amount", "error");
+                }
+              }}
+              style={{ padding: "1.25rem 1.5rem" }}
+            >
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1e293b", display: "block", marginBottom: "6px" }}>
+                  Trip Rate / Vehicle Hire Amount (₹)*
+                </label>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <span style={{ position: "absolute", left: "14px", fontSize: "1.3rem", fontWeight: 700, color: "#2563eb" }}>₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    autoFocus
+                    required
+                    placeholder="e.g. 15000"
+                    value={quickAmountModal.amount}
+                    onChange={e => setQuickAmountModal({ ...quickAmountModal, amount: e.target.value })}
+                    style={{
+                      width: "100%",
+                      fontSize: "1.4rem",
+                      fontWeight: 800,
+                      color: "#1e3a8a",
+                      padding: "12px 14px 12px 38px",
+                      borderRadius: "10px",
+                      border: "2px solid #3b82f6",
+                      outline: "none",
+                      boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.15)",
+                      background: "#f0fdf4"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", display: "block", marginBottom: "4px" }}>
+                  Other Charges / Toll / Detention (₹) (Optional)
+                </label>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <span style={{ position: "absolute", left: "12px", fontSize: "0.95rem", color: "#94a3b8" }}>₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={quickAmountModal.others}
+                    onChange={e => setQuickAmountModal({ ...quickAmountModal, others: e.target.value })}
+                    style={{
+                      width: "100%",
+                      fontSize: "0.95rem",
+                      padding: "8px 12px 8px 30px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Live Total Calculation Preview */}
+              <div style={{
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: "10px",
+                padding: "0.85rem 1rem",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem"
+              }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#1e40af" }}>Total Amount to Quote:</span>
+                <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "#1e3a8a" }}>
+                  ₹ {((parseFloat(quickAmountModal.amount) || 0) + (parseFloat(quickAmountModal.others) || 0)).toFixed(2)}
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => setQuickAmountModal(null)}
+                  style={{
+                    padding: "10px 18px",
+                    background: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    color: "#475569",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "10px 24px",
+                    background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(16, 185, 129, 0.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <Check size={18} /> Submit Rate to Admin
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       , document.body)}

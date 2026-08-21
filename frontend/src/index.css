@@ -937,7 +937,7 @@ table td .btn-action {
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
   display: flex;
-  justifyContent: space-between;
+  justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
   color: #64748b;
