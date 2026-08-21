@@ -866,44 +866,74 @@ const Login = () => {
             </form>
           )}
 
-          {view === 'device_auth' && pendingAuth && (
-            <div style={{ width: '100%', textAlign: 'center' }}>
-              <div style={{
-                background: '#f8fafc',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '16px',
-                padding: '1.25rem',
-                marginBottom: '1.25rem',
-                textAlign: 'center'
-              }}>
+          {view === 'device_auth' && pendingAuth && (() => {
+            const rawPhoto = pendingAuth.user?.photo || pendingAuth.user?.avatar || pendingAuth.user?.picture;
+            const photoUrl = rawPhoto ? (rawPhoto.startsWith('/uploads/') ? `${API_URL}${rawPhoto}` : rawPhoto) : null;
+            const initials = (pendingAuth.user?.name || pendingAuth.user?.email || 'U').slice(0, 2).toUpperCase();
+
+            return (
+              <div style={{ width: '100%', textAlign: 'center' }}>
                 <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 0.75rem auto',
-                  color: '#ffffff',
-                  fontSize: '1.35rem',
-                  fontWeight: 800,
-                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '16px',
+                  padding: '1.25rem',
+                  marginBottom: '1.25rem',
+                  textAlign: 'center'
                 }}>
-                  {(pendingAuth.user?.name || pendingAuth.user?.email || 'U').slice(0, 2).toUpperCase()}
+                  <div style={{
+                    width: '76px',
+                    height: '76px',
+                    borderRadius: '50%',
+                    padding: '3px',
+                    background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                    boxShadow: '0 0 20px rgba(37, 99, 235, 0.3)',
+                    margin: '0 auto 0.75rem auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {photoUrl ? (
+                      <img 
+                        src={photoUrl} 
+                        alt={pendingAuth.user?.name || 'User'} 
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: '1.5rem',
+                        fontWeight: 800
+                      }}>
+                        {initials}
+                      </div>
+                    )}
+                  </div>
+                  <h4 style={{ margin: '0 0 2px 0', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                    {pendingAuth.user?.name || pendingAuth.user?.fullName || 'User'}
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                    {pendingAuth.user?.email || pendingAuth.user?.username}
+                  </p>
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle size={13} /> Password Verified
+                    </span>
+                  </div>
                 </div>
-                <h4 style={{ margin: '0 0 2px 0', fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-                  {pendingAuth.user?.name || pendingAuth.user?.fullName || 'User'}
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
-                  {pendingAuth.user?.email || pendingAuth.user?.username}
-                </p>
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <CheckCircle size={13} /> Password Verified
-                  </span>
-                </div>
-              </div>
 
               <div style={{
                 background: 'rgba(37, 99, 235, 0.06)',
@@ -1021,7 +1051,8 @@ const Login = () => {
                 </form>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {view === 'forgot' && (
             <form onSubmit={handleForgotPassword}>

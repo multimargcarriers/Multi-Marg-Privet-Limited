@@ -79,6 +79,18 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
     }
   };
 
+  const getUserPhotoUrl = () => {
+    let src = user?.photo || user?.avatar || user?.picture;
+    if (src) {
+      if (typeof src === 'string' && src.startsWith('/uploads/')) {
+        return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${src}`;
+      }
+      return src;
+    }
+    return null;
+  };
+
+  const userPhoto = getUserPhotoUrl();
   const initials = (user?.name || user?.email || 'U')
     .split(' ')
     .map(n => n[0])
@@ -133,7 +145,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           <span>Device Security Lock</span>
         </div>
 
-        {/* User Profile Card */}
+        {/* User Profile Card with Centered Profile Picture */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -141,33 +153,59 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           marginBottom: '1.75rem'
         }}>
           <div style={{
-            width: '68px',
-            height: '68px',
+            width: '80px',
+            height: '80px',
             borderRadius: '50%',
+            padding: '3px',
             background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            boxShadow: '0 0 30px rgba(59, 130, 246, 0.45)',
+            marginBottom: '0.85rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            color: '#ffffff',
-            boxShadow: '0 0 25px rgba(59, 130, 246, 0.4)',
-            marginBottom: '0.85rem'
+            position: 'relative'
           }}>
-            {initials}
+            {userPhoto ? (
+              <img
+                src={userPhoto}
+                alt={user?.name || 'User'}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            ) : (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.6rem',
+                fontWeight: 800,
+                color: '#ffffff'
+              }}>
+                {initials}
+              </div>
+            )}
           </div>
 
-          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
+          <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>
             {user?.name || user?.fullName || 'Authenticated User'}
           </h3>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px', fontWeight: 500 }}>
+          <span style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '3px', fontWeight: 500 }}>
             {user?.email || user?.username}
           </span>
           <span style={{
             marginTop: '6px',
             fontSize: '0.72rem',
             background: 'rgba(255, 255, 255, 0.08)',
-            padding: '2px 8px',
+            padding: '3px 10px',
             borderRadius: '6px',
             color: '#cbd5e1',
             fontWeight: 600
