@@ -5,8 +5,6 @@ node_modules/
 build/
 backend/uploads/
 frontend/build/
-frontend/dist/
-dist/
 .vscode/
 npm-debug.log
 *error.log
