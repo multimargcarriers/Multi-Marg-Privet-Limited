@@ -110,9 +110,16 @@ const OpeningOutstanding = () => {
   const fetchData = useCallback(async (forceSync = false) => {
     setLoading(true);
     try {
-      const url = forceSync ? `${API}/opening-balances?sync=true` : `${API}/opening-balances`;
+      if (forceSync) {
+        try {
+          await axios.post(`${API}/opening-balances/recalculate-all`);
+          addToast("All ledgers & balances recalculated successfully", "success");
+        } catch (sErr) {
+          console.warn("Recalculate sync warning:", sErr);
+        }
+      }
       const [openRes, clientsRes, vendorsRes] = await Promise.all([
-        axios.get(url),
+        axios.get(`${API}/opening-balances`),
         axios.get(`${API}/clients`),
         axios.get(`${API}/vendors`)
       ]);

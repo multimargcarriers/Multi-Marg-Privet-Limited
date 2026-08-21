@@ -1,65 +1,14 @@
 const { db } = require("../config/database");
 const { success, created, error } = require("../utils/response");
 const { delCache } = require("../config/redis");
+const { recalculatePartyPayments, recalculateAllPayments } = require("../utils/paymentUtils");
 
 const CACHE_KEY = "openingBalances";
 
-// Helper to recalculate and sync opening balances with active cash sheet
+// Helper to recalculate and sync opening balances with active cash sheet and adjustments
 const recalculateOpeningBalances = async () => {
   try {
-    const [openingSnap, cashSnap, adjSnap] = await Promise.all([
-      db.collection("openingBalances").get(),
-      db.collection("cashEntries").get(),
-      db.collection("outstanding").get()
-    ]);
-
-    const cashEntries = cashSnap.docs.map((d) => d.data());
-    const adjustments = adjSnap.docs.map((d) => d.data());
-
-    for (const doc of openingSnap.docs) {
-      const data = doc.data();
-      if (data.isManual) continue;
-
-      const partyNorm = (data.partyName || "").toLowerCase().trim();
-      const partyType = data.partyType || "Client";
-
-      // Calculate paid amount from active cashEntries
-      const partyCash = cashEntries.filter(
-        (c) =>
-          c.partyType === partyType &&
-          (c.partyName || "").toLowerCase().trim() === partyNorm
-      );
-      let totalPaidPrior = 0;
-      partyCash.forEach((c) => {
-        const amt = Number(c.amount) || 0;
-        if (partyType === "Client") {
-          if (c.type === "in") totalPaidPrior += amt;
-          else if (c.type === "out") totalPaidPrior -= amt;
-        } else {
-          if (c.type === "out") totalPaidPrior += amt;
-          else if (c.type === "in") totalPaidPrior -= amt;
-        }
-      });
-
-      const totalBilledPrior = Number(data.totalBilledPrior) || 0;
-      const totalTdsPrior = Number(data.totalTdsPrior) || 0;
-      const totalDebtPrior = Number(data.totalDebtPrior) || 0;
-
-      const newOutstanding = Number(
-        (totalBilledPrior - totalPaidPrior - totalTdsPrior - totalDebtPrior).toFixed(2)
-      );
-
-      // If 0 billed, 0 paid, and 0 outstanding, clean up phantom entry
-      if (totalBilledPrior === 0 && totalPaidPrior === 0 && Math.abs(newOutstanding) < 0.01) {
-        await db.collection("openingBalances").doc(doc.id).delete();
-      } else {
-        await db.collection("openingBalances").doc(doc.id).update({
-          totalPaidPrior: Number(totalPaidPrior.toFixed(2)),
-          openingOutstanding: newOutstanding,
-          updatedAt: new Date().toISOString()
-        });
-      }
-    }
+    await recalculateAllPayments();
     await delCache(CACHE_KEY);
   } catch (e) {
     console.error("recalculateOpeningBalances error:", e.message);
@@ -125,6 +74,8 @@ exports.createOpeningBalance = async (req, res) => {
       return error(res, "Party Name is required", 400);
     }
 
+    const baseline = Number(totalBilledPrior) !== undefined && Number(totalBilledPrior) !== 0 ? Number(totalBilledPrior) : Number(openingOutstanding || 0);
+
     const docData = {
       financialYear,
       asOfDate,
@@ -133,6 +84,7 @@ exports.createOpeningBalance = async (req, res) => {
       partyName: partyName.trim(),
       openingOutstanding: Number(openingOutstanding) || 0,
       totalBilledPrior: Number(totalBilledPrior) || 0,
+      initialOpeningDue: baseline,
       totalPaidPrior: Number(totalPaidPrior) || 0,
       totalTdsPrior: Number(totalTdsPrior) || 0,
       totalDebtPrior: Number(totalDebtPrior) || 0,
@@ -144,6 +96,12 @@ exports.createOpeningBalance = async (req, res) => {
 
     const docRef = await db.collection("openingBalances").add(docData);
     await delCache(CACHE_KEY);
+
+    try {
+      await recalculatePartyPayments(docData.partyType, docData.partyName);
+    } catch (rErr) {
+      console.error("Recalculate error after opening balance create:", rErr);
+    }
 
     return created(res, "Opening balance created successfully", { id: docRef.id, ...docData });
   } catch (err) {
@@ -159,29 +117,40 @@ exports.updateOpeningBalance = async (req, res) => {
     const doc = await db.collection("openingBalances").doc(id).get();
     if (!doc.exists) return error(res, "Opening balance not found", 404);
 
+    const existing = doc.data();
+    const billedPriorVal = req.body.totalBilledPrior !== undefined ? Number(req.body.totalBilledPrior) : Number(existing.totalBilledPrior || 0);
+    const openingOutVal = req.body.openingOutstanding !== undefined ? Number(req.body.openingOutstanding) : Number(existing.openingOutstanding || 0);
+
+    let baseline = billedPriorVal;
+    if (billedPriorVal === 0 && openingOutVal === 0) {
+      baseline = 0;
+    } else if (billedPriorVal === 0 && openingOutVal > 0) {
+      baseline = openingOutVal;
+    }
+
     const updateData = {
       ...req.body,
-      openingOutstanding: Number(req.body.openingOutstanding) || 0,
-      totalBilledPrior: Number(req.body.totalBilledPrior) || 0,
-      totalPaidPrior: Number(req.body.totalPaidPrior) || 0,
-      totalTdsPrior: Number(req.body.totalTdsPrior) || 0,
-      totalDebtPrior: Number(req.body.totalDebtPrior) || 0,
+      openingOutstanding: openingOutVal,
+      totalBilledPrior: billedPriorVal,
+      initialOpeningDue: baseline,
+      totalPaidPrior: req.body.totalPaidPrior !== undefined ? Number(req.body.totalPaidPrior) : Number(existing.totalPaidPrior || 0),
+      totalTdsPrior: req.body.totalTdsPrior !== undefined ? Number(req.body.totalTdsPrior) : Number(existing.totalTdsPrior || 0),
+      totalDebtPrior: req.body.totalDebtPrior !== undefined ? Number(req.body.totalDebtPrior) : Number(existing.totalDebtPrior || 0),
+      tdsStatus: req.body.tdsStatus !== undefined ? req.body.tdsStatus : (existing.tdsStatus || "pending"),
       updatedAt: new Date().toISOString()
     };
-    if (updateData.totalBilledPrior) {
-      updateData.initialOpeningDue = updateData.totalBilledPrior;
-    }
 
     await db.collection("openingBalances").doc(id).update(updateData);
     await delCache(CACHE_KEY);
 
     // Re-evaluate party payments with the updated prior invoice amount
     try {
-      const { recalculatePartyPayments } = require("../utils/paymentUtils");
-      await recalculatePartyPayments(updateData.partyType || doc.data().partyType, updateData.partyName || doc.data().partyName);
-    } catch (rErr) {}
+      await recalculatePartyPayments(updateData.partyType || existing.partyType, updateData.partyName || existing.partyName);
+    } catch (rErr) {
+      console.error("Recalculate error after opening balance update:", rErr);
+    }
 
-    return success(res, "Opening balance updated successfully", { id, ...updateData });
+    return success(res, "Opening balance updated successfully", { id, ...existing, ...updateData });
   } catch (err) {
     console.error("updateOpeningBalance error:", err);
     return error(res, "Failed to update opening balance", 500, err.message);
@@ -194,14 +163,32 @@ exports.deleteOpeningBalance = async (req, res) => {
     const { id } = req.params;
     const doc = await db.collection("openingBalances").doc(id).get();
     if (!doc.exists) return error(res, "Opening balance not found", 404);
+    const partyType = doc.data().partyType;
+    const partyName = doc.data().partyName;
 
     await db.collection("openingBalances").doc(id).delete(req.user);
     await delCache(CACHE_KEY);
+
+    try {
+      await recalculatePartyPayments(partyType, partyName);
+    } catch (rErr) {}
 
     return success(res, "Opening balance deleted successfully");
   } catch (err) {
     console.error("deleteOpeningBalance error:", err);
     return error(res, "Failed to delete opening balance", 500, err.message);
+  }
+};
+
+// Global Recalculate All Opening Balances Endpoint
+exports.recalculateAllOpeningBalances = async (req, res) => {
+  try {
+    const result = await recalculateAllPayments();
+    await delCache(CACHE_KEY);
+    return success(res, "All opening balances, client & vendor payments, and bills recalculated successfully", result);
+  } catch (err) {
+    console.error("recalculateAllOpeningBalances error:", err);
+    return error(res, "Failed to recalculate opening balances: " + err.message, 500);
   }
 };
 

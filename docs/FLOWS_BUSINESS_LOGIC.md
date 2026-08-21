@@ -140,6 +140,13 @@ All physical and electronic money transfers are logged in `cashEntries`:
 * **Net Vendor Payable Formula**:
   $$\text{Net Vendor Outstanding} = \text{Total Vendor Invoices} - \text{Total Cash Out Paid} - \text{Total Vendor TDS} - \text{Total Vendor DEBT}$$
 
+#### 3. Payment & TDS Waterfall Cascade Order (`paymentUtils.js`):
+1. **Direct Tagged Settle**: If cash or TDS is explicitly linked to a `billNo`, it directly settles that invoice first.
+2. **Prior Opening Settle**: General untagged Cash Payments and general TDS **FIRST reduce the Prior FY Opening Balance** (`openingOutstanding`).
+3. **Current Bills Cascade**: Once Prior FY Opening Balance is ₹0, any remaining general cash/TDS cascades sequentially to unpaid **Sales Bills** (Client) or **Purchase Bills** (Vendor) in chronological order.
+4. **Updating Closing / Opening Due to ₹0**:
+   - If the user sets `totalBilledPrior = 0` or `openingOutstanding = 0`, the system automatically updates `initialOpeningDue = 0` so recalculations do not resurrect past baselines.
+
 ---
 
 ## 🏛️ 2. Step-by-Step Financial Year End Closing Flow

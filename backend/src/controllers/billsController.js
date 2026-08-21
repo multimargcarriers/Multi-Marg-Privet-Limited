@@ -753,7 +753,7 @@ exports.delete_clear_all_10 = async (req, res) => {
 
     // Recalculate payments for affected clients
     for (const client of uniqueClients) {
-      const { recalculatePartyPayments } = require("./authController");
+      const { recalculatePartyPayments } = require("../utils/paymentUtils");
       try {
         await recalculatePartyPayments('Client', client);
       } catch (err) {

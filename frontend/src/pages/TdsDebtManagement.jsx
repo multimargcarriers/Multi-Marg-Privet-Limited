@@ -17,7 +17,9 @@ import {
   X,
   Percent,
   Check,
-  Calendar
+  Calendar,
+  RefreshCw,
+  Clock
 } from "lucide-react";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
@@ -36,11 +38,13 @@ const TdsDebtManagement = () => {
   const [vendors, setVendors] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [adjustments, setAdjustments] = useState([]);
+  const [openingBalances, setOpeningBalances] = useState([]);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedBillNo, setSelectedBillNo] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   
   // Search/Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,12 +101,13 @@ const TdsDebtManagement = () => {
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
     try {
-      const [clientsRes, billsRes, adjRes, vendorsRes, purchasesRes] = await Promise.all([
+      const [clientsRes, billsRes, adjRes, vendorsRes, purchasesRes, openRes] = await Promise.all([
         axios.get(`${API}/clients`),
         axios.get(`${API}/bills`),
         axios.get(`${API}/outstanding`),
         axios.get(`${API}/vendors`),
-        axios.get(`${API}/purchases`)
+        axios.get(`${API}/purchases`),
+        axios.get(`${API}/opening-balances`)
       ]);
       
       if (clientsRes.data.success) setClients(clientsRes.data.data || []);
@@ -110,6 +115,7 @@ const TdsDebtManagement = () => {
       if (adjRes.data.success) setAdjustments(adjRes.data.data || []);
       if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
       if (purchasesRes.data.success) setPurchases(purchasesRes.data.data || []);
+      if (openRes.data.success) setOpeningBalances(openRes.data.data || []);
     } catch (error) {
       console.error("Error loading data", error);
       addToast("Failed to fetch records", "error");
@@ -117,6 +123,24 @@ const TdsDebtManagement = () => {
       setLoading(false);
     }
   }, [addToast]);
+
+  const handleRecalculateAll = async () => {
+    setRecalculating(true);
+    try {
+      const res = await axios.post(`${API}/outstanding/recalculate-all`);
+      if (res.data.success) {
+        addToast("All client & vendor payments, TDS, and outstanding recalculated successfully!", "success");
+        await fetchInitialData();
+      } else {
+        addToast(res.data.message || "Recalculation failed", "error");
+      }
+    } catch (err) {
+      console.error("Recalculate error:", err);
+      addToast("Failed to recalculate: " + (err.response?.data?.message || err.message), "error");
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   useEffect(() => {
     if (showFormModal) {
@@ -164,18 +188,48 @@ const TdsDebtManagement = () => {
     return bills;
   }, [bills, selectedClient, selectedBillNo]);
 
+  // Combined adjustments including prior year opening TDS entries
+  const allAdjustmentsCombined = useMemo(() => {
+    const list = [...adjustments];
+    
+    // Inject prior FY TDS from opening balances
+    openingBalances.forEach(o => {
+      const priorTds = Number(o.totalTdsPrior) || 0;
+      if (priorTds > 0) {
+        list.push({
+          id: `prior_opening_${o.id}`,
+          isPriorFYOpening: true,
+          openingBalanceId: o.id,
+          financialYear: o.financialYear || "2025-2026",
+          partyType: o.partyType || "Client",
+          client: o.partyName,
+          vendor: o.partyName,
+          particulars: "tds",
+          amount: priorTds,
+          date: o.asOfDate || "2026-03-31",
+          bankname: `Prior FY ${o.financialYear || '2025-2026'} Carried TDS`,
+          billNo: `Prior FY Opening`,
+          tdsStatus: o.tdsStatus || "pending",
+          notes: o.notes || "Carried forward prior year TDS balance"
+        });
+      }
+    });
+
+    return list;
+  }, [adjustments, openingBalances]);
+
   // Adjustments of the selected client/bill (matched case-insensitively)
   const clientAdjustments = useMemo(() => {
     if (selectedBillNo) {
-      return adjustments.filter(e => String(e.billNo || '').toLowerCase().trim() === selectedBillNo.toLowerCase().trim());
+      return allAdjustmentsCombined.filter(e => String(e.billNo || '').toLowerCase().trim() === selectedBillNo.toLowerCase().trim());
     }
     if (selectedClient) {
-      return adjustments.filter(e => 
-        (e.client || "").toLowerCase().trim() === selectedClient.toLowerCase().trim()
+      return allAdjustmentsCombined.filter(e => 
+        (e.client || e.vendor || "").toLowerCase().trim() === selectedClient.toLowerCase().trim()
       );
     }
-    return adjustments;
-  }, [adjustments, selectedClient, selectedBillNo]);
+    return allAdjustmentsCombined;
+  }, [allAdjustmentsCombined, selectedClient, selectedBillNo]);
 
   // Filtered adjustments list for rendering in Table
   const filteredAdjustments = useMemo(() => {
@@ -189,7 +243,7 @@ const TdsDebtManagement = () => {
         particularsFilter === "All" || 
         e.particulars === particularsFilter;
 
-      const isVendorRecord = e.partyType === "Vendor" || !!e.vendor;
+      const isVendorRecord = String(e.partyType || "").toLowerCase() === "vendor";
       const matchesParty = 
         partyFilter === "All" || 
         (partyFilter === "Vendor" ? isVendorRecord : !isVendorRecord);
@@ -202,33 +256,47 @@ const TdsDebtManagement = () => {
   const metrics = useMemo(() => {
     let relevantBills = [];
     let relevantAdj = [];
+    let relevantOpenings = [];
 
     if (partyFilter === "Vendor") {
       relevantBills = selectedBillNo ? purchases.filter(p => (p.billNo || '').toLowerCase() === selectedBillNo.toLowerCase()) : (selectedClient ? purchases.filter(p => (p.vendor || '').toLowerCase() === selectedClient.toLowerCase()) : purchases);
-      relevantAdj = adjustments.filter(a => a.partyType === "Vendor" || !!a.vendor);
+      relevantAdj = allAdjustmentsCombined.filter(a => String(a.partyType || "").toLowerCase() === "vendor");
+      relevantOpenings = openingBalances.filter(o => String(o.partyType || '').toLowerCase() === 'vendor');
     } else if (partyFilter === "Client") {
       relevantBills = selectedBillNo ? bills.filter(b => (b.invoice || b.billNo || '').toLowerCase() === selectedBillNo.toLowerCase()) : (selectedClient ? bills.filter(b => (b.client || b.billedTo || '').toLowerCase() === selectedClient.toLowerCase()) : bills);
-      relevantAdj = adjustments.filter(a => a.partyType !== "Vendor" && !a.vendor);
+      relevantAdj = allAdjustmentsCombined.filter(a => String(a.partyType || "client").toLowerCase() !== "vendor");
+      relevantOpenings = openingBalances.filter(o => String(o.partyType || 'Client').toLowerCase() === 'client');
     } else {
       // All
       const allSales = selectedBillNo ? bills.filter(b => (b.invoice || b.billNo || '').toLowerCase() === selectedBillNo.toLowerCase()) : (selectedClient ? bills.filter(b => (b.client || b.billedTo || '').toLowerCase() === selectedClient.toLowerCase()) : bills);
       const allPurchases = selectedBillNo ? purchases.filter(p => (p.billNo || '').toLowerCase() === selectedBillNo.toLowerCase()) : (selectedClient ? purchases.filter(p => (p.vendor || '').toLowerCase() === selectedClient.toLowerCase()) : purchases);
       relevantBills = [...allSales, ...allPurchases];
-      relevantAdj = adjustments;
+      relevantAdj = allAdjustmentsCombined;
+      relevantOpenings = openingBalances;
     }
 
     if (selectedClient || selectedBillNo) {
       if (selectedBillNo) {
         relevantAdj = relevantAdj.filter(e => String(e.billNo || '').toLowerCase().trim() === selectedBillNo.toLowerCase().trim());
+        relevantOpenings = [];
       } else if (selectedClient) {
         relevantAdj = relevantAdj.filter(e => String(e.client || e.vendor || '').toLowerCase().trim() === selectedClient.toLowerCase().trim());
+        relevantOpenings = relevantOpenings.filter(o => String(o.partyName || '').toLowerCase().trim() === selectedClient.toLowerCase().trim());
       }
     }
 
-    const totalBilled = relevantBills.reduce((sum, b) => sum + (Number(b.total || b.amount) || 0), 0);
-    const totalPayments = relevantBills.reduce((sum, b) => sum + (Number(b.paidAmount) || 0), 0);
+    const currentBilled = relevantBills.reduce((sum, b) => sum + (Number(b.total || b.amount) || 0), 0);
+    const currentPaid = relevantBills.reduce((sum, b) => sum + (Number(b.paidAmount) || 0), 0);
     
-    // TDS calculations
+    const priorBilled = relevantOpenings.reduce((sum, o) => sum + (Number(o.totalBilledPrior) || 0), 0);
+    const priorPaid = relevantOpenings.reduce((sum, o) => sum + (Number(o.totalPaidPrior) || 0), 0);
+    const priorDebt = relevantOpenings.reduce((sum, o) => sum + (Number(o.totalDebtPrior) || 0), 0);
+    const priorOutstanding = relevantOpenings.reduce((sum, o) => sum + (Number(o.openingOutstanding) || 0), 0);
+
+    const totalBilled = currentBilled + priorBilled;
+    const totalPayments = currentPaid + priorPaid;
+    
+    // TDS calculations (from all combined adjustments including prior opening)
     const tdsList = relevantAdj.filter(e => String(e.particulars).toLowerCase() === "tds");
     const totalTds = tdsList.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const totalTdsRec = tdsList
@@ -240,7 +308,7 @@ const TdsDebtManagement = () => {
 
     const totalDebt = relevantAdj
       .filter(e => String(e.particulars).toLowerCase() === "debit" || String(e.particulars).toLowerCase() === "debt")
-      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0) + priorDebt;
     
     const outstanding = Math.max(0, totalBilled - totalPayments - totalTds - totalDebt);
 
@@ -249,11 +317,14 @@ const TdsDebtManagement = () => {
       totalPayments, 
       totalTds, 
       totalTdsRec, 
-      totalTdsPend,
+      totalTdsPend, 
       totalDebt, 
-      outstanding 
+      outstanding,
+      currentBilled,
+      priorBilled,
+      priorOutstanding
     };
-  }, [partyFilter, selectedClient, selectedBillNo, bills, purchases, adjustments]);
+  }, [partyFilter, selectedClient, selectedBillNo, bills, purchases, allAdjustmentsCombined, openingBalances]);
 
   // Top search matching clients, vendors, sales bills, and purchase bills
   const handleTopSearchChange = (query) => {
@@ -476,20 +547,125 @@ const TdsDebtManagement = () => {
     }
   };
 
-  // Toggle TDS status (Received / Pending)
+  const openForm = () => {
+    setEditingId(null);
+    if (selectedBillNo) {
+      const isVendor = partyFilter === "Vendor";
+      const pool = isVendor ? purchases : bills;
+      const matched = pool.find(b => (b.invoice || b.billNo || b.id) === selectedBillNo);
+      const bNo = matched ? (matched.invoice || matched.billNo || matched.id) : selectedBillNo;
+      const bAmt = matched ? Number(matched.total || matched.amount) || 0 : 0;
+      const cName = matched ? (matched.client || matched.billedTo || matched.vendor || "") : selectedClient || "";
+      
+      setForm({
+        ...initialFormState,
+        partyType: isVendor ? "Vendor" : "Client",
+        billNo: bNo,
+        billAmount: bAmt,
+        client: cName,
+        percentage: "",
+        amount: ""
+      });
+      setBillSearchInput(`${bNo} — ${cName} (₹${bAmt.toLocaleString("en-IN")})`);
+      setFormClientSearchInput(cName);
+      setIsDirectPayment(false);
+    } else if (selectedClient) {
+      setForm({
+        ...initialFormState,
+        partyType: partyFilter === "Vendor" ? "Vendor" : "Client",
+        client: selectedClient
+      });
+      setFormClientSearchInput(selectedClient);
+      setIsDirectPayment(true);
+    } else {
+      setForm({
+        ...initialFormState,
+        partyType: partyFilter === "Vendor" ? "Vendor" : "Client"
+      });
+      setBillSearchInput("");
+      setFormClientSearchInput("");
+      setIsDirectPayment(false);
+    }
+    setShowFormModal(true);
+  };
+
+  const closeForm = () => {
+    setShowFormModal(false);
+    setEditingId(null);
+    setForm(initialFormState);
+    setBillSearchInput("");
+    setBillSearchResults([]);
+    setIsDirectPayment(false);
+    setFormClientSearchInput("");
+    setFormClientSearchResults([]);
+  };
+
+  const handleEditClick = (item) => {
+    if (item.isPriorFYOpening) {
+      addToast("Prior Financial Year TDS can be toggled between Claimable / Recovered directly in the table, or updated under Prior FY Balances.", "info");
+      return;
+    }
+    setEditingId(item.id);
+    const partyName = item.client || item.vendor || "";
+    const isVendor = item.partyType === "Vendor" || !!item.vendor;
+    
+    let billAmt = 0;
+    if (item.billNo) {
+      const pool = isVendor ? purchases : bills;
+      const matched = pool.find(b => (b.invoice || b.billNo || b.id) === item.billNo);
+      if (matched) {
+        billAmt = Number(matched.total || matched.amount) || 0;
+        setBillSearchInput(`${item.billNo} — ${partyName} (₹${billAmt.toLocaleString("en-IN")})`);
+      } else {
+        setBillSearchInput(item.billNo);
+      }
+      setIsDirectPayment(false);
+    } else {
+      setIsDirectPayment(true);
+      setBillSearchInput("");
+    }
+
+    setForm({
+      partyType: isVendor ? "Vendor" : "Client",
+      client: partyName,
+      particulars: item.particulars || "tds",
+      amount: String(item.amount || ""),
+      percentage: item.percentage ? String(item.percentage) : "",
+      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
+      bankname: item.bankname || item.bankName || "",
+      billNo: item.billNo || "",
+      billAmount: billAmt,
+      tdsStatus: item.tdsStatus || "pending"
+    });
+    setFormClientSearchInput(partyName);
+    setShowFormModal(true);
+  };
+
+  // Toggle TDS status (Received / Pending) - Works for regular adjustments & prior year opening TDS
   const handleToggleTdsStatus = async (item) => {
     try {
       const newStatus = item.tdsStatus === "received" ? "pending" : "received";
-      const payload = {
-        ...item,
-        tdsStatus: newStatus
-      };
-      delete payload.id;
       
-      const res = await axios.put(`${API}/outstanding/${item.id}`, payload);
-      if (res.data.success) {
-        addToast(`TDS status updated to ${newStatus === "received" ? "Recovered" : "Claimable"}`, "success");
-        fetchInitialData();
+      if (item.isPriorFYOpening && item.openingBalanceId) {
+        const res = await axios.put(`${API}/opening-balances/${item.openingBalanceId}`, {
+          tdsStatus: newStatus
+        });
+        if (res.data.success) {
+          addToast(`Prior Year TDS marked as ${newStatus === "received" ? "Recovered / Received" : "Claimable / Pending"}`, "success");
+          fetchInitialData();
+        }
+      } else {
+        const payload = {
+          ...item,
+          tdsStatus: newStatus
+        };
+        delete payload.id;
+        
+        const res = await axios.put(`${API}/outstanding/${item.id}`, payload);
+        if (res.data.success) {
+          addToast(`TDS marked as ${newStatus === "received" ? "Recovered / Received" : "Claimable / Pending"}`, "success");
+          fetchInitialData();
+        }
       }
     } catch (error) {
       console.error("Toggle TDS status error", error);
@@ -512,10 +688,12 @@ const TdsDebtManagement = () => {
 
     setSubmitLoading(true);
     const normalizedParticulars = String(form.particulars || "tds").toLowerCase().trim();
+    const isVendorParty = String(form.partyType || "Client").toLowerCase() === "vendor";
     const payload = {
-      partyType: form.partyType || "Client",
-      client: clientName,
-      vendor: clientName,
+      partyType: isVendorParty ? "Vendor" : "Client",
+      partyName: clientName,
+      client: isVendorParty ? "" : clientName,
+      vendor: isVendorParty ? clientName : "",
       particulars: normalizedParticulars,
       amount: Number(form.amount),
       date: form.date,
@@ -554,97 +732,40 @@ const TdsDebtManagement = () => {
   };
 
   // Delete Adjustment
-  const handleDelete = async (id) => {
+  const handleDelete = async (idOrItem) => {
+    const item = typeof idOrItem === "object" ? idOrItem : filteredAdjustments.find(e => e.id === idOrItem);
+    const isPrior = item?.isPriorFYOpening;
+
     const isConfirmed = await confirm({
-      title: "Delete Entry",
-      message: "Are you sure you want to delete this adjustment entry? This will modify the net outstanding calculation.",
-      confirmText: "Delete",
+      title: isPrior ? "Clear Prior Year TDS" : "Delete Entry",
+      message: isPrior
+        ? "Are you sure you want to clear this Prior Financial Year TDS record from opening balances?"
+        : "Are you sure you want to delete this adjustment entry? This will modify the net outstanding calculation.",
+      confirmText: isPrior ? "Clear TDS" : "Delete",
       cancelText: "Cancel"
     });
     
     if (!isConfirmed) return;
 
     try {
-      const res = await axios.delete(`${API}/outstanding/${id}`);
-      if (res.data.success) {
-        addToast("Entry deleted successfully", "success");
+      if (isPrior && item?.openingBalanceId) {
+        await axios.put(`${API}/opening-balances/${item.openingBalanceId}`, {
+          totalTdsPrior: 0
+        });
+        addToast("Prior Year TDS cleared successfully", "success");
         fetchInitialData();
+      } else {
+        const targetId = typeof idOrItem === "object" ? idOrItem.id : idOrItem;
+        const res = await axios.delete(`${API}/outstanding/${targetId}`);
+        if (res.data.success) {
+          addToast("Entry deleted successfully", "success");
+          fetchInitialData();
+        }
       }
     } catch (error) {
       console.error("Delete error", error);
       addToast("Failed to delete entry", "error");
     }
-  };
-
-  // Set values to edit
-  const handleEditClick = (item) => {
-    setEditingId(item.id);
-    
-    // Find bill amount if linked
-    let billAmt = 0;
-    if (item.billNo) {
-      const matchedBill = bills.find(b => (b.invoice || b.billNo || b.id) === item.billNo);
-      if (matchedBill) {
-        billAmt = Number(matchedBill.total || matchedBill.amount) || 0;
-        setBillSearchInput(`${item.billNo} — ${item.client} (₹${billAmt.toLocaleString("en-IN")})`);
-      }
-      setIsDirectPayment(false);
-    } else {
-      setIsDirectPayment(true);
-    }
-
-    setForm({
-      client: item.client || "",
-      particulars: item.particulars || "tds",
-      amount: String(item.amount),
-      percentage: item.percentage ? String(item.percentage) : "",
-      date: item.date ? item.date.split("T")[0] : new Date().toISOString().split("T")[0],
-      bankname: item.bankname || item.bankName || "",
-      billNo: item.billNo || "",
-      billAmount: billAmt,
-      tdsStatus: item.tdsStatus || "pending"
-    });
-    setFormClientSearchInput(item.client || "");
-    setShowFormModal(true);
-  };
-
-  const openForm = () => {
-    if (selectedBillNo) {
-      const matched = bills.find(b => (b.invoice || b.billNo || b.id) === selectedBillNo);
-      if (matched) {
-        const bNo = matched.invoice || matched.billNo || matched.id;
-        const bAmt = Number(matched.total || matched.amount) || 0;
-        const cName = matched.client || matched.billedTo || "";
-        
-        setForm(prev => ({
-          ...prev,
-          billNo: bNo,
-          billAmount: bAmt,
-          client: cName,
-          percentage: "",
-          amount: ""
-        }));
-        setBillSearchInput(`${bNo} — ${cName} (₹${bAmt.toLocaleString("en-IN")})`);
-        setFormClientSearchInput(cName);
-        setIsDirectPayment(false);
-      }
-    } else if (selectedClient) {
-      setForm(prev => ({ ...prev, client: selectedClient }));
-      setFormClientSearchInput(selectedClient);
-      setIsDirectPayment(true);
-    }
-    setShowFormModal(true);
-  };
-
-  const closeForm = () => {
-    setEditingId(null);
-    setForm(initialFormState);
-    setBillSearchInput("");
-    setBillSearchResults([]);
-    setIsDirectPayment(false);
-    setFormClientSearchInput("");
-    setFormClientSearchResults([]);
-    setShowFormModal(false);
   };
 
   // Export entries to CSV
@@ -813,6 +934,11 @@ const TdsDebtManagement = () => {
           {/* Opening Balances */}
           <button onClick={() => navigate("/opening-outstanding")} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.95rem", background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)", border: "none", color: "white", borderRadius: "6px", cursor: "pointer", fontWeight: "600", boxShadow: "0 2px 4px rgba(2, 132, 199, 0.25)" }}>
             <Calendar size={15} /> Prior FY Balances
+          </button>
+
+          {/* Recalculate & Sync All */}
+          <button onClick={handleRecalculateAll} disabled={recalculating} className="btn btn-secondary" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", padding: "0.5rem 0.85rem", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: recalculating ? "not-allowed" : "pointer", fontWeight: "600", backgroundColor: "#fff", color: "#334155" }}>
+            <RefreshCw size={15} className={recalculating ? "spin" : ""} style={{ animation: recalculating ? "spin 1s linear infinite" : "none" }} /> {recalculating ? "Recalculating..." : "Recalculate & Sync"}
           </button>
 
           {/* New Record */}
@@ -984,101 +1110,104 @@ const TdsDebtManagement = () => {
         </div>
       </div>
 
-      {/* Dashboard Stats (Context-Aware for Client vs Vendor vs All) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.85rem", marginBottom: "1.5rem" }}>
+      {/* Purpose-Focused TDS & Adjustment Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         
-        {/* Total Invoiced */}
-        <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", display: "flex", flexDirection: "column", justifyContext: "space-between" }}>
+        {/* 1. Total TDS Deducted */}
+        <div style={{ padding: "1.1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#1e3a8a", textTransform: "uppercase" }}>
-                {partyFilter === "Vendor" ? "Vendor Invoiced" : (partyFilter === "Client" ? "Client Invoiced" : "Total Billed")}
+                {partyFilter === "Vendor" ? "Total Vendor TDS" : (partyFilter === "Client" ? "Total Client TDS" : "Total TDS Deducted")}
               </span>
-              <Activity size={16} style={{ color: "#1e3a8a" }} />
+              <Percent size={16} style={{ color: "#1e3a8a" }} />
             </div>
-            <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#1e3a8a", margin: "0.5rem 0" }}>
-              ₹{metrics.totalBilled.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <span style={{ fontSize: "0.7rem", color: "#3b82f6" }}>
-            {partyFilter === "Vendor" ? "Total purchase invoices" : (partyFilter === "Client" ? "Total sales revenue" : "Consolidated invoices")}
-          </span>
-        </div>
-
-        {/* Payments */}
-        <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", display: "flex", flexDirection: "column", justifyContext: "space-between" }}>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#14532d", textTransform: "uppercase" }}>
-                {partyFilter === "Vendor" ? "Vendor Payments" : (partyFilter === "Client" ? "Client Payments" : "Total Payments")}
-              </span>
-              <TrendingUp size={16} style={{ color: "#14532d" }} />
-            </div>
-            <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#14532d", margin: "0.5rem 0" }}>
-              ₹{metrics.totalPayments.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <span style={{ fontSize: "0.7rem", color: "#22c55e" }}>
-            {partyFilter === "Vendor" ? "Amount paid to vendors" : (partyFilter === "Client" ? "Bank/Cash received" : "Total settled payments")}
-          </span>
-        </div>
-
-        {/* TDS Deducted */}
-        <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: "1px solid #fde68a", display: "flex", flexDirection: "column", justifyContext: "space-between" }}>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#78350f", textTransform: "uppercase" }}>
-                {partyFilter === "Vendor" ? "Vendor TDS Deducted" : (partyFilter === "Client" ? "Client TDS Withheld" : "Total TDS")}
-              </span>
-              <Percent size={16} style={{ color: "#78350f" }} />
-            </div>
-            <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#78350f", margin: "0.5rem 0" }}>
+            <div style={{ fontSize: "1.45rem", fontWeight: "800", color: "#1e3a8a", margin: "0.5rem 0" }}>
               ₹{metrics.totalTds.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </div>
           </div>
-          <span style={{ fontSize: "0.7rem", color: "#78350f", fontWeight: "600", display: "flex", justifyContent: "space-between" }}>
-            <span>Recd: ₹{Math.round(metrics.totalTdsRec)}</span>
-            <span>Pend: ₹{Math.round(metrics.totalTdsPend)}</span>
+          <span style={{ fontSize: "0.72rem", color: "#3b82f6", fontWeight: "600" }}>
+            Total tax deductions recorded
           </span>
         </div>
 
-        {/* DEBT Correction */}
-        <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: partyFilter === "Vendor" ? "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)" : "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)", border: partyFilter === "Vendor" ? "1px solid #ddd6fe" : "1px solid #fecdd3", display: "flex", flexDirection: "column", justifyContext: "space-between" }}>
+        {/* 2. Claimable / Pending TDS */}
+        <div style={{ padding: "1.1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: "1px solid #fde68a", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: partyFilter === "Vendor" ? "#5b21b6" : "#881337", textTransform: "uppercase" }}>
-                {partyFilter === "Vendor" ? "DEBT Savings (Profit)" : (partyFilter === "Client" ? "DEBT Loss (Bad Debt)" : "DEBT Corrections")}
+              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#92400e", textTransform: "uppercase" }}>
+                Claimable / Pending TDS
               </span>
-              <TrendingDown size={16} style={{ color: partyFilter === "Vendor" ? "#5b21b6" : "#881337" }} />
+              <Clock size={16} style={{ color: "#b45309" }} />
             </div>
-            <div style={{ fontSize: "1.3rem", fontWeight: "800", color: partyFilter === "Vendor" ? "#5b21b6" : "#881337", margin: "0.5rem 0" }}>
+            <div style={{ fontSize: "1.45rem", fontWeight: "800", color: "#b45309", margin: "0.5rem 0" }}>
+              ₹{metrics.totalTdsPend.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <span style={{ fontSize: "0.72rem", color: "#b45309", fontWeight: "600" }}>
+            To be claimed in Form 26AS / Pending
+          </span>
+        </div>
+
+        {/* 3. Recovered / Received TDS */}
+        <div style={{ padding: "1.1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#14532d", textTransform: "uppercase" }}>
+                Recovered / Received TDS
+              </span>
+              <CheckCircle size={16} style={{ color: "#15803d" }} />
+            </div>
+            <div style={{ fontSize: "1.45rem", fontWeight: "800", color: "#15803d", margin: "0.5rem 0" }}>
+              ₹{metrics.totalTdsRec.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <span style={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: "600" }}>
+            Verified, received & reconciled
+          </span>
+        </div>
+
+        {/* 4. Bad Debt & Corrections */}
+        <div style={{ padding: "1.1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)", border: "1px solid #fecdd3", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#881337", textTransform: "uppercase" }}>
+                {partyFilter === "Vendor" ? "Vendor Debit Notes" : "Bad Debt & Corrections"}
+              </span>
+              <TrendingDown size={16} style={{ color: "#9f1239" }} />
+            </div>
+            <div style={{ fontSize: "1.45rem", fontWeight: "800", color: "#9f1239", margin: "0.5rem 0" }}>
               ₹{metrics.totalDebt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </div>
           </div>
-          <span style={{ fontSize: "0.7rem", color: partyFilter === "Vendor" ? "#7c3aed" : "#f43f5e" }}>
-            {partyFilter === "Vendor" ? "Vendor penalty/discount savings" : (partyFilter === "Client" ? "Written-off uncollectible debts" : "All bill corrections")}
-          </span>
-        </div>
-
-        {/* Net Outstanding */}
-        <div style={{ padding: "1rem 1.25rem", borderRadius: "10px", background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", border: "1px solid #cbd5e1", display: "flex", flexDirection: "column", justifyContext: "space-between", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#0f172a", textTransform: "uppercase" }}>
-                {partyFilter === "Vendor" ? "Net Vendor Payable" : (partyFilter === "Client" ? "Net Client Receivable" : "Net Outstanding")}
-              </span>
-              <CheckCircle size={16} style={{ color: metrics.outstanding > 0 ? "#ef4444" : "#10b981" }} />
-            </div>
-            <div style={{ fontSize: "1.35rem", fontWeight: "900", color: metrics.outstanding > 0 ? "#ef4444" : "#10b981", margin: "0.5rem 0" }}>
-              ₹{metrics.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <span style={{ fontSize: "0.7rem", color: "#475569", fontWeight: "600" }}>
-            {partyFilter === "Vendor" ? "Remaining payable to vendors" : (partyFilter === "Client" ? "Remaining receivable from clients" : "Net pending ledger balance")}
+          <span style={{ fontSize: "0.72rem", color: "#e11d48", fontWeight: "600" }}>
+            Written-off deductions / penalty losses
           </span>
         </div>
 
       </div>
+
+      {/* Optional Selected Party Context Banner */}
+      {(selectedClient || selectedBillNo) && (
+        <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", backgroundColor: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "0.9rem" }}>
+              Filtered for: {selectedClient ? `👤 ${selectedClient}` : `📄 ${selectedBillNo}`}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.85rem" }}>
+            <span style={{ color: "#475569" }}>
+              Net Ledger Due: <strong style={{ color: metrics.outstanding > 0 ? "#dc2626" : "#16a34a" }}>₹{metrics.outstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+            </span>
+            <button 
+              onClick={() => { setSelectedClient(""); setSelectedBillNo(""); setTopSearchInput(""); }}
+              style={{ background: "#e2e8f0", border: "none", borderRadius: "4px", padding: "2px 8px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}
+            >
+              Clear Filter
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Logs Table */}
       <div style={{ marginBottom: "2rem" }}>
@@ -1095,7 +1224,7 @@ const TdsDebtManagement = () => {
             const isBank = part === "bank";
             const isCash = part === "cash";
             const isTdsReceived = isTds && String(item.tdsStatus || "").toLowerCase().trim() === "received";
-            const isVendor = item.partyType === "Vendor" || !!item.vendor;
+            const isVendor = String(item.partyType || "").toLowerCase() === "vendor";
 
             return (
               <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -1149,7 +1278,22 @@ const TdsDebtManagement = () => {
                 
                 {/* Linked Bill */}
                 <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "0.85rem", fontFamily: "monospace", fontWeight: "bold" }}>
-                  {item.billNo ? (
+                  {item.isPriorFYOpening ? (
+                    <span style={{ 
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: "4px", 
+                      padding: "3px 8px", 
+                      borderRadius: "6px", 
+                      fontSize: "0.75rem", 
+                      fontWeight: "700", 
+                      backgroundColor: "#f3e8ff", 
+                      color: "#7e22ce", 
+                      border: "1px solid #d8b4fe" 
+                    }}>
+                      🏛️ Prior FY ({item.financialYear || "Opening"})
+                    </span>
+                  ) : item.billNo ? (
                     <span style={{ display: "flex", flexDirection: "column" }}>
                       <span>{item.billNo}</span>
                       {item.percentage && (
@@ -1221,7 +1365,7 @@ const TdsDebtManagement = () => {
                       <Edit size={16} />
                     </button>
                     <button 
-                      onClick={() => handleDelete(item.id)} 
+                      onClick={() => handleDelete(item)} 
                       style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 0 }}
                       title="Delete Entry"
                     >

@@ -132,3 +132,22 @@ npm run dev
 ```
 
 The application will be accessible at `http://localhost:5173`.
+
+---
+
+## 💎 Core Accounting & Real-Time Ledger Engine
+
+### 1. TDS & Deductions Accounting
+- **Client TDS**: Direct deduction by clients from invoices under Section 194C. Deducted directly from client outstanding liability.
+- **Form 26AS Status**: Tracked as `Claimable` (Pending) vs `Recovered` (Verified / Received) directly in the UI.
+- **Formula**:
+  $$\text{Net Client Outstanding} = \text{Total Prior/Current Invoiced} - \text{Total Cash/Bank Received} - \text{Total TDS} - \text{Total Debt}$$
+
+### 2. Waterfall Cascade Order (`paymentUtils.js`)
+1. **Direct Tagged Payments & TDS**: Applied directly to the tagged invoice.
+2. **Prior FY Opening Settlement**: General payments/TDS **first settle Prior FY Opening Balances** (`openingOutstanding`).
+3. **Current Bills Cascade**: Leftover payments/TDS cascade sequentially across unpaid sales/purchase bills chronologically.
+4. **Permanent Zeroing Rule**: Setting `totalBilledPrior = 0` or `openingOutstanding = 0` permanently fixes initial baseline due to 0 without stale recalculation regressions.
+
+### 3. Automated CRUD Sync
+All create, edit, delete, and restore actions on `cashEntries`, `outstanding`, `openingBalances`, `bills`, and `purchases` automatically invoke `recalculatePartyPayments` and bust dependent Redis caches for 100% production reliability.

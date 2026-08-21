@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const openingBalanceController = require("../controllers/openingBalanceController");
 
+// Global recalculate all opening balances and party payments
+router.post("/recalculate-all", openingBalanceController.recalculateAllOpeningBalances);
+
 // List opening balances
 router.get("/", openingBalanceController.getOpeningBalances);
 

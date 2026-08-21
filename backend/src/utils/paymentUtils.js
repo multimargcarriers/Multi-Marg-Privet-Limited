@@ -6,62 +6,144 @@ const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-const recalculatePartyPayments = async (partyType, partyName) => {
+let analyticsTimeout = null;
+const debouncedAnalyticsAggregation = () => {
+    if (analyticsTimeout) clearTimeout(analyticsTimeout);
+    analyticsTimeout = setTimeout(() => {
+        runAnalyticsAggregation().catch(e => console.error("Debounced analytics sync failed", e));
+    }, 1500);
+};
+
+const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = false) => {
     if (!partyType || !partyName) return;
 
     const normType = String(partyType || '').trim().toLowerCase();
-    const escapedPartyName = escapeRegExp(partyName);
+    const escapedPartyName = escapeRegExp(partyName.trim());
     const regex = new RegExp(`^${escapedPartyName}$`, "i");
 
     if (normType === 'client') {
+        // A. Fetch All Cash Entries for Client
         const cashDocs = await db.mongoDb.collection("cashEntries").find({
-            partyType: { $regex: /^client$/i },
-            partyName: { $regex: regex }
+            $and: [
+                { partyName: { $regex: regex } },
+                { $or: [{ partyType: { $regex: /^client$/i } }, { partyType: { $exists: false } }, { partyType: "" }, { partyType: null }] }
+            ]
         }).toArray();
 
-        // Separate Direct Bill-Tagged Payments vs General Payments
-        const billSpecificMap = {};
-        let generalPaid = 0;
+        const billSpecificCashMap = {};
+        let generalCashPaid = 0;
 
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
             const netAmt = (doc.type === "in") ? amt : -amt;
             const bNo = String(doc.billNo || '').trim().toLowerCase();
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
-                billSpecificMap[bNo] = (billSpecificMap[bNo] || 0) + netAmt;
+                billSpecificCashMap[bNo] = (billSpecificCashMap[bNo] || 0) + netAmt;
             } else {
-                generalPaid += netAmt;
+                generalCashPaid += netAmt;
             }
         });
 
-        // 1. Clear Prior Opening Outstanding FIRST with General Payments
+        // B. Fetch All TDS & Debt Adjustments for Client from 'outstanding' collection
+        const adjDocs = await db.mongoDb.collection("outstanding").find({
+            $and: [
+                { $or: [{ client: { $regex: regex } }, { partyName: { $regex: regex } }] },
+                { $or: [{ partyType: { $not: { $regex: /^vendor$/i } } }, { partyType: { $exists: false } }, { partyType: "" }, { partyType: null }] },
+                { $or: [{ vendor: { $exists: false } }, { vendor: "" }, { vendor: null }] }
+            ]
+        }).toArray();
+
+        const billSpecificTdsMap = {};
+        const billSpecificDebtMap = {};
+        let generalTds = 0;
+        let generalDebt = 0;
+
+        adjDocs.forEach(doc => {
+            const amt = Number(doc.amount) || 0;
+            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            const part = String(doc.particulars || 'tds').trim().toLowerCase();
+
+            if (part === 'tds') {
+                if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                    billSpecificTdsMap[bNo] = (billSpecificTdsMap[bNo] || 0) + amt;
+                } else {
+                    generalTds += amt;
+                }
+            } else if (part === 'debit' || part === 'debt') {
+                if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                    billSpecificDebtMap[bNo] = (billSpecificDebtMap[bNo] || 0) + amt;
+                } else {
+                    generalDebt += amt;
+                }
+            }
+        });
+
+        // C. Settle Prior Opening Outstanding FIRST with General Payments and General TDS/Debt
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
             partyType: { $regex: /^client$/i },
             partyName: { $regex: regex }
         });
 
-        let remainingGeneral = generalPaid;
-        let openingPaid = 0;
+        let remainingGeneralCash = generalCashPaid;
+        let remainingGeneralTds = generalTds;
+        let remainingGeneralDebt = generalDebt;
 
         if (openDoc) {
-            const initialBaseline = Number(openDoc.initialOpeningDue || openDoc.totalBilledPrior || (Number(openDoc.openingOutstanding || 0) + Number(openDoc.totalPaidPrior || 0))) || 0;
-            const openTds = Number(openDoc.totalTdsPrior) || 0;
-            const openDebt = Number(openDoc.totalDebtPrior) || 0;
-            const maxPayable = Math.max(0, initialBaseline - openTds - openDebt);
+            let initialBaseline = 0;
+            if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) === 0 && (Number(openDoc.openingOutstanding || 0) === 0 || openDoc.isManual)) {
+                initialBaseline = 0;
+            } else if (openDoc.totalBilledPrior !== undefined && openDoc.totalBilledPrior !== null) {
+                initialBaseline = Number(openDoc.totalBilledPrior) || 0;
+            } else {
+                initialBaseline = Number(openDoc.initialOpeningDue || openDoc.openingOutstanding || 0);
+            }
 
-            openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
-            remainingGeneral -= openingPaid;
+            const priorStaticTds = Number(openDoc.totalTdsPrior) || 0;
+            const priorStaticDebt = Number(openDoc.totalDebtPrior) || 0;
 
-            const newOpeningDue = Number(Math.max(0, maxPayable - openingPaid).toFixed(2));
+            let maxPayable = Math.max(0, initialBaseline - priorStaticTds - priorStaticDebt);
+
+            // 1. Absorb general TDS into opening balance if opening due exists
+            let openTdsDeducted = 0;
+            if (remainingGeneralTds > 0 && maxPayable > 0) {
+                openTdsDeducted = Math.min(maxPayable, remainingGeneralTds);
+                maxPayable -= openTdsDeducted;
+                remainingGeneralTds -= openTdsDeducted;
+            }
+
+            // 2. Absorb general Debt into opening balance if opening due exists
+            let openDebtDeducted = 0;
+            if (remainingGeneralDebt > 0 && maxPayable > 0) {
+                openDebtDeducted = Math.min(maxPayable, remainingGeneralDebt);
+                maxPayable -= openDebtDeducted;
+                remainingGeneralDebt -= openDebtDeducted;
+            }
+
+            // 3. Absorb general Cash into opening balance
+            let openingPaid = 0;
+            if (remainingGeneralCash > 0 && maxPayable > 0) {
+                openingPaid = Math.min(maxPayable, remainingGeneralCash);
+                maxPayable -= openingPaid;
+                remainingGeneralCash -= openingPaid;
+            }
+
+            const newOpeningDue = Number(Math.max(0, maxPayable).toFixed(2));
+            const totalTdsPriorCombined = Number((priorStaticTds + openTdsDeducted).toFixed(2));
+            const totalDebtPriorCombined = Number((priorStaticDebt + openDebtDeducted).toFixed(2));
+            const totalPaidPriorUpdated = Number(openingPaid.toFixed(2));
+
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
                 initialOpeningDue: initialBaseline,
-                totalPaidPrior: Number(openingPaid.toFixed(2)),
+                totalBilledPrior: initialBaseline,
+                totalPaidPrior: totalPaidPriorUpdated,
+                totalTdsPrior: totalTdsPriorCombined,
+                totalDebtPrior: totalDebtPriorCombined,
                 openingOutstanding: newOpeningDue,
                 updatedAt: new Date().toISOString()
             });
         }
 
-        // 2. Cascade Remaining General Payments (excess after opening balance is 0) + Direct Payments to Bills
+        // D. Cascade Direct Payments & Remaining General Payments/TDS/Debt to Bills
         const billsDocs = await db.mongoDb.collection("bills").find({
             client: { $regex: regex }
         }).toArray();
@@ -106,89 +188,191 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         for (const bill of billsDocs) {
             const billTotal = Number(bill.total || bill.amount) || 0;
             const bNo = String(bill.invoice || bill.billNo || '').trim().toLowerCase();
-            const directPaid = billSpecificMap[bNo] || 0;
+            
+            const directCash = billSpecificCashMap[bNo] || 0;
+            const directTds = billSpecificTdsMap[bNo] || 0;
+            const directDebt = billSpecificDebtMap[bNo] || 0;
 
-            let billPaid = directPaid;
-            const unappliedAfterDirect = Math.max(0, billTotal - directPaid);
+            let billCash = directCash;
+            let billTds = directTds;
+            let billDebt = directDebt;
 
-            if (remainingGeneral > 0 && unappliedAfterDirect > 0) {
-                const generalForThisBill = Math.min(unappliedAfterDirect, remainingGeneral);
-                billPaid += generalForThisBill;
-                remainingGeneral -= generalForThisBill;
+            let settledSoFar = billCash + billTds + billDebt;
+            let unapplied = Math.max(0, billTotal - settledSoFar);
+
+            // Allocate Remaining General TDS
+            if (remainingGeneralTds > 0 && unapplied > 0) {
+                const genTds = Math.min(unapplied, remainingGeneralTds);
+                billTds += genTds;
+                remainingGeneralTds -= genTds;
+                settledSoFar += genTds;
+                unapplied = Math.max(0, billTotal - settledSoFar);
             }
 
-            const newStatus = billPaid >= billTotal ? "Paid" : (billPaid > 0 ? "Partial" : "Unpaid");
-            
-            if (bill.paidAmount !== billPaid || bill.status !== newStatus) {
+            // Allocate Remaining General Debt
+            if (remainingGeneralDebt > 0 && unapplied > 0) {
+                const genDebt = Math.min(unapplied, remainingGeneralDebt);
+                billDebt += genDebt;
+                remainingGeneralDebt -= genDebt;
+                settledSoFar += genDebt;
+                unapplied = Math.max(0, billTotal - settledSoFar);
+            }
+
+            // Allocate Remaining General Cash
+            if (remainingGeneralCash > 0 && unapplied > 0) {
+                const genCash = Math.min(unapplied, remainingGeneralCash);
+                billCash += genCash;
+                remainingGeneralCash -= genCash;
+                settledSoFar += genCash;
+                unapplied = Math.max(0, billTotal - settledSoFar);
+            }
+
+            const isCancelled = String(bill.status || '').toLowerCase() === 'cancelled';
+            let newStatus = "Unpaid";
+            if (isCancelled) {
+                newStatus = "Cancelled";
+            } else if (unapplied <= 0.01) {
+                newStatus = "Paid";
+            } else if (settledSoFar > 0.01) {
+                newStatus = "Partial";
+            }
+
+            const updatedCash = Number(billCash.toFixed(2));
+            const updatedTds = Number(billTds.toFixed(2));
+            const updatedDebt = Number(billDebt.toFixed(2));
+
+            if (bill.paidAmount !== updatedCash || bill.tdsAmount !== updatedTds || bill.debtAmount !== updatedDebt || bill.status !== newStatus) {
                 await db.collection("bills").doc(bill.id || bill._id.toString()).update({
-                    paidAmount: Number(billPaid.toFixed(2)),
+                    paidAmount: updatedCash,
+                    tdsAmount: updatedTds,
+                    debtAmount: updatedDebt,
                     status: newStatus
                 });
             }
         }
-        await Promise.all([
-            delCache("bills"),
-            delCache("openingBalances"),
-            delCache("outstanding")
-        ]);
-        try {
-            const { emitDataUpdated } = require("./socket");
-            emitDataUpdated("bills");
-            emitDataUpdated("openingBalances");
-            emitDataUpdated("outstanding");
-        } catch (err) {
-            console.error("Socket emit failed for bills", err);
-        }
     }
     else if (normType === 'vendor') {
+        // A. Fetch All Cash Entries for Vendor
         const cashDocs = await db.mongoDb.collection("cashEntries").find({
-            partyType: { $regex: /^vendor$/i },
-            partyName: { $regex: regex }
+            $and: [
+                { partyName: { $regex: regex } },
+                { partyType: { $regex: /^vendor$/i } }
+            ]
         }).toArray();
 
-        // Separate Direct Purchase-Tagged Payments vs General Payments
-        const purchaseSpecificMap = {};
-        let generalPaid = 0;
+        const purchaseSpecificCashMap = {};
+        let generalCashPaid = 0;
 
         cashDocs.forEach(doc => {
             const amt = Number(doc.amount) || 0;
             const netAmt = (doc.type === "out") ? amt : -amt;
             const bNo = String(doc.billNo || '').trim().toLowerCase();
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
-                purchaseSpecificMap[bNo] = (purchaseSpecificMap[bNo] || 0) + netAmt;
+                purchaseSpecificCashMap[bNo] = (purchaseSpecificCashMap[bNo] || 0) + netAmt;
             } else {
-                generalPaid += netAmt;
+                generalCashPaid += netAmt;
             }
         });
 
-        // 1. Clear Prior Opening Outstanding FIRST with General Payments
+        // B. Fetch All TDS & Deductions for Vendor from 'outstanding' collection
+        const adjDocs = await db.mongoDb.collection("outstanding").find({
+            $and: [
+                { $or: [{ vendor: { $regex: regex } }, { client: { $regex: regex } }, { partyName: { $regex: regex } }] },
+                { $or: [{ partyType: { $regex: /^vendor$/i } }, { vendor: { $exists: true, $ne: "" } }] }
+            ]
+        }).toArray();
+
+        const purchaseSpecificTdsMap = {};
+        const purchaseSpecificDebtMap = {};
+        let generalTds = 0;
+        let generalDebt = 0;
+
+        adjDocs.forEach(doc => {
+            const amt = Number(doc.amount) || 0;
+            const bNo = String(doc.billNo || '').trim().toLowerCase();
+            const part = String(doc.particulars || 'tds').trim().toLowerCase();
+
+            if (part === 'tds') {
+                if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                    purchaseSpecificTdsMap[bNo] = (purchaseSpecificTdsMap[bNo] || 0) + amt;
+                } else {
+                    generalTds += amt;
+                }
+            } else if (part === 'debit' || part === 'debt') {
+                if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
+                    purchaseSpecificDebtMap[bNo] = (purchaseSpecificDebtMap[bNo] || 0) + amt;
+                } else {
+                    generalDebt += amt;
+                }
+            }
+        });
+
+        // C. Settle Prior Opening Outstanding FIRST with General Payments
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
             partyType: { $regex: /^vendor$/i },
             partyName: { $regex: regex }
         });
 
-        let remainingGeneral = generalPaid;
-        let openingPaid = 0;
+        let remainingGeneralCash = generalCashPaid;
+        let remainingGeneralTds = generalTds;
+        let remainingGeneralDebt = generalDebt;
 
         if (openDoc) {
-            const initialBaseline = Number(openDoc.initialOpeningDue || openDoc.totalBilledPrior || (Number(openDoc.openingOutstanding || 0) + Number(openDoc.totalPaidPrior || 0))) || 0;
-            const openTds = Number(openDoc.totalTdsPrior) || 0;
-            const openDebt = Number(openDoc.totalDebtPrior) || 0;
-            const maxPayable = Math.max(0, initialBaseline - openTds - openDebt);
+            let initialBaseline = 0;
+            if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) === 0 && (Number(openDoc.openingOutstanding || 0) === 0 || openDoc.isManual)) {
+                initialBaseline = 0;
+            } else if (openDoc.totalBilledPrior !== undefined && openDoc.totalBilledPrior !== null) {
+                initialBaseline = Number(openDoc.totalBilledPrior) || 0;
+            } else {
+                initialBaseline = Number(openDoc.initialOpeningDue || openDoc.openingOutstanding || 0);
+            }
 
-            openingPaid = remainingGeneral > 0 ? Math.min(maxPayable, remainingGeneral) : 0;
-            remainingGeneral -= openingPaid;
+            const priorStaticTds = Number(openDoc.totalTdsPrior) || 0;
+            const priorStaticDebt = Number(openDoc.totalDebtPrior) || 0;
 
-            const newOpeningDue = Number(Math.max(0, maxPayable - openingPaid).toFixed(2));
+            let maxPayable = Math.max(0, initialBaseline - priorStaticTds - priorStaticDebt);
+
+            // 1. Absorb general TDS
+            let openTdsDeducted = 0;
+            if (remainingGeneralTds > 0 && maxPayable > 0) {
+                openTdsDeducted = Math.min(maxPayable, remainingGeneralTds);
+                maxPayable -= openTdsDeducted;
+                remainingGeneralTds -= openTdsDeducted;
+            }
+
+            // 2. Absorb general Debt
+            let openDebtDeducted = 0;
+            if (remainingGeneralDebt > 0 && maxPayable > 0) {
+                openDebtDeducted = Math.min(maxPayable, remainingGeneralDebt);
+                maxPayable -= openDebtDeducted;
+                remainingGeneralDebt -= openDebtDeducted;
+            }
+
+            // 3. Absorb general Cash
+            let openingPaid = 0;
+            if (remainingGeneralCash > 0 && maxPayable > 0) {
+                openingPaid = Math.min(maxPayable, remainingGeneralCash);
+                maxPayable -= openingPaid;
+                remainingGeneralCash -= openingPaid;
+            }
+
+            const newOpeningDue = Number(Math.max(0, maxPayable).toFixed(2));
+            const totalTdsPriorCombined = Number((priorStaticTds + openTdsDeducted).toFixed(2));
+            const totalDebtPriorCombined = Number((priorStaticDebt + openDebtDeducted).toFixed(2));
+            const totalPaidPriorUpdated = Number(openingPaid.toFixed(2));
+
             await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
                 initialOpeningDue: initialBaseline,
-                totalPaidPrior: Number(openingPaid.toFixed(2)),
+                totalBilledPrior: initialBaseline,
+                totalPaidPrior: totalPaidPriorUpdated,
+                totalTdsPrior: totalTdsPriorCombined,
+                totalDebtPrior: totalDebtPriorCombined,
                 openingOutstanding: newOpeningDue,
                 updatedAt: new Date().toISOString()
             });
         }
 
-        // 2. Cascade Remaining General Payments + Direct Payments to Purchases
+        // D. Cascade Remaining General Payments + Direct Payments to Purchases
         const purchasesDocs = await db.mongoDb.collection("purchases").find({
             vendor: { $regex: regex }
         }).toArray();
@@ -233,32 +417,58 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         for (const purchase of purchasesDocs) {
             const purchaseTotal = Number(purchase.total || purchase.amount) || 0;
             const bNo = String(purchase.billNo || '').trim().toLowerCase();
-            const directPaid = purchaseSpecificMap[bNo] || 0;
+            
+            const directCash = purchaseSpecificCashMap[bNo] || 0;
+            const directTds = purchaseSpecificTdsMap[bNo] || 0;
+            const directDebt = purchaseSpecificDebtMap[bNo] || 0;
 
-            let purchasePaid = directPaid;
-            const unappliedAfterDirect = Math.max(0, purchaseTotal - directPaid);
+            let purchaseCash = directCash;
+            let purchaseTds = directTds;
+            let purchaseDebt = directDebt;
 
-            if (remainingGeneral > 0 && unappliedAfterDirect > 0) {
-                const generalForThisBill = Math.min(unappliedAfterDirect, remainingGeneral);
-                purchasePaid += generalForThisBill;
-                remainingGeneral -= generalForThisBill;
+            let settledSoFar = purchaseCash + purchaseTds + purchaseDebt;
+            let unapplied = Math.max(0, purchaseTotal - settledSoFar);
+
+            // Allocate Remaining General TDS
+            if (remainingGeneralTds > 0 && unapplied > 0) {
+                const genTds = Math.min(unapplied, remainingGeneralTds);
+                purchaseTds += genTds;
+                remainingGeneralTds -= genTds;
+                settledSoFar += genTds;
+                unapplied = Math.max(0, purchaseTotal - settledSoFar);
             }
 
-            const newStatus = purchasePaid >= purchaseTotal ? "Paid" : (purchasePaid > 0 ? "Partial" : "Unpaid");
-            
-            if (purchase.paidAmount !== purchasePaid || purchase.status !== newStatus) {
+            // Allocate Remaining General Debt
+            if (remainingGeneralDebt > 0 && unapplied > 0) {
+                const genDebt = Math.min(unapplied, remainingGeneralDebt);
+                purchaseDebt += genDebt;
+                remainingGeneralDebt -= genDebt;
+                settledSoFar += genDebt;
+                unapplied = Math.max(0, purchaseTotal - settledSoFar);
+            }
+
+            // Allocate Remaining General Cash
+            if (remainingGeneralCash > 0 && unapplied > 0) {
+                const genCash = Math.min(unapplied, remainingGeneralCash);
+                purchaseCash += genCash;
+                remainingGeneralCash -= genCash;
+                settledSoFar += genCash;
+                unapplied = Math.max(0, purchaseTotal - settledSoFar);
+            }
+
+            const newStatus = unapplied <= 0.01 ? "Paid" : (settledSoFar > 0.01 ? "Partial" : "Unpaid");
+            const updatedCash = Number(purchaseCash.toFixed(2));
+            const updatedTds = Number(purchaseTds.toFixed(2));
+            const updatedDebt = Number(purchaseDebt.toFixed(2));
+
+            if (purchase.paidAmount !== updatedCash || purchase.tdsAmount !== updatedTds || purchase.debtAmount !== updatedDebt || purchase.status !== newStatus) {
                 await db.collection("purchases").doc(purchase.id || purchase._id.toString()).update({
-                    paidAmount: Number(purchasePaid.toFixed(2)),
+                    paidAmount: updatedCash,
+                    tdsAmount: updatedTds,
+                    debtAmount: updatedDebt,
                     status: newStatus
                 });
             }
-        }
-        await delCache("purchases");
-        try {
-            const { emitDataUpdated } = require("./socket");
-            emitDataUpdated("purchases");
-        } catch (err) {
-            console.error("Socket emit failed for purchases", err);
         }
     }
     
@@ -282,11 +492,72 @@ const recalculatePartyPayments = async (partyType, partyName) => {
         emitDataUpdated("openingBalances");
     } catch (err) {}
 
-    try {
-        runAnalyticsAggregation();
-    } catch (e) {
-        console.error("Auto analytics sync failed", e);
+    if (!skipAnalytics) {
+        debouncedAnalyticsAggregation();
     }
 };
 
-module.exports = { recalculatePartyPayments };
+/**
+ * Global Batch Recalculation across ALL Clients and ALL Vendors
+ */
+const recalculateAllPayments = async () => {
+    try {
+        const [clientsSnap, vendorsSnap, billsSnap, purchasesSnap, cashSnap, outSnap, openSnap] = await Promise.all([
+            db.collection("clients").get(),
+            db.collection("vendors").get(),
+            db.collection("bills").get(),
+            db.collection("purchases").get(),
+            db.collection("cashEntries").get(),
+            db.collection("outstanding").get(),
+            db.collection("openingBalances").get()
+        ]);
+
+        const uniqueClients = new Set();
+        const uniqueVendors = new Set();
+
+        clientsSnap.forEach(d => { const n = d.data().name; if (n) uniqueClients.add(n.trim()); });
+        billsSnap.forEach(d => { const n = d.data().client || d.data().billedTo; if (n) uniqueClients.add(n.trim()); });
+        openSnap.forEach(d => { 
+            const dData = d.data();
+            if ((dData.partyType || 'Client').toLowerCase() === 'client' && dData.partyName) uniqueClients.add(dData.partyName.trim());
+            if ((dData.partyType || '').toLowerCase() === 'vendor' && dData.partyName) uniqueVendors.add(dData.partyName.trim());
+        });
+        cashSnap.forEach(d => {
+            const dData = d.data();
+            if ((dData.partyType || '').toLowerCase() === 'vendor' && dData.partyName) uniqueVendors.add(dData.partyName.trim());
+            else if (dData.partyName) uniqueClients.add(dData.partyName.trim());
+        });
+        outSnap.forEach(d => {
+            const dData = d.data();
+            if ((dData.partyType || '').toLowerCase() === 'vendor' || dData.vendor) {
+                const n = dData.vendor || dData.client || dData.partyName;
+                if (n) uniqueVendors.add(n.trim());
+            } else {
+                const n = dData.client || dData.partyName;
+                if (n) uniqueClients.add(n.trim());
+            }
+        });
+        vendorsSnap.forEach(d => { const n = d.data().name; if (n) uniqueVendors.add(n.trim()); });
+        purchasesSnap.forEach(d => { const n = d.data().vendor; if (n) uniqueVendors.add(n.trim()); });
+
+        for (const clientName of uniqueClients) {
+            await recalculatePartyPayments("Client", clientName, true);
+        }
+
+        for (const vendorName of uniqueVendors) {
+            await recalculatePartyPayments("Vendor", vendorName, true);
+        }
+
+        debouncedAnalyticsAggregation();
+
+        return {
+            clientsProcessed: uniqueClients.size,
+            vendorsProcessed: uniqueVendors.size
+        };
+    } catch (err) {
+        console.error("recalculateAllPayments error:", err);
+        throw err;
+    }
+};
+
+module.exports = { recalculatePartyPayments, recalculateAllPayments };

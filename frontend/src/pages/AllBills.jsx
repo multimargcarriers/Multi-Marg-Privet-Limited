@@ -248,8 +248,11 @@ const AllBills = () => {
       const paidAmount = parseFloat(b.paidAmount || 0);
       const billNo = String(b.invoice || b.billNo || b.id || '').toLowerCase().trim();
       
-      const billTds = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && String(e.particulars).toLowerCase() === 'tds').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      const billDebit = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && (String(e.particulars).toLowerCase() === 'debit' || String(e.particulars).toLowerCase() === 'debt')).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const directTdsFromEntries = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && String(e.particulars).toLowerCase() === 'tds').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const billTds = Math.max(parseFloat(b.tdsAmount || 0), directTdsFromEntries);
+
+      const directDebitFromEntries = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && (String(e.particulars).toLowerCase() === 'debit' || String(e.particulars).toLowerCase() === 'debt')).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const billDebit = Math.max(parseFloat(b.debtAmount || 0), directDebitFromEntries);
       
       const pendingAmount = Math.max(0, totalAmount - paidAmount - billTds - billDebit);
 
@@ -305,12 +308,15 @@ const AllBills = () => {
       const rec = parseFloat(b.paidAmount || 0);
       const billNo = String(b.invoice || b.billNo || b.id || '').toLowerCase().trim();
       
-      const billTdsPending = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && String(e.particulars).toLowerCase() === 'tds' && String(e.tdsStatus).toLowerCase() !== 'received').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-      const billDebit = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && String(e.particulars).toLowerCase() === 'debit').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const directTdsFromEntries = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && String(e.particulars).toLowerCase() === 'tds').reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const billTds = Math.max(parseFloat(b.tdsAmount || 0), directTdsFromEntries);
+
+      const directDebitFromEntries = outstandingEntries.filter(e => String(e.billNo || '').toLowerCase().trim() === billNo && (String(e.particulars).toLowerCase() === 'debit' || String(e.particulars).toLowerCase() === 'debt')).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const billDebit = Math.max(parseFloat(b.debtAmount || 0), directDebitFromEntries);
       
       totalBilled += amt;
       totalReceived += rec;
-      const pAmt = Math.max(0, amt - rec - billTdsPending - billDebit);
+      const pAmt = Math.max(0, amt - rec - billTds - billDebit);
       totalPending += pAmt;
       
       if (pAmt <= 0.01) countPaid++;

@@ -66,11 +66,13 @@ const Bills = () => {
     return combined.filter(b => {
       const totalAmount = parseFloat(b.amount || b.total || 0);
       const paidAmount = parseFloat(b.paidAmount || 0);
-      const pendingAmount = totalAmount - paidAmount;
+      const tdsAmount = parseFloat(b.tdsAmount || 0);
+      const debtAmount = parseFloat(b.debtAmount || 0);
+      const pendingAmount = Math.max(0, totalAmount - paidAmount - tdsAmount - debtAmount);
 
       const isPaid = pendingAmount <= 0.01;
-      const isUnpaid = paidAmount <= 0.01;
-      const isPartial = pendingAmount > 0.01 && paidAmount > 0.01;
+      const isUnpaid = (paidAmount + tdsAmount + debtAmount) <= 0.01;
+      const isPartial = pendingAmount > 0.01 && (paidAmount + tdsAmount + debtAmount) > 0.01;
 
       if (statusFilter === "Paid") return isPaid;
       if (statusFilter === "Unpaid") return isUnpaid;
@@ -113,7 +115,7 @@ const Bills = () => {
         { label: "Total Bills", value: displayBills.length, icon: FileText, color: "blue" },
         { label: "Total Amount", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat(b.amount || b.total || 0), 0).toFixed(2), icon: IndianRupee, color: "green" },
         { label: "Amount Paid", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat(b.paidAmount || 0), 0).toFixed(2), icon: CreditCard, color: "orange" },
-        { label: "Outstanding", value: "₹" + displayBills.reduce((sum, b) => sum + parseFloat((b.amount || b.total || 0) - (b.paidAmount || 0)), 0).toFixed(2), icon: AlertCircle, color: "red" }
+        { label: "Outstanding", value: "₹" + displayBills.reduce((sum, b) => sum + Math.max(0, parseFloat(b.amount || b.total || 0) - parseFloat(b.paidAmount || 0) - parseFloat(b.tdsAmount || 0) - parseFloat(b.debtAmount || 0)), 0).toFixed(2), icon: AlertCircle, color: "red" }
       ]} />
 
       <Table
