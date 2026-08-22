@@ -1367,10 +1367,23 @@ export const getBillSettlementDetails = (b, rawCash = [], rawAdj = []) => {
     tdsItems.push(`TDS ₹${Number(b.tdsAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`);
   }
 
+  const payDates = [];
+  matchedCash.forEach((c) => {
+    const dt = formatDate(c.date || c.createdAt);
+    const mode = c.paymentMode || c.mode || "Bank";
+    const ref = c.voucherNo || c.referenceNo || "";
+    payDates.push(`${dt} (${mode}${ref ? `:${ref}` : ""})`);
+  });
+  if (payDates.length === 0 && (Number(b.paidAmount) || 0) > 0) {
+    const pDt = b.paymentDate || b.paidDate || b.updatedAt || b.date || b.invoice_date;
+    if (pDt) payDates.push(formatDate(pDt));
+  }
+
   return {
     matchedCash,
     matchedAdj,
     paymentSummary: payItems.join(" | ") || (Number(b.paidAmount) > 0 ? `₹${Number(b.paidAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-"),
+    paymentDateList: payDates.join(", ") || "-",
     tdsSummary: tdsItems.join(" | ") || (Number(b.tdsAmount) > 0 ? `₹${Number(b.tdsAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "-")
   };
 };
@@ -2171,17 +2184,17 @@ export async function exportPartyDetailedLedger({
     });
 
     const columnsDef2 = [
-      { header: "SL", key: "sl", width: 7, align: "center" },
-      { header: "BILL DATE", key: "billDate", width: 14, align: "center" },
+      { header: "SL", key: "sl", width: 6, align: "center" },
+      { header: "BILL DATE", key: "billDate", width: 13, align: "center" },
       { header: "BILL / INVOICE NO", key: "billNo", width: 22 },
-      { header: "DUE DATE", key: "dueDate", width: 14, align: "center" },
-      { header: "VEHICLE / DETAILS", key: "details", width: 26 },
+      { header: "DUE DATE", key: "dueDate", width: 13, align: "center" },
+      { header: "VEHICLE / DETAILS", key: "details", width: 24 },
       { header: "TAXABLE AMOUNT (₹)", key: "taxable", width: 18, align: "right", numFmt: "#,##0.00" },
       { header: "GST 18% (₹)", key: "gst", width: 14, align: "right", numFmt: "#,##0.00" },
       { header: "TOTAL INVOICED (₹)", key: "total", width: 18, align: "right", numFmt: "#,##0.00" },
-      { header: "PAYMENT DATES & SETTLEMENT DETAILS", key: "payments", width: 38 },
       { header: "TOTAL PAID (₹)", key: "paid", width: 16, align: "right", numFmt: "#,##0.00" },
-      { header: "TDS DEDUCTION & DATES (₹)", key: "tds", width: 24 },
+      { header: "PAYMENT DATES & MODE", key: "payments", width: 32 },
+      { header: "TDS DEDUCTED (₹)", key: "tds", width: 16, align: "right", numFmt: "#,##0.00" },
       { header: "DEBT / DISCOUNT (₹)", key: "debt", width: 16, align: "right", numFmt: "#,##0.00" },
       { header: "REMAINING DUE (₹)", key: "due", width: 18, align: "right", numFmt: "#,##0.00" },
       { header: "STATUS", key: "status", width: 14, align: "center" },
@@ -2254,9 +2267,9 @@ export async function exportPartyDetailedLedger({
         Number(bTax.toFixed(2)),
         Number(bGst.toFixed(2)),
         bTot,
-        stDetails.paymentSummary,
         bP,
-        stDetails.tdsSummary,
+        stDetails.paymentDateList || "-",
+        bT,
         bD,
         bRem,
         bSt,
@@ -2313,12 +2326,13 @@ export async function exportPartyDetailedLedger({
     setTotCell("F", totTaxable2);
     setTotCell("G", totGst2);
     setTotCell("H", totBilled2);
-    setTotCell("J", totPaid2);
-    const tdsCell = ws2.getCell(`K${totRow2Number}`);
-    tdsCell.value = `TDS: ₹${totTds2.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
-    tdsCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF92400E" } };
-    tdsCell.alignment = { horizontal: "center", vertical: "middle" };
+    setTotCell("I", totPaid2);
+    
+    // Empty cell for payment dates column J
+    const jCell = ws2.getCell(`J${totRow2Number}`);
+    jCell.value = "";
 
+    setTotCell("K", totTds2);
     setTotCell("L", totDebt2);
     setTotCell("M", totDue2);
 
