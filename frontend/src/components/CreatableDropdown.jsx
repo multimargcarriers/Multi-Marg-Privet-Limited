@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Plus, X, Clock, Zap } from "lucide-react";
-import { recordSuggestion, getSuggestions } from "../utils/smartSuggestions";
+import { recordSuggestion, getSuggestions, resolveCategory } from "../utils/smartSuggestions";
 
 const CreatableDropdown = ({
   options = [],
@@ -36,21 +36,21 @@ const CreatableDropdown = ({
     }
   }, [value]);
 
-  const catKey = category || name || "city";
+  const catKey = resolveCategory(category || name || "city");
+
+  // Get local frequent & recent memory suggestions strictly for this category
+  const smartList = getSuggestions(catKey, query, 12);
 
   // Filter DB options
   const filteredOptions = (options || []).filter((opt) => {
     if (query === value && value !== "") return true;
     const q = (query || "").toLowerCase();
-    const nameStr = opt.client || opt.name || opt.city || "";
+    const nameStr = opt.client || opt.name || opt.city || opt.vendorName || "";
     return nameStr.toLowerCase().includes(q);
   });
 
-  // Get local frequent & recent memory suggestions
-  const smartList = getSuggestions(catKey, query, 8);
-
   const exactMatch = (options || []).some((opt) => {
-    const nameStr = opt.client || opt.name || opt.city || "";
+    const nameStr = opt.client || opt.name || opt.city || opt.vendorName || "";
     return nameStr.toLowerCase() === (query || "").trim().toLowerCase();
   });
 
@@ -71,13 +71,66 @@ const CreatableDropdown = ({
     }
   };
 
-  // Find smart items not already in filtered DB options
-  const dbOptionNames = new Set(
-    filteredOptions.map((opt) => (opt.client || opt.name || opt.city || "").toUpperCase())
-  );
-  const additionalSmartSuggestions = smartList.filter(
-    (item) => !dbOptionNames.has(item.text.toUpperCase())
-  );
+  // Combine and sort options: Recent first -> Frequent next -> Others
+  const dbOptionsMap = new Map();
+  filteredOptions.forEach((opt) => {
+    const nameStr = (opt.client || opt.name || opt.city || opt.vendorName || "").toUpperCase();
+    if (nameStr) dbOptionsMap.set(nameStr, opt);
+  });
+
+  const combinedItems = [];
+  const addedNames = new Set();
+
+  // 1. Add Recent items first
+  smartList.filter(s => s.type === 'recent').forEach((item) => {
+    const key = item.text.toUpperCase();
+    if (!addedNames.has(key)) {
+      addedNames.add(key);
+      combinedItems.push({
+        text: item.text,
+        type: 'recent',
+        rawOption: dbOptionsMap.get(key) || null
+      });
+    }
+  });
+
+  // 2. Add Frequent items second
+  smartList.filter(s => s.type === 'frequent').forEach((item) => {
+    const key = item.text.toUpperCase();
+    if (!addedNames.has(key)) {
+      addedNames.add(key);
+      combinedItems.push({
+        text: item.text,
+        type: 'frequent',
+        rawOption: dbOptionsMap.get(key) || null
+      });
+    }
+  });
+
+  // 3. Add remaining DB options
+  dbOptionsMap.forEach((opt, key) => {
+    if (!addedNames.has(key)) {
+      addedNames.add(key);
+      combinedItems.push({
+        text: opt.client || opt.name || opt.city || opt.vendorName || key,
+        type: 'normal',
+        rawOption: opt
+      });
+    }
+  });
+
+  // 4. Add remaining smart items
+  smartList.forEach((item) => {
+    const key = item.text.toUpperCase();
+    if (!addedNames.has(key)) {
+      addedNames.add(key);
+      combinedItems.push({
+        text: item.text,
+        type: 'normal',
+        rawOption: null
+      });
+    }
+  });
 
   return (
     <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
@@ -143,7 +196,7 @@ const CreatableDropdown = ({
             marginTop: "4px", 
             maxHeight: "260px", 
             overflowY: "auto", 
-            zIndex: 1050,
+            zIndex: 1050, 
             padding: "0.4rem",
             background: "#ffffff",
             border: "1px solid #cbd5e1",
@@ -151,16 +204,13 @@ const CreatableDropdown = ({
             boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)"
           }}
         >
-          {/* 1. Database Options */}
-          {filteredOptions.length > 0 && filteredOptions.map((opt, idx) => {
-            const nameStr = opt.client || opt.name || opt.city || "";
-            const isFrequent = smartList.some(s => s.text.toUpperCase() === nameStr.toUpperCase());
-            return (
+          {combinedItems.length > 0 ? (
+            combinedItems.map((item, idx) => (
               <div 
-                key={opt.id || `opt-${idx}`}
+                key={`item-${idx}`}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  handleSelect(nameStr, opt);
+                  handleSelect(item.text, item.rawOption);
                 }}
                 style={{ 
                   padding: "0.55rem 0.75rem", 
@@ -168,109 +218,68 @@ const CreatableDropdown = ({
                   borderRadius: "6px",
                   transition: "background 0.15s",
                   color: "var(--text-color, #1e293b)",
-                  fontWeight: 500,
+                  fontWeight: item.type === 'recent' || item.type === 'frequent' ? 600 : 500,
                   fontSize: "0.85rem",
                   textTransform: "uppercase",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center"
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "#eff6ff"}
+                onMouseEnter={(e) => e.currentTarget.style.background = item.type === 'recent' ? "#ede9fe" : (item.type === 'frequent' ? "#fef3c7" : "#eff6ff")}
                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               >
-                <span>{nameStr}</span>
-                {isFrequent && (
-                  <span style={{ fontSize: "0.65rem", color: "#2563eb", background: "#dbeafe", padding: "1px 6px", borderRadius: "10px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "2px" }}>
-                    <Zap size={10} /> Frequent
-                  </span>
-                )}
-              </div>
-            );
-          })}
-
-          {/* 2. Additional Local Storage / IndexedDB Frequent Words */}
-          {additionalSmartSuggestions.length > 0 && (
-            <>
-              <div style={{ padding: "6px 8px 2px", fontSize: "0.68rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", borderTop: filteredOptions.length > 0 ? "1px solid #f1f5f9" : "none", marginTop: filteredOptions.length > 0 ? "4px" : "0", display: "flex", justifyContent: "space-between" }}>
-                <span>Frequent / Recent</span>
-                <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>Local Memory</span>
-              </div>
-              {additionalSmartSuggestions.map((item, sIdx) => (
-                <div
-                  key={`smart-${sIdx}`}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSelect(item.text);
-                  }}
-                  style={{
-                    padding: "0.55rem 0.75rem",
-                    cursor: "pointer",
-                    borderRadius: "6px",
-                    transition: "background 0.15s",
-                    color: "#0f172a",
-                    fontWeight: 600,
-                    fontSize: "0.85rem",
-                    textTransform: "uppercase",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "#fef3c7"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    {item.isRecent ? <Clock size={12} color="#3b82f6" /> : <Zap size={12} color="#d97706" />}
-                    {item.text}
-                  </span>
-                  {item.frequency > 1 && (
-                    <span style={{ fontSize: "0.68rem", color: "#92400e", background: "#fde68a", padding: "1px 6px", borderRadius: "10px", fontWeight: 600 }}>
-                      {item.frequency}x
-                    </span>
-                  )}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {item.type === 'recent' ? (
+                    <Clock size={12} color="#8b5cf6" />
+                  ) : item.type === 'frequent' ? (
+                    <Zap size={12} color="#f59e0b" />
+                  ) : null}
+                  <span>{item.text}</span>
                 </div>
-              ))}
-            </>
-          )}
-
-          {/* 3. Add Custom Item */}
-          {!exactMatch && query.trim() !== "" && query !== value && navigator.onLine && (
-            <div 
-              onMouseDown={(e) => {
-                e.preventDefault();
-                recordSuggestion(catKey, query.trim());
-                if (onCreate) {
-                  onCreate(query.trim().toLowerCase());
-                  setIsOpen(false);
-                } else {
-                  handleSelect(query.trim().toLowerCase());
-                }
-              }}
-              style={{ 
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "0.6rem 0.75rem", 
-                cursor: "pointer",
-                borderRadius: "6px",
-                transition: "background 0.15s",
-                color: "#2563eb",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                borderTop: (filteredOptions.length > 0 || additionalSmartSuggestions.length > 0) ? "1px solid #f1f5f9" : "none",
-                marginTop: "4px",
-                textTransform: "uppercase"
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "#eff6ff"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-            >
-              <Plus size={15} /> Add "{query.trim()}"
+                {item.type === 'recent' ? (
+                  <span style={{ fontSize: "0.62rem", color: "#6d28d9", background: "#ede9fe", padding: "1px 6px", borderRadius: "10px", fontWeight: 700 }}>
+                    Recent
+                  </span>
+                ) : item.type === 'frequent' ? (
+                  <span style={{ fontSize: "0.62rem", color: "#b45309", background: "#fef3c7", padding: "1px 6px", borderRadius: "10px", fontWeight: 700 }}>
+                    Frequent
+                  </span>
+                ) : null}
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: "0.75rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              No matches found
             </div>
           )}
 
-          {filteredOptions.length === 0 && additionalSmartSuggestions.length === 0 && (exactMatch || query.trim() === "") && (
-             <div style={{ padding: "0.75rem", color: "var(--text-muted, #94a3b8)", textAlign: "center", fontSize: "0.85rem" }}>
-               No options found. Type to add.
-             </div>
+          {onCreate && query && !exactMatch && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                recordSuggestion(catKey, query);
+                onCreate(query);
+                setIsOpen(false);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "0.6rem 0.75rem",
+                cursor: "pointer",
+                borderTop: "1px solid #f1f5f9",
+                color: "var(--primary-color)",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                marginTop: "4px",
+                borderRadius: "6px"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--primary-light, #eff6ff)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              <Plus size={16} />
+              <span>Create "{query.toUpperCase()}"</span>
+            </div>
           )}
         </div>
       )}

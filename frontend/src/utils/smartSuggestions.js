@@ -1,27 +1,57 @@
 /**
  * smartSuggestions.js
- * Intelligent local suggestions engine using IndexedDB / localStorage + MongoDB/Redis live synchronization.
+ * Category-isolated intelligent suggestions engine.
  * 
- * Features:
- * - Stores the last 10-20 recent entries per category/field.
- * - Stores up to 250 most frequent words/phrases per category or globally.
- * - Non-intrusive, zero-latency in-memory cache synchronized with IndexedDB.
- * - Auto-syncs with backend MongoDB/Redis data to preload recent & frequent historical records.
- * - Works completely offline & locally.
+ * Ranking Hierarchy:
+ * 1. Most Recently Used First (ordered by latest timestamp) -> Tagged as 'recent'
+ * 2. Highest Frequency / Max Used Next (ordered by total use count) -> Tagged as 'frequent'
+ * 3. Preloaded Master Database values next
+ * 
+ * Strict Domain Categories:
+ * - 'city': Origin, Destination, From, To, Station, Cities
+ * - 'client': Client Name, Billed To, Consignor, Consignee, Party
+ * - 'vendor': Vendor Name, Handover To, Transporter
+ * - 'vehicle': Vehicle No, Truck No
+ * - 'particular': Particulars, Material, Description
  */
 
 import appDB from './appDB';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
-const STORAGE_KEY = 'smart_suggestions_db_v1';
+const STORAGE_KEY = 'smart_suggestions_categorized_v2';
 const MAX_FREQUENT_WORDS_PER_CATEGORY = 250;
-const MAX_RECENT_PER_CATEGORY = 15;
+const MAX_RECENT_PER_CATEGORY = 20;
 
-// In-memory mirror for instantaneous synchronous lookups
+// Canonical Category Normalizer
+export const resolveCategory = (rawCategory = 'general') => {
+  const c = String(rawCategory || '').toLowerCase().replace(/[-_ ]/g, '');
+  if (['origin', 'destination', 'from', 'to', 'city', 'cities', 'station', 'triporigin', 'tripdestination', 'lrorigin', 'lrdestination', 'pickupcity', 'deliverycity'].includes(c)) {
+    return 'city';
+  }
+  if (['client', 'clientname', 'clients', 'billedto', 'party', 'consignor', 'consignee', 'billed_to', 'partyname'].includes(c)) {
+    return 'client';
+  }
+  if (['vendor', 'vendorname', 'vendors', 'handoverto', 'transporter'].includes(c)) {
+    return 'vendor';
+  }
+  if (['vehicle', 'vehicleno', 'truck', 'truckno'].includes(c)) {
+    return 'vehicle';
+  }
+  if (['particular', 'particulars', 'material', 'description', 'goods', 'package', 'materialdetails'].includes(c)) {
+    return 'particular';
+  }
+  return c || 'general';
+};
+
+// In-memory cache per canonical category
 let suggestionsCache = {
-  categories: {}, // e.g. { origin: { recent: ["NOKA", "CHAKAN"], frequent: { "NOKA": 14, "CHAKAN": 9 } } }
-  globalWords: {} // e.g. { "NOKA": 14, "CHAKAN": 9, "PUNE": 22 }
+  city: { recent: [], frequent: {}, preloaded: [] },
+  client: { recent: [], frequent: {}, preloaded: [] },
+  vendor: { recent: [], frequent: {}, preloaded: [] },
+  vehicle: { recent: [], frequent: {}, preloaded: [] },
+  particular: { recent: [], frequent: {}, preloaded: [] },
+  general: { recent: [], frequent: {}, preloaded: [] }
 };
 
 // Initialize cache from appDB / localStorage
@@ -31,10 +61,15 @@ const initSuggestions = () => {
     if (raw) {
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (parsed && typeof parsed === 'object') {
-        suggestionsCache = {
-          categories: parsed.categories || {},
-          globalWords: parsed.globalWords || {}
-        };
+        Object.keys(parsed).forEach(cat => {
+          if (suggestionsCache[cat]) {
+            suggestionsCache[cat] = {
+              recent: Array.isArray(parsed[cat]?.recent) ? parsed[cat].recent : [],
+              frequent: typeof parsed[cat]?.frequent === 'object' ? parsed[cat].frequent : {},
+              preloaded: Array.isArray(parsed[cat]?.preloaded) ? parsed[cat].preloaded : []
+            };
+          }
+        });
       }
     }
   } catch (e) {
@@ -53,195 +88,169 @@ const saveSuggestions = () => {
   }
 };
 
-/**
- * Normalizes input string (trims extra spaces, converts to uppercase for uniformity)
- */
 export const normalizeText = (txt) => {
   if (!txt) return "";
   return String(txt).trim().toUpperCase();
 };
 
 /**
- * Records a suggestion usage for a specific category (e.g. 'origin', 'destination', 'consignor', 'consignee', 'particular', 'vehicle', 'client', 'general')
+ * Records a suggestion usage into its dedicated category.
+ * Updates both recent timeline and frequency score.
  */
-export const recordSuggestion = (category = 'general', rawText) => {
+export const recordSuggestion = (rawCategory = 'general', rawText) => {
   const text = normalizeText(rawText);
   if (!text || text.length < 2) return;
 
-  const catKey = String(category || 'general').toLowerCase();
-
-  if (!suggestionsCache.categories[catKey]) {
-    suggestionsCache.categories[catKey] = {
-      recent: [],
-      frequent: {}
-    };
+  const cat = resolveCategory(rawCategory);
+  if (!suggestionsCache[cat]) {
+    suggestionsCache[cat] = { recent: [], frequent: {}, preloaded: [] };
   }
 
-  const catData = suggestionsCache.categories[catKey];
+  const catData = suggestionsCache[cat];
 
-  // 1. Update Recent (Last 15 unique entries)
-  catData.recent = [text, ...catData.recent.filter(item => item !== text)].slice(0, MAX_RECENT_PER_CATEGORY);
+  // 1. Update Recent (Most recent first, unique)
+  catData.recent = [
+    { text, timestamp: Date.now() },
+    ...catData.recent.filter(r => (typeof r === 'string' ? r : r.text) !== text)
+  ].slice(0, MAX_RECENT_PER_CATEGORY);
 
-  // 2. Update Category Frequent Count
+  // 2. Update Frequency Count
   catData.frequent[text] = (catData.frequent[text] || 0) + 1;
 
-  // Prune category frequent words if over 250
+  // Prune category frequent words if over threshold
   const catEntries = Object.entries(catData.frequent);
   if (catEntries.length > MAX_FREQUENT_WORDS_PER_CATEGORY) {
     catEntries.sort((a, b) => b[1] - a[1]);
     catData.frequent = Object.fromEntries(catEntries.slice(0, MAX_FREQUENT_WORDS_PER_CATEGORY));
   }
 
-  // 3. Update Global Words Frequency
-  suggestionsCache.globalWords[text] = (suggestionsCache.globalWords[text] || 0) + 1;
-  const globalEntries = Object.entries(suggestionsCache.globalWords);
-  if (globalEntries.length > MAX_FREQUENT_WORDS_PER_CATEGORY * 2) {
-    globalEntries.sort((a, b) => b[1] - a[1]);
-    suggestionsCache.globalWords = Object.fromEntries(globalEntries.slice(0, MAX_FREQUENT_WORDS_PER_CATEGORY * 2));
-  }
-
   saveSuggestions();
 };
 
 /**
- * Returns intelligent suggestions for a field based on typed query.
- * Combines recent selections and high-frequency words.
+ * Returns categorized suggestions strictly matching the category.
+ * Output order:
+ * 1. Recent used first (matching query if typed)
+ * 2. Most frequently used next (highest count descending)
+ * 3. Preloaded server database values next
  */
-export const getSuggestions = (category = 'general', query = '', limit = 8) => {
-  const catKey = String(category || 'general').toLowerCase();
+export const getSuggestions = (rawCategory = 'general', query = '', limit = 8) => {
+  const cat = resolveCategory(rawCategory);
   const q = normalizeText(query);
 
-  const catData = suggestionsCache.categories[catKey] || { recent: [], frequent: {} };
-  const globalWords = suggestionsCache.globalWords || {};
+  const catData = suggestionsCache[cat] || { recent: [], frequent: {}, preloaded: [] };
 
-  // Build pool of candidates with scored relevance
-  const candidatesMap = new Map();
+  const seen = new Set();
+  const results = [];
 
-  // Add recent items
-  catData.recent.forEach((item, idx) => {
-    const freq = catData.frequent[item] || 1;
-    // Score based on frequency + recency bonus
-    candidatesMap.set(item, {
-      text: item,
-      frequency: freq,
-      isRecent: true,
-      score: freq * 2 + (MAX_RECENT_PER_CATEGORY - idx)
-    });
-  });
-
-  // Add category frequent items
-  Object.entries(catData.frequent).forEach(([item, freq]) => {
-    if (!candidatesMap.has(item)) {
-      candidatesMap.set(item, {
+  // 1. RECENT ITEMS FIRST
+  const recentList = (catData.recent || []).map(r => (typeof r === 'string' ? r : r.text));
+  for (const item of recentList) {
+    if (!item) continue;
+    if (q && !item.includes(q)) continue;
+    if (!seen.has(item)) {
+      seen.add(item);
+      results.push({
         text: item,
-        frequency: freq,
-        isRecent: false,
-        score: freq * 2
+        type: 'recent',
+        score: 1000 + (catData.frequent[item] || 1)
       });
     }
-  });
+  }
 
-  // Add matching global words
-  Object.entries(globalWords).forEach(([item, freq]) => {
-    if (!candidatesMap.has(item)) {
-      candidatesMap.set(item, {
+  // 2. MOST FREQUENTLY USED NEXT (sorted by frequency descending)
+  const frequentEntries = Object.entries(catData.frequent || {})
+    .sort((a, b) => b[1] - a[1]);
+
+  for (const [item, count] of frequentEntries) {
+    if (!item) continue;
+    if (q && !item.includes(q)) continue;
+    if (!seen.has(item)) {
+      seen.add(item);
+      results.push({
         text: item,
-        frequency: freq,
-        isRecent: false,
-        score: freq
+        type: count > 3 ? 'frequent' : 'normal',
+        score: 500 + count
       });
     }
-  });
+  }
 
-  let list = Array.from(candidatesMap.values());
+  // 3. PRELOADED DATABASE OPTIONS NEXT
+  const preloadedList = catData.preloaded || [];
+  for (const item of preloadedList) {
+    if (!item) continue;
+    if (q && !item.includes(q)) continue;
+    if (!seen.has(item)) {
+      seen.add(item);
+      results.push({
+        text: item,
+        type: 'normal',
+        score: 100
+      });
+    }
+  }
 
+  // When query is typed, prioritize prefix matches
   if (q) {
-    list = list.filter(item => {
-      const it = item.text;
-      return it.startsWith(q) || it.includes(q);
-    });
-
-    // Sort: exact match or startsWith first, then higher frequency score
-    list.sort((a, b) => {
+    results.sort((a, b) => {
       const aStarts = a.text.startsWith(q);
       const bStarts = b.text.startsWith(q);
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
       return b.score - a.score;
     });
-  } else {
-    // When no query is typed, sort by score (recent + high frequency)
-    list.sort((a, b) => b.score - a.score);
   }
 
-  return list.slice(0, limit);
+  return results.slice(0, limit);
 };
 
 /**
- * Syncs recent and frequent entries from backend MongoDB / Redis into local memory
+ * Preload and merge suggestions from the backend API into category storage.
  */
-export const syncSuggestionsFromBackend = async () => {
+export const preloadSuggestionsFromBackend = async () => {
   try {
-    const token = localStorage.getItem("token") || appDB.memGet("token");
-    if (!token) return;
-
-    const res = await axios.get(`${API}/suggestions/recent`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (res.data?.success && res.data.data) {
+    const res = await axios.get(`${API}/suggestions/recent`);
+    if (res.data && res.data.success && res.data.data) {
       const serverData = res.data.data;
       
-      for (const [cat, words] of Object.entries(serverData)) {
-        if (!Array.isArray(words)) continue;
-        const catKey = cat.toLowerCase();
-        if (!suggestionsCache.categories[catKey]) {
-          suggestionsCache.categories[catKey] = { recent: [], frequent: {} };
+      const mapping = {
+        city: serverData.city || serverData.origin || [],
+        client: serverData.client || serverData.consignor || [],
+        vendor: serverData.vendor || [],
+        vehicle: serverData.vehicle || [],
+        particular: serverData.particular || serverData.material || []
+      };
+
+      Object.entries(mapping).forEach(([cat, list]) => {
+        if (!suggestionsCache[cat]) {
+          suggestionsCache[cat] = { recent: [], frequent: {}, preloaded: [] };
         }
-        const catObj = suggestionsCache.categories[catKey];
-        
-        words.forEach((word) => {
-          const clean = normalizeText(word);
-          if (clean && clean.length >= 2) {
-            if (!catObj.frequent[clean]) {
-              catObj.frequent[clean] = 1;
-            }
-            if (!catObj.recent.includes(clean) && catObj.recent.length < MAX_RECENT_PER_CATEGORY) {
-              catObj.recent.push(clean);
-            }
-            suggestionsCache.globalWords[clean] = (suggestionsCache.globalWords[clean] || 0) + 1;
-          }
-        });
-      }
+        if (Array.isArray(list)) {
+          const validList = list.map(normalizeText).filter(Boolean);
+          // Store preloaded items uniquely
+          suggestionsCache[cat].preloaded = Array.from(new Set([
+            ...suggestionsCache[cat].preloaded,
+            ...validList
+          ])).slice(0, 300);
+        }
+      });
 
       saveSuggestions();
     }
   } catch (e) {
-    // Silent fail in offline or network blips
+    // Fail silently in offline mode
   }
 };
 
-// Trigger background sync when token is present
-if (typeof window !== "undefined") {
-  setTimeout(() => {
-    syncSuggestionsFromBackend();
-  }, 2000);
-}
-
-/**
- * Returns the last 10 unique entries for a category
- */
-export const getRecentHistory = (category = 'general', limit = 10) => {
-  const catKey = String(category || 'general').toLowerCase();
-  const catData = suggestionsCache.categories[catKey];
-  if (!catData || !Array.isArray(catData.recent)) return [];
-  return catData.recent.slice(0, limit);
-};
+// Trigger preloading in background
+setTimeout(() => {
+  preloadSuggestionsFromBackend();
+}, 2000);
 
 export default {
   recordSuggestion,
   getSuggestions,
-  getRecentHistory,
-  syncSuggestionsFromBackend,
-  normalizeText
+  preloadSuggestionsFromBackend,
+  normalizeText,
+  resolveCategory
 };

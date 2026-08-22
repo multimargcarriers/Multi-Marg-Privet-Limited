@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Clock, Zap, X } from "lucide-react";
-import { recordSuggestion, getSuggestions, normalizeText } from "../utils/smartSuggestions";
+import { Clock, Zap, MapPin, Building, Truck, Package } from "lucide-react";
+import { recordSuggestion, getSuggestions, resolveCategory } from "../utils/smartSuggestions";
 
 /**
  * AutoSuggestInput
- * Compact, responsive text input with intelligent local storage / IndexedDB memory suggestions.
- * 
- * Props:
- * - category: 'origin' | 'destination' | 'consignor' | 'consignee' | 'particular' | 'vehicle' | 'material' | 'general'
- * - value: current input value
- * - onChange: change handler
- * - placeholder: placeholder text
- * - format: formatting function (e.g. formatAllCaps)
- * - className, style, required, etc.
+ * Responsive text input with strictly categorized suggestions.
+ * Prioritizes Recent items first, followed by Most Frequently Used items.
  */
 const AutoSuggestInput = ({
   category = "general",
@@ -33,6 +26,8 @@ const AutoSuggestInput = ({
   const [suggestions, setSuggestions] = useState([]);
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
+
+  const resolvedCat = resolveCategory(category);
 
   // Update suggestions when value or category changes
   useEffect(() => {
@@ -86,6 +81,17 @@ const AutoSuggestInput = ({
     }
   };
 
+  const getCategoryTitle = () => {
+    switch (resolvedCat) {
+      case "city": return "Suggested Cities";
+      case "client": return "Suggested Clients";
+      case "vendor": return "Suggested Vendors";
+      case "vehicle": return "Suggested Vehicles";
+      case "particular": return "Suggested Particulars";
+      default: return "Suggestions";
+    }
+  };
+
   return (
     <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
       <input
@@ -130,8 +136,8 @@ const AutoSuggestInput = ({
           }}
         >
           <div style={{ padding: "4px 8px", fontSize: "0.68rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f1f5f9", marginBottom: "2px" }}>
-            <span>Recent & Frequent ({category})</span>
-            <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>Local Memory</span>
+            <span>{getCategoryTitle()}</span>
+            <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>Recent First</span>
           </div>
 
           {suggestions.map((item, idx) => (
@@ -156,19 +162,25 @@ const AutoSuggestInput = ({
               onMouseEnter={(e) => e.currentTarget.style.background = "#eff6ff"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                {item.isRecent ? (
-                  <Clock size={12} color="#3b82f6" />
-                ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.type === 'recent' ? (
+                  <Clock size={12} color="#8b5cf6" />
+                ) : item.type === 'frequent' ? (
                   <Zap size={12} color="#f59e0b" />
+                ) : (
+                  <span style={{ width: "12px", height: "12px", display: "inline-block" }}>•</span>
                 )}
                 <span>{item.text}</span>
               </div>
-              {item.frequency > 1 && (
-                <span style={{ fontSize: "0.68rem", color: "#64748b", background: "#f1f5f9", padding: "1px 6px", borderRadius: "10px", fontWeight: 500 }}>
-                  {item.frequency}x
+              {item.type === 'recent' ? (
+                <span style={{ fontSize: "0.62rem", color: "#6d28d9", background: "#ede9fe", padding: "1px 6px", borderRadius: "10px", fontWeight: 700, flexShrink: 0 }}>
+                  Recent
                 </span>
-              )}
+              ) : item.type === 'frequent' ? (
+                <span style={{ fontSize: "0.62rem", color: "#b45309", background: "#fef3c7", padding: "1px 6px", borderRadius: "10px", fontWeight: 700, flexShrink: 0 }}>
+                  Frequent
+                </span>
+              ) : null}
             </div>
           ))}
         </div>
