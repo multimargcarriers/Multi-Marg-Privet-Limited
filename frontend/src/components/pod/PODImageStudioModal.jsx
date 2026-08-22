@@ -17,6 +17,7 @@ Image as
 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { compressImage } from "../../utils/imageCompressor";
 
 /**
  * Enterprise POD Image Studio Modal
@@ -121,38 +122,50 @@ const PODImageStudioModal = ({
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
   };
 
-  // Save captured image
-  const handleApplySave = () => {
+  // Save captured image with smart high-clarity compression (< 1MB)
+  const handleApplySave = async () => {
     if (!imageSrc) return;
     try {
       const timestamp = new Date().toISOString().slice(0, 10);
       const defaultFilename = `POD_Capture_${timestamp}.jpg`;
       
+      let rawDataUrl = imageSrc;
+
       if (rotation !== 0) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const isRotated90or270 = rotation === 90 || rotation === 270;
-          canvas.width = isRotated90or270 ? img.height : img.width;
-          canvas.height = isRotated90or270 ? img.width : img.height;
-          
-          const ctx = canvas.getContext("2d");
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.rotate((rotation * Math.PI) / 180);
-          ctx.drawImage(img, -img.width / 2, -img.height / 2);
-          
-          const editedDataUrl = canvas.toDataURL("image/jpeg", 0.92);
-          onSave(editedDataUrl, defaultFilename);
-          onClose();
-        };
-        img.src = imageSrc;
-      } else {
-        onSave(imageSrc, defaultFilename);
-        onClose();
+        rawDataUrl = await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const isRotated90or270 = rotation === 90 || rotation === 270;
+            canvas.width = isRotated90or270 ? img.height : img.width;
+            canvas.height = isRotated90or270 ? img.width : img.height;
+            
+            const ctx = canvas.getContext("2d");
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+            ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            
+            resolve(canvas.toDataURL("image/jpeg", 0.92));
+          };
+          img.onerror = () => resolve(imageSrc);
+          img.src = imageSrc;
+        });
       }
+
+      // Smart compression preserving document text clarity (< 1MB)
+      const compressed = await compressImage(rawDataUrl, {
+        maxDimension: 1920,
+        targetMaxBytes: 700 * 1024,
+        initialQuality: 0.85
+      });
+
+      onSave(compressed.dataUrl, defaultFilename);
+      onClose();
     } catch (err) {
       console.error("Save edited image error:", err);
+      onSave(imageSrc, `POD_Capture_${Date.now()}.jpg`);
+      onClose();
     }
   };
 

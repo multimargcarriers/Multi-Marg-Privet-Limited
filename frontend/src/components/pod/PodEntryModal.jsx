@@ -16,10 +16,10 @@ import {
   FileCheck,
   Check
 } from "lucide-react";
-import { motion, } from "framer-motion";
 import PODImageStudioModal from "./PODImageStudioModal";
 import { useDialog } from "../../context/DialogContext";
 import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
+import { compressImage } from "../../utils/imageCompressor";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -59,9 +59,13 @@ const PodEntryModal = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // We only allow images, so go directly to Studio Cropper
-    const dataUrl = await fileToDataURL(file);
-    setStudioSrc(dataUrl);
+    // Compress before opening in Studio Cropper to keep fast and < 1MB
+    const compressed = await compressImage(file, {
+      maxDimension: 1920,
+      targetMaxBytes: 700 * 1024,
+      initialQuality: 0.85
+    });
+    setStudioSrc(compressed.dataUrl);
     setStudioMode("editor");
     setStudioOpen(true);
   };
@@ -72,11 +76,17 @@ const PodEntryModal = ({
     setStudioOpen(true);
   };
 
-  const handleStudioSave = (editedDataUrl, filename) => {
+  const handleStudioSave = async (editedDataUrl, filename) => {
+    const compressed = await compressImage(editedDataUrl, {
+      maxDimension: 1920,
+      targetMaxBytes: 700 * 1024,
+      initialQuality: 0.85
+    });
+
     setSelectedFile({
       name: filename || `POD_${awbNo}_${Date.now()}.png`,
       type: "image",
-      dataUrl: editedDataUrl
+      dataUrl: compressed.dataUrl
     });
     setStudioOpen(false);
   };

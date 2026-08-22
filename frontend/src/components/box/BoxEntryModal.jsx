@@ -3,23 +3,21 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import { 
   X, 
-
   Camera, 
   Image as ImageIcon, 
   CheckCircle, 
   FileText, 
-
   Loader2, 
-
   Sparkles, 
   ExternalLink,
   FileCheck,
   Check
 } from "lucide-react";
-import { motion, } from "framer-motion";
+import { motion } from "framer-motion";
 import PODImageStudioModal from "../pod/PODImageStudioModal";
 import { useDialog } from "../../context/DialogContext";
 import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
+import { compressImage } from "../../utils/imageCompressor";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -67,8 +65,12 @@ const BoxEntryModal = ({
         dataUrl
       });
     } else {
-      const dataUrl = await fileToDataURL(file);
-      setStudioSrc(dataUrl);
+      const compressed = await compressImage(file, {
+        maxDimension: 1920,
+        targetMaxBytes: 700 * 1024,
+        initialQuality: 0.85
+      });
+      setStudioSrc(compressed.dataUrl);
       setStudioMode("editor");
       setStudioOpen(true);
     }
@@ -80,11 +82,17 @@ const BoxEntryModal = ({
     setStudioOpen(true);
   };
 
-  const handleStudioSave = (editedDataUrl, filename) => {
+  const handleStudioSave = async (editedDataUrl, filename) => {
+    const compressed = await compressImage(editedDataUrl, {
+      maxDimension: 1920,
+      targetMaxBytes: 700 * 1024,
+      initialQuality: 0.85
+    });
+
     setSelectedFile({
       name: filename || `Box_${awbNo}_${Date.now()}.png`,
       type: "image",
-      dataUrl: editedDataUrl
+      dataUrl: compressed.dataUrl
     });
     setStudioOpen(false);
   };
@@ -115,7 +123,7 @@ const BoxEntryModal = ({
           remarks: remarks.trim()
         };
 
-        const res = await axios.post(`${API}/pod`, payload);
+        const res = await axios.post(`${API}/box`, payload);
         if (res.data.success) {
           alertDialog({
             title: "Box Verified & Uploaded",
@@ -124,7 +132,7 @@ const BoxEntryModal = ({
           if (onSuccess) onSuccess(res.data.data);
           onClose();
         } else {
-          throw new Error(res.data.message || "Failed to save POD.");
+          throw new Error(res.data.message || "Failed to save Box document.");
         }
       } else if (existingBox) {
         alertDialog({
@@ -134,7 +142,7 @@ const BoxEntryModal = ({
         onClose();
       }
     } catch (err) {
-      console.error("Save POD Error:", err);
+      console.error("Save Box Error:", err);
       alertDialog({
         title: "Upload Failed",
         message: err.response?.data?.message || err.message || "Could not save Box Upload Document."
@@ -271,84 +279,88 @@ const BoxEntryModal = ({
             </div>
           </div>
 
-          {/* EXISTING POD NOTICE IF ANY */}
+          {/* EXISTING BOX NOTICE IF ANY */}
           {existingBox && (
             <div 
               style={{
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
                 borderRadius: "12px",
                 padding: "0.85rem 1rem",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "0.5rem"
+                justifyContent: "space-between"
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#065f46", fontSize: "0.875rem", fontWeight: 600 }}>
-                <CheckCircle size={18} color="#10b981" />
-                This LR already has a Verified POD attached.
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#166534" }}>
+                <CheckCircle size={18} color="#16a34a" />
+                <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                  Box Document Uploaded
+                </span>
               </div>
-              {existingBox.cloudinaryUrl && (
-                <a 
-                  href={getSafeCloudinaryPdfUrl(existingBox.cloudinaryUrl)} 
-                  target="_blank" 
-                  rel="noreferrer"
+              {existingBox.boxUrl && (
+                <a
+                  href={getSafeCloudinaryPdfUrl(existingBox.boxUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "4px",
+                    color: "#0284c7",
                     fontSize: "0.825rem",
-                    color: "#059669",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     textDecoration: "none"
                   }}
                 >
-                  View Document <ExternalLink size={14} />
+                  View Document <ExternalLink size={13} />
                 </a>
               )}
             </div>
           )}
 
-          {/* DOCUMENT CAPTURE OPTIONS */}
+          {/* UPLOAD / ATTACH SECTION */}
           <div>
-            <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.75rem" }}>
-              1. Attach Verified Proof Document <span style={{ color: "#ef4444" }}>*</span>
+            <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.6rem" }}>
+              1. Attach Box Upload Document
             </label>
-
+            
             <input
-              ref={fileInputRef}
               type="file"
+              ref={fileInputRef}
               onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept="image/*,application/pdf"
               style={{ display: "none" }}
             />
 
             {!selectedFile ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                 <button
                   type="button"
                   onClick={handleOpenCamera}
                   style={{
-                    background: "white",
-                    color: "#0369a1",
-                    border: "1.5px solid #bae6fd",
-                    padding: "1.2rem 0.75rem",
-                    borderRadius: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
+                    background: "#f8fafc",
+                    border: "2px dashed #cbd5e1",
+                    borderRadius: "14px",
+                    padding: "1.25rem",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "8px",
+                    cursor: "pointer",
                     transition: "all 0.2s"
                   }}
+                  onMouseOver={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff"; }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc"; }}
                 >
-                  <Camera size={26} color="#0284c7" />
-                  <div>Camera Scanner</div>
-                  <span style={{ fontSize: "0.725rem", fontWeight: 500, color: "#64748b" }}>
-                    Live Capture & Image Studio
+                  <div style={{ background: "#0284c7", color: "white", padding: "10px", borderRadius: "50%" }}>
+                    <Camera size={20} />
+                  </div>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f172a" }}>
+                    Scan with Camera
+                  </span>
+                  <span style={{ fontSize: "0.725rem", color: "#64748b" }}>
+                    Auto-crop & enhance
                   </span>
                 </button>
 
@@ -356,24 +368,28 @@ const BoxEntryModal = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   style={{
-                    background: "white",
-                    color: "#334155",
-                    border: "1.5px solid #cbd5e1",
-                    padding: "1.2rem 0.75rem",
-                    borderRadius: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
+                    background: "#f8fafc",
+                    border: "2px dashed #cbd5e1",
+                    borderRadius: "14px",
+                    padding: "1.25rem",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: "8px",
+                    cursor: "pointer",
                     transition: "all 0.2s"
                   }}
+                  onMouseOver={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff"; }}
+                  onMouseOut={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc"; }}
                 >
-                  <ImageIcon size={26} color="#475569" />
-                  <div>Gallery / Device File</div>
-                  <span style={{ fontSize: "0.725rem", fontWeight: 500, color: "#64748b" }}>
-                    Browse Image or PDF
+                  <div style={{ background: "#f1f5f9", color: "#475569", padding: "10px", borderRadius: "50%" }}>
+                    <ImageIcon size={20} />
+                  </div>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#0f172a" }}>
+                    Choose Gallery / PDF
+                  </span>
+                  <span style={{ fontSize: "0.725rem", color: "#64748b" }}>
+                    JPG, PNG, WebP or PDF
                   </span>
                 </button>
               </div>
@@ -397,7 +413,7 @@ const BoxEntryModal = ({
                   ) : (
                     <img
                       src={selectedFile.dataUrl}
-                      alt="POD Preview"
+                      alt="Box Preview"
                       style={{ width: "54px", height: "54px", objectFit: "cover", borderRadius: "8px", border: "1px solid #bbf7d0" }}
                     />
                   )}
@@ -433,12 +449,12 @@ const BoxEntryModal = ({
           {/* RECEIVING REMARKS */}
           <div>
             <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.4rem" }}>
-              2. Receiving Remarks / Delivery Note
+              2. Receiving Remarks / Note
             </label>
             <textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              placeholder="e.g., Delivered in good condition, signed by receiver..."
+              placeholder="e.g., Box packaging verified in good condition..."
               rows={2}
               style={{
                 width: "100%",
@@ -521,7 +537,7 @@ const BoxEntryModal = ({
           >
             {isSaving ? (
               <>
-                <Loader2 size={16} className="spinner" /> Saving Proof...
+                <Loader2 size={16} className="spinner" /> Saving Document...
               </>
             ) : (
               <>

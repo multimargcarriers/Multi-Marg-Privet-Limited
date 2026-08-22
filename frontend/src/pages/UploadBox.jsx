@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
 import { useSync } from "../context/SyncContext";
+import { compressImage } from "../utils/imageCompressor";
 
 const UploadBox = () => {
   const { user } = useContext(AuthContext);
@@ -171,12 +172,17 @@ const UploadBox = () => {
       setSelectedFile({
         name: file.name,
         type: "pdf",
-        dataUrl
+        dataUrl,
+        sizeBytes: file.size
       });
     } else {
-      // Image: open in POD Image Studio Editor for cropping/rotation/enhancement
-      const dataUrl = await fileToDataURL(file);
-      setStudioInitialSrc(dataUrl);
+      // Compress and open in POD Image Studio Editor for cropping/rotation/enhancement
+      const compressed = await compressImage(file, {
+        maxDimension: 1920,
+        targetMaxBytes: 700 * 1024,
+        initialQuality: 0.85
+      });
+      setStudioInitialSrc(compressed.dataUrl);
       setStudioMode("editor");
       setStudioOpen(true);
     }
@@ -190,11 +196,19 @@ const UploadBox = () => {
   };
 
   // Callback from Box Image Studio when user saves edited/captured image
-  const handleStudioSave = (editedDataUrl, filename) => {
+  const handleStudioSave = async (editedDataUrl, filename) => {
+    const compressed = await compressImage(editedDataUrl, {
+      maxDimension: 1920,
+      targetMaxBytes: 700 * 1024,
+      initialQuality: 0.85
+    });
+
     setSelectedFile({
       name: filename || `Box_Capture_${Date.now()}.jpg`,
       type: "image",
-      dataUrl: editedDataUrl
+      dataUrl: compressed.dataUrl,
+      sizeBytes: compressed.sizeBytes,
+      originalSizeBytes: compressed.originalSizeBytes
     });
   };
 
@@ -720,7 +734,26 @@ const UploadBox = () => {
                           )}
                           <div>
                             <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a" }}>{selectedFile.name}</div>
-                            <div style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600, marginTop: "2px" }}>✓ Document ready for upload</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                              <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: 600 }}>✓ Document ready</span>
+                              {selectedFile.sizeBytes && (
+                                <span style={{
+                                  fontSize: "0.70rem",
+                                  fontWeight: 700,
+                                  background: "rgba(16, 124, 65, 0.1)",
+                                  color: "#15803d",
+                                  padding: "2px 6px",
+                                  borderRadius: "6px"
+                                }}>
+                                  ⚡ {Math.round(selectedFile.sizeBytes / 1024)} KB
+                                  {selectedFile.originalSizeBytes && selectedFile.originalSizeBytes > selectedFile.sizeBytes ? (
+                                    <span style={{ color: '#64748b', fontWeight: 500, marginLeft: '3px' }}>
+                                      (saved {Math.round((selectedFile.originalSizeBytes - selectedFile.sizeBytes) / 1024)} KB)
+                                    </span>
+                                  ) : null}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
