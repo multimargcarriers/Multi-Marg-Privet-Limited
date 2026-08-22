@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Fingerprint, Lock, KeyRound, ShieldCheck, LogOut, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Fingerprint, Lock, KeyRound, ShieldCheck, LogOut, AlertCircle, ArrowRight, Eye, EyeOff, Scan } from 'lucide-react';
 import { promptDeviceScreenLock, isBiometricSupported } from '../utils/deviceBiometrics';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -103,9 +103,9 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
       position: 'fixed',
       inset: 0,
       zIndex: 999999,
-      background: 'rgba(15, 23, 42, 0.45)',
-      backdropFilter: 'blur(20px) saturate(160%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+      background: 'rgba(15, 23, 42, 0.55)',
+      backdropFilter: 'blur(24px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(160%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -116,12 +116,12 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
     }}>
       <div style={{
         background: '#ffffff',
-        border: '1px solid rgba(226, 232, 240, 0.9)',
+        border: '1px solid rgba(226, 232, 240, 0.95)',
         borderRadius: '24px',
         padding: 'clamp(1.75rem, 4vw, 2.5rem)',
         width: '100%',
         maxWidth: '420px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04)',
         textAlign: 'center',
         position: 'relative',
         boxSizing: 'border-box'
@@ -154,11 +154,11 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           marginBottom: '1.25rem'
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '82px',
+            height: '82px',
             borderRadius: '50%',
             padding: '3px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
             boxShadow: '0 4px 18px rgba(37, 99, 235, 0.25)',
             marginBottom: '0.85rem',
             display: 'flex',
@@ -183,7 +183,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -227,7 +227,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           marginBottom: '1.25rem',
           lineHeight: '1.45'
         }}>
-          Session locked after 5 minutes of inactivity or background use. Authenticate to resume work.
+          Session locked for security. Authenticate using your device's registered <strong>Face Lock / Fingerprint / PIN</strong> or account password.
         </div>
 
         {/* Error Alert */}
@@ -252,7 +252,8 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
 
         {/* Biometric Trigger or Password Input */}
         {!showPasswordMode ? (
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {/* Primary: Device Biometric Unlock (Native Face Lock / Fingerprint) */}
             <button
               onClick={handleBiometricUnlock}
               disabled={authenticating}
@@ -261,7 +262,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 padding: '0.85rem 1.25rem',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
                 color: '#ffffff',
                 fontSize: '0.92rem',
                 fontWeight: 700,
@@ -270,15 +271,18 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '10px',
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-                transition: 'all 0.2s ease',
-                marginBottom: '0.75rem'
+                boxShadow: '0 4px 15px -1px rgba(14, 165, 233, 0.45)',
+                transition: 'all 0.2s ease'
               }}
             >
-              <Fingerprint size={22} className={authenticating ? "spin-animation" : ""} />
-              {authenticating ? 'Verifying Device...' : 'Unlock with Fingerprint / Screen Lock'}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <Scan size={20} />
+                <Fingerprint size={20} className={authenticating ? "spin-animation" : ""} />
+              </div>
+              <span>{authenticating ? 'Verifying Device...' : 'Unlock with Device Biometrics (Face / Fingerprint)'}</span>
             </button>
 
+            {/* Secondary: Password fallback */}
             <button
               type="button"
               onClick={() => setShowPasswordMode(true)}
@@ -296,51 +300,68 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 gap: '6px',
                 padding: '0.65rem 1rem',
                 width: '100%',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.15s ease',
+                marginTop: '2px'
               }}
             >
-              <KeyRound size={15} color="#2563eb" /> Or enter account password
+              <KeyRound size={15} color="#2563eb" /> Verify with Account Password
             </button>
           </div>
         ) : (
           <form onSubmit={handlePasswordUnlock}>
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              fontSize: '0.74rem',
+              color: '#475569',
+              marginBottom: '0.75rem',
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px'
+            }}>
+              <ShieldCheck size={13} color="#2563eb" />
+              <span>Manual typing required • Copy-paste & autofill disabled</span>
+            </div>
+
             <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
               <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
-                type={showPasswordText ? 'text' : 'password'}
-                placeholder="Enter account password..."
+                type="password"
+                name="sec_reauth_pin_manual"
+                placeholder="Type account password..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  setErrorMsg('Paste is blocked for security. Please type your password manually.');
+                }}
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onDrop={(e) => e.preventDefault()}
+                onContextMenu={(e) => e.preventDefault()}
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
                 autoFocus
                 style={{
                   width: '100%',
                   height: '42px',
-                  padding: '0 40px 0 38px',
+                  padding: '0 14px 0 38px',
                   borderRadius: '10px',
                   border: '1.5px solid #cbd5e1',
-                  background: '#f8fafc',
+                  background: '#ffffff',
                   color: '#0f172a',
-                  fontSize: '0.88rem',
+                  fontSize: '0.95rem',
+                  letterSpacing: '2px',
                   outline: 'none',
                   boxSizing: 'border-box'
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setShowPasswordText(!showPasswordText)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  cursor: 'pointer'
-                }}
-              >
-                {showPasswordText ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
             </div>
 
             <button
@@ -367,26 +388,24 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
               {passwordLoading ? 'Verifying...' : 'Unlock Account'} <ArrowRight size={16} />
             </button>
 
-            {biometricAvailable && (
-              <button
-                type="button"
-                onClick={() => { setShowPasswordMode(false); handleBiometricUnlock(); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#2563eb',
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '4px'
-                }}
-              >
-                <Fingerprint size={14} /> Switch to Fingerprint / Device Screen Lock
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => { setShowPasswordMode(false); handleBiometricUnlock(); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2563eb',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px'
+              }}
+            >
+              <Fingerprint size={14} /> Switch to Device Face Lock / Fingerprint
+            </button>
           </form>
         )}
 

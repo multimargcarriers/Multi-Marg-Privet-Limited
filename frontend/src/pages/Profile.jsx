@@ -2,12 +2,13 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard, Fingerprint } from 'lucide-react';
+import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard, Fingerprint, Scan } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import IDCardFront from '../components/IDCardFront';
 import IDCardBack from '../components/IDCardBack';
 import { SettingsContext } from '../context/SettingsContext';
+import { promptDeviceScreenLock } from '../utils/deviceBiometrics';
 import { getInitialsAvatar } from '../utils/avatar';
 
 const Profile = () => {
@@ -28,6 +29,7 @@ const Profile = () => {
   const [bannerPreview, setBannerPreview] = useState(user?.banner || null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showTestFaceScanner, setShowTestFaceScanner] = useState(false);
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled !== false);
   const [toggling2Fa, setToggling2Fa] = useState(false);
@@ -644,10 +646,13 @@ const Profile = () => {
               <div style={{ background: 'var(--surface-color)', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
                   <div style={{ flex: 1, minWidth: '280px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                      <Fingerprint size={22} color="#0078D4" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '6px', color: '#0078D4' }}>
+                        <Scan size={22} />
+                        <Fingerprint size={22} />
+                      </div>
                       <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)', fontWeight: 700 }}>
-                        Device Biometric & 2-Step Verification
+                        Device Biometric (Face ID / Fingerprint) & 2-Step Verification
                       </h3>
                       <span style={{
                         fontSize: '0.72rem',
@@ -660,9 +665,41 @@ const Profile = () => {
                         {twoFactorEnabled ? 'ENABLED' : 'DISABLED'}
                       </span>
                     </div>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '620px' }}>
-                      Require device fingerprint, screen lock PIN, or secondary password when logging in and after 5 minutes of inactivity. When disabled, standard ID & password will grant immediate access for this account.
+                    <p style={{ margin: '0 0 1rem 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '620px' }}>
+                      Authenticate using your device's registered <strong>Face Lock / Windows Hello / Touch ID / Fingerprint</strong> or screen lock PIN on login and after 5 minutes of inactivity. Securely verified on your device security chip.
                     </p>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await promptDeviceScreenLock(user);
+                          if (res.success) {
+                            addToast("Device biometrics verified successfully!", "success");
+                          } else if (res.reason === "CANCELLED") {
+                            addToast("Biometric prompt was cancelled.", "info");
+                          } else {
+                            addToast(res.message || "Biometric check failed.", "error");
+                          }
+                        }}
+                        style={{
+                          background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)'
+                        }}
+                      >
+                        <Fingerprint size={14} /> Test Device Biometric Prompt
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Apple / Modern Toggle Switch */}

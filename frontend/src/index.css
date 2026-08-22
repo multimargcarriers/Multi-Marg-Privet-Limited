@@ -4407,3 +4407,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none !important;
   }
 }
+
+/* Face Scanner Animation */
+@keyframes faceLaserSweep {
+  0% { top: 8%; opacity: 0.2; }
+  50% { top: 86%; opacity: 1; }
+  100% { top: 8%; opacity: 0.2; }
+}
