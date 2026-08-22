@@ -75,7 +75,12 @@ export const downloadViaPuppeteer = async ({
     }
   } catch (err) {
     console.error("PDF generation failed:", err);
-    alert("Failed to download PDF. Please try again.");
+    try {
+      window.dispatchEvent(new CustomEvent('app-toast', { 
+        detail: { message: "Failed to generate PDF. Please try again.", type: "error" } 
+      }));
+    } catch (_e) {}
+    throw err;
   }
 };
 

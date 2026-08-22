@@ -30,11 +30,12 @@ export const SettingsProvider = ({ children }) => {
     }
     return {
     company: {
-      name: "Multi Marg Carriers",
-      gstin: "",
-      address: "",
-      email: "",
-      phone: ""
+      name: "MULTIMARG CARRIERS PVT. LTD.",
+      gstin: "05AANCM3054E1ZN",
+      address: "LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153, UTTARAKHAND",
+      email: "info@multimarg.com",
+      phone: "+91 5944-324033",
+      companyStampUrl: ""
     },
     ui: {
       darkMode: false,
@@ -64,7 +65,9 @@ export const SettingsProvider = ({ children }) => {
       redis: true,
       cloudinary: true,
       enableBulkDelete: false,
-      enableCsvImport: true
+      enableCsvImport: true,
+      enableGlobalBookingWindow: true,
+      globalBookingWindowDays: 10
     },
     modules: {
       masters: true,
@@ -136,6 +139,7 @@ export const SettingsProvider = ({ children }) => {
       });
       if (response.data.success) {
         setGlobalSettings(response.data.data);
+        appDB.set('globalSettings', response.data.data);
         return true;
       }
       return false;

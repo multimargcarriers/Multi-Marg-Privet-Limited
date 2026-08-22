@@ -459,7 +459,7 @@ const Purchase = () => {
       await axios.post(`${API}/outstanding`, payload);
       setAdjustModalOpen(false);
       await fetchData();
-      alert("Vendor adjustment recorded successfully!");
+      alertDialog({ title: "Adjustment Recorded", message: "Vendor adjustment recorded successfully!" });
     } catch (error) {
       console.error("Failed to save vendor adjustment", error);
       alertDialog({ title: "Error", message: "Failed to save vendor adjustment: " + (error.response?.data?.message || error.message) });

@@ -1037,50 +1037,125 @@ const Tracking = () => {
             <AlertCircle size={20} color="#f59e0b" />
             {isAdmin ? "All System Tracking Updates (Admin Only)" : "Your Tracking Updates"}
           </h4>
-          <Table 
-            headers={isAdmin ? ["AWB / LR No", "Date", "Status", "Location", "Entered By", "Remarks", "Actions"] : ["AWB / LR No", "Date", "Status", "Location", "Remarks", "Actions"]} 
-            data={isAdmin ? displayUpdates : displayUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
-            pagination={true}
-            defaultEntries={25}
-            renderRow={(row, index) => {
-              const isDelivered = displayUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
-              const canModify = (isAdmin || !isDelivered) && !row.isOfflinePending;
-              
-              return (
-                <tr key={row.id || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
-                  <td style={{ fontWeight: 600, color: "#4f46e5" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      {row.awb}
-                      {row.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
-                    </div>
-                  </td>
-                  <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
-                  <td><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
-                  <td>{row.location}</td>
-                  {isAdmin && (
-                    <td>
-                      <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px", fontSize: "0.85rem", color: "#475569" }}>
-                        {row.enteredBy || "Admin"}
-                      </span>
-                    </td>
-                  )}
-                  <td>{row.remarks}</td>
-                  <td>
-                    {canModify && (
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button type="button" onClick={() => handleEdit(row)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", padding: "4px" }} title="Edit Update">
-                          <Edit size={18} />
-                        </button>
-                        <button type="button" onClick={() => handleDelete(row.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px" }} title="Delete Update">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            }}
-          />
+          {(() => {
+            const tableHeaders = isAdmin
+              ? [
+                  { label: "AWB / LR No", minWidth: "140px" },
+                  { label: "Date", minWidth: "110px" },
+                  { label: "Status", minWidth: "130px" },
+                  { label: "Location", minWidth: "130px" },
+                  { label: "Entered By", minWidth: "130px" },
+                  { label: "Remarks", minWidth: "280px" },
+                  { label: "Actions", minWidth: "100px", align: "center" }
+                ]
+              : [
+                  { label: "AWB / LR No", minWidth: "140px" },
+                  { label: "Date", minWidth: "110px" },
+                  { label: "Status", minWidth: "130px" },
+                  { label: "Location", minWidth: "130px" },
+                  { label: "Remarks", minWidth: "280px" },
+                  { label: "Actions", minWidth: "100px", align: "center" }
+                ];
+
+            // Only show user manual updates; POD-based auto deliveries are handled dynamically
+            const displayUpdates = (allUpdates || []).filter(u => {
+              const isAutoPod = u.enteredBy?.includes("Auto POD") || String(u.remarks || '').startsWith("Proof of Delivery (POD) uploaded");
+              return !isAutoPod;
+            });
+
+            return (
+              <Table 
+                headers={tableHeaders} 
+                data={isAdmin ? displayUpdates : displayUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
+                pagination={true}
+                defaultEntries={25}
+                minWidth={isAdmin ? "1080px" : "920px"}
+                renderRow={(row, index) => {
+                  const isDelivered = displayUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
+                  const canModify = (isAdmin || !isDelivered) && !row.isOfflinePending;
+                  
+                  return (
+                    <tr key={row.id || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
+                      <td style={{ fontWeight: 600, color: "#4f46e5", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          {row.awb}
+                          {row.isOfflinePending && <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />}
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: "nowrap" }}>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : "N/A"}</td>
+                      <td style={{ whiteSpace: "nowrap" }}><span style={{ color: getStatusColor(row.status), fontWeight: 600 }}>{row.status}</span></td>
+                      <td style={{ whiteSpace: "nowrap" }}>{row.location || "-"}</td>
+                      {isAdmin && (
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <span style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "12px", fontSize: "0.85rem", color: "#475569", fontWeight: 500 }}>
+                            {row.enteredBy || "Admin"}
+                          </span>
+                        </td>
+                      )}
+                      <td style={{ minWidth: "260px", maxWidth: "380px", verticalAlign: "middle", padding: "10px 14px" }}>
+                        <div style={{
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
+                          overflowWrap: "break-word",
+                          lineHeight: "1.45",
+                          color: "#334155",
+                          fontSize: "0.88rem"
+                        }}>
+                          {row.remarks || "-"}
+                        </div>
+                      </td>
+                      <td style={{ minWidth: "110px", width: "110px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap", padding: "10px 14px" }}>
+                        {canModify ? (
+                          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                            <button 
+                              type="button" 
+                              onClick={() => handleEdit(row)} 
+                              style={{ 
+                                background: "#eff6ff", 
+                                border: "1px solid #bfdbfe", 
+                                color: "#2563eb", 
+                                cursor: "pointer", 
+                                padding: "6px 8px", 
+                                borderRadius: "6px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.15s"
+                              }} 
+                              title="Edit Update"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button 
+                              type="button" 
+                              onClick={() => handleDelete(row.id)} 
+                              style={{ 
+                                background: "#fef2f2", 
+                                border: "1px solid #fecaca", 
+                                color: "#dc2626", 
+                                cursor: "pointer", 
+                                padding: "6px 8px", 
+                                borderRadius: "6px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.15s"
+                              }} 
+                              title="Delete Update"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#94a3b8", fontSize: "0.8rem" }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                }}
+              />
+            );
+          })()}
         </div>
       )}
 

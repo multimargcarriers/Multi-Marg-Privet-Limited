@@ -247,7 +247,7 @@ const BillView1 = () => {
 
   const handleSendEmail = async () => {
     if (!recipientEmail || !recipientEmail.trim()) {
-      alert("Please enter a valid recipient email address.");
+      addToast("Please enter a valid recipient email address.", "error");
       return;
     }
     
@@ -992,7 +992,13 @@ const BillView1 = () => {
                   <div style={{ height: "105px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0.25rem 0" }}>
                     {includeStamp ? (
                       <img 
-                        src={globalSettings?.company?.companyStampUrl || "/fab.png"} 
+                        src={(() => {
+                          const sUrl = globalSettings?.company?.companyStampUrl;
+                          if (!sUrl) return "/fab.png";
+                          if (sUrl.startsWith("http://") || sUrl.startsWith("https://") || sUrl.startsWith("data:")) return sUrl;
+                          const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                          return `${baseUrl}${sUrl.startsWith("/") ? "" : "/"}${sUrl}`;
+                        })()} 
                         alt="Official Company Stamp" 
                         style={{ maxHeight: '105px', maxWidth: '140px', objectFit: 'contain' }} 
                       />

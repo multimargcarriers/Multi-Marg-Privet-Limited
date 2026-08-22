@@ -45,7 +45,42 @@ exports.postRoot_3 = async (req, res) => {
   entry.date = entry.date || new Date().toISOString();
   entry.updatedAt = new Date().toISOString();
   const docRef = await db.collection("tracking").add(entry);
-  await delCache(CACHE_KEY);
+
+  // Sync transit status into matching booking
+  try {
+    const cleanAwb = String(entry.awb || '').trim();
+    if (cleanAwb && db.mongoDb) {
+      const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      const bookingUpdate = {
+        transitStatus: entry.status,
+        trackingStatus: entry.status,
+        currentLocation: entry.location,
+        lastTrackingUpdate: new Date().toISOString()
+      };
+      if (entry.status === 'Delivered') {
+        bookingUpdate.status = 'Delivered';
+        bookingUpdate.deliveryDate = entry.date || new Date().toISOString();
+      }
+      await db.mongoDb.collection("bookings").updateMany({
+        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+      }, { $set: bookingUpdate });
+    }
+  } catch (bkErr) {
+    console.error("[Tracking Sync to Booking Error]:", bkErr);
+  }
+
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bookings"),
+    delCache("dashboard_stats")
+  ]);
+
+  try {
+    const { emitDataUpdated } = require("../utils/socket");
+    emitDataUpdated("tracking", "create");
+    emitDataUpdated("bookings", "update");
+  } catch (sockErr) {}
+
   return created(res, "Tracking entry created successfully", {
     id: docRef.id,
     ...entry
@@ -128,9 +163,39 @@ exports.postBulk_6 = async (req, res) => {
     };
     const docRef = await db.collection("tracking").add(entryData);
     createdEntries.push({ id: docRef.id, ...entryData });
+
+    // Sync transit status into matching booking
+    try {
+      if (cleanAwb && db.mongoDb) {
+        const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+        const bookingUpdate = {
+          transitStatus: status,
+          trackingStatus: status,
+          currentLocation: location,
+          lastTrackingUpdate: now
+        };
+        if (status === 'Delivered') {
+          bookingUpdate.status = 'Delivered';
+          bookingUpdate.deliveryDate = trackingDate;
+        }
+        await db.mongoDb.collection("bookings").updateMany({
+          $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+        }, { $set: bookingUpdate });
+      }
+    } catch (bkErr) {}
   }
 
-  await delCache(CACHE_KEY);
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bookings"),
+    delCache("dashboard_stats")
+  ]);
+
+  try {
+    const { emitDataUpdated } = require("../utils/socket");
+    emitDataUpdated("tracking", "create");
+    emitDataUpdated("bookings", "update");
+  } catch (sockErr) {}
 
   return created(res, `Tracking updated successfully for ${createdEntries.length} AWBs`, createdEntries);
 };

@@ -17,6 +17,7 @@ import {
   Check
 } from "lucide-react";
 import PODImageStudioModal from "./PODImageStudioModal";
+import { motion } from "framer-motion";
 import { useDialog } from "../../context/DialogContext";
 import { getSafeCloudinaryPdfUrl } from "../../utils/formatters";
 import { compressImage } from "../../utils/imageCompressor";

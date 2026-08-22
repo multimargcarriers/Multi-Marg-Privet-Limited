@@ -7,7 +7,7 @@ const { get_stats_1 } = require('../controllers/dashboardController');
 const { post_sync_2 } = require('../controllers/analyticsController');
 
 const { requirePermission } = require("../middleware/rbac");
-router.use(requirePermission(["dashboard"]));
+router.use(requirePermission(["dashboard", "all", "operations", "masters", "billing", "accounts", "reports"]));
 
 router.get("/stats", asyncHandler(get_stats_1));
 router.post("/sync", asyncHandler(post_sync_2));

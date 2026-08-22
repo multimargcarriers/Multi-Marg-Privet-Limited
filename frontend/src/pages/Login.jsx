@@ -1,8 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff, Fingerprint, ShieldCheck, Smartphone, Scan } from 'lucide-react';
+import { Mail, Lock, Key, ArrowRight, ArrowLeft, CheckCircle, ShieldAlert, Package, MapPin, Eye, EyeOff, Fingerprint, ShieldCheck, Smartphone, Scan, Camera } from 'lucide-react';
 import { promptDeviceScreenLock, isBiometricSupported } from '../utils/deviceBiometrics';
+import FaceVerificationModal from '../components/FaceVerificationModal';
 
 import { useNavigate } from 'react-router-dom';
 import appDB from '../utils/appDB';
@@ -20,6 +21,7 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [pendingAuth, setPendingAuth] = useState(null);
+  const [showFaceModal, setShowFaceModal] = useState(false);
   const [step2Password, setStep2Password] = useState('');
   const [showStep2PasswordInput, setShowStep2PasswordInput] = useState(false);
   const [showStep2PasswordText, setShowStep2PasswordText] = useState(false);
@@ -968,11 +970,10 @@ const Login = () => {
 
                 {!showStep2PasswordInput ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {/* Primary Button */}
+                    {/* Primary Button: Live Face ID Camera Verification */}
                     <button
                       type="button"
-                      onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
-                      disabled={deviceAuthLoading}
+                      onClick={() => setShowFaceModal(true)}
                       className="btn-primary"
                       style={{
                         display: 'flex',
@@ -984,29 +985,28 @@ const Login = () => {
                         height: '48px',
                         fontSize: '0.95rem',
                         fontWeight: 700,
-                        borderRadius: '12px'
+                        borderRadius: '12px',
+                        cursor: 'pointer'
                       }}
                     >
-                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                        <Scan size={20} />
-                        <Fingerprint size={20} className={deviceAuthLoading ? "spin-animation" : ""} />
-                      </div>
-                      <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Device'}</span>
+                      <Camera size={20} />
+                      <span>Verify with Face ID (Camera)</span>
                     </button>
 
-                    {/* Secondary Password Option */}
+                    {/* Secondary Button: Device Biometric / Windows Hello Finger / PIN */}
                     <button
                       type="button"
-                      onClick={() => setShowStep2PasswordInput(true)}
+                      onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
+                      disabled={deviceAuthLoading}
                       style={{
                         background: '#ffffff',
                         border: '1.5px solid #cbd5e1',
                         borderRadius: '12px',
                         padding: '0.70rem 1rem',
-                        color: '#334155',
-                        fontSize: '0.84rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
+                        color: '#0f172a',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        cursor: deviceAuthLoading ? 'not-allowed' : 'pointer',
                         width: '100%',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1016,7 +1016,30 @@ const Login = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                       }}
                     >
-                      <Key size={15} color="#2563eb" /> Use Password Instead
+                      <Fingerprint size={18} color="#2563eb" className={deviceAuthLoading ? "spin-animation" : ""} />
+                      <span>{deviceAuthLoading ? 'Verifying...' : 'Device Finger / Windows PIN'}</span>
+                    </button>
+
+                    {/* Tertiary Password Option */}
+                    <button
+                      type="button"
+                      onClick={() => setShowStep2PasswordInput(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#64748b',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        width: '100%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '0.4rem'
+                      }}
+                    >
+                      <Key size={14} color="#64748b" /> Use Password Instead
                     </button>
                   </div>
                 ) : (
@@ -1084,7 +1107,25 @@ const Login = () => {
                       <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Password & Unlock'}</span>
                     </button>
 
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setShowStep2PasswordInput(false); setShowFaceModal(true); }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#0284c7',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px'
+                        }}
+                      >
+                        <Camera size={14} /> Face ID
+                      </button>
                       <button
                         type="button"
                         onClick={() => { setShowStep2PasswordInput(false); triggerDeviceVerification(pendingAuth.user, pendingAuth.token); }}
@@ -1097,11 +1138,11 @@ const Login = () => {
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          gap: '4px',
                           padding: '4px'
                         }}
                       >
-                        <Scan size={14} /> Switch to Face Lock / Fingerprint
+                        <Fingerprint size={14} /> Fingerprint
                       </button>
                     </div>
                   </form>
@@ -1232,12 +1273,31 @@ const Login = () => {
             © 2026 Multimarg Carriers Pvt Ltd
           </div>
 
-
-
           </div>
         </div>
 
       </div>
+
+      {/* Live Camera Face Verification Modal */}
+      <FaceVerificationModal
+        isOpen={showFaceModal}
+        user={pendingAuth?.user}
+        onVerified={(_data) => {
+          setShowFaceModal(false);
+          if (pendingAuth?.user && pendingAuth?.token) {
+            login(pendingAuth.user, pendingAuth.token);
+          }
+        }}
+        onCancel={() => setShowFaceModal(false)}
+        onSwitchToFingerprint={() => {
+          setShowFaceModal(false);
+          triggerDeviceVerification(pendingAuth?.user, pendingAuth?.token);
+        }}
+        onSwitchToPassword={() => {
+          setShowFaceModal(false);
+          setShowStep2PasswordInput(true);
+        }}
+      />
     </div>
   );
 };

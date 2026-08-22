@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AlertTriangle, Info, CheckCircle2, ShieldAlert, X } from 'lucide-react';
 
 const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requireInput, onConfirm, onCancel }) => {
   const [show, setShow] = useState(false);
@@ -10,12 +11,19 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
       setShow(true);
       setInputValue('');
     } else {
-      const timer = setTimeout(() => setShow(false), 300); // match transition duration
+      const timer = setTimeout(() => setShow(false), 250);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
   if (!show && !isOpen) return null;
+
+  const isDanger = confirmText && (
+    confirmText.toLowerCase().includes('delete') || 
+    confirmText.toLowerCase().includes('remove') || 
+    confirmText.toLowerCase().includes('revoke') ||
+    confirmText.toLowerCase().includes('discard')
+  );
 
   const isConfirmDisabled = requireInput && inputValue.trim() !== requireInput;
 
@@ -23,53 +31,84 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
     <div
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
+        inset: 0,
         width: '100%',
         height: '100%',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 9999,
-        background: isOpen ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0)',
-        backdropFilter: isOpen ? 'blur(4px)' : 'blur(0px)',
-        transition: 'all 0.3s ease-in-out',
+        zIndex: 99999999,
+        background: isOpen ? 'rgba(15, 23, 42, 0.65)' : 'rgba(15, 23, 42, 0)',
+        backdropFilter: isOpen ? 'blur(12px) saturate(150%)' : 'blur(0px)',
+        WebkitBackdropFilter: isOpen ? 'blur(12px) saturate(150%)' : 'blur(0px)',
+        transition: 'all 0.25s ease-in-out',
         opacity: isOpen ? 1 : 0,
         pointerEvents: isOpen ? 'auto' : 'none',
+        padding: '1rem',
+        boxSizing: 'border-box'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && cancelText && onCancel) onCancel();
       }}
     >
       <div
-        className="glass-panel"
         style={{
-          width: '90%',
-          maxWidth: '450px',
+          width: '100%',
+          maxWidth: '440px',
           background: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          borderRadius: '20px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
           overflow: 'hidden',
-          transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(-20px)',
-          transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-          border: '1px solid rgba(0, 0, 0, 0.1)',
+          transform: isOpen ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
+          transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          boxSizing: 'border-box',
+          fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}
       >
-        <div style={{ padding: '24px 24px 16px', textAlign: 'center' }}>
-          <img 
-            src="/mc.png" 
-            alt="MultiMarg Carriers" 
-            style={{ height: '50px', objectFit: 'contain', marginBottom: '16px', margin: '0 auto', display: 'block' }} 
-            onError={(e) => e.target.style.display = 'none'}
-          />
-          <h3 style={{ margin: '0 0 12px', fontSize: '1.4rem', color: '#1f2937', fontWeight: 600 }}>
-            {title}
+        {/* Top Accent Stripe */}
+        <div style={{
+          height: '4px',
+          width: '100%',
+          background: isDanger 
+            ? 'linear-gradient(90deg, #ef4444, #dc2626)' 
+            : 'linear-gradient(90deg, #0284c7, #2563eb)'
+        }} />
+
+        <div style={{ padding: '1.75rem 1.75rem 1rem', textAlign: 'center' }}>
+          {/* Context Icon */}
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: isDanger ? '#fee2e2' : '#eff6ff',
+            color: isDanger ? '#dc2626' : '#2563eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.15rem',
+            boxShadow: isDanger ? '0 0 0 8px #fef2f2' : '0 0 0 8px #f8fafc'
+          }}>
+            {isDanger ? (
+              <AlertTriangle size={28} strokeWidth={2.2} />
+            ) : cancelText ? (
+              <Info size={28} strokeWidth={2.2} />
+            ) : (
+              <CheckCircle2 size={28} strokeWidth={2.2} color="#16a34a" />
+            )}
+          </div>
+
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#0f172a', fontWeight: 800, letterSpacing: '-0.01em' }}>
+            {title || 'Confirmation Required'}
           </h3>
-          <p style={{ margin: 0, color: '#4b5563', fontSize: '1rem', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, color: '#475569', fontSize: '0.92rem', lineHeight: 1.55 }}>
             {message}
           </p>
 
           {requireInput && (
-            <div style={{ marginTop: '20px', textAlign: 'left' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#374151', marginBottom: '6px', fontWeight: 500 }}>
-                Please type <strong>{requireInput}</strong> to confirm:
+            <div style={{ marginTop: '1.25rem', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#334155', marginBottom: '6px', fontWeight: 600 }}>
+                Please type <strong style={{ color: isDanger ? '#dc2626' : '#0284c7' }}>{requireInput}</strong> to confirm:
               </label>
               <input
                 type="text"
@@ -78,67 +117,79 @@ const ConfirmDialog = ({ isOpen, title, message, confirmText, cancelText, requir
                 placeholder={`Type "${requireInput}"`}
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #d1d5db',
-                  fontSize: '1rem',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  fontSize: '0.95rem',
                   outline: 'none',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#ef4444'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                onFocus={(e) => e.target.style.borderColor = isDanger ? '#ef4444' : '#2563eb'}
+                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
               />
             </div>
           )}
         </div>
+
+        {/* Action Buttons */}
         <div style={{ 
           display: 'flex', 
-          padding: '16px 24px 24px', 
-          gap: '12px', 
+          padding: '1rem 1.75rem 1.75rem', 
+          gap: '10px', 
           justifyContent: 'center' 
         }}>
           {cancelText && (
             <button
+              type="button"
               onClick={onCancel}
               style={{
                 flex: 1,
                 padding: '10px 16px',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
                 background: '#ffffff',
-                color: '#374151',
-                fontSize: '1rem',
-                fontWeight: 500,
+                color: '#334155',
+                fontSize: '0.92rem',
+                fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'all 0.15s ease',
               }}
-              onMouseOver={(e) => e.target.style.background = '#f3f4f6'}
+              onMouseOver={(e) => e.target.style.background = '#f8fafc'}
               onMouseOut={(e) => e.target.style.background = '#ffffff'}
             >
               {cancelText}
             </button>
           )}
+
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isConfirmDisabled}
             style={{
               flex: 1,
               padding: '10px 16px',
-              borderRadius: '8px',
+              borderRadius: '10px',
               border: 'none',
-              background: isConfirmDisabled ? (cancelText ? '#fca5a5' : '#93c5fd') : (cancelText ? '#ef4444' : '#3b82f6'),
+              background: isConfirmDisabled 
+                ? '#94a3b8' 
+                : isDanger 
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  : 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
               color: '#ffffff',
-              fontSize: '1rem',
-              fontWeight: 500,
+              fontSize: '0.92rem',
+              fontWeight: 700,
               cursor: isConfirmDisabled ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: isConfirmDisabled ? 'none' : `0 4px 6px -1px ${cancelText ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)'}`,
-              opacity: isConfirmDisabled ? 0.7 : 1
+              transition: 'all 0.15s ease',
+              boxShadow: isConfirmDisabled 
+                ? 'none' 
+                : isDanger 
+                  ? '0 4px 14px rgba(239, 68, 68, 0.35)' 
+                  : '0 4px 14px rgba(37, 99, 235, 0.35)',
+              opacity: isConfirmDisabled ? 0.6 : 1
             }}
-            onMouseOver={(e) => !isConfirmDisabled && (e.target.style.background = cancelText ? '#dc2626' : '#2563eb')}
-            onMouseOut={(e) => !isConfirmDisabled && (e.target.style.background = cancelText ? '#ef4444' : '#3b82f6')}
           >
-            {confirmText}
+            {confirmText || 'OK'}
           </button>
         </div>
       </div>

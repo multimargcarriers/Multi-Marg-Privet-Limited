@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
+import { useToast } from "../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDate, getSafeCloudinaryPdfUrl } from '../utils/formatters';
 import PODImageStudioModal from "../components/pod/PODImageStudioModal";
@@ -40,6 +41,7 @@ const POD = () => {
   const { user } = useContext(AuthContext);
   const { syncQueue } = useSync();
   const { confirm, alert: alertDialog } = useDialog();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || user?.role === 'admin';
 
@@ -281,15 +283,19 @@ const POD = () => {
   const handleDelete = async (id) => {
     const isConfirmed = await confirm({
       title: "Delete POD Document",
-      message: "Are you sure you want to delete this Proof of Delivery? This will also remove the uploaded image from Cloudinary.",
-      confirmText: "Delete",
+      message: "Are you sure you want to delete this Proof of Delivery? This will also revert the shipment's delivery status back to its previous position.",
+      confirmText: "Delete & Revert",
       cancelText: "Cancel"
     });
     if (!isConfirmed) return;
 
     setPodList(prev => prev.filter(p => p.id !== id));
     try {
-      await axios.delete(`${apiUrl}/api/pod/${id}`);
+      const res = await axios.delete(`${apiUrl}/api/pod/${id}`);
+      if (res.data.success) {
+        addToast("POD document deleted and shipment position reversed!", "success");
+      }
+      fetchPODs();
     } catch (err) {
       console.error("Delete POD error", err);
       fetchPODs();

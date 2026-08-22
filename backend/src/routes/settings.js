@@ -10,12 +10,14 @@ const { cleanupOrphanCloudinaryFiles } = require("../services/cloudinaryCleanupS
 const cloudinary = require("cloudinary").v2;
 const { createUploadMiddleware } = require("../middleware/upload");
 
-// Middleware to ensure user is SuperAdmin
+// Middleware to ensure user is SuperAdmin or Admin
 const requireSuperAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "SuperAdmin") {
+  const role = String(req.user?.role || "").toLowerCase().trim();
+  const email = String(req.user?.email || "").toLowerCase().trim();
+  if (role === "superadmin" || role === "admin" || email === "admin@multimarg.com" || email === "praveen.pr105@gmail.com") {
     next();
   } else {
-    return error(res, { message: "Forbidden: SuperAdmin access required", statusCode: 403 });
+    return error(res, { message: "Forbidden: SuperAdmin or Admin access required", statusCode: 403 });
   }
 };
 
@@ -148,11 +150,11 @@ router.get("/system-stats", requireSuperAdmin, async (req, res) => {
 
 const defaultSettings = {
   company: {
-    name: "Multi Marg Carriers",
-    gstin: "",
-    address: "",
-    email: "",
-    phone: "",
+    name: "MULTIMARG CARRIERS PVT. LTD.",
+    gstin: "05AANCM3054E1ZN",
+    address: "LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153, UTTARAKHAND",
+    email: "info@multimarg.com",
+    phone: "+91 5944-324033",
     companyStampUrl: ""
   },
   ui: {
@@ -217,6 +219,27 @@ router.get("/config", async (req, res) => {
       return dbSettings;
     }, 3600);
     
+    // Ensure company info is never blank or empty
+    if (!settings.company) {
+      settings.company = { ...defaultSettings.company };
+    } else {
+      if (!settings.company.name || settings.company.name.trim() === "" || settings.company.name === "Multi Marg Carriers") {
+        settings.company.name = defaultSettings.company.name;
+      }
+      if (!settings.company.gstin || settings.company.gstin.trim() === "") {
+        settings.company.gstin = defaultSettings.company.gstin;
+      }
+      if (!settings.company.address || settings.company.address.trim() === "") {
+        settings.company.address = defaultSettings.company.address;
+      }
+      if (!settings.company.email || settings.company.email.trim() === "") {
+        settings.company.email = defaultSettings.company.email;
+      }
+      if (!settings.company.phone || settings.company.phone.trim() === "") {
+        settings.company.phone = defaultSettings.company.phone;
+      }
+    }
+
     // Ensure new sections exist in older documents
     if (!settings.system) settings.system = { ...defaultSettings.system };
     if (!settings.integrations) settings.integrations = { ...defaultSettings.integrations };
@@ -238,11 +261,33 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
     if (!db || !db.mongoDb) return error(res, { message: "DB not connected" });
     
     const collection = db.mongoDb.collection("system_settings");
+    const existingConfig = (await collection.findOne({ type: "global_config" })) || {};
     
     // Copy body and remove protected fields
     const updateData = { ...req.body };
     delete updateData._id;
     delete updateData.type;
+    
+    // Merge company carefully - never accidentally blank out fields if incoming is empty/missing
+    let mergedCompany = {
+      ...defaultSettings.company,
+      ...(existingConfig.company || {})
+    };
+
+    if (updateData.company && typeof updateData.company === 'object') {
+      const incoming = updateData.company;
+      mergedCompany = {
+        name: incoming.name && incoming.name.trim() !== "" ? incoming.name.trim() : mergedCompany.name,
+        gstin: incoming.gstin && incoming.gstin.trim() !== "" ? incoming.gstin.trim() : mergedCompany.gstin,
+        address: incoming.address && incoming.address.trim() !== "" ? incoming.address.trim() : mergedCompany.address,
+        email: incoming.email && incoming.email.trim() !== "" ? incoming.email.trim() : mergedCompany.email,
+        phone: incoming.phone && incoming.phone.trim() !== "" ? incoming.phone.trim() : mergedCompany.phone,
+        companyStampUrl: incoming.companyStampUrl !== undefined ? incoming.companyStampUrl : mergedCompany.companyStampUrl
+      };
+      updateData.company = mergedCompany;
+    } else {
+      updateData.company = mergedCompany;
+    }
     
     // Cloudinary upload for company stamp if it's a new base64 image
     if (updateData.company && updateData.company.companyStampUrl && updateData.company.companyStampUrl.startsWith('data:image')) {
@@ -253,9 +298,8 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
         });
         
         if (uploadResult.success) {
-          const oldConfig = await collection.findOne({ type: "global_config" });
-          if (oldConfig && oldConfig.company && oldConfig.company.companyStampUrl && oldConfig.company.companyStampUrl !== uploadResult.url) {
-            await deleteFile(oldConfig.company.companyStampUrl, "image");
+          if (existingConfig.company && existingConfig.company.companyStampUrl && existingConfig.company.companyStampUrl !== uploadResult.url) {
+            await deleteFile(existingConfig.company.companyStampUrl, "image");
           }
           updateData.company.companyStampUrl = uploadResult.url;
         } else {
@@ -266,9 +310,18 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
       }
     }
     
+    // Merge all top-level objects so partial updates don't obliterate other settings
+    const finalDoc = {
+      ...defaultSettings,
+      ...existingConfig,
+      ...updateData,
+      type: "global_config",
+      company: updateData.company
+    };
+
     await collection.updateOne(
       { type: "global_config" },
-      { $set: updateData },
+      { $set: finalDoc },
       { upsert: true }
     );
     
@@ -282,36 +335,98 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
   }
 });
 
-// POST upload stamp directly via form-data
-const stampUpload = createUploadMiddleware("stamps", { maxFileSize: 2 * 1024 * 1024 }); // 2MB limit
+// POST upload stamp directly via JSON base64 or form-data
+const stampUpload = createUploadMiddleware("stamps", { maxFileSize: 5 * 1024 * 1024 }); // 5MB limit
 
-router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage"), async (req, res) => {
+router.post("/upload-stamp", requireSuperAdmin, (req, res, next) => {
+  const contentType = String(req.headers["content-type"] || "").toLowerCase();
+  if (contentType.includes("multipart/form-data")) {
+    stampUpload.any()(req, res, (err) => {
+      if (err) {
+        console.error("[Multer Upload Error]:", err);
+        return error(res, { message: err.message || "Failed to process image file" }, 400);
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+}, async (req, res) => {
   try {
-    if (!req.file) {
-      return error(res, { message: "No image file provided" }, 400);
+    const file = req.file || (req.files && req.files.length > 0 ? req.files[0] : null);
+    const base64Data = req.body?.stampData || req.body?.imageData || req.body?.base64;
+
+    if (!file && !base64Data) {
+      return error(res, { message: "No image file provided. Please choose an image file." }, 400);
     }
 
-    if (!db || !db.mongoDb) return error(res, { message: "DB not connected" });
+    if (!db || !db.mongoDb) return error(res, { message: "Database connection unavailable" }, 500);
 
-    // Upload to cloudinary
-    const uploadResult = await uploadCompanyStamp(req.file.path);
+    let stampUrl = "";
 
-    if (!uploadResult.success) {
-      return error(res, { message: `Cloudinary upload failed: ${uploadResult.message}` }, 500);
+    if (base64Data) {
+      // 1. Upload base64 to Cloudinary
+      try {
+        const uploadResult = await uploadBase64(base64Data, {
+          folder: "stamps",
+          publicId: `official_stamp_${Date.now()}`,
+          overwrite: true
+        });
+        if (uploadResult && uploadResult.success && uploadResult.url) {
+          stampUrl = uploadResult.url;
+        }
+      } catch (cErr) {
+        console.warn("[Cloudinary Base64 Error]:", cErr.message);
+      }
+
+      // 2. Fallback to saving base64 locally on disk if Cloudinary is not enabled/reachable
+      if (!stampUrl) {
+        try {
+          const destDir = path.resolve(process.cwd(), "uploads", "stamps");
+          if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+          const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          const ext = matches && matches[1] ? (matches[1].split("/")[1] || "png").replace("jpeg", "jpg").replace("svg+xml", "svg") : "png";
+          const rawData = matches ? matches[2] : base64Data;
+          const fileName = `stamp_${Date.now()}.${ext}`;
+          const filePath = path.join(destDir, fileName);
+          fs.writeFileSync(filePath, Buffer.from(rawData, "base64"));
+          stampUrl = `/uploads/stamps/${fileName}`;
+        } catch (fsErr) {
+          console.error("Local base64 disk write error:", fsErr);
+        }
+      }
+    } else if (file) {
+      stampUrl = `/uploads/stamps/${file.filename}`;
+      try {
+        const uploadResult = await uploadCompanyStamp(file.path);
+        if (uploadResult && uploadResult.success && uploadResult.url) {
+          stampUrl = uploadResult.url;
+        }
+      } catch (cErr) {
+        console.warn("[Stamp Upload] Cloudinary upload failed, keeping local file:", cErr.message);
+      }
+    }
+
+    if (!stampUrl) {
+      return error(res, { message: "Failed to store stamp image" }, 500);
     }
 
     const collection = db.mongoDb.collection("system_settings");
 
-    // Delete old company stamp from Cloudinary if replacing
+    // Clean up old Cloudinary file if replacing
     const oldConfig = await collection.findOne({ type: "global_config" });
-    if (oldConfig && oldConfig.company && oldConfig.company.companyStampUrl && oldConfig.company.companyStampUrl !== uploadResult.url) {
-      await deleteFile(oldConfig.company.companyStampUrl, "image");
+    if (oldConfig && oldConfig.company && oldConfig.company.companyStampUrl && oldConfig.company.companyStampUrl !== stampUrl) {
+      if (oldConfig.company.companyStampUrl.includes("cloudinary.com")) {
+        try {
+          await deleteFile(oldConfig.company.companyStampUrl, "image");
+        } catch (_delErr) {}
+      }
     }
 
     // Update the company stamp URL in MongoDB
     await collection.updateOne(
       { type: "global_config" },
-      { $set: { "company.companyStampUrl": uploadResult.url } },
+      { $set: { "company.companyStampUrl": stampUrl, updatedAt: new Date().toISOString() } },
       { upsert: true }
     );
 
@@ -320,8 +435,8 @@ router.post("/upload-stamp", requireSuperAdmin, stampUpload.single("stampImage")
     const updatedSettings = await collection.findOne({ type: "global_config" });
     return success(res, "Stamp uploaded successfully", updatedSettings);
   } catch (err) {
-    console.error("Error uploading stamp:", err);
-    return error(res, err);
+    console.error("Error in /upload-stamp route:", err);
+    return error(res, { message: err.message || "Failed to save stamp image" }, 500);
   }
 });
 

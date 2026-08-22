@@ -4,6 +4,7 @@ import axios from "axios";
 import { Download, ArrowLeft } from "lucide-react";
 import RupeeIcon from "../components/RupeeIcon";
 import { AuthContext } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { QRCodeCanvas } from "qrcode.react";
 import { formatDate } from "../utils/formatters";
 import { downloadViaPuppeteer, getPdfBase64ViaPuppeteer } from "../utils/puppeteerPdf";
@@ -16,6 +17,7 @@ const PrintLR = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
+  const { addToast } = useToast();
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);
   const containerRef = React.useRef(null);
@@ -225,7 +227,7 @@ const PrintLR = () => {
 
   const handleSendEmail = async () => {
     if (!recipientEmail || !recipientEmail.trim()) {
-      alert("Please enter a valid recipient email address.");
+      addToast("Please enter a valid recipient email address.", "error");
       return;
     }
 

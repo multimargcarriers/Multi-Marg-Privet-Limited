@@ -231,12 +231,43 @@ exports.getRoot_2 = async (req, res) => {
   const isWorldwide = req.query.worldwide === 'true';
 
   const data = await getOrSet(CACHE_KEY, async () => {
+    // Fetch all active POD documents to ensure 100% accurate synchronization
+    const activePodsMap = {};
+    if (db.mongoDb) {
+      const activePods = await db.mongoDb.collection("pod").find({}, { projection: { lrNo: 1, podUrl: 1, cloudinaryUrl: 1, url: 1, bookingId: 1 } }).toArray();
+      activePods.forEach(p => {
+        const raw = String(p.lrNo || '').trim().toLowerCase();
+        const stripped = raw.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+        const url = p.podUrl || p.cloudinaryUrl || p.url || '';
+        if (raw) activePodsMap[raw] = url;
+        if (stripped) activePodsMap[stripped] = url;
+        if (p.bookingId) activePodsMap[String(p.bookingId)] = url;
+      });
+    }
+
     const snapshot = await db.collection("bookings").orderBy("date", "desc").get();
     const bookings = [];
     snapshot.forEach(doc => {
+      const docData = doc.data();
+      const bAwb = String(docData.awb || docData.consignment || docData.lrNo || '').trim().toLowerCase();
+      const bStripped = bAwb.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+      const matchingPodUrl = activePodsMap[bAwb] || activePodsMap[bStripped] || (doc.id && activePodsMap[String(doc.id)]) || null;
+
+      if (!matchingPodUrl) {
+        docData.podUploaded = false;
+        docData.podUrl = null;
+        docData.pod = null;
+        if (String(docData.status || '').toLowerCase() === 'delivered') {
+          docData.status = docData.transitStatus || 'Picked Up';
+        }
+      } else {
+        docData.podUploaded = true;
+        docData.podUrl = matchingPodUrl;
+      }
+
       bookings.push({
         id: doc.id,
-        ...doc.data()
+        ...docData
       });
     });
     return bookings;

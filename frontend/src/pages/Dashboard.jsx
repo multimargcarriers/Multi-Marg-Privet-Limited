@@ -139,8 +139,13 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard/stats`);
-      if (response.data.success) {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${apiUrl}/api/dashboard/stats`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        params: { _t: Date.now() }
+      });
+      if (response.data && response.data.success) {
         setStats(response.data.data || {});
       }
     } catch (error) {
@@ -152,20 +157,35 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchStats();
+
+    // Auto-refresh when window regains focus or cache is invalidated
+    const onFocus = () => fetchStats();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('cache-refreshed', onFocus);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('cache-refreshed', onFocus);
+    };
   }, []);
 
   const handleSync = async () => {
     try {
       setSyncing(true);
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       let response;
       try {
-        response = await axios.post(`${apiUrl}/api/dashboard/sync`);
+        response = await axios.post(`${apiUrl}/api/dashboard/sync`, {}, { headers });
       } catch (_e) {
-        response = await axios.post(`${apiUrl}/api/analytics/sync`);
+        response = await axios.post(`${apiUrl}/api/analytics/sync`, {}, { headers });
       }
       if (response.data?.success) {
         addToast('Dashboard analytics synchronized with database', 'success');
+        if (response.data.data) {
+          setStats(prev => ({ ...prev, ...response.data.data }));
+        }
         await fetchStats();
       }
     } catch (error) {
@@ -262,7 +282,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Total Sales"
-          value={<FormatCurrency amount={stats?.totalBillsAmount || 0} />}
+          value={<FormatCurrency amount={stats?.totalCustomerInvoiced || stats?.totalClientInvoiced || stats?.totalBillsAmount || 0} />}
           icon={<DollarSign />}
           accentColor="#10b981"
           explanationKey="dash_sales_total"
@@ -313,7 +333,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Total Purchases"
-          value={<FormatCurrency amount={stats?.totalPurchaseValue || 0} />}
+          value={<FormatCurrency amount={stats?.totalVendorInvoiced || stats?.totalPurchaseValue || 0} />}
           icon={<ShoppingCart />}
           accentColor="#f59e0b"
           explanationKey="dash_purchase_total"
@@ -390,6 +410,7 @@ const Dashboard = () => {
       <CalculationExplanationModal
         isOpen={Boolean(explanationKey)}
         explanationKey={explanationKey}
+        liveStats={stats}
         onClose={() => setExplanationKey(null)}
       />
 

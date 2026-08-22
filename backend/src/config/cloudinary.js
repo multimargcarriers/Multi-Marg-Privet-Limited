@@ -13,7 +13,8 @@ const USE_CLOUDINARY = process.env.USE_CLOUDINARY === "true";
  * Initialize Cloudinary with environment config
  */
 function initCloudinary() {
-  if (!USE_CLOUDINARY) {
+  const useCloud = process.env.USE_CLOUDINARY === "true" || process.env.USE_CLOUDINARY === true || String(process.env.USE_CLOUDINARY).toLowerCase() === "true";
+  if (!useCloud) {
     console.log(
       "[Cloudinary] Disabled. Set USE_CLOUDINARY=true to enable cloud storage.",
     );
@@ -32,9 +33,10 @@ function initCloudinary() {
   }
 
   cloudinary.config({
-    cloud_name: cloudName,
-    api_key: apiKey,
-    api_secret: apiSecret,
+    cloud_name: cloudName.trim(),
+    api_key: apiKey.trim(),
+    api_secret: apiSecret.trim(),
+    secure: true,
   });
 
   console.log("[Cloudinary] Initialized successfully");
@@ -51,13 +53,16 @@ function initCloudinary() {
  * @returns {Promise<object>} Cloudinary upload result
  */
 async function uploadFile(filePath, options = {}) {
-  if (!USE_CLOUDINARY) {
+  const isCloudEnabled = process.env.USE_CLOUDINARY === "true" || process.env.USE_CLOUDINARY === true || String(process.env.USE_CLOUDINARY).toLowerCase() === "true";
+  if (!isCloudEnabled) {
     return {
       success: false,
       message: "Cloudinary not enabled",
       localPath: filePath,
     };
   }
+
+  initCloudinary();
 
   const folder =
     options.folder ||
@@ -80,8 +85,8 @@ async function uploadFile(filePath, options = {}) {
       public_id: options.publicId,
       resource_type: resourceType,
       use_filename: true,
-      unique_filename: true,
-      overwrite: false,
+      unique_filename: options.unique_filename !== undefined ? options.unique_filename : true,
+      overwrite: options.overwrite !== undefined ? options.overwrite : true,
     });
 
     // Keep local file on disk so local fallback URL remains valid if Cloudinary is unreachable or returning 404
@@ -121,7 +126,7 @@ async function uploadFile(filePath, options = {}) {
  * @returns {Promise<object>} Cloudinary upload result
  */
 async function uploadCompanyStamp(filePath) {
-  const options = { folder: "stamps", publicId: "official_stamp" };
+  const options = { folder: "stamps", publicId: `official_stamp_${Date.now()}`, overwrite: true };
   return await uploadFile(filePath, options);
 }
 

@@ -78,51 +78,69 @@ const Settings = () => {
     }
   }, [globalSettings]);
 
+  const formatMediaUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+  };
+
   const handleStampFileUpload = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      addToast("File size too large. Please select an image under 2MB.", "error");
+    if (file.size > 5 * 1024 * 1024) {
+      addToast("File size too large. Please select an image under 5MB.", "error");
       return;
     }
 
     setIsUploadingStamp(true);
-    const formData = new FormData();
-    formData.append("stampImage", file);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/upload-stamp`, formData, {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      // Convert image file to base64 DataURL for guaranteed cross-browser transfer
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
       });
 
-      if (response.data.success) {
-        addToast("Stamp uploaded successfully!", "success");
-        // Force refresh the global settings from context so the new stamp is loaded
-        if (typeof window !== 'undefined') {
-           window.dispatchEvent(new CustomEvent('settings-refresh-needed'));
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/upload-stamp`,
+        {
+          stampData: dataUrl,
+          fileName: file.name
+        },
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
         }
-        
-        // Also update local state for preview
-        const newStampUrl = response.data.data.company.companyStampUrl;
+      );
+
+      if (response.data?.success) {
+        addToast("Stamp uploaded successfully!", "success");
+        const newStampUrl = response.data.data?.company?.companyStampUrl || dataUrl;
         setStampPreview(newStampUrl);
         setLocalCompany(prev => ({ ...prev, companyStampUrl: newStampUrl }));
-        
-        // Let's also update the global settings in context via updateGlobalSettings? No, refreshSettings is better, but it's not destructured. 
-        // We'll update the settings locally in the context state by calling updateGlobalSettings with the returned data.
         await updateGlobalSettings(response.data.data);
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('settings-refresh-needed'));
+        }
       } else {
-        addToast("Failed to upload stamp: " + response.data.message, "error");
+        addToast("Failed to upload stamp: " + (response.data?.message || "Server error"), "error");
       }
     } catch (err) {
       console.error("Error uploading stamp:", err);
-      addToast("Error uploading stamp. Check console.", "error");
+      const errMsg = err.response?.data?.message || err.message || "Upload failed";
+      addToast(`Error uploading stamp: ${errMsg}`, "error");
     } finally {
       setIsUploadingStamp(false);
+      // Reset input value so same file can be re-selected if needed
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -138,6 +156,9 @@ const Settings = () => {
     const newSettings = { ...globalSettings };
     if (!newSettings[category]) newSettings[category] = {};
     newSettings[category][key] = !newSettings[category][key];
+    if (localCompany && Object.keys(localCompany).length > 0) {
+      newSettings.company = { ...newSettings.company, ...localCompany };
+    }
     await updateGlobalSettings(newSettings);
     setUpdatingToggles(false);
   };
@@ -151,7 +172,12 @@ const Settings = () => {
     if (!globalSettings) return;
     setIsSavingForm(true);
     const newSettings = { ...globalSettings, company: localCompany };
-    await updateGlobalSettings(newSettings);
+    const success = await updateGlobalSettings(newSettings);
+    if (success) {
+      addToast("Company profile saved successfully!", "success");
+    } else {
+      addToast("Failed to save company profile. Please try again.", "error");
+    }
     setIsSavingForm(false);
   };
 
@@ -519,7 +545,7 @@ const Settings = () => {
                   {/* Stamp Live Preview */}
                   <div style={{ width: '120px', height: '120px', borderRadius: '8px', border: '2px dashed #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0.5rem', position: 'relative', overflow: 'hidden' }}>
                     {stampPreview ? (
-                      <img src={stampPreview} alt="Company Stamp Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <img src={formatMediaUrl(stampPreview)} alt="Company Stamp Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
                       <div style={{ textAlign: 'center', color: '#94a3b8' }}>
                         <CompanyStamp size={75} />
@@ -844,6 +870,9 @@ const Settings = () => {
                                 globalBookingWindowDays: val
                               }
                             };
+                            if (localCompany && Object.keys(localCompany).length > 0) {
+                              updated.company = { ...updated.company, ...localCompany };
+                            }
                             await updateGlobalSettings(updated);
                           }}
                           style={{ width: '70px', padding: '0.35rem 0.5rem', borderRadius: '6px', border: '1px solid #94a3b8', textAlign: 'center', fontWeight: '700', fontSize: '0.9rem' }}

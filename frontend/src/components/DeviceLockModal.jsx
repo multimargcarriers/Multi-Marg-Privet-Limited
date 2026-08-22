@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { Fingerprint, Lock, KeyRound, ShieldCheck, LogOut, AlertCircle, ArrowRight, Eye, EyeOff, Scan } from 'lucide-react';
+import { Fingerprint, Lock, KeyRound, ShieldCheck, LogOut, AlertCircle, ArrowRight, Eye, EyeOff, Scan, Camera } from 'lucide-react';
 import { promptDeviceScreenLock, isBiometricSupported } from '../utils/deviceBiometrics';
+import FaceVerificationModal from './FaceVerificationModal';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -11,6 +12,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
   const [authenticating, setAuthenticating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showPasswordMode, setShowPasswordMode] = useState(false);
+  const [showFaceModal, setShowFaceModal] = useState(false);
   const [password, setPassword] = useState('');
   const [showPasswordText, setShowPasswordText] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -238,10 +240,10 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         {/* Biometric Trigger or Password Input */}
         {!showPasswordMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {/* Primary: Device Biometric Unlock */}
+            {/* Primary: Live Face ID Camera Verification */}
             <button
-              onClick={handleBiometricUnlock}
-              disabled={authenticating}
+              type="button"
+              onClick={() => setShowFaceModal(true)}
               style={{
                 width: '100%',
                 padding: '0.85rem 1.25rem',
@@ -251,7 +253,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 color: '#ffffff',
                 fontSize: '0.95rem',
                 fontWeight: 700,
-                cursor: authenticating ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -261,25 +263,23 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 height: '48px'
               }}
             >
-              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                <Scan size={20} />
-                <Fingerprint size={20} className={authenticating ? "spin-animation" : ""} />
-              </div>
-              <span>{authenticating ? 'Verifying...' : 'Verify Device'}</span>
+              <Camera size={20} />
+              <span>Verify with Face ID (Camera)</span>
             </button>
 
-            {/* Secondary: Password fallback */}
+            {/* Secondary: Device Biometric Unlock (Fingerprint / PIN) */}
             <button
               type="button"
-              onClick={() => setShowPasswordMode(true)}
+              onClick={handleBiometricUnlock}
+              disabled={authenticating}
               style={{
                 background: '#ffffff',
                 border: '1.5px solid #cbd5e1',
                 borderRadius: '12px',
-                color: '#334155',
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                fontWeight: 600,
+                color: '#0f172a',
+                fontSize: '0.86rem',
+                cursor: authenticating ? 'not-allowed' : 'pointer',
+                fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -290,7 +290,30 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
               }}
             >
-              <KeyRound size={15} color="#2563eb" /> Use Password Instead
+              <Fingerprint size={18} color="#2563eb" className={authenticating ? "spin-animation" : ""} />
+              <span>{authenticating ? 'Scanning...' : 'Device Finger / Windows PIN'}</span>
+            </button>
+
+            {/* Tertiary: Password fallback */}
+            <button
+              type="button"
+              onClick={() => setShowPasswordMode(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '0.4rem',
+                width: '100%'
+              }}
+            >
+              <KeyRound size={14} color="#64748b" /> Use Password Instead
             </button>
           </div>
         ) : (
@@ -374,24 +397,44 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
               {passwordLoading ? 'Verifying...' : 'Unlock Account'} <ArrowRight size={16} />
             </button>
 
-            <button
-              type="button"
-              onClick={() => { setShowPasswordMode(false); handleBiometricUnlock(); }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#2563eb',
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px'
-              }}
-            >
-              <Fingerprint size={14} /> Switch to Device Face Lock / Fingerprint
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => { setShowPasswordMode(false); setShowFaceModal(true); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0284c7',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px'
+                }}
+              >
+                <Camera size={14} /> Face ID
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowPasswordMode(false); handleBiometricUnlock(); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px'
+                }}
+              >
+                <Fingerprint size={14} /> Fingerprint
+              </button>
+            </div>
           </form>
         )}
 
@@ -419,6 +462,25 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           </button>
         </div>
       </div>
+
+      {/* Live Camera Face Verification Modal */}
+      <FaceVerificationModal
+        isOpen={showFaceModal}
+        user={user}
+        onVerified={(_data) => {
+          setShowFaceModal(false);
+          onUnlock();
+        }}
+        onCancel={() => setShowFaceModal(false)}
+        onSwitchToFingerprint={() => {
+          setShowFaceModal(false);
+          handleBiometricUnlock();
+        }}
+        onSwitchToPassword={() => {
+          setShowFaceModal(false);
+          setShowPasswordMode(true);
+        }}
+      />
     </div>,
     document.body
   );

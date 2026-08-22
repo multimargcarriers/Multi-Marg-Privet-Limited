@@ -37,21 +37,24 @@ const ALLOWED_MIMES = Object.values(ALLOWED_TYPES).flat();
 
 /**
  * Create multer storage engine
- * @param {string} subDir - Subdirectory under uploads (e.g., 'pod', 'box')
+ * @param {string} subDir - Subdirectory under uploads (e.g., 'pod', 'box', 'stamps')
  */
 function createStorage(subDir = "general") {
-  const destDir = path.join(UPLOAD_DIR, subDir);
+  const destDir = path.resolve(process.cwd(), "uploads", subDir);
 
   return multer.diskStorage({
     destination: (req, file, cb) => {
-      // Ensure directory exists dynamically before each upload
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
+      try {
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true });
+        }
+        cb(null, destDir);
+      } catch (err) {
+        cb(err);
       }
-      cb(null, destDir);
     },
     filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
+      const ext = path.extname(file.originalname || "").toLowerCase() || ".png";
       const uniqueName = `${Date.now()}-${uuidv4().slice(0, 8)}${ext}`;
       cb(null, uniqueName);
     },
@@ -62,12 +65,18 @@ function createStorage(subDir = "general") {
  * File filter to validate file types
  */
 function fileFilter(req, file, cb) {
-  if (ALLOWED_MIMES.includes(file.mimetype)) {
+  const mime = String(file.mimetype || "").toLowerCase().trim();
+  const ext = path.extname(file.originalname || "").toLowerCase().trim();
+  const isImage = mime.startsWith("image/") || [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".bmp", ".jfif"].includes(ext);
+  const isDoc = mime.includes("pdf") || mime.includes("document") || mime.includes("sheet") || [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv"].includes(ext);
+  const isVideo = mime.startsWith("video/") || [".mp4", ".mpeg", ".webm", ".mov", ".avi"].includes(ext);
+
+  if (isImage || isDoc || isVideo || ALLOWED_MIMES.includes(mime)) {
     cb(null, true);
   } else {
     cb(
       new Error(
-        `File type ${file.mimetype} is not allowed. Allowed types: images, PDFs, documents, spreadsheets, videos`,
+        `File type "${file.mimetype}" is not allowed. Supported formats: JPG, PNG, WEBP, SVG, PDF, DOC, XLS.`,
       ),
       false,
     );

@@ -121,22 +121,36 @@ const BookingsList = () => {
 
       if (bookingsRes.data.success) setBookings(bookingsRes.data.data || []);
 
-      // Build POD map
+      // Build comprehensive POD map with all AWB variations
       if (podRes.data.success && Array.isArray(podRes.data.data)) {
         const map = {};
         podRes.data.data.forEach(item => {
-          if (item.lrNo) map[String(item.lrNo).trim()] = item;
-          if (item.bookingId) map[item.bookingId] = item;
+          const raw = String(item.lrNo || '').trim();
+          const clean = raw.toLowerCase();
+          const stripped = clean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+          if (raw) map[raw] = item;
+          if (clean) map[clean] = item;
+          if (stripped) map[stripped] = item;
+          if (item.bookingId) map[String(item.bookingId)] = item;
+          if (item.id) map[String(item.id)] = item;
+          if (item._id) map[String(item._id)] = item;
         });
         setPodMap(map);
       }
 
-      // Build Box map
+      // Build comprehensive Box map
       if (boxRes.data.success && Array.isArray(boxRes.data.data)) {
         const map = {};
         boxRes.data.data.forEach(item => {
-          if (item.lrNo) map[String(item.lrNo).trim()] = item;
-          if (item.bookingId) map[item.bookingId] = item;
+          const raw = String(item.lrNo || '').trim();
+          const clean = raw.toLowerCase();
+          const stripped = clean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+          if (raw) map[raw] = item;
+          if (clean) map[clean] = item;
+          if (stripped) map[stripped] = item;
+          if (item.bookingId) map[String(item.bookingId)] = item;
+          if (item.id) map[String(item.id)] = item;
+          if (item._id) map[String(item._id)] = item;
         });
         setBoxMap(map);
       }
@@ -146,7 +160,14 @@ const BookingsList = () => {
         const map = {};
         const sorted = [...trackingRes.data.data].sort((a, b) => new Date(a.updatedAt || a.date || a.createdAt) - new Date(b.updatedAt || b.date || b.createdAt));
         sorted.forEach(t => {
-          if (t.awb) map[String(t.awb).trim().toLowerCase()] = t;
+          if (t.awb) {
+            const raw = String(t.awb).trim();
+            const clean = raw.toLowerCase();
+            const stripped = clean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+            map[raw] = t;
+            map[clean] = t;
+            map[stripped] = t;
+          }
         });
         setTrackingMap(map);
       }
@@ -502,8 +523,26 @@ const BookingsList = () => {
               : (item.parcels || []);
             const hasParcels = displayParcels.length > 0;
             const awb = item.awb || item.consignment || item.lrNo || item.id?.slice(-6);
-            const hasBox = boxMap[item.awb || item.lrNo || item.id];
-            const hasPodEntry = podMap[item.awb || item.lrNo || item.id];
+            const awbStr = String(awb || '').trim();
+            const awbClean = awbStr.toLowerCase();
+            const awbStripped = awbClean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+
+            const hasBox = Boolean(
+              boxMap[awbStr] || 
+              boxMap[awbClean] || 
+              boxMap[awbStripped] || 
+              (item.id && boxMap[String(item.id)]) || 
+              (item._id && boxMap[String(item._id)])
+            );
+
+            const hasPodEntry = Boolean(
+              podMap[awbStr] || 
+              podMap[awbClean] || 
+              podMap[awbStripped] || 
+              (item.id && podMap[String(item.id)]) || 
+              (item._id && podMap[String(item._id)])
+            );
+
             return (
               <div key={itemId || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: isSelected ? "2px solid #2563eb" : (item.isOfflinePending ? "2px dashed #f59e0b" : undefined), background: isSelected ? "#f8faff" : undefined }}>
 
@@ -527,41 +566,77 @@ const BookingsList = () => {
 
                     {/* Status badge in top row */}
                     {(() => {
-                      const awbLower = String(awb || '').trim().toLowerCase();
-                      const track = trackingMap[awbLower];
-                      const status = (typeof track === 'object' ? track?.status : track) || 'Picked Up';
-                      const location = (typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub';
+                      const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
+                      const isDelivered = 
+                        Boolean(hasPodEntry) || 
+                        (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
+                        (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered');
 
-                      let bg = '#eff6ff';
-                      let color = '#2563eb';
-                      let border = '#bfdbfe';
-                      let icon = <Truck size={13} />;
+                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed"
+                      const trackStatus = typeof track === 'object' ? track?.status : track;
+                      const rawTransit = trackStatus || item.transitStatus || item.trackingStatus || (!['unbilled', 'billed', 'delivered'].includes(String(item.status || '').toLowerCase()) ? item.status : null);
 
-                      if (status === 'Delivered') {
+                      const resolvedStatus = isDelivered 
+                        ? 'Delivered' 
+                        : (rawTransit || 'Picked Up');
+
+                      const normStatus = String(resolvedStatus || '').trim().toLowerCase();
+
+                      let bg = '#f0fdf4';
+                      let color = '#16a34a';
+                      let border = '#bbf7d0';
+                      let icon = <Package size={13} />;
+                      let displayStatus = 'Picked Up';
+
+                      if (normStatus === 'delivered') {
                         bg = '#ecfdf5';
                         color = '#059669';
                         border = '#a7f3d0';
                         icon = <CheckCircle2 size={13} />;
-                      } else if (status === 'Out for Delivery') {
+                        displayStatus = 'Delivered';
+                      } else if (normStatus === 'out for delivery') {
                         bg = '#fffbeb';
                         color = '#d97706';
                         border = '#fde68a';
                         icon = <Truck size={13} />;
-                      } else if (status === 'Reached Hub') {
+                        displayStatus = 'Out for Delivery';
+                      } else if (normStatus === 'reached hub' || normStatus === 'arrived at hub' || normStatus === 'at hub') {
                         bg = '#f5f3ff';
                         color = '#7c3aed';
                         border = '#ddd6fe';
                         icon = <MapPin size={13} />;
-                      } else if (status === 'Picked Up') {
+                        displayStatus = 'Reached Hub';
+                      } else if (normStatus === 'picked up' || normStatus === 'booked' || normStatus === 'shipment picked up') {
                         bg = '#f0fdf4';
                         color = '#16a34a';
                         border = '#bbf7d0';
                         icon = <Package size={13} />;
-                      } else if (status === 'Delayed') {
+                        displayStatus = 'Picked Up';
+                      } else if (normStatus === 'in transit' || normStatus === 'transit') {
+                        bg = '#eff6ff';
+                        color = '#2563eb';
+                        border = '#bfdbfe';
+                        icon = <Truck size={13} />;
+                        displayStatus = 'In Transit';
+                      } else if (normStatus === 'delayed') {
                         bg = '#fff7ed';
                         color = '#ea580c';
                         border = '#fed7aa';
                         icon = <Clock size={13} />;
+                        displayStatus = 'Delayed';
+                      } else if (normStatus === 'returned' || normStatus === 'rto') {
+                        bg = '#fef2f2';
+                        color = '#dc2626';
+                        border = '#fecaca';
+                        icon = <Clock size={13} />;
+                        displayStatus = 'Returned';
+                      } else {
+                        // Custom status
+                        bg = '#eff6ff';
+                        color = '#2563eb';
+                        border = '#bfdbfe';
+                        icon = <Truck size={13} />;
+                        displayStatus = resolvedStatus;
                       }
 
                       return (
@@ -581,7 +656,7 @@ const BookingsList = () => {
                             }}
                             title="Click to update tracking checkpoint"
                           >
-                            {icon} <span>{status}</span>
+                            {icon} <span>{displayStatus}</span>
                           </button>
                         </div>
                       );
@@ -591,9 +666,16 @@ const BookingsList = () => {
                   {/* Sub-row: Location & Clerk */}
                   <div className="booking-card-sub-info">
                     {(() => {
-                      const awbLower = String(awb || '').trim().toLowerCase();
-                      const track = trackingMap[awbLower];
-                      const location = (typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub';
+                      const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
+                      const isDelivered = 
+                        Boolean(hasPodEntry) || 
+                        String(item.status || '').toLowerCase() === 'delivered' ||
+                        (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered');
+
+                      const location = isDelivered 
+                        ? (item.destination || (typeof track === 'object' ? track?.location : null) || 'Destination')
+                        : ((typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub');
+
                       return (
                         <span className="booking-location-text">
                           <MapPin size={12} color="#64748b" /> {location}
@@ -661,57 +743,69 @@ const BookingsList = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {displayParcels.map((parcel, pIdx) => (
-                            <tr key={pIdx}>
-                              <td style={{ fontWeight: 600 }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
-                              <td>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
-                              <td>{parcel.part || parcel.partNumber || '-'}</td>
-                              <td>{parcel.quantity || '-'}</td>
-                              <td style={{ fontWeight: 600, textAlign: 'right' }}>
-                                {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
-                              </td>
-                              <td>{parcel.eway || parcel.ewayBill || '-'}</td>
-                            </tr>
-                          ))}
+                          {displayParcels.map((parcel, pIdx) => {
+                            const rawVal = parcel.value !== undefined && parcel.value !== null && parcel.value !== '' ? parcel.value : parcel.invoiceValue;
+                            const numVal = parseFloat(rawVal);
+                            const displayVal = !isNaN(numVal) ? `₹${numVal.toFixed(2)}` : (rawVal && String(rawVal) !== 'NaN' ? (String(rawVal).startsWith('₹') ? rawVal : `₹${rawVal}`) : 'NA');
+
+                            return (
+                              <tr key={pIdx}>
+                                <td style={{ fontWeight: 600 }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
+                                <td>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
+                                <td>{parcel.part || parcel.partNumber || '-'}</td>
+                                <td>{parcel.quantity || '-'}</td>
+                                <td style={{ fontWeight: 600, textAlign: 'right' }}>
+                                  {displayVal}
+                                </td>
+                                <td>{parcel.eway || parcel.ewayBill || '-'}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
 
                     {/* Mobile View: High Density Full-Width Parcel Cards */}
                     <div className="booking-mobile-parcel-list">
-                      {displayParcels.map((parcel, pIdx) => (
-                        <div key={pIdx} className="booking-mobile-parcel-card">
-                          <div className="booking-mobile-parcel-header">
-                            <div className="booking-mobile-parcel-inv">
-                              <span className="booking-mobile-label">INV:</span>
-                              <strong>{parcel.invoice || parcel.invoiceNo || 'AS PER INVOICE'}</strong>
-                            </div>
-                            <span className="booking-mobile-date">
-                              {(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}
-                            </span>
-                          </div>
-                          <div className="booking-mobile-parcel-grid">
-                            <div className="booking-mobile-parcel-item">
-                              <span className="booking-mobile-label">Part</span>
-                              <span className="booking-mobile-val">{parcel.part || parcel.partNumber || 'NA'}</span>
-                            </div>
-                            <div className="booking-mobile-parcel-item">
-                              <span className="booking-mobile-label">Qty</span>
-                              <span className="booking-mobile-val">{parcel.quantity || 'NA'}</span>
-                            </div>
-                            <div className="booking-mobile-parcel-item">
-                              <span className="booking-mobile-label">Value</span>
-                              <span className="booking-mobile-val booking-mobile-val-highlight">
-                                ₹{(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
+                      {displayParcels.map((parcel, pIdx) => {
+                        const rawVal = parcel.value !== undefined && parcel.value !== null && parcel.value !== '' ? parcel.value : parcel.invoiceValue;
+                        const numVal = parseFloat(rawVal);
+                        const displayVal = !isNaN(numVal) ? `₹${numVal.toFixed(2)}` : (rawVal && String(rawVal) !== 'NaN' ? (String(rawVal).startsWith('₹') ? rawVal : `₹${rawVal}`) : 'NA');
+
+                        return (
+                          <div key={pIdx} className="booking-mobile-parcel-card">
+                            <div className="booking-mobile-parcel-header">
+                              <div className="booking-mobile-parcel-inv">
+                                <span className="booking-mobile-label">INV:</span>
+                                <strong>{parcel.invoice || parcel.invoiceNo || 'AS PER INVOICE'}</strong>
+                              </div>
+                              <span className="booking-mobile-date">
+                                {(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}
                               </span>
                             </div>
-                            <div className="booking-mobile-parcel-item">
-                              <span className="booking-mobile-label">E-Way</span>
-                              <span className="booking-mobile-val">{parcel.eway || parcel.ewayBill || '-'}</span>
+                            <div className="booking-mobile-parcel-grid">
+                              <div className="booking-mobile-parcel-item">
+                                <span className="booking-mobile-label">Part</span>
+                                <span className="booking-mobile-val">{parcel.part || parcel.partNumber || 'NA'}</span>
+                              </div>
+                              <div className="booking-mobile-parcel-item">
+                                <span className="booking-mobile-label">Qty</span>
+                                <span className="booking-mobile-val">{parcel.quantity || 'NA'}</span>
+                              </div>
+                              <div className="booking-mobile-parcel-item">
+                                <span className="booking-mobile-label">Value</span>
+                                <span className="booking-mobile-val booking-mobile-val-highlight">
+                                  {displayVal}
+                                </span>
+                              </div>
+                              <div className="booking-mobile-parcel-item">
+                                <span className="booking-mobile-label">E-Way</span>
+                                <span className="booking-mobile-val">{parcel.eway || parcel.ewayBill || '-'}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (

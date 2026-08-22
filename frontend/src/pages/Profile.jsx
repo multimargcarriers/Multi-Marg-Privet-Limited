@@ -10,6 +10,7 @@ import IDCardBack from '../components/IDCardBack';
 import { SettingsContext } from '../context/SettingsContext';
 import { promptDeviceScreenLock } from '../utils/deviceBiometrics';
 import { getInitialsAvatar } from '../utils/avatar';
+import FaceVerificationModal from '../components/FaceVerificationModal';
 
 const Profile = () => {
   const { user, updateUser, token, logout } = useContext(AuthContext);
@@ -672,16 +673,7 @@ const Profile = () => {
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        onClick={async () => {
-                          const res = await promptDeviceScreenLock(user);
-                          if (res.success) {
-                            addToast("Device biometrics verified successfully!", "success");
-                          } else if (res.reason === "CANCELLED") {
-                            addToast("Biometric prompt was cancelled.", "info");
-                          } else {
-                            addToast(res.message || "Biometric check failed.", "error");
-                          }
-                        }}
+                        onClick={() => setShowTestFaceScanner(true)}
                         style={{
                           background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
                           color: '#ffffff',
@@ -697,7 +689,37 @@ const Profile = () => {
                           boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)'
                         }}
                       >
-                        <Fingerprint size={14} /> Test Device Biometric Prompt
+                        <Camera size={14} /> Test Camera Face ID
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const res = await promptDeviceScreenLock(user);
+                          if (res.success) {
+                            addToast("Device biometrics verified successfully!", "success");
+                          } else if (res.reason === "CANCELLED") {
+                            addToast("Biometric prompt was cancelled.", "info");
+                          } else {
+                            addToast(res.message || "Biometric check failed.", "error");
+                          }
+                        }}
+                        style={{
+                          background: '#ffffff',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        <Fingerprint size={14} color="#2563eb" /> Test Device Finger / PIN
                       </button>
                     </div>
                   </div>
@@ -985,6 +1007,28 @@ const Profile = () => {
         </div>,
         document.body
       )}
+
+      {/* Live Camera Face Verification Test Modal */}
+      <FaceVerificationModal
+        isOpen={showTestFaceScanner}
+        user={user}
+        onVerified={(_data) => {
+          setShowTestFaceScanner(false);
+          addToast("Face biometric verified successfully!", "success");
+        }}
+        onCancel={() => setShowTestFaceScanner(false)}
+        onSwitchToFingerprint={async () => {
+          setShowTestFaceScanner(false);
+          const res = await promptDeviceScreenLock(user);
+          if (res.success) {
+            addToast("Device biometrics verified successfully!", "success");
+          } else if (res.reason === "CANCELLED") {
+            addToast("Biometric prompt was cancelled.", "info");
+          } else {
+            addToast(res.message || "Biometric check failed.", "error");
+          }
+        }}
+      />
     </div>
   );
 };

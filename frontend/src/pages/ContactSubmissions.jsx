@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Mail, Phone, Calendar, CheckCircle, Trash2, Clock, Inbox } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useDialog } from '../context/DialogContext';
 import { formatDate } from '../utils/formatters';
 
 const ContactSubmissions = () => {
@@ -9,6 +10,7 @@ const ContactSubmissions = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const { addToast } = useToast();
+  const { confirm } = useDialog();
 
   const fetchContacts = async () => {
     try {
@@ -43,7 +45,13 @@ const ContactSubmissions = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this message?')) return;
+    const isConfirmed = await confirm({
+      title: 'Delete Contact Message',
+      message: 'Are you sure you want to permanently delete this contact submission?',
+      confirmText: 'Delete Message',
+      cancelText: 'Cancel'
+    });
+    if (!isConfirmed) return;
     try {
       const response = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/contacts/${id}`);
       if (response.data.success) {

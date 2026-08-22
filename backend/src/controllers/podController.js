@@ -118,32 +118,10 @@ exports.postRoot_2 = async (req, res) => {
       }
 
       destAddress = destAddress || "Destination";
-
-      // Check if a Delivered tracking event already exists for this AWB
-      const existingDelivered = db.mongoDb ? await db.mongoDb.collection("tracking").findOne({
-        awb: { $regex: new RegExp(`^${awbNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-        status: { $regex: /^delivered$/i }
-      }) : null;
-
-      if (!existingDelivered) {
-        const trackingEntry = {
-          awb: awbNo,
-          status: "Delivered",
-          location: destAddress,
-          date: new Date().toISOString(),
-          remarks: `Proof of Delivery (POD) uploaded. Shipment delivered at ${destAddress}.`,
-          enteredBy: req.user?.name || req.user?.email || "System (Auto POD)",
-          enteredById: req.user?.id || null,
-          enteredByRole: req.user?.role || "System",
-          podUrl: entry.podUrl || entry.cloudinaryUrl || null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        await db.collection("tracking").add(trackingEntry);
-      }
+      // Booking is marked Delivered with POD attached; no synthetic tracking table row needed.
     }
   } catch (syncErr) {
-    console.error("[POD Auto-Delivery Tracking Error]:", syncErr);
+    console.error("[POD Auto-Delivery Error]:", syncErr);
   }
 
   await Promise.all([
@@ -173,6 +151,10 @@ exports.deleteRoot_3 = async (req, res) => {
     return error(res, "POD entry not found", 404);
   }
   const data = doc.data();
+  const lrNo = String(data.lrNo || '').trim();
+  const bookingId = data.bookingId;
+
+  // Delete image from Cloudinary if hosted there
   if (data.cloudinaryPublicId || data.cloudinaryUrl) {
     try {
       const { deleteFile } = require("../config/cloudinary");
@@ -181,7 +163,101 @@ exports.deleteRoot_3 = async (req, res) => {
       console.warn("Failed to delete POD image from Cloudinary:", e.message);
     }
   }
+
+  // Delete the POD record
   await docRef.delete();
-  await delCache(CACHE_KEY);
-  return success(res, "POD entry deleted successfully");
+
+  // Check if any other POD exists for this LR number
+  try {
+    let hasOtherPod = false;
+    if (lrNo && db.mongoDb) {
+      const otherPod = await db.mongoDb.collection("pod").findOne({
+        _id: { $ne: docRef.id },
+        lrNo: { $regex: new RegExp(`^${lrNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+      });
+      if (otherPod) hasOtherPod = true;
+    }
+
+    // If no other POD document exists, reverse booking status back to pre-POD state
+    if (!hasOtherPod && (lrNo || bookingId) && db.mongoDb) {
+      const lrRegex = lrNo ? new RegExp(`^${lrNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') : null;
+      const bookingQuery = lrRegex ? {
+        $or: [
+          { awb: lrRegex },
+          { consignment: lrRegex },
+          { lrNo: lrRegex },
+          ...(bookingId ? [{ _id: bookingId }, { id: bookingId }] : [])
+        ]
+      } : { _id: bookingId };
+
+      // Look up latest active tracking checkpoint if any
+      let revertStatus = "Picked Up";
+      let revertLocation = null;
+
+      if (lrRegex) {
+        const latestNonDeliveredTrack = await db.mongoDb.collection("tracking")
+          .find({
+            awb: lrRegex,
+            status: { $not: { $regex: /^delivered$/i } }
+          })
+          .sort({ date: -1, updatedAt: -1, createdAt: -1 })
+          .limit(1)
+          .toArray();
+
+        if (latestNonDeliveredTrack && latestNonDeliveredTrack.length > 0) {
+          revertStatus = latestNonDeliveredTrack[0].status || "In Transit";
+          revertLocation = latestNonDeliveredTrack[0].location || null;
+        }
+
+        // Clean up any synthetic tracking entry that was auto-generated for this POD
+        await db.mongoDb.collection("tracking").deleteMany({
+          awb: lrRegex,
+          remarks: { $regex: /Proof of Delivery \(POD\) uploaded/i }
+        });
+      }
+
+      // Revert booking fields
+      const revertUpdate = {
+        podUploaded: false,
+        podUrl: null,
+        pod: null,
+        deliveryDate: null,
+        transitStatus: revertStatus,
+        trackingStatus: revertStatus,
+        updatedAt: new Date().toISOString()
+      };
+      if (revertLocation) {
+        revertUpdate.currentLocation = revertLocation;
+      }
+
+      // Update matching bookings (reverting status to Picked Up / In Transit if it was Delivered)
+      const matchingBookings = await db.mongoDb.collection("bookings").find(bookingQuery).toArray();
+      for (const bk of matchingBookings) {
+        const updateDoc = { ...revertUpdate };
+        if (String(bk.status || '').toLowerCase() === "delivered") {
+          updateDoc.status = revertStatus;
+        }
+        await db.mongoDb.collection("bookings").updateOne({ _id: bk._id }, { $set: updateDoc });
+      }
+    }
+  } catch (revertErr) {
+    console.error("[POD Reversal Error]:", revertErr);
+  }
+
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("podEntries"),
+    delCache("bookings"),
+    delCache("tracking"),
+    delCache("dashboard_stats")
+  ]);
+
+  try {
+    const { emitDataUpdated } = require("../utils/socket");
+    emitDataUpdated("podEntries", "delete");
+    emitDataUpdated("bookings", "update");
+    emitDataUpdated("tracking", "delete");
+  } catch (sockErr) {}
+
+  return success(res, "POD entry deleted and shipment status reversed successfully");
 };

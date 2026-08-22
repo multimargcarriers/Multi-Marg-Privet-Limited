@@ -104,6 +104,12 @@ export const AuthProvider = ({ children }) => {
 
     // Check if user was inactive or away for >= 5 minutes
     const checkElapsedInactivity = () => {
+      const isLocked = sessionStorage.getItem('is_device_locked') === 'true';
+      if (isLocked) {
+        setIsScreenLocked(true);
+        return;
+      }
+
       const lastActive = localStorage.getItem('mm_last_active');
       if (lastActive) {
         const elapsed = Date.now() - parseInt(lastActive, 10);
@@ -111,6 +117,8 @@ export const AuthProvider = ({ children }) => {
           setIsScreenLocked(true);
           sessionStorage.setItem('is_device_locked', 'true');
         }
+      } else {
+        localStorage.setItem('mm_last_active', Date.now().toString());
       }
     };
 
@@ -175,7 +183,9 @@ export const AuthProvider = ({ children }) => {
     setIsScreenLocked(false);
     sessionStorage.removeItem('is_device_locked');
     sessionStorage.removeItem('bg_start_time');
-    lastActiveTimeRef.current = Date.now();
+    const now = Date.now();
+    lastActiveTimeRef.current = now;
+    localStorage.setItem('mm_last_active', now.toString());
     appDB.set('user', cleanUser);
     localStorage.setItem('token', userToken);
 

@@ -15,13 +15,8 @@ const CACHE_KEY = "dashboard_stats";
 
 exports.get_stats_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
-    const doc = await db.collection("analytics").doc("summary").get();
-    let analyticsData = doc.exists ? doc.data() : null;
-
-    // If it doesn't exist yet, run it once
-    if (!analyticsData) {
-      analyticsData = await runAnalyticsAggregation();
-    }
+    // Dynamically compute fresh, live aggregation metrics from real database collections
+    const analyticsData = await runAnalyticsAggregation();
     
     // Fetch recent activity in parallel with real fields
     const [recentBookingsSnapshot, recentTripsSnapshot] = await Promise.all([
