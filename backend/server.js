@@ -527,6 +527,23 @@ async function startServer() {
   process.on("SIGINT", () => gracefulShutdown(server));
 }
 
+// Global safety handlers for background lock errors (e.g. Windows EBUSY temp unlinks)
+process.on('unhandledRejection', (reason) => {
+  if (reason && (reason.code === 'EBUSY' || (reason.message && reason.message.includes('EBUSY')))) {
+    logger.warn(`[System] Suppressed background EBUSY lock warning: ${reason.message || reason}`);
+    return;
+  }
+  logger.error('[System] Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  if (err && (err.code === 'EBUSY' || (err.message && err.message.includes('EBUSY')))) {
+    logger.warn(`[System] Suppressed background EBUSY lock error: ${err.message}`);
+    return;
+  }
+  logger.error('[System] Uncaught Exception:', err);
+});
+
 function gracefulShutdown(server) {
   logger.info("Shutting down gracefully...");
   server.close(() => {

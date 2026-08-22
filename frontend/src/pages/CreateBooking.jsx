@@ -608,7 +608,7 @@ const CreateBooking = () => {
           </div>
           {formData.clerk_name ? (
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Clerk Name</label>
+              <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Booking Executive / Created By</label>
               <input 
                 type="text" 
                 className="form-control" 

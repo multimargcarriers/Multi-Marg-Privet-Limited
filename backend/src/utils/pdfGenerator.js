@@ -52,22 +52,41 @@ let chromiumAvailable = null; // null = not checked yet, true/false after check
 
 async function checkChromiumAvailability() {
   if (chromiumAvailable !== null) return chromiumAvailable;
+  let browser;
   try {
-    const browser = await launchBrowser();
-    await browser.close();
+    browser = await launchBrowser();
     chromiumAvailable = true;
     console.log('✅ Puppeteer Chromium is available — vector PDF generation enabled');
   } catch (e) {
     chromiumAvailable = false;
-    console.log(`⚠️ Puppeteer Chromium not available: ${e.message} — PDF generation will fail. Install chromium-browser on this server.`);
+    console.log(`⚠️ Puppeteer Chromium not available: ${e.message} — PDF generation will fallback/fail.`);
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        // Ignore close/unlink errors during initial check
+      }
+    }
   }
   return chromiumAvailable;
 }
 
 function getExecutablePath() {
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
   const possibleExecutablePaths = [
     process.env.PUPPETEER_EXECUTABLE_PATH,
     process.env.CHROME_BIN,
+    // Windows paths
+    path.join(programFiles, 'Google\\Chrome\\Application\\chrome.exe'),
+    path.join(programFilesX86, 'Google\\Chrome\\Application\\chrome.exe'),
+    path.join(programFilesX86, 'Microsoft\\Edge\\Application\\msedge.exe'),
+    path.join(programFiles, 'Microsoft\\Edge\\Application\\msedge.exe'),
+    localAppData ? path.join(localAppData, 'Google\\Chrome\\Application\\chrome.exe') : null,
+    // Linux / Mac paths
     '/usr/bin/google-chrome-stable',
     '/usr/bin/google-chrome',
     '/usr/bin/chromium-browser',
@@ -75,13 +94,19 @@ function getExecutablePath() {
     '/snap/bin/chromium'
   ].filter(Boolean);
 
-  return possibleExecutablePaths.find(p => fs.existsSync(p)) || undefined;
+  return possibleExecutablePaths.find(p => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  }) || undefined;
 }
 
 function launchBrowser() {
   const executablePath = getExecutablePath();
   return puppeteer.launch({
-    headless: "new",
+    headless: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',

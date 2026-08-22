@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2 } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2, Plus, RefreshCw } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -281,105 +281,83 @@ const BookingsList = () => {
 
   return (
     <div className="bookings-page-wrapper">
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', marginBottom: '1.5rem', gap: '1rem' }}>
-        {/* Left Side: Title / Refresh Button */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button 
-            className="page-header-btn page-header-btn-primary" 
-            onClick={fetchAllData}
-            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', fontWeight: 800, letterSpacing: '1px' }}
-          >
-            ALL&nbsp;&nbsp;&nbsp;AWB&nbsp;&nbsp;&nbsp;BOOKING
-          </button>
-        </div>
-        
-        {/* Center Side: Main Action */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {(hasPermission("create_booking") || isSuperAdmin) && (
+      {/* ── Page Header Toolbar ── */}
+      <div className="bookings-header-toolbar">
+        <div className="bookings-header-main-row">
+          {/* Left: Page Title with Count & Refresh */}
+          <div className="bookings-header-title-group">
+            <h2 className="bookings-page-title">
+              ALL AWB BOOKINGS
+            </h2>
+            <span className="bookings-count-badge">
+              {filtered.length} {filtered.length === 1 ? 'Booking' : 'Bookings'}
+            </span>
             <button 
-              className="page-header-btn page-header-btn-primary" 
-              onClick={() => navigate("/bookings/create")}
-              style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+              onClick={fetchAllData} 
+              className="bookings-refresh-btn" 
+              title="Refresh Bookings"
             >
-              + New Booking
+              <RefreshCw size={14} className={loading ? "spin-animation" : ""} />
             </button>
-          )}
+          </div>
+
+          {/* Right: Primary Action Buttons (Export on Left & + New Booking on Right) */}
+          <div className="bookings-header-primary-actions">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="btn-export-bookings"
+              title="Export Bookings to Excel / CSV"
+            >
+              <Download size={15} />
+              <span>Export</span>
+            </button>
+
+            {(hasPermission("create_booking") || isSuperAdmin) && (
+              <button 
+                className="btn-create-booking" 
+                onClick={() => navigate("/bookings/create")}
+                title="Create New Consignment / Booking"
+              >
+                <Plus size={16} />
+                <span>New Booking</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right Side: Tools */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setShowExportModal(true)}
-            style={{
-              padding: '0 1.25rem',
-              height: '42px',
-              fontSize: '0.92rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#16a34a',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Download size={16} /> EXPORT
-          </button>
-
-          {globalSettings?.integrations?.enableCsvImport !== false && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {/* Bookings (AWB) CSV */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>AWB</span>
-                <CsvImportExport moduleName="bookings" onImportSuccess={fetchAllData} searchQuery={search} />
+        {/* Secondary CSV Tools & Bulk Delete Bar */}
+        {((globalSettings?.integrations?.enableCsvImport !== false) || (isSuperAdmin && globalSettings?.integrations?.enableBulkDelete)) && (
+          <div className="bookings-header-secondary-tools">
+            {globalSettings?.integrations?.enableCsvImport !== false && (
+              <div className="bookings-csv-tools-group">
+                <span className="bookings-tools-label">CSV:</span>
+                <div className="bookings-csv-tool-item">
+                  <span className="bookings-csv-tag tag-awb">AWB</span>
+                  <CsvImportExport moduleName="bookings" onImportSuccess={fetchAllData} searchQuery={search} />
+                </div>
+                <div className="bookings-csv-tool-item">
+                  <span className="bookings-csv-tag tag-lr">LR</span>
+                  <CsvImportExport moduleName="lr_details" onImportSuccess={fetchAllData} searchQuery={search} />
+                </div>
+                <div className="bookings-csv-tool-item">
+                  <span className="bookings-csv-tag tag-combined">Combined</span>
+                  <CsvImportExport moduleName="bookings_combined" onImportSuccess={fetchAllData} searchQuery={search} />
+                </div>
               </div>
+            )}
 
-              <div style={{ width: '1px', height: '28px', backgroundColor: '#cbd5e1' }}></div>
-
-              {/* LR Details (Invoice Items) CSV */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>LR</span>
-                <CsvImportExport moduleName="lr_details" onImportSuccess={fetchAllData} searchQuery={search} />
-              </div>
-
-              <div style={{ width: '1px', height: '28px', backgroundColor: '#cbd5e1' }}></div>
-
-              {/* Combined (AWB + LR) CSV */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>Combined</span>
-                <CsvImportExport moduleName="bookings_combined" onImportSuccess={fetchAllData} searchQuery={search} />
-              </div>
-            </div>
-          )}
-          
-          {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
-            <button 
-              className="page-header-btn" 
-              style={{ 
-                color: "#dc2626", 
-                borderColor: "#fecaca", 
-                height: '42px', 
-                padding: (startDate || endDate) ? '0 1rem' : '0', 
-                width: (startDate || endDate) ? 'auto' : '42px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                borderRadius: '6px',
-                gap: '6px',
-                backgroundColor: (startDate || endDate) ? '#fef2f2' : 'transparent'
-              }} 
-              onClick={handleClearAll} 
-              title={(startDate || endDate) ? "Delete Filtered Bookings" : "Clear All Bookings"}
-            >
-              <Trash2 size={16} />
-              {(startDate || endDate) && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Delete Filtered ({filtered.length})</span>}
-            </button>
-          )}
-        </div>
+            {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
+              <button 
+                className="btn-bulk-delete" 
+                onClick={handleClearAll} 
+                title={(startDate || endDate) ? "Delete Filtered Bookings" : "Clear All Bookings"}
+              >
+                <Trash2 size={15} />
+                {(startDate || endDate) && <span>Delete Filtered ({filtered.length})</span>}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="premium-filter-toolbar">
@@ -397,68 +375,74 @@ const BookingsList = () => {
             />
           </div>
 
-          <SortDropdown 
-            value={sortOption} 
-            onChange={setSortOption} 
-            options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
-          />
-
-          <div className="premium-filter-group" style={{ flex: '1 1 200px' }}>
-            <Calendar size={16} style={{ color: "#64748b" }} />
-            <span className="premium-filter-label">From:</span>
-            <input
-              type="date"
-              className="premium-filter-input"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
-              style={{ cursor: 'pointer' }}
+          {/* Sort Dropdown & Show Entries: Always in 1 same row */}
+          <div className="premium-sort-show-row">
+            <SortDropdown 
+              value={sortOption} 
+              onChange={setSortOption} 
+              options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
             />
-            {startDate && (
-              <button 
-                onClick={() => { setStartDate(""); setCurrentPage(1); }} 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 4px', display: 'flex', alignItems: 'center' }}
-                title="Clear From Date"
+
+            <div className="premium-filter-group show-entries-group">
+              <span className="premium-filter-label">Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="premium-filter-input"
+                style={{ cursor: "pointer", width: "45px" }}
               >
-                <X size={14} />
-              </button>
-            )}
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
+            </div>
           </div>
 
-          <div className="premium-filter-group" style={{ flex: '1 1 200px' }}>
-            <Calendar size={16} style={{ color: "#64748b" }} />
-            <span className="premium-filter-label">To:</span>
-            <input
-              type="date"
-              className="premium-filter-input"
-              value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
-              style={{ cursor: 'pointer' }}
-            />
-            {endDate && (
-              <button 
-                onClick={() => { setEndDate(""); setCurrentPage(1); }} 
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 4px', display: 'flex', alignItems: 'center' }}
-                title="Clear To Date"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+          {/* Date Range: Always in 1 same row */}
+          <div className="premium-date-range-row">
+            <div className="premium-filter-group date-filter-item">
+              <Calendar size={15} style={{ color: "#64748b", flexShrink: 0 }} />
+              <span className="premium-filter-label">From:</span>
+              <input
+                type="date"
+                className="premium-filter-input"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                style={{ cursor: 'pointer' }}
+              />
+              {startDate && (
+                <button 
+                  onClick={() => { setStartDate(""); setCurrentPage(1); }} 
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+                  title="Clear From Date"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
 
-          <div className="premium-filter-group">
-            <span className="premium-filter-label">Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="premium-filter-input"
-              style={{ cursor: "pointer", width: "50px" }}
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
+            <div className="premium-filter-group date-filter-item">
+              <Calendar size={15} style={{ color: "#64748b", flexShrink: 0 }} />
+              <span className="premium-filter-label">To:</span>
+              <input
+                type="date"
+                className="premium-filter-input"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                style={{ cursor: 'pointer' }}
+              />
+              {endDate && (
+                <button 
+                  onClick={() => { setEndDate(""); setCurrentPage(1); }} 
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+                  title="Clear To Date"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
 
         </div>
@@ -560,49 +544,23 @@ const BookingsList = () => {
 
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
-                  <div className="booking-card-header-left">
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div className="booking-card-top-row">
+                    <div className="booking-client-select-group">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleSelectBooking(itemId)}
-                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+                        style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#2563eb", flexShrink: 0 }}
                       />
-                      <h4 className="booking-client-name" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <h4 className="booking-client-name">
                         {item.client || item.consignor || "UNKNOWN CLIENT"}
                         {item.isOfflinePending && (
                           <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
                         )}
                       </h4>
                     </div>
-                    <div className="booking-meta-row">
-                      <span className="booking-meta-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        AWB: {awb}
-                        <span 
-                          onClick={(e) => handleCopyAwb(e, awb)} 
-                          style={{ cursor: 'pointer', color: copiedAwb === awb ? '#10b981' : '#94a3b8', display: 'flex', alignItems: 'center' }} 
-                          title="Copy AWB"
-                        >
-                          {copiedAwb === awb ? <Check size={14} /> : <Copy size={14} />}
-                        </span>
-                      </span>
-                      <span className="booking-meta-badge">{item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}</span>
-                      <span className="booking-meta-badge">{(item.origin || "-")} → {(item.destination || "-")}</span>
-                      {item.mode && <span className="booking-meta-badge">{item.mode}</span>}
-                      
-                      {/* Package / Box Count Badge */}
-                      <span className="booking-meta-badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Package size={13} color="#2563eb" /> Pkg: {item.box || item.boxes || item.packages || item.packageCount || item.pieces || (item.dimensions && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
-                      </span>
 
-                      {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
-                        <span className="booking-meta-badge" style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center' }}>
-                          Dims: {item.dimensions.filter(d => d.length || d.breadth || d.height).map((d, dIdx) => `${d.length || 0}x${d.breadth || 0}x${d.height || 0}cm (${d.boxCount || 0} Pcs)`).join(', ')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="booking-card-header-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {/* Status badge in top row */}
                     {(() => {
                       const awbLower = String(awb || '').trim().toLowerCase();
                       const track = trackingMap[awbLower];
@@ -642,79 +600,158 @@ const BookingsList = () => {
                       }
 
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
-                          <span
+                        <div className="booking-status-wrapper">
+                          <button
+                            type="button"
                             onClick={() => {
                               setSelectedBookingForTracking(item);
                               setBulkBookingsForTracking([]);
                               setTrackingModalOpen(true);
                             }}
+                            className="booking-status-pill"
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              padding: '4px 10px',
-                              borderRadius: '20px',
-                              fontSize: '0.80rem',
-                              fontWeight: 800,
                               background: bg,
                               color: color,
-                              border: `1px solid ${border}`,
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                              transition: 'transform 0.15s'
+                              border: `1px solid ${border}`
                             }}
                             title="Click to update tracking checkpoint"
                           >
-                            {icon} {status}
-                          </span>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                            <MapPin size={11} color="#94a3b8" /> {location}
-                          </span>
+                            {icon} <span>{status}</span>
+                          </button>
                         </div>
                       );
                     })()}
+                  </div>
+
+                  {/* Sub-row: Location & Clerk */}
+                  <div className="booking-card-sub-info">
+                    {(() => {
+                      const awbLower = String(awb || '').trim().toLowerCase();
+                      const track = trackingMap[awbLower];
+                      const location = (typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub';
+                      return (
+                        <span className="booking-location-text">
+                          <MapPin size={12} color="#64748b" /> {location}
+                        </span>
+                      );
+                    })()}
                     {isSuperAdmin && (
-                      <span style={{ background: "#e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.72rem", color: "#334155", fontWeight: "600", marginTop: "2px", display: "inline-block" }}>
-                        Clerk: {item.clerk_name || "Admin"}
+                      <span className="booking-clerk-badge">
+                        Booked By: {item.clerk_name || "Admin"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Badges Flow */}
+                  <div className="booking-meta-row">
+                    <span className="booking-meta-badge booking-badge-awb">
+                      <strong>AWB:</strong> {awb}
+                      <span 
+                        onClick={(e) => handleCopyAwb(e, awb)} 
+                        className="booking-awb-copy-btn"
+                        title="Copy AWB"
+                      >
+                        {copiedAwb === awb ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                      </span>
+                    </span>
+                    <span className="booking-meta-badge">
+                      📅 {item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}
+                    </span>
+                    <span className="booking-meta-badge booking-badge-route">
+                      {(item.origin || "-")} → {(item.destination || "-")}
+                    </span>
+                    {item.mode && (
+                      <span className="booking-meta-badge booking-badge-mode">
+                        {item.mode}
+                      </span>
+                    )}
+                    
+                    {/* Package / Box Count Badge */}
+                    <span className="booking-meta-badge booking-badge-pkg">
+                      <Package size={13} /> Pkg: {item.box || item.boxes || item.packages || item.packageCount || item.pieces || (item.dimensions && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
+                    </span>
+
+                    {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
+                      <span className="booking-meta-badge booking-badge-dims">
+                        Dims: {item.dimensions.filter(d => d.length || d.breadth || d.height).map((d) => `${d.length || 0}x${d.breadth || 0}x${d.height || 0}cm (${d.boxCount || 0} Pcs)`).join(', ')}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* ── LR Details Table (scrollable) ── */}
+                {/* ── LR Details Section: Responsive Table on Desktop + Mobile Card View ── */}
                 {hasParcels ? (
-                  <div className="booking-table-scroll" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                    <table className="booking-lr-table" style={{ width: '100%', whiteSpace: 'nowrap' }}>
-                      <thead>
-                        <tr>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INVOICE</th>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>INV DATE</th>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>PART</th>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>QTY</th>
-                          <th style={{ padding: '0.75rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>VALUE (₹)</th>
-                          <th style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>EWAY</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {displayParcels.map((parcel, pIdx) => (
-                          <tr key={pIdx}>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, whiteSpace: 'nowrap' }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.part || parcel.partNumber || '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.quantity || '-'}</td>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
-                            </td>
-                            <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>{parcel.eway || parcel.ewayBill || '-'}</td>
+                  <div className="booking-details-wrapper">
+                    {/* Desktop View */}
+                    <div className="booking-desktop-table-scroll">
+                      <table className="booking-lr-table">
+                        <thead>
+                          <tr>
+                            <th>INVOICE</th>
+                            <th>INV DATE</th>
+                            <th>PART</th>
+                            <th>QTY</th>
+                            <th style={{ textAlign: 'right' }}>VALUE (₹)</th>
+                            <th>EWAY</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {displayParcels.map((parcel, pIdx) => (
+                            <tr key={pIdx}>
+                              <td style={{ fontWeight: 600 }}>{parcel.invoice || parcel.invoiceNo || '-'}</td>
+                              <td>{(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}</td>
+                              <td>{parcel.part || parcel.partNumber || '-'}</td>
+                              <td>{parcel.quantity || '-'}</td>
+                              <td style={{ fontWeight: 600, textAlign: 'right' }}>
+                                {(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
+                              </td>
+                              <td>{parcel.eway || parcel.ewayBill || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile View: High Density Full-Width Parcel Cards */}
+                    <div className="booking-mobile-parcel-list">
+                      {displayParcels.map((parcel, pIdx) => (
+                        <div key={pIdx} className="booking-mobile-parcel-card">
+                          <div className="booking-mobile-parcel-header">
+                            <div className="booking-mobile-parcel-inv">
+                              <span className="booking-mobile-label">INV:</span>
+                              <strong>{parcel.invoice || parcel.invoiceNo || 'AS PER INVOICE'}</strong>
+                            </div>
+                            <span className="booking-mobile-date">
+                              {(parcel.invdate || parcel.invoiceDate) ? formatDate(parcel.invdate || parcel.invoiceDate) : '-'}
+                            </span>
+                          </div>
+                          <div className="booking-mobile-parcel-grid">
+                            <div className="booking-mobile-parcel-item">
+                              <span className="booking-mobile-label">Part</span>
+                              <span className="booking-mobile-val">{parcel.part || parcel.partNumber || 'NA'}</span>
+                            </div>
+                            <div className="booking-mobile-parcel-item">
+                              <span className="booking-mobile-label">Qty</span>
+                              <span className="booking-mobile-val">{parcel.quantity || 'NA'}</span>
+                            </div>
+                            <div className="booking-mobile-parcel-item">
+                              <span className="booking-mobile-label">Value</span>
+                              <span className="booking-mobile-val booking-mobile-val-highlight">
+                                ₹{(parcel.value || parcel.invoiceValue) ? parseFloat(parcel.value || parcel.invoiceValue).toFixed(2) : '0.00'}
+                              </span>
+                            </div>
+                            <div className="booking-mobile-parcel-item">
+                              <span className="booking-mobile-label">E-Way</span>
+                              <span className="booking-mobile-val">{parcel.eway || parcel.ewayBill || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="booking-empty-lr">
-                    <PackageOpen size={28} style={{ opacity: 0.35, marginBottom: '0.25rem' }} />
+                    <PackageOpen size={24} style={{ opacity: 0.4, marginBottom: '0.25rem' }} />
                     <span>No LR details attached</span>
                   </div>
                 )}
@@ -731,21 +768,50 @@ const BookingsList = () => {
                       return (
                         <>
                           {canModify && (
-                            <button onClick={() => navigate(`/bookings/edit/${item.id}`)} className="booking-action-btn" title="Edit" style={{ color: '#3b82f6' }}><Edit size={15} /></button>
+                            <button 
+                              onClick={() => navigate(`/bookings/edit/${item.id}`)} 
+                              className="booking-action-btn booking-btn-edit" 
+                              title="Edit Booking"
+                            >
+                              <Edit size={14} />
+                              <span className="booking-action-btn-text">Edit</span>
+                            </button>
                           )}
                           {!item.isOfflinePending && (
                             <>
-                              <button onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} className="booking-action-btn" title="View Print" style={{ color: '#64748b' }}><Printer size={15} /></button>
-                              <button onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")} className="booking-action-btn" title="Direct Download" style={{ color: '#0ea5e9' }}><Download size={15} /></button>
+                              <button 
+                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} 
+                                className="booking-action-btn booking-btn-print" 
+                                title="View / Print LR"
+                              >
+                                <Printer size={14} />
+                                <span className="booking-action-btn-text">Print</span>
+                              </button>
+                              <button 
+                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")} 
+                                className="booking-action-btn booking-btn-download" 
+                                title="Direct Download PDF"
+                              >
+                                <Download size={14} />
+                                <span className="booking-action-btn-text">PDF</span>
+                              </button>
                             </>
                           )}
                           {canModify && (
-                            <button onClick={() => handleDelete(item.id || item._id)} className="booking-action-btn" title="Delete" style={{ color: '#ef4444' }}><Trash2 size={15} /></button>
+                            <button 
+                              onClick={() => handleDelete(item.id || item._id)} 
+                              className="booking-action-btn booking-btn-delete" 
+                              title="Delete Booking"
+                            >
+                              <Trash2 size={14} />
+                              <span className="booking-action-btn-text">Delete</span>
+                            </button>
                           )}
                         </>
                       );
                     })()}
                   </div>
+
                   {canAccessPod && (
                     <div className="booking-actions-right">
                       <button
@@ -761,39 +827,37 @@ const BookingsList = () => {
                             setBoxModalOpen(true);
                           }
                         }}
-                        className="booking-pod-btn"
-                        style={{ background: hasBox ? '#fef3c7' : '#fefce8', border: `1px solid ${hasBox ? '#fde68a' : '#fef08a'}`, color: hasBox ? '#d97706' : '#ca8a04', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                        title={hasBox ? "View Box" : "Upload Box"}
+                        className={`booking-pod-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
+                        style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                        title={hasBox ? "View Box Document" : "Upload Box Document"}
                       >
-                        {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
-                        {hasBox ? "BOX" : "+ BOX"}
+                        {hasBox ? <Eye size={14} /> : <PackageOpen size={14} />}
+                        <span>{hasBox ? "BOX" : "+ BOX"}</span>
                       </button>
+
                       <button
                         onClick={() => {
                           setSelectedBookingForTracking(item);
                           setTrackingModalOpen(true);
                         }}
-                        className="booking-pod-btn"
-                        style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#3b82f6', cursor: "pointer" }}
+                        className="booking-pod-btn booking-btn-track"
                         title="Update Shipment Tracking"
                       >
-                        <Truck size={13} /> TRACK
+                        <Truck size={14} />
+                        <span>TRACK</span>
                       </button>
+
                       <button
                         disabled={item.isOfflinePending}
                         onClick={() => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
                             let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || hasPodEntry.fileData || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
-                            // Prevent encoding massive base64 strings in URL parameters which causes 431 errors
                             if (fileUrl.startsWith('data:')) {
-                              // If it's base64 data, we can store it in sessionStorage and pass a flag, 
-                              // or just let the viewer handle it if it supports data URIs (most do, but URL length might be an issue)
                               try {
                                 sessionStorage.setItem('tempPodData', fileUrl);
                                 navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
                               } catch (e) {
-                                // If quota exceeded, fallback to direct url (might break if too large)
                                 navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                               }
                             } else {
@@ -805,12 +869,12 @@ const BookingsList = () => {
                             setPodModalOpen(true);
                           }
                         }}
-                        className="booking-pod-btn"
-                        style={{ background: hasPodEntry ? '#ecfdf5' : '#e0f2fe', border: `1px solid ${hasPodEntry ? '#a7f3d0' : '#bae6fd'}`, color: hasPodEntry ? '#10b981' : '#0284c7', opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                        title={hasPodEntry ? "View POD" : "Upload POD"}
+                        className={`booking-pod-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
+                        style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                        title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
                       >
-                        {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
-                        {hasPodEntry ? "POD" : "+ POD"}
+                        {hasPodEntry ? <Eye size={14} /> : <FileCheck size={14} />}
+                        <span>{hasPodEntry ? "POD" : "+ POD"}</span>
                       </button>
                     </div>
                   )}
