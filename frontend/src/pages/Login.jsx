@@ -885,227 +885,228 @@ const Login = () => {
 
             return (
               <div style={{ width: '100%', textAlign: 'center' }}>
+                {/* Visual Avatar with Cyber Ring */}
                 <div style={{
-                  background: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '1.25rem',
-                  marginBottom: '1.25rem',
-                  textAlign: 'center'
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  padding: '3px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%)',
+                  boxShadow: '0 4px 18px rgba(37, 99, 235, 0.3)',
+                  margin: '0 auto 0.65rem auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
                 }}>
-                  <div style={{
-                    width: '76px',
-                    height: '76px',
-                    borderRadius: '50%',
-                    padding: '3px',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-                    boxShadow: '0 0 20px rgba(37, 99, 235, 0.3)',
-                    margin: '0 auto 0.75rem auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {photoUrl ? (
-                      <img 
-                        src={photoUrl} 
-                        alt={pendingAuth.user?.name || 'User'} 
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          borderRadius: '50%',
-                          objectFit: 'cover'
-                        }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    ) : (
-                      <div style={{
+                  {photoUrl ? (
+                    <img 
+                      src={photoUrl} 
+                      alt={pendingAuth.user?.name || 'User'} 
+                      style={{
                         width: '100%',
                         height: '100%',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      fontSize: '1.5rem',
+                      fontWeight: 800
+                    }}>
+                      {initials}
+                    </div>
+                  )}
+                </div>
+
+                <h3 style={{ margin: '0 0 2px 0', fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
+                  {pendingAuth.user?.name || pendingAuth.user?.fullName || 'User'}
+                </h3>
+                <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.82rem', color: '#64748b', fontWeight: 500 }}>
+                  {pendingAuth.user?.email || pendingAuth.user?.username}
+                </p>
+
+                {/* Minimal Visual 4-Step Pipeline */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '4px',
+                  alignItems: 'center',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '8px 6px',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                    <Scan size={15} color="#0284c7" />
+                    <span>Face</span>
+                  </div>
+                  <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#334155', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <Fingerprint size={15} color="#2563eb" />
+                    <span>Finger</span>
+                  </div>
+                  <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#475569', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <Smartphone size={15} color="#0284c7" />
+                    <span>PIN</span>
+                  </div>
+                  <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#64748b', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                    <Key size={15} color="#64748b" />
+                    <span>Password</span>
+                  </div>
+                </div>
+
+                {!showStep2PasswordInput ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {/* Primary Button */}
+                    <button
+                      type="button"
+                      onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
+                      disabled={deviceAuthLoading}
+                      className="btn-primary"
+                      style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#ffffff',
-                        fontSize: '1.5rem',
-                        fontWeight: 800
-                      }}>
-                        {initials}
-                      </div>
-                    )}
-                  </div>
-                  <h4 style={{ margin: '0 0 2px 0', fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                    {pendingAuth.user?.name || pendingAuth.user?.fullName || 'User'}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
-                    {pendingAuth.user?.email || pendingAuth.user?.username}
-                  </p>
-                  <div style={{ marginTop: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle size={13} /> Password Verified
-                    </span>
-                  </div>
-                </div>
-
-              <div style={{
-                background: 'rgba(37, 99, 235, 0.06)',
-                border: '1px solid rgba(37, 99, 235, 0.2)',
-                borderRadius: '12px',
-                padding: '0.75rem 1rem',
-                fontSize: '0.78rem',
-                color: '#1e40af',
-                marginBottom: '1.25rem',
-                lineHeight: '1.45',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
-                  Compulsory Device Verification Flow
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', flexWrap: 'wrap', fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
-                  <span>1️⃣ Face Lock</span>
-                  <span style={{ color: '#94a3b8' }}>➔</span>
-                  <span>2️⃣ Fingerprint</span>
-                  <span style={{ color: '#94a3b8' }}>➔</span>
-                  <span>3️⃣ Device PIN</span>
-                  <span style={{ color: '#94a3b8' }}>➔</span>
-                  <span style={{ color: '#64748b' }}>4️⃣ Password</span>
-                </div>
-              </div>
-
-              {!showStep2PasswordInput ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {/* Primary Option: Native Device Biometrics (Face Lock 1st / Fingerprint 2nd / PIN 3rd) */}
-                  <button
-                    type="button"
-                    onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
-                    disabled={deviceAuthLoading}
-                    className="btn-primary"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
-                      boxShadow: '0 4px 15px -1px rgba(14, 165, 233, 0.4)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <Scan size={20} />
-                      <Fingerprint size={20} className={deviceAuthLoading ? "spin-animation" : ""} />
-                    </div>
-                    <span>{deviceAuthLoading ? 'Checking Face / Fingerprint...' : 'Unlock with Face Lock / Fingerprint / PIN'}</span>
-                  </button>
-
-                  {/* Secondary Option: Password */}
-                  <button
-                    type="button"
-                    onClick={() => setShowStep2PasswordInput(true)}
-                    style={{
-                      background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '10px',
-                      padding: '0.65rem 1rem',
-                      color: '#334155',
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      width: '100%',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      marginTop: '2px'
-                    }}
-                  >
-                    <Key size={15} color="#2563eb" /> Verify with Account Password
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleStep2PasswordVerify}>
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '6px 10px',
-                    fontSize: '0.74rem',
-                    color: '#475569',
-                    marginBottom: '0.75rem',
-                    textAlign: 'center',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '5px'
-                  }}>
-                    <ShieldCheck size={13} color="#2563eb" />
-                    <span>Manual typing required • Copy-paste & autofill disabled</span>
-                  </div>
-
-                  <div className="input-group" style={{ marginBottom: '0.75rem' }}>
-                    <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
-                    <input 
-                      type="password" 
-                      name="sec_step2_password_manual"
-                      className="input-field"
-                      placeholder="Type account password..." 
-                      value={step2Password}
-                      onChange={(e) => setStep2Password(e.target.value)}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        setError('Paste is blocked for security. Please type your password manually.');
-                      }}
-                      onCopy={(e) => e.preventDefault()}
-                      onCut={(e) => e.preventDefault()}
-                      onDrop={(e) => e.preventDefault()}
-                      onContextMenu={(e) => e.preventDefault()}
-                      autoComplete="off"
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      data-form-type="other"
-                      required 
-                      autoFocus
-                      style={{ letterSpacing: '2px' }}
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={deviceAuthLoading || !step2Password}
-                    className="btn-primary"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      marginBottom: '0.75rem'
-                    }}
-                  >
-                    <ShieldCheck size={18} />
-                    <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Password & Unlock'}</span>
-                  </button>
-
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => { setShowStep2PasswordInput(false); triggerDeviceVerification(pendingAuth.user, pendingAuth.token); }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#2563eb',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '4px'
+                        gap: '10px',
+                        background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
+                        boxShadow: '0 4px 16px rgba(14, 165, 233, 0.4)',
+                        height: '48px',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        borderRadius: '12px'
                       }}
                     >
-                      <Fingerprint size={15} /> Switch to Device Face Lock / Fingerprint
+                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                        <Scan size={20} />
+                        <Fingerprint size={20} className={deviceAuthLoading ? "spin-animation" : ""} />
+                      </div>
+                      <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Device'}</span>
+                    </button>
+
+                    {/* Secondary Password Option */}
+                    <button
+                      type="button"
+                      onClick={() => setShowStep2PasswordInput(true)}
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '12px',
+                        padding: '0.70rem 1rem',
+                        color: '#334155',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        width: '100%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      <Key size={15} color="#2563eb" /> Use Password Instead
                     </button>
                   </div>
-                </form>
-              )}
-            </div>
+                ) : (
+                  <form onSubmit={handleStep2PasswordVerify}>
+                    <div style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      fontSize: '0.74rem',
+                      color: '#475569',
+                      marginBottom: '0.85rem',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}>
+                      <ShieldCheck size={14} color="#2563eb" />
+                      <span>Manual keyboard input required • Clipboard & autofill blocked</span>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: '0.85rem' }}>
+                      <div className="icon-wrapper"><Lock size={18} strokeWidth={2} /></div>
+                      <input 
+                        type="password" 
+                        name="sec_step2_password_manual"
+                        className="input-field"
+                        placeholder="Type account password..." 
+                        value={step2Password}
+                        onChange={(e) => setStep2Password(e.target.value)}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          setError('Paste is blocked for security. Please type your password manually.');
+                        }}
+                        onCopy={(e) => e.preventDefault()}
+                        onCut={(e) => e.preventDefault()}
+                        onDrop={(e) => e.preventDefault()}
+                        onContextMenu={(e) => e.preventDefault()}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-form-type="other"
+                        required 
+                        autoFocus
+                        style={{ letterSpacing: '2.5px', height: '46px' }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={deviceAuthLoading || !step2Password}
+                      className="btn-primary"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        marginBottom: '0.75rem',
+                        height: '46px',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <ShieldCheck size={18} />
+                      <span>{deviceAuthLoading ? 'Verifying...' : 'Verify Password & Unlock'}</span>
+                    </button>
+
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setShowStep2PasswordInput(false); triggerDeviceVerification(pendingAuth.user, pendingAuth.token); }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#2563eb',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px'
+                        }}
+                      >
+                        <Scan size={14} /> Switch to Face Lock / Fingerprint
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             );
           })()}
 

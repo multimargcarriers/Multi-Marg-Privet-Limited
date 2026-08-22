@@ -127,40 +127,21 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         boxSizing: 'border-box'
       }}>
         {/* Security Shield Badge */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '5px 14px',
-          borderRadius: '20px',
-          background: '#eff6ff',
-          border: '1px solid #dbeafe',
-          color: '#1d4ed8',
-          fontSize: '0.75rem',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          marginBottom: '1.25rem'
-        }}>
-          <ShieldCheck size={14} color="#2563eb" />
-          <span>Device Security Lock</span>
-        </div>
-
-        {/* User Profile Card with Centered Profile Picture */}
+        {/* User Profile Card */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: '1.25rem'
+          marginBottom: '1rem'
         }}>
           <div style={{
-            width: '82px',
-            height: '82px',
+            width: '80px',
+            height: '80px',
             borderRadius: '50%',
             padding: '3px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
-            boxShadow: '0 4px 18px rgba(37, 99, 235, 0.25)',
-            marginBottom: '0.85rem',
+            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%)',
+            boxShadow: '0 4px 18px rgba(37, 99, 235, 0.3)',
+            marginBottom: '0.65rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -199,46 +180,38 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
             {user?.name || user?.fullName || 'Authenticated User'}
           </h3>
-          <span style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '3px', fontWeight: 500 }}>
+          <span style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>
             {user?.email || user?.username}
-          </span>
-          <span style={{
-            marginTop: '6px',
-            fontSize: '0.72rem',
-            background: '#f1f5f9',
-            border: '1px solid #e2e8f0',
-            padding: '3px 10px',
-            borderRadius: '6px',
-            color: '#334155',
-            fontWeight: 600
-          }}>
-            {user?.role || 'Staff'} • Multi-Marg
           </span>
         </div>
 
-        {/* Status / Priority Flow Notice */}
+        {/* Minimal Visual 4-Step Pipeline */}
         <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '4px',
+          alignItems: 'center',
           background: '#f8fafc',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          padding: '0.75rem 1rem',
-          fontSize: '0.78rem',
-          color: '#475569',
-          marginBottom: '1.25rem',
-          lineHeight: '1.45',
-          textAlign: 'center'
+          padding: '8px 6px',
+          marginBottom: '1.25rem'
         }}>
-          <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
-            Multi-Tier Authentication Flow
+          <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#eff6ff', color: '#1d4ed8', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+            <Scan size={15} color="#0284c7" />
+            <span>Face</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', flexWrap: 'wrap', fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
-            <span>1️⃣ Face Lock</span>
-            <span style={{ color: '#94a3b8' }}>➔</span>
-            <span>2️⃣ Fingerprint</span>
-            <span style={{ color: '#94a3b8' }}>➔</span>
-            <span>3️⃣ Device PIN</span>
-            <span style={{ color: '#94a3b8' }}>➔</span>
-            <span style={{ color: '#64748b' }}>4️⃣ Password</span>
+          <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#334155', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <Fingerprint size={15} color="#2563eb" />
+            <span>Finger</span>
+          </div>
+          <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#475569', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <Lock size={15} color="#0284c7" />
+            <span>PIN</span>
+          </div>
+          <div style={{ padding: '4px 2px', borderRadius: '8px', background: '#ffffff', color: '#64748b', fontSize: '0.70rem', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <KeyRound size={15} color="#64748b" />
+            <span>Password</span>
           </div>
         </div>
 
@@ -265,7 +238,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         {/* Biometric Trigger or Password Input */}
         {!showPasswordMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {/* Primary: Device Biometric Unlock (Native Face Lock 1st / Fingerprint 2nd / Screen Lock 3rd) */}
+            {/* Primary: Device Biometric Unlock */}
             <button
               onClick={handleBiometricUnlock}
               disabled={authenticating}
@@ -276,7 +249,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 border: 'none',
                 background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
                 color: '#ffffff',
-                fontSize: '0.90rem',
+                fontSize: '0.95rem',
                 fontWeight: 700,
                 cursor: authenticating ? 'not-allowed' : 'pointer',
                 display: 'flex',
@@ -284,14 +257,15 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 justifyContent: 'center',
                 gap: '10px',
                 boxShadow: '0 4px 15px -1px rgba(14, 165, 233, 0.45)',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                height: '48px'
               }}
             >
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                 <Scan size={20} />
                 <Fingerprint size={20} className={authenticating ? "spin-animation" : ""} />
               </div>
-              <span>{authenticating ? 'Checking Face / Fingerprint...' : 'Unlock with Face Lock / Fingerprint / PIN'}</span>
+              <span>{authenticating ? 'Verifying...' : 'Verify Device'}</span>
             </button>
 
             {/* Secondary: Password fallback */}
@@ -300,23 +274,23 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
               onClick={() => setShowPasswordMode(true)}
               style={{
                 background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '12px',
                 color: '#334155',
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 cursor: 'pointer',
                 fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                padding: '0.65rem 1rem',
+                gap: '8px',
+                padding: '0.70rem 1rem',
                 width: '100%',
                 transition: 'all 0.15s ease',
-                marginTop: '2px'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
               }}
             >
-              <KeyRound size={15} color="#2563eb" /> Verify with Account Password (4th Option)
+              <KeyRound size={15} color="#2563eb" /> Use Password Instead
             </button>
           </div>
         ) : (
