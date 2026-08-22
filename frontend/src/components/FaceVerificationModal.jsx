@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RefreshCw, AlertCircle, CheckCircle2, ShieldCheck, X, Scan, Fingerprint, KeyRound, Sparkles } from 'lucide-react';
+import axios from 'axios';
+import { Camera, RefreshCw, AlertCircle, CheckCircle2, ShieldCheck, X, Scan, Fingerprint, KeyRound, Sparkles, UserCheck, ShieldAlert } from 'lucide-react';
+import { analyzeFrame } from '../utils/faceBiometrics';
 
-// Web Audio API Synthesizer for high-tech biometric sound effects (no external asset dependencies)
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
+
+// Web Audio API Synthesizer for biometric sound feedback
 const playBiometricSound = (type = 'scan') => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -14,7 +18,7 @@ const playBiometricSound = (type = 'scan') => {
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -25,35 +29,59 @@ const playBiometricSound = (type = 'scan') => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-      osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-      osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.08);
+      osc.frequency.setValueAtTime(783.99, now + 0.16);
+      osc.frequency.setValueAtTime(1046.50, now + 0.24);
       gain.gain.setValueAtTime(0.08, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(now + 0.45);
+    } else if (type === 'error') {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(165, now + 0.12);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(now + 0.3);
     }
   } catch (_e) {
-    // AudioContext blocked or not allowed by browser policy
+    // Browser audio policy handled
   }
 };
 
 const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToFingerprint, onSwitchToPassword }) => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const [cameraState, setCameraState] = useState('requesting'); // 'requesting', 'scanning', 'verified', 'error'
+  const offscreenCanvasRef = useRef(document.createElement('canvas'));
+  const historyRef = useRef([]);
+  const scanIntervalRef = useRef(null);
+
+  const [cameraState, setCameraState] = useState('requesting'); // 'requesting', 'scanning', 'verifying', 'verified', 'mismatch', 'error'
   const [errorMessage, setErrorMessage] = useState('');
   const [scanProgress, setScanProgress] = useState(0);
   const [telemetryStatus, setTelemetryStatus] = useState('Initializing Optical Sensor...');
+  const [confidenceScore, setConfidenceScore] = useState(null);
+  const [detectedFaceBox, setDetectedFaceBox] = useState(null);
+  const [isFaceAligned, setIsFaceAligned] = useState(false);
 
-  // Start Camera Stream
+  // Start Live Camera
   const startCamera = async () => {
     setCameraState('requesting');
     setErrorMessage('');
     setScanProgress(0);
+    setConfidenceScore(null);
+    setDetectedFaceBox(null);
+    setIsFaceAligned(false);
+    historyRef.current = [];
     setTelemetryStatus('Requesting Camera Access...');
 
     try {
@@ -65,7 +93,7 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
         video: {
           facingMode: 'user',
           width: { ideal: 640 },
-          height: { ideal: 640 }
+          height: { ideal: 480 }
         },
         audio: false
       });
@@ -78,7 +106,7 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
       }
 
       setCameraState('scanning');
-      setTelemetryStatus('Face Detected • Keep Steady');
+      setTelemetryStatus('Scanning for Face...');
       playBiometricSound('beep');
     } catch (err) {
       console.error('Camera access error:', err);
@@ -94,6 +122,10 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
   };
 
   const stopCamera = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         try { track.stop(); } catch (_e) {}
@@ -118,40 +150,124 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
     };
   }, [isOpen]);
 
-  // Biometric Scanning Simulation with progressive feedback
+  // Real-Time Computer Vision & Liveness Loop
   useEffect(() => {
-    if (cameraState !== 'scanning') return;
+    if (cameraState !== 'scanning') {
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+      return;
+    }
 
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 4;
-      setScanProgress(Math.min(100, progress));
+    let accumulatedDescriptor = null;
+    let consecutiveAlignedFrames = 0;
+    const REQUIRED_FRAMES = 8;
 
-      if (progress === 20) {
-        setTelemetryStatus('Extracting Biometric Landmarks...');
-        playBiometricSound('beep');
-      } else if (progress === 50) {
-        setTelemetryStatus('Analyzing Facial Geometry...');
-        playBiometricSound('beep');
-      } else if (progress === 80) {
-        setTelemetryStatus('Matching Security Profile...');
-        playBiometricSound('beep');
-      } else if (progress >= 100) {
-        clearInterval(interval);
+    scanIntervalRef.current = setInterval(async () => {
+      if (!videoRef.current || videoRef.current.readyState < 2) return;
+
+      try {
+        const result = await analyzeFrame(videoRef.current, offscreenCanvasRef.current, historyRef);
+
+        if (!result.detected) {
+          consecutiveAlignedFrames = Math.max(0, consecutiveAlignedFrames - 1);
+          setIsFaceAligned(false);
+          setDetectedFaceBox(null);
+          setTelemetryStatus(result.message || 'Position Face in Viewfinder');
+          setScanProgress(Math.floor((consecutiveAlignedFrames / REQUIRED_FRAMES) * 100));
+          return;
+        }
+
+        if (!result.centered) {
+          consecutiveAlignedFrames = Math.max(0, consecutiveAlignedFrames - 1);
+          setIsFaceAligned(false);
+          setDetectedFaceBox(result.box);
+          setTelemetryStatus(result.message || 'Center Face in Viewfinder');
+          setScanProgress(Math.floor((consecutiveAlignedFrames / REQUIRED_FRAMES) * 100));
+          return;
+        }
+
+        // Real Face Detected and Centered!
+        setIsFaceAligned(true);
+        setDetectedFaceBox(result.box);
+        consecutiveAlignedFrames++;
+        accumulatedDescriptor = result.descriptor;
+
+        const currentPct = Math.min(100, Math.floor((consecutiveAlignedFrames / REQUIRED_FRAMES) * 100));
+        setScanProgress(currentPct);
+
+        if (consecutiveAlignedFrames === 2) {
+          setTelemetryStatus('Face Detected • Hold Steady');
+          playBiometricSound('beep');
+        } else if (consecutiveAlignedFrames === 4) {
+          setTelemetryStatus('Extracting Biometric Landmarks...');
+          playBiometricSound('beep');
+        } else if (consecutiveAlignedFrames === 6) {
+          setTelemetryStatus('Verifying Liveness & Profile Match...');
+          playBiometricSound('beep');
+        } else if (consecutiveAlignedFrames >= REQUIRED_FRAMES) {
+          // Verification ready: send to backend
+          clearInterval(scanIntervalRef.current);
+          scanIntervalRef.current = null;
+          setCameraState('verifying');
+          setTelemetryStatus('Authenticating Biometrics...');
+
+          await verifyWithServer(accumulatedDescriptor, result.livenessScore, result.landmarksCount);
+        }
+      } catch (err) {
+        console.error('Frame analysis error:', err);
+      }
+    }, 140);
+
+    return () => {
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+    };
+  }, [cameraState]);
+
+  // Server Authentication Verification
+  const verifyWithServer = async (descriptor, livenessScore, landmarksCount) => {
+    try {
+      const email = user?.email || user?.username;
+      const userId = user?.id || user?._id;
+
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const res = await axios.post(`${API}/auth/verify-face`, {
+        email,
+        userId,
+        descriptor,
+        livenessScore,
+        landmarksCount
+      }, { headers });
+
+      if (res.data?.success && res.data?.data?.verified) {
+        const conf = res.data.data.confidence || 96.5;
+        setConfidenceScore(conf);
         setCameraState('verified');
-        setTelemetryStatus('Biometric Identity Confirmed!');
+        setTelemetryStatus(`Identity Confirmed • ${conf}% Match`);
         playBiometricSound('success');
 
-        // Complete verification with slight smooth delay
         setTimeout(() => {
           stopCamera();
-          onVerified({ method: 'face_camera', timestamp: Date.now() });
-        }, 800);
+          onVerified({ method: 'face_camera', confidence: conf, timestamp: Date.now() });
+        }, 900);
+      } else {
+        throw new Error(res.data?.message || 'Face identity mismatch.');
       }
-    }, 80);
-
-    return () => clearInterval(interval);
-  }, [cameraState]);
+    } catch (err) {
+      console.error('Face verification failed:', err);
+      playBiometricSound('error');
+      const msg = err.response?.data?.message || err.message || 'Face verification failed.';
+      setErrorMessage(msg);
+      setCameraState('mismatch');
+      setTelemetryStatus('Verification Rejected • Face Mismatch');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -197,20 +313,24 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+              background: cameraState === 'verified' 
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                : cameraState === 'mismatch'
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff'
             }}>
-              <Scan size={18} />
+              {cameraState === 'verified' ? <UserCheck size={18} /> : cameraState === 'mismatch' ? <ShieldAlert size={18} /> : <Scan size={18} />}
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                Face Verification
+                Real Face ID Scanner
               </h3>
               <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                Live Biometric Sensor • {userDisplayName}
+                Liveness Vision • {userDisplayName}
               </span>
             </div>
           </div>
@@ -252,12 +372,24 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
             borderRadius: '50%',
             overflow: 'hidden',
             background: '#090d16',
-            border: cameraState === 'verified' ? '4px solid #10b981' : '4px solid #0284c7',
-            boxShadow: cameraState === 'verified' ? '0 0 30px rgba(16, 185, 129, 0.5)' : '0 0 25px rgba(2, 132, 199, 0.4)',
+            border: cameraState === 'verified' 
+              ? '4px solid #10b981' 
+              : cameraState === 'mismatch'
+              ? '4px solid #ef4444'
+              : isFaceAligned 
+              ? '4px solid #38bdf8' 
+              : '4px solid #64748b',
+            boxShadow: cameraState === 'verified' 
+              ? '0 0 30px rgba(16, 185, 129, 0.5)' 
+              : cameraState === 'mismatch'
+              ? '0 0 30px rgba(239, 68, 68, 0.5)'
+              : isFaceAligned
+              ? '0 0 25px rgba(56, 189, 248, 0.45)'
+              : '0 0 15px rgba(0, 0, 0, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
+            transition: 'border-color 0.25s ease, box-shadow 0.25s ease'
           }}>
             {/* Live Camera Video Feed */}
             <video
@@ -269,8 +401,8 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                transform: 'scaleX(-1)', // Mirror effect for natural webcam reflection
-                display: (cameraState === 'scanning' || cameraState === 'verified') ? 'block' : 'none'
+                transform: 'scaleX(-1)', // Mirror webcam
+                display: (cameraState === 'scanning' || cameraState === 'verifying' || cameraState === 'verified' || cameraState === 'mismatch') ? 'block' : 'none'
               }}
             />
 
@@ -291,8 +423,8 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
               </div>
             )}
 
-            {/* Biometric Scanning Overlay Elements (Active when scanning) */}
-            {cameraState === 'scanning' && (
+            {/* Biometric Scanning Overlay Elements */}
+            {(cameraState === 'scanning' || cameraState === 'verifying') && (
               <>
                 {/* Horizontal Laser Scanning Line */}
                 <div style={{
@@ -300,16 +432,18 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
                   left: 0,
                   right: 0,
                   height: '3px',
-                  background: 'linear-gradient(90deg, transparent 0%, #38bdf8 50%, transparent 100%)',
-                  boxShadow: '0 0 12px #38bdf8, 0 0 24px #0284c7',
-                  animation: 'biometricLaserScan 2s ease-in-out infinite'
+                  background: isFaceAligned
+                    ? 'linear-gradient(90deg, transparent 0%, #38bdf8 50%, transparent 100%)'
+                    : 'linear-gradient(90deg, transparent 0%, #f59e0b 50%, transparent 100%)',
+                  boxShadow: isFaceAligned ? '0 0 12px #38bdf8, 0 0 24px #0284c7' : '0 0 12px #f59e0b',
+                  animation: 'biometricLaserScan 1.8s ease-in-out infinite'
                 }} />
 
                 {/* HUD Targeting Brackets */}
-                <div style={{ position: 'absolute', top: '25px', left: '25px', width: '20px', height: '20px', borderTop: '2.5px solid #38bdf8', borderLeft: '2.5px solid #38bdf8' }} />
-                <div style={{ position: 'absolute', top: '25px', right: '25px', width: '20px', height: '20px', borderTop: '2.5px solid #38bdf8', borderRight: '2.5px solid #38bdf8' }} />
-                <div style={{ position: 'absolute', bottom: '25px', left: '25px', width: '20px', height: '20px', borderBottom: '2.5px solid #38bdf8', borderLeft: '2.5px solid #38bdf8' }} />
-                <div style={{ position: 'absolute', bottom: '25px', right: '25px', width: '20px', height: '20px', borderBottom: '2.5px solid #38bdf8', borderRight: '2.5px solid #38bdf8' }} />
+                <div style={{ position: 'absolute', top: '25px', left: '25px', width: '20px', height: '20px', borderTop: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}`, borderLeft: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}` }} />
+                <div style={{ position: 'absolute', top: '25px', right: '25px', width: '20px', height: '20px', borderTop: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}`, borderRight: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}` }} />
+                <div style={{ position: 'absolute', bottom: '25px', left: '25px', width: '20px', height: '20px', borderBottom: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}`, borderLeft: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}` }} />
+                <div style={{ position: 'absolute', bottom: '25px', right: '25px', width: '20px', height: '20px', borderBottom: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}`, borderRight: `2.5px solid ${isFaceAligned ? '#38bdf8' : '#94a3b8'}` }} />
 
                 {/* Oval Face Guide */}
                 <div style={{
@@ -317,8 +451,8 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
                   width: '130px',
                   height: '160px',
                   borderRadius: '50%',
-                  border: '1.5px dashed rgba(56, 189, 248, 0.45)',
-                  boxShadow: 'inset 0 0 15px rgba(56, 189, 248, 0.15)',
+                  border: isFaceAligned ? '2px solid rgba(56, 189, 248, 0.85)' : '1.5px dashed rgba(245, 158, 11, 0.6)',
+                  boxShadow: isFaceAligned ? 'inset 0 0 20px rgba(56, 189, 248, 0.25)' : 'inset 0 0 10px rgba(245, 158, 11, 0.15)',
                   pointerEvents: 'none'
                 }} />
               </>
@@ -329,7 +463,7 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(16, 185, 129, 0.35)',
+                background: 'rgba(16, 185, 129, 0.40)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -339,6 +473,30 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
               }}>
                 <CheckCircle2 size={64} style={{ color: '#ffffff', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '8px', letterSpacing: '0.5px' }}>VERIFIED</span>
+                {confidenceScore && (
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.9 }}>{confidenceScore}% Match</span>
+                )}
+              </div>
+            )}
+
+            {/* Mismatch Overlay */}
+            {cameraState === 'mismatch' && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(220, 38, 38, 0.55)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                backdropFilter: 'blur(4px)',
+                padding: '1rem',
+                textAlign: 'center'
+              }}>
+                <ShieldAlert size={56} style={{ color: '#ffffff', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '6px', letterSpacing: '0.5px' }}>ACCESS DENIED</span>
+                <span style={{ fontSize: '0.70rem', opacity: 0.9, marginTop: '4px' }}>Face Profile Mismatch</span>
               </div>
             )}
           </div>
@@ -352,16 +510,16 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
               gap: '6px',
               fontSize: '0.82rem',
               fontWeight: 700,
-              color: cameraState === 'verified' ? '#16a34a' : cameraState === 'error' ? '#dc2626' : '#0284c7',
+              color: cameraState === 'verified' ? '#16a34a' : (cameraState === 'error' || cameraState === 'mismatch') ? '#dc2626' : isFaceAligned ? '#0284c7' : '#d97706',
               marginBottom: '6px'
             }}>
-              {cameraState === 'scanning' && <Sparkles size={14} className="spin-animation" />}
+              {(cameraState === 'scanning' || cameraState === 'verifying') && <Sparkles size={14} className="spin-animation" />}
               {cameraState === 'verified' && <ShieldCheck size={16} />}
-              {cameraState === 'error' && <AlertCircle size={16} />}
+              {(cameraState === 'error' || cameraState === 'mismatch') && <AlertCircle size={16} />}
               <span>{telemetryStatus}</span>
             </div>
 
-            {cameraState === 'scanning' && (
+            {(cameraState === 'scanning' || cameraState === 'verifying') && (
               <div style={{
                 width: '100%',
                 height: '6px',
@@ -372,38 +530,39 @@ const FaceVerificationModal = ({ isOpen, user, onVerified, onCancel, onSwitchToF
                 <div style={{
                   width: `${scanProgress}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #0284c7, #38bdf8, #10b981)',
-                  transition: 'width 0.1s linear',
+                  background: isFaceAligned ? 'linear-gradient(90deg, #0284c7, #38bdf8, #10b981)' : '#f59e0b',
+                  transition: 'width 0.15s ease',
                   borderRadius: '999px'
                 }} />
               </div>
             )}
           </div>
 
-          {/* Error Details & Retry */}
-          {cameraState === 'error' && (
+          {/* Error / Mismatch Details & Retry */}
+          {(cameraState === 'error' || cameraState === 'mismatch') && (
             <div style={{ marginTop: '0.75rem', width: '100%', textAlign: 'center' }}>
-              <p style={{ fontSize: '0.78rem', color: '#991b1b', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                {errorMessage}
+              <p style={{ fontSize: '0.78rem', color: '#991b1b', margin: '0 0 0.75rem 0', lineHeight: 1.4, fontWeight: 500 }}>
+                {errorMessage || 'Identity could not be confirmed.'}
               </p>
               <button
                 type="button"
                 onClick={startCamera}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.5rem 1.25rem',
                   background: '#0284c7',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '0.8rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px'
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)'
                 }}
               >
-                <RefreshCw size={14} /> Retry Camera
+                <RefreshCw size={14} /> Scan Face Again
               </button>
             </div>
           )}

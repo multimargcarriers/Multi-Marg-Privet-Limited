@@ -33,11 +33,15 @@ const Profile = () => {
   const [showTestFaceScanner, setShowTestFaceScanner] = useState(false);
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled !== false);
+  const [faceAuthEnabled, setFaceAuthEnabled] = useState(user?.faceAuthEnabled !== false);
+  const [fingerprintAuthEnabled, setFingerprintAuthEnabled] = useState(user?.fingerprintAuthEnabled !== false);
   const [toggling2Fa, setToggling2Fa] = useState(false);
 
   useEffect(() => {
-    if (user?.twoFactorEnabled !== undefined) {
-      setTwoFactorEnabled(user.twoFactorEnabled !== false);
+    if (user) {
+      if (user.faceAuthEnabled !== undefined) setFaceAuthEnabled(user.faceAuthEnabled !== false);
+      if (user.fingerprintAuthEnabled !== undefined) setFingerprintAuthEnabled(user.fingerprintAuthEnabled !== false);
+      if (user.twoFactorEnabled !== undefined) setTwoFactorEnabled(user.twoFactorEnabled !== false);
     }
   }, [user]);
 
@@ -232,6 +236,64 @@ const Profile = () => {
     setShowGallery(true);
   };
 
+  const handleToggleFaceAuth = async () => {
+    setToggling2Fa(true);
+    const nextState = !faceAuthEnabled;
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
+        { faceAuthEnabled: nextState },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setFaceAuthEnabled(nextState);
+        const new2Fa = nextState || fingerprintAuthEnabled;
+        setTwoFactorEnabled(new2Fa);
+        updateUser({ ...user, faceAuthEnabled: nextState, twoFactorEnabled: new2Fa });
+        addToast(
+          nextState 
+            ? "Live Face ID Verification Enabled" 
+            : "Face ID Verification Disabled", 
+          "success"
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle Face Auth:", err);
+      addToast(err.response?.data?.message || "Failed to update Face ID preference", "error");
+    } finally {
+      setToggling2Fa(false);
+    }
+  };
+
+  const handleToggleFingerprintAuth = async () => {
+    setToggling2Fa(true);
+    const nextState = !fingerprintAuthEnabled;
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
+        { fingerprintAuthEnabled: nextState },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setFingerprintAuthEnabled(nextState);
+        const new2Fa = faceAuthEnabled || nextState;
+        setTwoFactorEnabled(new2Fa);
+        updateUser({ ...user, fingerprintAuthEnabled: nextState, twoFactorEnabled: new2Fa });
+        addToast(
+          nextState 
+            ? "Fingerprint & Device PIN Verification Enabled" 
+            : "Fingerprint & Device PIN Verification Disabled", 
+          "success"
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle Fingerprint Auth:", err);
+      addToast(err.response?.data?.message || "Failed to update Fingerprint preference", "error");
+    } finally {
+      setToggling2Fa(false);
+    }
+  };
+
   const handleToggle2FA = async () => {
     setToggling2Fa(true);
     const nextState = !twoFactorEnabled;
@@ -243,11 +305,13 @@ const Profile = () => {
       );
       if (res.data?.success) {
         setTwoFactorEnabled(nextState);
-        updateUser({ ...user, twoFactorEnabled: nextState });
+        setFaceAuthEnabled(nextState);
+        setFingerprintAuthEnabled(nextState);
+        updateUser({ ...user, twoFactorEnabled: nextState, faceAuthEnabled: nextState, fingerprintAuthEnabled: nextState });
         addToast(
           nextState 
-            ? "Device Biometric & 2-Step Verification Enabled (Required on Login & 5-min Inactivity)" 
-            : "2-Step Verification Disabled (Direct ID & Password login active for this account)", 
+            ? "All Biometric Verification Enabled" 
+            : "All Biometric Verification Disabled", 
           "success"
         );
       }
@@ -645,53 +709,161 @@ const Profile = () => {
               </div>
 
               <div style={{ background: 'var(--surface-color)', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
-                  <div style={{ flex: 1, minWidth: '280px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', gap: '6px', color: '#0078D4' }}>
+                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '4px', color: '#0078D4' }}>
                         <Scan size={22} />
                         <Fingerprint size={22} />
                       </div>
-                      <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-dark)', fontWeight: 700 }}>
-                        Device Biometric (Face ID / Fingerprint) & 2-Step Verification
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-dark)', fontWeight: 700 }}>
+                        Biometric & 2-Step Device Verification
                       </h3>
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        background: twoFactorEnabled ? 'rgba(16, 124, 65, 0.12)' : '#f1f5f9',
-                        color: twoFactorEnabled ? '#107C41' : '#64748b'
-                      }}>
-                        {twoFactorEnabled ? 'ENABLED' : 'DISABLED'}
-                      </span>
                     </div>
-                    <p style={{ margin: '0 0 1rem 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', maxWidth: '620px' }}>
-                      Authenticate using your device's registered <strong>Face Lock / Windows Hello / Touch ID / Fingerprint</strong> or screen lock PIN on login and after 5 minutes of inactivity. Securely verified on your device security chip.
-                    </p>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      background: (faceAuthEnabled && fingerprintAuthEnabled) 
+                        ? 'rgba(16, 124, 65, 0.12)' 
+                        : (faceAuthEnabled || fingerprintAuthEnabled)
+                        ? 'rgba(0, 120, 212, 0.12)'
+                        : '#f1f5f9',
+                      color: (faceAuthEnabled && fingerprintAuthEnabled)
+                        ? '#107C41'
+                        : (faceAuthEnabled || fingerprintAuthEnabled)
+                        ? '#0078D4'
+                        : '#64748b'
+                    }}>
+                      {(faceAuthEnabled && fingerprintAuthEnabled) ? '✨ DUAL BIOMETRICS (EITHER METHOD)' : faceAuthEnabled ? '📸 FACE ID ONLY' : fingerprintAuthEnabled ? '👆 FINGERPRINT / PIN ONLY' : 'OFF'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                    Configure independent verification methods. When both are enabled, <strong>any one method is sufficient to unlock</strong> your session.
+                  </p>
+                </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* TOGGLE 1: Live Face ID Verification */}
+                  <div style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    border: `1px solid ${faceAuthEnabled ? '#bae6fd' : 'var(--border-color)'}`,
+                    background: faceAuthEnabled ? 'rgba(2, 132, 199, 0.03)' : 'var(--bg-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '1.25rem',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                          <Camera size={16} />
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-dark)' }}>
+                          1. Face ID Verification
+                        </h4>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: faceAuthEnabled ? '#e0f2fe' : '#f1f5f9', color: faceAuthEnabled ? '#0284c7' : '#64748b' }}>
+                          {faceAuthEnabled ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                        Live camera face detection & neural match on login and after 5 minutes of inactivity.
+                      </p>
                       <button
                         type="button"
                         onClick={() => setShowTestFaceScanner(true)}
                         style={{
-                          background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          fontSize: '0.82rem',
+                          background: '#ffffff',
+                          color: '#0284c7',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '6px',
+                          padding: '5px 12px',
+                          fontSize: '0.8rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)'
+                          boxShadow: '0 1px 3px rgba(2, 132, 199, 0.1)'
                         }}
                       >
-                        <Camera size={14} /> Test Camera Face ID
+                        <Camera size={13} /> Test Camera Face ID
                       </button>
+                    </div>
 
+                    {/* Toggle Button for Face ID */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleToggleFaceAuth}
+                        disabled={toggling2Fa}
+                        aria-label="Toggle Face ID Verification"
+                        style={{
+                          width: '56px',
+                          height: '30px',
+                          borderRadius: '15px',
+                          background: faceAuthEnabled ? '#0284c7' : '#cbd5e1',
+                          position: 'relative',
+                          border: 'none',
+                          cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                          transition: 'background-color 0.25s ease',
+                          padding: 0,
+                          outline: 'none',
+                          boxShadow: faceAuthEnabled ? '0 0 10px rgba(2, 132, 199, 0.35)' : 'none'
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            position: 'absolute',
+                            top: '3px',
+                            left: faceAuthEnabled ? '29px' : '3px',
+                            transition: 'left 0.25s ease',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                          }}
+                        />
+                      </button>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: faceAuthEnabled ? '#0284c7' : '#64748b', minWidth: '45px' }}>
+                        {faceAuthEnabled ? 'Active' : 'Off'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* TOGGLE 2: Fingerprint / Device PIN Verification */}
+                  <div style={{
+                    padding: '1.25rem',
+                    borderRadius: '10px',
+                    border: `1px solid ${fingerprintAuthEnabled ? '#ddd6fe' : 'var(--border-color)'}`,
+                    background: fingerprintAuthEnabled ? 'rgba(124, 58, 237, 0.03)' : 'var(--bg-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '1.25rem',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                          <Fingerprint size={16} />
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-dark)' }}>
+                          2. Fingerprint & Device PIN Verification
+                        </h4>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: fingerprintAuthEnabled ? '#ede9fe' : '#f1f5f9', color: fingerprintAuthEnabled ? '#7c3aed' : '#64748b' }}>
+                          {fingerprintAuthEnabled ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                        Hardware-backed Windows Hello, Touch ID, or Device Screen PIN verified on your secure security chip.
+                      </p>
                       <button
                         type="button"
                         onClick={async () => {
@@ -706,63 +878,82 @@ const Profile = () => {
                         }}
                         style={{
                           background: '#ffffff',
-                          color: '#334155',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          fontSize: '0.82rem',
+                          color: '#7c3aed',
+                          border: '1px solid #ddd6fe',
+                          borderRadius: '6px',
+                          padding: '5px 12px',
+                          fontSize: '0.8rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                          boxShadow: '0 1px 3px rgba(124, 58, 237, 0.1)'
                         }}
                       >
-                        <Fingerprint size={14} color="#2563eb" /> Test Device Finger / PIN
+                        <Fingerprint size={13} /> Test Fingerprint / PIN
                       </button>
                     </div>
-                  </div>
-                  
-                  {/* Apple / Modern Toggle Switch */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <button
-                      type="button"
-                      onClick={handleToggle2FA}
-                      disabled={toggling2Fa}
-                      aria-label="Toggle 2-Step Verification"
-                      style={{
-                        width: '56px',
-                        height: '30px',
-                        borderRadius: '15px',
-                        background: twoFactorEnabled ? '#0078D4' : '#cbd5e1',
-                        position: 'relative',
-                        border: 'none',
-                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
-                        transition: 'background-color 0.25s ease',
-                        padding: 0,
-                        outline: 'none',
-                        boxShadow: twoFactorEnabled ? '0 0 10px rgba(0, 120, 212, 0.35)' : 'none'
-                      }}
-                    >
-                      <span
+
+                    {/* Toggle Button for Fingerprint */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleToggleFingerprintAuth}
+                        disabled={toggling2Fa}
+                        aria-label="Toggle Fingerprint & PIN Verification"
                         style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: '#ffffff',
-                          position: 'absolute',
-                          top: '3px',
-                          left: twoFactorEnabled ? '29px' : '3px',
-                          transition: 'left 0.25s ease',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                          width: '56px',
+                          height: '30px',
+                          borderRadius: '15px',
+                          background: fingerprintAuthEnabled ? '#7c3aed' : '#cbd5e1',
+                          position: 'relative',
+                          border: 'none',
+                          cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                          transition: 'background-color 0.25s ease',
+                          padding: 0,
+                          outline: 'none',
+                          boxShadow: fingerprintAuthEnabled ? '0 0 10px rgba(124, 58, 237, 0.35)' : 'none'
                         }}
-                      />
-                    </button>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: twoFactorEnabled ? '#0078D4' : '#64748b' }}>
-                      {twoFactorEnabled ? 'Active' : 'Off'}
-                    </span>
+                      >
+                        <span
+                          style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            position: 'absolute',
+                            top: '3px',
+                            left: fingerprintAuthEnabled ? '29px' : '3px',
+                            transition: 'left 0.25s ease',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                          }}
+                        />
+                      </button>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: fingerprintAuthEnabled ? '#7c3aed' : '#64748b', minWidth: '45px' }}>
+                        {fingerprintAuthEnabled ? 'Active' : 'Off'}
+                      </span>
+                    </div>
                   </div>
+                </div>
+
+                {/* Combined Architecture Info Note */}
+                <div style={{ marginTop: '1.25rem', padding: '0.85rem 1.25rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <ShieldCheck size={20} color="#059669" />
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#475569', lineHeight: '1.4' }}>
+                    {(faceAuthEnabled && fingerprintAuthEnabled) && (
+                      <span><strong>Flexible Dual Security:</strong> Both Face ID and Fingerprint are active. You can authenticate using <strong>any one method</strong> when prompted.</span>
+                    )}
+                    {faceAuthEnabled && !fingerprintAuthEnabled && (
+                      <span><strong>Face ID Active:</strong> Facial recognition will be required to unlock your session.</span>
+                    )}
+                    {!faceAuthEnabled && fingerprintAuthEnabled && (
+                      <span><strong>Fingerprint / PIN Active:</strong> Hardware biometric or screen lock PIN will be required to unlock your session.</span>
+                    )}
+                    {!faceAuthEnabled && !fingerprintAuthEnabled && (
+                      <span><strong>Biometrics Disabled:</strong> Direct password access is enabled for this account.</span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

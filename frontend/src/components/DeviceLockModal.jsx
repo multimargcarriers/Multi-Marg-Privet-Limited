@@ -240,59 +240,63 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         {/* Biometric Trigger or Password Input */}
         {!showPasswordMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {/* Primary: Live Face ID Camera Verification */}
-            <button
-              type="button"
-              onClick={() => setShowFaceModal(true)}
-              style={{
-                width: '100%',
-                padding: '0.85rem 1.25rem',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
-                color: '#ffffff',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                boxShadow: '0 4px 15px -1px rgba(14, 165, 233, 0.45)',
-                transition: 'all 0.2s ease',
-                height: '48px'
-              }}
-            >
-              <Camera size={20} />
-              <span>Verify with Face ID (Camera)</span>
-            </button>
+            {/* Live Face ID Camera Verification (if enabled) */}
+            {(user?.faceAuthEnabled !== false) && (
+              <button
+                type="button"
+                onClick={() => setShowFaceModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  boxShadow: '0 4px 15px -1px rgba(14, 165, 233, 0.45)',
+                  transition: 'all 0.2s ease',
+                  height: '48px'
+                }}
+              >
+                <Camera size={20} />
+                <span>Verify with Face ID (Camera)</span>
+              </button>
+            )}
 
-            {/* Secondary: Device Biometric Unlock (Fingerprint / PIN) */}
-            <button
-              type="button"
-              onClick={handleBiometricUnlock}
-              disabled={authenticating}
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid #cbd5e1',
-                borderRadius: '12px',
-                color: '#0f172a',
-                fontSize: '0.86rem',
-                cursor: authenticating ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '0.70rem 1rem',
-                width: '100%',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-              }}
-            >
-              <Fingerprint size={18} color="#2563eb" className={authenticating ? "spin-animation" : ""} />
-              <span>{authenticating ? 'Scanning...' : 'Device Finger / Windows PIN'}</span>
-            </button>
+            {/* Device Biometric Unlock (Fingerprint / PIN) (if enabled) */}
+            {(user?.fingerprintAuthEnabled !== false) && (
+              <button
+                type="button"
+                onClick={handleBiometricUnlock}
+                disabled={authenticating}
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '12px',
+                  color: '#0f172a',
+                  fontSize: '0.86rem',
+                  cursor: authenticating ? 'not-allowed' : 'pointer',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '0.70rem 1rem',
+                  width: '100%',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                }}
+              >
+                <Fingerprint size={18} color="#2563eb" className={authenticating ? "spin-animation" : ""} />
+                <span>{authenticating ? 'Scanning...' : 'Device Finger / Windows PIN'}</span>
+              </button>
+            )}
 
             {/* Tertiary: Password fallback */}
             <button

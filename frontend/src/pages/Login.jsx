@@ -222,13 +222,19 @@ const Login = () => {
 
       if (response.data.success) {
         const authData = response.data.data;
-        const requires2Fa = authData.user?.twoFactorEnabled !== false;
+        const targetUser = authData.user || {};
+        const faceOn = targetUser.faceAuthEnabled !== false;
+        const fingerOn = targetUser.fingerprintAuthEnabled !== false;
+        const requires2Fa = (targetUser.twoFactorEnabled !== false) && (faceOn || fingerOn);
 
         if (requires2Fa) {
           setPendingAuth(authData);
           setView('device_auth');
-          // Trigger device verification step
-          setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 100);
+          if (faceOn && !fingerOn) {
+            setTimeout(() => setShowFaceModal(true), 150);
+          } else {
+            setTimeout(() => triggerDeviceVerification(authData.user, authData.token), 150);
+          }
         } else {
           // If 2-step verification is turned OFF for this user, log in directly!
           login(authData.user, authData.token);
@@ -970,55 +976,59 @@ const Login = () => {
 
                 {!showStep2PasswordInput ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {/* Primary Button: Live Face ID Camera Verification */}
-                    <button
-                      type="button"
-                      onClick={() => setShowFaceModal(true)}
-                      className="btn-primary"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
-                        boxShadow: '0 4px 16px rgba(14, 165, 233, 0.4)',
-                        height: '48px',
-                        fontSize: '0.95rem',
-                        fontWeight: 700,
-                        borderRadius: '12px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Camera size={20} />
-                      <span>Verify with Face ID (Camera)</span>
-                    </button>
+                    {/* Face ID Camera Verification (if enabled) */}
+                    {(pendingAuth?.user?.faceAuthEnabled !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFaceModal(true)}
+                        className="btn-primary"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
+                          boxShadow: '0 4px 16px rgba(14, 165, 233, 0.4)',
+                          height: '48px',
+                          fontSize: '0.95rem',
+                          fontWeight: 700,
+                          borderRadius: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Camera size={20} />
+                        <span>Verify with Face ID (Camera)</span>
+                      </button>
+                    )}
 
-                    {/* Secondary Button: Device Biometric / Windows Hello Finger / PIN */}
-                    <button
-                      type="button"
-                      onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
-                      disabled={deviceAuthLoading}
-                      style={{
-                        background: '#ffffff',
-                        border: '1.5px solid #cbd5e1',
-                        borderRadius: '12px',
-                        padding: '0.70rem 1rem',
-                        color: '#0f172a',
-                        fontSize: '0.86rem',
-                        fontWeight: 700,
-                        cursor: deviceAuthLoading ? 'not-allowed' : 'pointer',
-                        width: '100%',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-                      }}
-                    >
-                      <Fingerprint size={18} color="#2563eb" className={deviceAuthLoading ? "spin-animation" : ""} />
-                      <span>{deviceAuthLoading ? 'Verifying...' : 'Device Finger / Windows PIN'}</span>
-                    </button>
+                    {/* Fingerprint / Windows Hello / Touch ID Verification (if enabled) */}
+                    {(pendingAuth?.user?.fingerprintAuthEnabled !== false) && (
+                      <button
+                        type="button"
+                        onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
+                        disabled={deviceAuthLoading}
+                        style={{
+                          background: '#ffffff',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: '12px',
+                          padding: '0.70rem 1rem',
+                          color: '#0f172a',
+                          fontSize: '0.86rem',
+                          fontWeight: 700,
+                          cursor: deviceAuthLoading ? 'not-allowed' : 'pointer',
+                          width: '100%',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <Fingerprint size={18} color="#2563eb" className={deviceAuthLoading ? "spin-animation" : ""} />
+                        <span>{deviceAuthLoading ? 'Verifying...' : 'Device Finger / Windows PIN'}</span>
+                      </button>
+                    )}
 
                     {/* Tertiary Password Option */}
                     <button
