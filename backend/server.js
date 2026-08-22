@@ -408,6 +408,9 @@ app.use("/api/cms", cmsRoutes);
 app.use("/api/applications", applicationsRoutes);
 app.use("/api/webmail", webmailRoutes);
 
+const suggestionsRoutes = require("./src/routes/suggestions");
+app.use("/api/suggestions", suggestionsRoutes);
+
 const quotesRoutes = require("./src/routes/quotes");
 app.use("/api/quotes", quotesRoutes);
 

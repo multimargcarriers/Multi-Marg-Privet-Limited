@@ -4,6 +4,7 @@ import axios from "axios";
 import { CheckCircle, FileText, Loader2,  FileCheck } from "lucide-react";
 
 import CreatableDropdown from "../components/CreatableDropdown";
+import AutoSuggestInput from "../components/AutoSuggestInput";
 import { FormPageSkeleton } from '../components/SkeletonLoader';
 import { formatAllCaps } from "../utils/formatters";
 import { useNotification } from "../context/NotificationContext";
@@ -583,6 +584,7 @@ const CreateBooking = () => {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Billed To<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
+              category="client"
               options={clients} 
               value={formData.client} 
               onChange={(val) => {
@@ -630,6 +632,7 @@ const CreateBooking = () => {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Consignor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
+              category="consignor"
               options={clients} 
               value={formData.consignor} 
               onChange={(val) => {
@@ -648,6 +651,7 @@ const CreateBooking = () => {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Consignee<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
+              category="consignee"
               options={clients} 
               value={formData.consignee} 
               onChange={(val) => {
@@ -669,6 +673,7 @@ const CreateBooking = () => {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
+              category="origin"
               options={cities} 
               value={formData.origin} 
               onChange={(city, opt) => setFormData({ ...formData, origin: city, originState: opt?.state || "", originCode: opt?.stateCode || "" })} 
@@ -680,6 +685,7 @@ const CreateBooking = () => {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
+              category="destination"
               options={cities} 
               value={formData.destination} 
               onChange={(city, opt) => setFormData({ ...formData, destination: city, destState: opt?.state || "", destCode: opt?.stateCode || "" })} 
@@ -764,7 +770,16 @@ const CreateBooking = () => {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Description<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="text" className="form-control" name="description" placeholder="Description" value={formData.description} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <AutoSuggestInput
+              category="material"
+              name="description"
+              placeholder="Description (e.g. AUTO PARTS, PHARMA)"
+              value={formData.description}
+              onChange={handleChange}
+              format={formatAllCaps}
+              required
+              style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }}
+            />
           </div>
         </div>
 

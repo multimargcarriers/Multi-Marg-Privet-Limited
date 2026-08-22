@@ -12,6 +12,8 @@ import { useDialog } from "../../context/DialogContext";
 import appDB from "../../utils/appDB";
 import ExportModal from "../ExportModal";
 import { exportVendorVehicleMisList } from "../../utils/excelExport";
+import AutoSuggestInput from "../AutoSuggestInput";
+import { recordSuggestion } from "../../utils/smartSuggestions";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -877,15 +879,35 @@ const VendorMIS = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>From</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="From" value={detail.from} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].from = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
+                      <AutoSuggestInput
+                        category="origin"
+                        placeholder="From"
+                        value={detail.from}
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].from = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>To</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="To" value={detail.to} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].to = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
+                      <AutoSuggestInput
+                        category="destination"
+                        placeholder="To"
+                        value={detail.to}
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].to = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Particular</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Particular" value={detail.particular} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].particular = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }} />
+                      <AutoSuggestInput
+                        category="particular"
+                        placeholder="Particular"
+                        value={detail.particular}
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].particular = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }}
+                        format={formatAllCaps}
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Mode</label>
@@ -898,7 +920,14 @@ const VendorMIS = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Vehicle No</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Vehicle No" value={detail.vehicleNo} onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].vehicleNo = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }} required />
+                      <AutoSuggestInput
+                        category="vehicle"
+                        placeholder="Vehicle No"
+                        value={detail.vehicleNo}
+                        onChange={e => { const newDetails = [...vendorMisForm.details]; newDetails[idx].vehicleNo = formatAllCaps(e.target.value); setVendorMisForm({...vendorMisForm, details: newDetails}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

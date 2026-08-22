@@ -12,6 +12,8 @@ import { useDialog } from "../../context/DialogContext";
 import appDB from "../../utils/appDB";
 import ExportModal from "../ExportModal";
 import { exportVehicleTripMisList } from "../../utils/excelExport";
+import AutoSuggestInput from "../AutoSuggestInput";
+import { recordSuggestion } from "../../utils/smartSuggestions";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -449,16 +451,44 @@ const TripMIS = () => {
             </h5>
             <div className="grid-3-col" style={{ padding: "1.5rem", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "2rem" }}>
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip Number<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-                <input type="text" className="form-control" placeholder="Auto-generated (e.g. NOKA 0001)" value={tripListForm.tripNo} disabled />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <label className="form-label" style={{ fontWeight: "500", color: "#374151", margin: 0 }}>Trip Number<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+                  {isSuperAdmin && (
+                    <span style={{ fontSize: "0.72rem", color: "#2563eb", fontWeight: "600" }}>SuperAdmin Editable</span>
+                  )}
+                </div>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Auto-generated (e.g. NOKA 0001)" 
+                  value={tripListForm.tripNo} 
+                  onChange={e => setTripListForm({ ...tripListForm, tripNo: formatAllCaps(e.target.value) })}
+                  disabled={!isSuperAdmin}
+                  style={!isSuperAdmin ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : { backgroundColor: "#ffffff" }}
+                  required 
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip Origin (From)<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-                <input type="text" className="form-control" placeholder="Enter Trip Origin Location" value={tripListForm.origin} onChange={e => setTripListForm({...tripListForm, origin: formatAllCaps(e.target.value)})} required />
+                <AutoSuggestInput
+                  category="origin"
+                  placeholder="Enter Trip Origin Location"
+                  value={tripListForm.origin}
+                  onChange={e => setTripListForm({...tripListForm, origin: formatAllCaps(e.target.value)})}
+                  format={formatAllCaps}
+                  required
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip Destination (To)<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-                <input type="text" className="form-control" placeholder="Enter Trip Destination Location" value={tripListForm.destination} onChange={e => setTripListForm({...tripListForm, destination: formatAllCaps(e.target.value)})} required />
+                <AutoSuggestInput
+                  category="destination"
+                  placeholder="Enter Trip Destination Location"
+                  value={tripListForm.destination}
+                  onChange={e => setTripListForm({...tripListForm, destination: formatAllCaps(e.target.value)})}
+                  format={formatAllCaps}
+                  required
+                />
               </div>
               <div className="form-group" ref={clientDropdownRef} style={{ position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
@@ -631,19 +661,47 @@ const TripMIS = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>LR Origin (From)</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="LR Origin (or blank for Trip Origin)" value={parcel.origin} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].origin = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }} required />
+                      <AutoSuggestInput
+                        category="origin"
+                        placeholder="LR Origin (or blank for Trip Origin)"
+                        value={parcel.origin}
+                        onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].origin = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>LR Destination (To)</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="LR Dest (or blank for Trip Dest)" value={parcel.destination} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].destination = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }} required />
+                      <AutoSuggestInput
+                        category="destination"
+                        placeholder="LR Dest (or blank for Trip Dest)"
+                        value={parcel.destination}
+                        onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].destination = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Consignor</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Consignor" value={parcel.consignor} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].consignor = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }} required />
+                      <AutoSuggestInput
+                        category="consignor"
+                        placeholder="Consignor"
+                        value={parcel.consignor}
+                        onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].consignor = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Consignee</label>
-                      <input className="form-control" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Consignee" value={parcel.consignee} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].consignee = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }} required />
+                      <AutoSuggestInput
+                        category="consignee"
+                        placeholder="Consignee"
+                        value={parcel.consignee}
+                        onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].consignee = formatAllCaps(e.target.value); setTripListForm({...tripListForm, parcels: newParcels}); }}
+                        format={formatAllCaps}
+                        required
+                      />
                     </div>
 
                     <div>

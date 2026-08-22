@@ -2071,17 +2071,30 @@ const OutstandingFinalSheet = () => {
                   {/* Inline Drill-down Details */}
                   {isExpanded && (
                     <tr>
-                      <td colSpan={12} style={{ padding: "1.25rem", background: "#f8fafc", borderBottom: "2px solid #cbd5e1" }}>
-                        <div style={{ background: "#ffffff", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+                      <td colSpan={12} style={{ padding: "0.75rem 0.5rem", background: "#f8fafc", borderBottom: "2px solid #cbd5e1", boxSizing: "border-box" }}>
+                        <div style={{
+                          background: "#ffffff",
+                          borderRadius: "12px",
+                          padding: "1.25rem",
+                          border: "1px solid #e2e8f0",
+                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+                          position: "sticky",
+                          left: "8px",
+                          maxWidth: "calc(100vw - 32px)",
+                          width: "100%",
+                          boxSizing: "border-box"
+                        }}>
                           {/* Drill-down Header */}
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
-                            <div>
-                              <h4 style={{ margin: 0, color: "#0f172a", fontSize: "1.1rem", fontWeight: 700 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
+                            <div style={{ flex: "1 1 260px", minWidth: "220px" }}>
+                              <h4 style={{ margin: 0, color: "#0f172a", fontSize: "1.05rem", fontWeight: 700, wordBreak: "break-word" }}>
                                 {row.partyName} - Detailed Audit Ledger
                               </h4>
-                              <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                                Code: {row.code} | GSTIN: {row.gst} | Address: {row.address}
-                              </span>
+                              <div style={{ fontSize: "0.78rem", color: "#64748b", wordBreak: "break-word", marginTop: "3px", lineHeight: "1.4" }}>
+                                {row.code && <span>Code: <strong>{row.code}</strong> | </span>}
+                                {row.gst && <span>GSTIN: <strong>{row.gst}</strong> | </span>}
+                                {row.address && <span>Address: {row.address}</span>}
+                              </div>
                             </div>
 
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -2096,7 +2109,7 @@ const OutstandingFinalSheet = () => {
                                   background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
                                   color: "#ffffff",
                                   border: "none",
-                                  padding: "5px 12px",
+                                  padding: "6px 12px",
                                   borderRadius: "7px",
                                   fontSize: "0.80rem",
                                   fontWeight: 700,
@@ -2117,7 +2130,7 @@ const OutstandingFinalSheet = () => {
                                   background: "#eff6ff",
                                   color: "#1d4ed8",
                                   border: "1px solid #bfdbfe",
-                                  padding: "5px 12px",
+                                  padding: "6px 12px",
                                   borderRadius: "7px",
                                   fontSize: "0.80rem",
                                   fontWeight: 700,
@@ -2136,7 +2149,7 @@ const OutstandingFinalSheet = () => {
                                   background: "#1e3a8a",
                                   color: "#ffffff",
                                   border: "none",
-                                  padding: "5px 12px",
+                                  padding: "6px 12px",
                                   borderRadius: "7px",
                                   fontSize: "0.80rem",
                                   fontWeight: 700,
@@ -2146,74 +2159,75 @@ const OutstandingFinalSheet = () => {
                               >
                                 <Printer size={13} /> Print / PDF Statement
                               </button>
-
-                              <div style={{ width: "1px", height: "20px", background: "#e2e8f0", margin: "0 4px" }} />
-
-                              <button
-                                type="button"
-                                onClick={() => setDrilldownTab("bills")}
-                                style={{
-                                  padding: "4px 10px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #cbd5e1",
-                                  background: drilldownTab === "bills" ? "#2563eb" : "#ffffff",
-                                  color: drilldownTab === "bills" ? "#ffffff" : "#475569",
-                                  fontWeight: 600,
-                                  fontSize: "0.8rem",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                {activeTab === "clients" ? `Invoices (${row.bills.length})` : `Purchases (${row.purchases.length})`}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDrilldownTab("cash")}
-                                style={{
-                                  padding: "4px 10px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #cbd5e1",
-                                  background: drilldownTab === "cash" ? "#16a34a" : "#ffffff",
-                                  color: drilldownTab === "cash" ? "#ffffff" : "#475569",
-                                  fontWeight: 600,
-                                  fontSize: "0.8rem",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                Cash & Bank ({row.cash.length})
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDrilldownTab("adjustments")}
-                                style={{
-                                  padding: "4px 10px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #cbd5e1",
-                                  background: drilldownTab === "adjustments" ? "#d97706" : "#ffffff",
-                                  color: drilldownTab === "adjustments" ? "#ffffff" : "#475569",
-                                  fontWeight: 600,
-                                  fontSize: "0.8rem",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                TDS / Debt ({row.adjustments.length})
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDrilldownTab("opening")}
-                                style={{
-                                  padding: "4px 10px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #cbd5e1",
-                                  background: drilldownTab === "opening" ? "#7c3aed" : "#ffffff",
-                                  color: drilldownTab === "opening" ? "#ffffff" : "#475569",
-                                  fontWeight: 600,
-                                  fontSize: "0.8rem",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                Prior FY Opening
-                              </button>
                             </div>
+                          </div>
+
+                          {/* Sub-tab Filter Switcher */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                            <button
+                              type="button"
+                              onClick={() => setDrilldownTab("bills")}
+                              style={{
+                                padding: "5px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #cbd5e1",
+                                background: drilldownTab === "bills" ? "#2563eb" : "#ffffff",
+                                color: drilldownTab === "bills" ? "#ffffff" : "#475569",
+                                fontWeight: 600,
+                                fontSize: "0.8rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              {activeTab === "clients" ? `Invoices (${row.bills.length})` : `Purchases (${row.purchases.length})`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDrilldownTab("cash")}
+                              style={{
+                                padding: "5px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #cbd5e1",
+                                background: drilldownTab === "cash" ? "#16a34a" : "#ffffff",
+                                color: drilldownTab === "cash" ? "#ffffff" : "#475569",
+                                fontWeight: 600,
+                                fontSize: "0.8rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              Cash & Bank ({row.cash.length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDrilldownTab("adjustments")}
+                              style={{
+                                padding: "5px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #cbd5e1",
+                                background: drilldownTab === "adjustments" ? "#d97706" : "#ffffff",
+                                color: drilldownTab === "adjustments" ? "#ffffff" : "#475569",
+                                fontWeight: 600,
+                                fontSize: "0.8rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              TDS / Debt ({row.adjustments.length})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDrilldownTab("opening")}
+                              style={{
+                                padding: "5px 12px",
+                                borderRadius: "6px",
+                                border: "1px solid #cbd5e1",
+                                background: drilldownTab === "opening" ? "#7c3aed" : "#ffffff",
+                                color: drilldownTab === "opening" ? "#ffffff" : "#475569",
+                                fontWeight: 600,
+                                fontSize: "0.8rem",
+                                cursor: "pointer"
+                              }}
+                            >
+                              Prior FY Opening
+                            </button>
                           </div>
 
                           {/* Drill-down Sub-views */}
