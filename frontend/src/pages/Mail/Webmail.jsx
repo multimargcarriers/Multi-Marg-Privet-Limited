@@ -229,9 +229,9 @@ const Webmail = () => {
   const [connecting, setConnecting] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
-  // State: Mailbox & Messages (Persisted in localStorage)
+  // State: Mailbox & Messages
   const [folders, setFolders] = useState([]);
-  const [currentFolder, setCurrentFolder] = useState(() => localStorage.getItem("multimarg_webmail_last_folder") || "INBOX");
+  const [currentFolder, setCurrentFolder] = useState("INBOX");
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
@@ -240,11 +240,8 @@ const Webmail = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'unseen', 'flagged'
 
-  // State: Selected Message & Threaded Replies (Persisted in localStorage)
-  const [selectedUid, setSelectedUid] = useState(() => {
-    const saved = localStorage.getItem("multimarg_webmail_last_uid");
-    return saved ? parseInt(saved, 10) || saved : null;
-  });
+  // State: Selected Message & Threaded Replies
+  const [selectedUid, setSelectedUid] = useState(null);
   const [messageDetail, setMessageDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [threadReplies, setThreadReplies] = useState([]); // Real-time session replies
@@ -445,12 +442,6 @@ const Webmail = () => {
         setMessages(fetchedList);
         setTotalMessages(res.data.meta?.total || 0);
         setTotalPages(res.data.meta?.totalPages || 1);
-
-        // Auto-restore last opened email if exists in list and not yet loaded
-        const savedUid = localStorage.getItem("multimarg_webmail_last_uid");
-        if (savedUid && fetchedList.some(m => String(m.uid) === String(savedUid)) && !messageDetail) {
-          fetchMessageDetail(parseInt(savedUid, 10) || savedUid);
-        }
       }
     } catch (err) {
       if (!silent) {
@@ -460,7 +451,7 @@ const Webmail = () => {
     } finally {
       if (!silent) setLoadingMessages(false);
     }
-  }, [selectedAccountId, currentFolder, page, searchQuery, activeFilter, token, messageDetail]);
+  }, [selectedAccountId, currentFolder, page, searchQuery, activeFilter, token]);
 
   useEffect(() => {
     if (selectedAccountId) {
@@ -481,13 +472,12 @@ const Webmail = () => {
     return () => clearInterval(interval);
   }, [selectedAccountId, currentFolder, page, searchQuery, activeFilter]);
 
-  // Fetch Full Message Detail and persist UID
+  // Fetch Full Message Detail
   const fetchMessageDetail = async (uid) => {
     if (!selectedAccountId || !uid) return;
     try {
       setLoadingDetail(true);
       setSelectedUid(uid);
-      localStorage.setItem("multimarg_webmail_last_uid", String(uid));
       setThreadReplies([]);
       setIsQuickReplyOpen(false); // Collapsed by default on mobile
       if (isMobile) setMobileView("reader");
@@ -2610,45 +2600,44 @@ const Webmail = () => {
                   }}
                 />
 
-                {/* Optional Sender Name, Designation & Phone Row */}
-                <div style={{ marginBottom: "10px", padding: "8px 12px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showCustomSigner ? "8px" : 0 }}>
-                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>
-                      Signature Info (Auto-filled from IAM Profile)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomSigner(!showCustomSigner)}
-                      style={{ fontSize: "11px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
-                    >
-                      {showCustomSigner ? "Hide Details" : "+ Edit Name, Designation & Phone"}
-                    </button>
+                {/* Sender Identity & Signature Contact Row (Always prefilled & editable) */}
+                <div style={{ marginBottom: "12px", padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span>Sender Info &amp; Contact (Included in Signature)</span>
+                    <span style={{ fontSize: "10px", fontWeight: "600", color: "#2563eb" }}>Prefilled &bull; Editable</span>
                   </div>
-                  {showCustomSigner && (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Sender Name</label>
                       <input
                         type="text"
                         placeholder="Your Name (e.g. Akash Debnath)"
                         value={composeData.senderName || ""}
                         onChange={(e) => updateSenderInfo("senderName", e.target.value)}
-                        style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
+                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
                       />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Role / Designation</label>
                       <input
                         type="text"
                         placeholder="Designation (e.g. Accounts & IT Head)"
                         value={composeData.senderDesignation || ""}
                         onChange={(e) => updateSenderInfo("senderDesignation", e.target.value)}
-                        style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
-                      />
-                      <input
-                        type="tel"
-                        placeholder="Direct Phone (e.g. +91 98765 43210)"
-                        value={composeData.senderPhone || ""}
-                        onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
-                        style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
+                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
                       />
                     </div>
-                  )}
+                    <div>
+                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Direct Phone</label>
+                      <input
+                        type="tel"
+                        placeholder="Phone (e.g. +91 98765 43210)"
+                        value={composeData.senderPhone || ""}
+                        onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
+                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Official Signature Badge */}

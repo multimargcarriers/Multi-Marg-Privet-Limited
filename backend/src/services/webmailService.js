@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
 const nodemailer = require("nodemailer");
@@ -606,9 +608,9 @@ const buildCompanySignature = (account, customOptions = {}) => {
 <table cellpadding="0" cellspacing="0" border="0" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 13px; color: #1e293b; line-height: 1.5; border-top: 2px solid #2563eb; padding-top: 18px; margin-top: 26px; max-width: 620px; width: 100%;">
   <tr>
     <!-- Company Logo & Brand Badge -->
-    <td valign="top" style="padding-right: 18px; border-right: 2px solid #e2e8f0; width: 80px; text-align: center; vertical-align: top;">
+    <td valign="top" style="padding-right: 18px; border-right: 2px solid #e2e8f0; width: 76px; text-align: center; vertical-align: top;">
       <a href="https://multimarg.com" target="_blank" style="text-decoration: none; display: inline-block;">
-        <img src="https://soft.multimargcarriers.co.in/circle_crop_logo.png" alt="Multimarg Carriers Logo" width="68" height="68" style="display: block; border-radius: 50%; object-fit: contain; background: #ffffff; padding: 2px; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.08);" />
+        <img src="cid:multimarglogo" alt="Multimarg Carriers Logo" width="64" height="64" style="display: block; border-radius: 50%; object-fit: contain; background: #ffffff; padding: 2px; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 6px rgba(0,0,0,0.08);" />
       </a>
       <div style="font-size: 9px; font-weight: 800; color: #2563eb; letter-spacing: 1px; text-transform: uppercase; margin-top: 6px;">
         VERIFIED
@@ -648,19 +650,16 @@ const buildCompanySignature = (account, customOptions = {}) => {
         </span>` : ""}
       </div>
 
-      <!-- Humble & Warm Professional Confidentiality / Regards Notice -->
-      <div style="font-size: 10.5px; color: #64748b; line-height: 1.45; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
-        <em>Thank you for connecting with Multimarg Carriers. This communication is sent with warm regards and is intended solely for the recipient. If received in error, we kindly request you to let us know. Have a wonderful day!</em>
-      </div>
-      <div style="font-size: 9.5px; color: #16a34a; margin-top: 4px;">
-        &#127793; Thank you for supporting a greener environment. Please consider before printing.
+      <!-- Clean Professional Disclaimer Note -->
+      <div style="font-size: 10.5px; color: #64748b; line-height: 1.45; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;">
+        <em><strong>Disclaimer:</strong> This message and any attachments are confidential and intended solely for the recipient. If received in error, please notify the sender and delete this message.</em>
       </div>
     </td>
   </tr>
 </table>
 `;
 
-  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMULTIMARG CARRIERS PRIVATE LIMITED\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\nLandline: +91 5944-324033${senderPhone ? ` | Direct: ${senderPhone}` : ""}\n\nThank you for connecting with Multimarg Carriers. Have a wonderful day!\n`;
+  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMULTIMARG CARRIERS PRIVATE LIMITED\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\nLandline: +91 5944-324033${senderPhone ? ` | Direct: ${senderPhone}` : ""}\n`;
 
   return { htmlSignature, textSignature };
 };
@@ -672,31 +671,9 @@ const sendMail = async (account, { to, cc, bcc, subject, text, html, attachments
   const transporter = getSmtpTransporter(account);
   const { htmlSignature, textSignature } = buildCompanySignature(account, { senderName, senderDesignation, senderPhone });
 
-  // Top Corporate Branding Header Banner
-  const topHeaderBanner = `
-<table cellpadding="0" cellspacing="0" border="0" style="max-width: 620px; width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px;">
-  <tr>
-    <td valign="middle" style="width: 44px;">
-      <a href="https://multimarg.com" target="_blank" style="text-decoration: none; display: inline-block;">
-        <img src="https://soft.multimargcarriers.co.in/circle_crop_logo.png" alt="Multimarg Carriers Logo" width="40" height="40" style="display: block; border-radius: 50%; object-fit: contain; background: #ffffff; padding: 1px; border: 1px solid #cbd5e1;" />
-      </a>
-    </td>
-    <td valign="middle" style="padding-left: 12px;">
-      <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: 0.5px; text-transform: uppercase;">
-        MULTIMARG CARRIERS PRIVATE LIMITED
-      </div>
-      <div style="font-size: 10.5px; font-weight: 600; color: #2563eb; letter-spacing: 0.3px;">
-        Official Corporate Communication &bull; multimarg.com
-      </div>
-    </td>
-  </tr>
-</table>
-`;
-
-  // Wrap final HTML with top branding header and bottom signature
+  // Wrap final HTML with clean message body and bottom signature (no top banner)
   const finalHtml = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 640px;">
-  ${topHeaderBanner}
   <div style="padding: 4px 0 16px 0; font-size: 14px; color: #1e293b;">
     ${html || (text ? `<p style="white-space: pre-wrap; margin: 0;">${text}</p>` : "")}
   </div>
@@ -715,17 +692,29 @@ const sendMail = async (account, { to, cc, bcc, subject, text, html, attachments
 
   const fromDisplayName = `${formattedSender} | MULTIMARG CARRIERS`;
 
+  // Attachments list + inline CID logo
+  const mailAttachments = attachments.map(att => ({
+    filename: att.originalname || att.filename,
+    content: att.buffer || att.content,
+    contentType: att.mimetype || att.contentType
+  }));
+
+  const logoFile = path.resolve(__dirname, "../../public/circle_crop_logo.png");
+  if (fs.existsSync(logoFile)) {
+    mailAttachments.push({
+      filename: "logo.png",
+      path: logoFile,
+      cid: "multimarglogo"
+    });
+  }
+
   const mailOptions = {
     from: `"${fromDisplayName}" <${account.email}>`,
     to,
     subject: subject || "(No Subject)",
     text: finalText,
     html: finalHtml,
-    attachments: attachments.map(att => ({
-      filename: att.originalname || att.filename,
-      content: att.buffer || att.content,
-      contentType: att.mimetype || att.contentType
-    }))
+    attachments: mailAttachments
   };
 
   if (cc) mailOptions.cc = cc;
