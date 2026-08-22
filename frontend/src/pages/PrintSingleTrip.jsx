@@ -114,9 +114,7 @@ const PrintSingleTrip = () => {
 
   const allParcels = trip.parcels && trip.parcels.length > 0 ? trip.parcels : [];
   
-  // Intelligent Dynamic Page Splitting:
-  // Fits up to 14 parcels comfortably on 1 single page utilizing the full space.
-  // Breaks to Page 2 only if total parcels exceed 14.
+  // Intelligent Dynamic Page Splitting
   const pages = [];
   if (allParcels.length <= 14) {
     pages.push({ parcels: allParcels, pageNum: 1, isLast: true, isFirst: true });
@@ -180,6 +178,7 @@ const PrintSingleTrip = () => {
           table-layout: fixed !important;
           border-collapse: collapse !important;
           font-size: 0.65rem !important;
+          background: transparent !important;
         }
         .manifest-table th, 
         .manifest-table td {
@@ -200,7 +199,7 @@ const PrintSingleTrip = () => {
           font-variant-numeric: tabular-nums;
         }
         .gray-cell {
-          background-color: #f1f5f9 !important;
+          background-color: rgba(241, 245, 249, 0.85) !important;
           color: #1e293b !important;
           font-weight: 700 !important;
           text-transform: uppercase !important;
@@ -328,9 +327,9 @@ const PrintSingleTrip = () => {
           >
             {pages.map((page, pIdx) => (
               <div key={`page-${pIdx}`} className="single-trip-page">
-                {/* Watermark */}
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                  <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "35%", opacity: 0.07 }} />
+                {/* Watermark - Seamless Constant Overlay */}
+                <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "100%", height: "100%", zIndex: 10, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <img src={printHeader === "PRIME" ? "/Prime RoadWAYS.png" : "/mc.png"} alt="Watermark" style={{ width: "48%", opacity: 0.16, objectFit: "contain", mixBlendMode: "multiply", pointerEvents: "none" }} />
                 </div>
 
                 <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
@@ -450,7 +449,7 @@ const PrintSingleTrip = () => {
                         <tbody>
                           {page.parcels.length > 0 ? (
                             page.parcels.map((p, i) => (
-                              <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "#f8fafc" : "#ffffff" }}>
+                              <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "rgba(241, 245, 249, 0.55)" : "transparent" }}>
                                 <td className="data-cell nowrap-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
                                 <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
                                 <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
@@ -469,7 +468,7 @@ const PrintSingleTrip = () => {
                         </tbody>
                         {page.isLast && (
                           <tfoot>
-                            <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0" }}>
+                            <tr className="gray-cell" style={{ backgroundColor: "rgba(226, 232, 240, 0.85)" }}>
                               <td colSpan="6" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a" }}>TOTAL ITEMS ({trip.parcels?.length || 0}):</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.box || (trip.parcels?.reduce((s,p)=>s+(parseInt(p.box)||0),0) || 0)}</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.weight || (trip.parcels?.reduce((s,p)=>s+(parseFloat(p.weight)||0),0) || 0)}</td>
@@ -503,7 +502,7 @@ const PrintSingleTrip = () => {
                         <tbody>
                           {page.parcels.length > 0 ? (
                             page.parcels.map((p, i) => (
-                              <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "#f8fafc" : "#ffffff" }}>
+                              <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "rgba(241, 245, 249, 0.55)" : "transparent" }}>
                                 <td className="data-cell nowrap-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
                                 <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
                                 <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
@@ -532,7 +531,7 @@ const PrintSingleTrip = () => {
                         </tbody>
                         {page.isLast && (
                           <tfoot>
-                            <tr className="gray-cell" style={{ backgroundColor: "#e2e8f0", fontSize: "0.6rem" }}>
+                            <tr className="gray-cell" style={{ backgroundColor: "rgba(226, 232, 240, 0.85)", fontSize: "0.6rem" }}>
                               <td colSpan="6" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a" }}>TOTAL:</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.box || (trip.parcels?.reduce((s,p)=>s+(parseInt(p.box)||0),0) || 0)}</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.weight || (trip.parcels?.reduce((s,p)=>s+(parseFloat(p.weight)||0),0) || 0)}</td>
