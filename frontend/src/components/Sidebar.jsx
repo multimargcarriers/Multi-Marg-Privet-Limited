@@ -13,7 +13,7 @@ import {
   Building2,
   Briefcase,
   MapPin,
-  DollarSign,
+  IndianRupee,
   Truck,
   ClipboardList,
   Receipt,
@@ -100,7 +100,7 @@ export const menuItems = [
       {
         name: "Cash Sheet",
         path: "/cash-sheet",
-        icon: <DollarSign size={18} />,
+        icon: <IndianRupee size={18} />,
         permission: "cash_sheet",
         moduleKey: "cashEntries"
       },
@@ -114,7 +114,7 @@ export const menuItems = [
       {
         name: "TDS & Debt Adjustment",
         path: "/outstanding",
-        icon: <DollarSign size={18} />,
+        icon: <IndianRupee size={18} />,
         permission: "accounts"
       },
       {
@@ -137,7 +137,7 @@ export const menuItems = [
       { name: "Unbilled Reports", path: "/reports/unbilled", icon: <ClipboardList size={18} />, permission: "unbilled_reports" },
       { name: "Sales Reports", path: "/reports/sales", icon: <Receipt size={18} />, permission: "sales_reports" },
       { name: "Purchase Reports", path: "/reports/purchases", icon: <ShoppingCart size={18} />, permission: "purchase_reports" },
-      { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <DollarSign size={18} />, permission: "cashsheet_reports" },
+      { name: "Cashsheet Reports", path: "/reports/cashsheet", icon: <IndianRupee size={18} />, permission: "cashsheet_reports" },
       { name: "Client Trip Reports", path: "/reports/client-trips", icon: <Truck size={18} />, permission: "client_trip_reports" },
     ],
   },
@@ -156,13 +156,13 @@ export const menuItems = [
   {
     name: "Rates",
     isHeader: true,
-    icon: <DollarSign size={18} />,
+    icon: <IndianRupee size={18} />,
     permission: "rates",
     children: [
       {
         name: "Client Rates",
         path: "/rates",
-        icon: <DollarSign size={18} />,
+        icon: <IndianRupee size={18} />,
         permission: "client_rates"
       },
     ],

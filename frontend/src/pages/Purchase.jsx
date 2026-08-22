@@ -18,7 +18,7 @@ import {
   ShoppingCart,
   Receipt,
   FileSpreadsheet,
-  DollarSign, Search, Filter, Clock, Shield
+  IndianRupee, Search, Filter, Clock, Shield
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -997,7 +997,7 @@ const Purchase = () => {
         { label: "Total Value", value: "₹" + formatAmount(stats.totalAmount), icon: ShoppingCart, color: "purple" },
         { label: "Total Paid", value: "₹" + formatAmount(stats.totalPaid), icon: Receipt, color: "green" },
         { label: "TDS Deducted", value: "₹" + formatAmount(stats.totalTds), icon: Shield, color: "yellow" },
-        { label: "Total Outstanding", value: "₹" + formatAmount(stats.outstanding), icon: DollarSign, color: "red" }
+        { label: "Total Outstanding", value: "₹" + formatAmount(stats.outstanding), icon: IndianRupee, color: "red" }
       ]} />
 
       
@@ -1248,7 +1248,7 @@ const Purchase = () => {
                          style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", color: "#6d28d9", cursor: "pointer", padding: "4px 8px", borderRadius: "6px", fontWeight: 600, fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}
                          title="Pay Bill"
                        >
-                         <DollarSign size={12} /> Pay
+                         <IndianRupee size={12} /> Pay
                        </button>
                     )}
                     {isSuperAdmin && !item.isOfflinePending && (
@@ -1326,7 +1326,7 @@ const Purchase = () => {
             {/* Modal Header */}
             <div className="modal-header-section">
               <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700" }}>
-                <DollarSign size={20} color="#8b5cf6" /> Pay Vendor Bill
+                <IndianRupee size={20} color="#8b5cf6" /> Pay Vendor Bill
               </h3>
               <button 
                 type="button" 

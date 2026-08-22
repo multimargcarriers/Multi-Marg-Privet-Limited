@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import { 
-  DollarSign, AlertCircle, TrendingUp, Calendar, Filter, Truck, RefreshCw, User, Briefcase, FileText
+  IndianRupee, AlertCircle, TrendingUp, Calendar, Filter, Truck, RefreshCw, User, Briefcase, FileText
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { useToast } from '../context/ToastContext';
@@ -193,7 +193,7 @@ const Analytics = () => {
       {/* Tabs */}
       <div className="analytics-tabs">
         <button className={`tab-btn ${activeTab === 'financials' ? 'active' : ''}`} onClick={() => setActiveTab('financials')}>
-          <DollarSign size={18}/> Financials
+          <IndianRupee size={18}/> Financials
         </button>
         <button className={`tab-btn ${activeTab === 'operations' ? 'active' : ''}`} onClick={() => setActiveTab('operations')}>
           <Truck size={18}/> Operations
@@ -221,13 +221,13 @@ const Analytics = () => {
                 <StatCard 
                   title="Total Expenses" 
                   value={<span className="flex-center"><RupeeIcon size={24}/> &nbsp;{(data.financial?.totalExpenses || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>} 
-                  icon={<DollarSign size={24} color="#ef4444" />} 
+                  icon={<IndianRupee size={24} color="#ef4444" />} 
                   subtitle="Total purchase bills amount" 
                 />
                 <StatCard 
                   title="Money Received" 
                   value={<span className="flex-center"><RupeeIcon size={24}/> &nbsp;{(data.financial?.paidAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>} 
-                  icon={<DollarSign size={24} color="#4f46e5" />} 
+                  icon={<IndianRupee size={24} color="#4f46e5" />} 
                   subtitle="Actual cash received against bills" 
                 />
                 <StatCard 

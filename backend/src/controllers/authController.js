@@ -353,8 +353,25 @@ exports.post_login_1 = async (req, res) => {
     snapshot = await usersRef.where("username", "==", loginId).get();
   }
 
+  // Check Phone Number Login (exact match, formatted, and digits-only)
   if (snapshot.empty) {
-    return error(res, { message: "Invalid Email, Username, or Employee ID", statusCode: 401 });
+    snapshot = await usersRef.where("phone", "==", loginId).get();
+  }
+
+  if (snapshot.empty) {
+    snapshot = await usersRef.where("phoneNumber", "==", loginId).get();
+  }
+
+  const cleanDigits = loginId.replace(/\D/g, "");
+  if (snapshot.empty && cleanDigits.length >= 7) {
+    snapshot = await usersRef.where("phone", "==", cleanDigits).get();
+    if (snapshot.empty) {
+      snapshot = await usersRef.where("phoneNumber", "==", cleanDigits).get();
+    }
+  }
+
+  if (snapshot.empty) {
+    return error(res, { message: "Invalid Email, Phone Number, Username, or Employee ID", statusCode: 401 });
   }
 
   let userDoc = null;
@@ -425,7 +442,10 @@ exports.post_login_1 = async (req, res) => {
   // Fallback if no role/permissions are set in DB for existing users
   if (!userData.role) userData.role = "SuperAdmin";
   if (!userData.permissions) userData.permissions = ["all"];
-  if (userData.twoFactorEnabled === undefined) userData.twoFactorEnabled = true;
+  if (userData.twoFactorEnabled === undefined) userData.twoFactorEnabled = false;
+  if (userData.faceAuthEnabled === undefined) userData.faceAuthEnabled = false;
+  if (userData.fingerprintAuthEnabled === undefined) userData.fingerprintAuthEnabled = false;
+  if (userData.showFloatingMailbox === undefined) userData.showFloatingMailbox = false;
 
   // --- ADD GEO-IP TRACKING & LOGGING ---
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
@@ -450,15 +470,15 @@ exports.post_login_1 = async (req, res) => {
   
     try {
       await db.collection("userActivities").add({
-        userId: userData.id,
+        userId: userDoc.id,
         type: 'login',
-        title: 'Successful sign-in',
+        title: 'Successful password sign-in',
         date: new Date().toISOString(),
         location,
         ip: cleanIp
       });
     } catch (err) {
-      console.error("Error logging user activity:", err);
+      console.error("Error logging user activity (password login):", err);
     }
   })();
   // -------------------------------------
@@ -480,6 +500,9 @@ exports.put_profile_2 = async (req, res) => {
     employeeId,
     username,
     bloodGroup,
+    phone,
+    phoneNumber,
+    designation,
     photoData,
     bannerData,
     fileName
@@ -567,6 +590,16 @@ exports.put_profile_2 = async (req, res) => {
   if (email !== undefined && isSuperAdmin && String(email).trim()) updates.email = String(email).toLowerCase().trim();
   if (employeeId !== undefined && isSuperAdmin && String(employeeId).trim()) updates.employeeId = String(employeeId).trim();
   if (bloodGroup !== undefined) updates.bloodGroup = String(bloodGroup).trim();
+
+  // Phone Number & Designation
+  const userPhone = phone || phoneNumber;
+  if (userPhone !== undefined) {
+    updates.phone = String(userPhone).trim();
+    updates.phoneNumber = String(userPhone).trim();
+  }
+  if (designation !== undefined) {
+    updates.designation = String(designation).trim();
+  }
 
   if (username !== undefined && String(username).trim()) {
     const rawUsername = String(username).trim();
@@ -1039,9 +1072,13 @@ exports.toggle_two_factor = async (req, res) => {
     if (updates.faceAuthEnabled !== undefined || updates.fingerprintAuthEnabled !== undefined) {
       const userDoc = await db.collection("users").doc(userId).get();
       const existingData = userDoc.exists ? userDoc.data() : {};
-      const faceOn = updates.faceAuthEnabled !== undefined ? updates.faceAuthEnabled : (existingData.faceAuthEnabled !== false);
-      const fingerOn = updates.fingerprintAuthEnabled !== undefined ? updates.fingerprintAuthEnabled : (existingData.fingerprintAuthEnabled !== false);
+      const faceOn = updates.faceAuthEnabled !== undefined ? updates.faceAuthEnabled : Boolean(existingData.faceAuthEnabled === true);
+      const fingerOn = updates.fingerprintAuthEnabled !== undefined ? updates.fingerprintAuthEnabled : Boolean(existingData.fingerprintAuthEnabled === true);
       updates.twoFactorEnabled = Boolean(faceOn || fingerOn);
+    }
+
+    if (req.body.showFloatingMailbox !== undefined) {
+      updates.showFloatingMailbox = Boolean(req.body.showFloatingMailbox);
     }
 
     const userDocRef = db.collection("users").doc(userId);
@@ -1051,11 +1088,12 @@ exports.toggle_two_factor = async (req, res) => {
     const freshUser = freshDoc.data() || {};
 
     return success(res, {
-      message: "Biometric security preferences updated successfully",
+      message: "Security preferences updated successfully",
       data: {
-        twoFactorEnabled: freshUser.twoFactorEnabled !== false,
-        faceAuthEnabled: freshUser.faceAuthEnabled !== false,
-        fingerprintAuthEnabled: freshUser.fingerprintAuthEnabled !== false
+        twoFactorEnabled: Boolean(freshUser.twoFactorEnabled === true),
+        faceAuthEnabled: Boolean(freshUser.faceAuthEnabled === true),
+        fingerprintAuthEnabled: Boolean(freshUser.fingerprintAuthEnabled === true),
+        showFloatingMailbox: Boolean(freshUser.showFloatingMailbox === true)
       }
     });
   } catch (err) {

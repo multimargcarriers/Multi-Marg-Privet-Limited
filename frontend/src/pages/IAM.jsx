@@ -235,7 +235,18 @@ const IAM = () => {
 
   const openModal = (user = null) => {
     if (user) {
-      setFormData({ employeeId: '', bloodGroup: '', ...user, username: (user.username || '').toLowerCase(), password: '' });
+      setFormData({
+        employeeId: '',
+        bloodGroup: '',
+        phone: '',
+        phoneNumber: '',
+        designation: '',
+        ...user,
+        phone: user.phone || user.phoneNumber || '',
+        designation: user.designation || '',
+        username: (user.username || '').toLowerCase(),
+        password: ''
+      });
       if ((user.role === 'Client' || user.role === 'Vendor') && user.name) {
         const inList = user.role === 'Client' 
           ? clientsList.some(c => (c.name || c.clientName) === user.name)
@@ -245,7 +256,20 @@ const IAM = () => {
         setIsCustomName(false);
       }
     } else {
-      setFormData({ id: '', name: '', username: '', email: '', password: '', role: 'Admin', permissions: [], employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}`, bloodGroup: '' });
+      setFormData({
+        id: '',
+        name: '',
+        username: '',
+        email: '',
+        phone: '',
+        phoneNumber: '',
+        designation: '',
+        password: '',
+        role: 'Admin',
+        permissions: [],
+        employeeId: `MCPL-${Math.floor(1000 + Math.random() * 9000)}`,
+        bloodGroup: ''
+      });
       setIsCustomName(false);
     }
     // Expand all sections by default when opening modal
@@ -735,6 +759,26 @@ const IAM = () => {
                     />
                   </div>
                   <div className="iam-form-field">
+                    <label>Designation <span>(Optional)</span></label>
+                    <input 
+                      type="text" 
+                      value={formData.designation || ''} 
+                      onChange={e => setFormData({...formData, designation: e.target.value})} 
+                      className="iam-input"
+                      placeholder="e.g. Accounts Head, Logistics Manager"
+                    />
+                  </div>
+                  <div className="iam-form-field">
+                    <label>Phone Number <span>(Optional)</span></label>
+                    <input 
+                      type="tel" 
+                      value={formData.phone || formData.phoneNumber || ''} 
+                      onChange={e => setFormData({...formData, phone: e.target.value, phoneNumber: e.target.value})} 
+                      className="iam-input"
+                      placeholder="e.g. +91 98765 43210"
+                    />
+                  </div>
+                  <div className="iam-form-field">
                     <label>Blood Group</label>
                     <select
                       value={formData.bloodGroup || ''}
@@ -799,32 +843,34 @@ const IAM = () => {
                                   type="checkbox" 
                                   checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
                                   onChange={() => handleTogglePermission(node.id)}
-                                  className="iam-checkbox"
-                                  onClick={e => e.stopPropagation()}
+                                  className="iam-checkbox-sm"
+                                  style={{ marginRight: '8px', accentColor: '#4F46E5' }}
                                 />
                                 <span style={{ fontSize: '0.88rem', color: '#1e293b', fontWeight: '600' }}>{node.name}</span>
                               </div>
                             );
                           }
                           
-                          const isExpanded = expandedSections[node.id] !== false;
                           return (
                             <div key={node.id} className="iam-perm-group">
                               <div className="iam-perm-header" onClick={() => toggleSection(node.id)}>
+                                {expandedSections[node.id] !== false ? <ChevronDown size={16} color="#64748b" /> : <ChevronRight size={16} color="#64748b" />}
                                 <input 
                                   type="checkbox" 
                                   checked={formData.permissions.includes(node.id) || formData.permissions.includes('all')}
-                                  onChange={() => handleTogglePermission(node.id)}
-                                  className="iam-checkbox"
-                                  onClick={e => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePermission(node.id);
+                                  }}
+                                  className="iam-checkbox-sm"
+                                  style={{ accentColor: '#4F46E5', marginRight: '8px' }}
                                 />
                                 <span className="iam-perm-header-label">
                                   {node.name}
-                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: '400' }}>({node.pages.length})</span>
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: '400', marginLeft: '4px' }}>({node.pages.length})</span>
                                 </span>
-                                {isExpanded ? <ChevronDown size={14} color="#94a3b8" /> : <ChevronRight size={14} color="#94a3b8" />}
                               </div>
-                              {isExpanded && node.pages && (
+                              {expandedSections[node.id] !== false && node.pages && (
                                 <div className="iam-perm-children">
                                   {node.pages.map(page => {
                                     const isChecked = formData.permissions.includes(page.id) || formData.permissions.includes(node.id) || formData.permissions.includes('all');
@@ -874,13 +920,21 @@ const IAM = () => {
       <div className="iam-table-wrap">
         <Table
           loading={loading}
-          headers={['Name', 'Username', 'Employee ID', 'Email', 'Role', 'Permissions', 'Actions']}
+          headers={['Name & Designation', 'Username', 'Employee ID', 'Phone Number', 'Email', 'Role', 'Permissions', 'Actions']}
           data={users}
           renderRow={(u, index) => (
             <tr key={u.id || index}>
-              <td><strong>{u.name}</strong></td>
+              <td>
+                <div style={{ fontWeight: 700, color: '#0f172a' }}>{u.name}</div>
+                {u.designation && (
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{u.designation}</div>
+                )}
+              </td>
               <td style={{ color: '#64748b' }}>{u.username ? `@${u.username.toLowerCase()}` : <span style={{opacity: 0.5}}>-</span>}</td>
               <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
+              <td style={{ whiteSpace: 'nowrap', color: '#0f172a', fontWeight: 500 }}>
+                {u.phone || u.phoneNumber || <span style={{ opacity: 0.4 }}>Not set</span>}
+              </td>
               <td>{u.email}</td>
               <td>
                 <span className={`iam-role-badge ${u.role === 'SuperAdmin' ? 'iam-role-super' : 'iam-role-default'}`}>

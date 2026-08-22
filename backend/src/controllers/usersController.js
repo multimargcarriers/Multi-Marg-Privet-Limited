@@ -49,7 +49,10 @@ exports.postRoot_2 = async (req, res) => {
     permissions,
     employeeId,
     username,
-    bloodGroup
+    bloodGroup,
+    phone,
+    phoneNumber,
+    designation
   } = req.body;
   if (!name || !email || !password || !role || !employeeId) {
     return error(res, {
@@ -62,6 +65,8 @@ exports.postRoot_2 = async (req, res) => {
 
   const emailLower = email ? email.toLowerCase().trim() : "";
   const usernameLower = username ? username.toLowerCase().trim() : "";
+  const userPhone = String(phone || phoneNumber || "").trim();
+  const userDesignation = String(designation || "").trim();
 
   // Check Employee ID uniqueness
   const empIdSnapshot = await db.collection("users").where("employeeId", "==", employeeId).get();
@@ -84,12 +89,19 @@ exports.postRoot_2 = async (req, res) => {
     name,
     email: emailLower,
     username: usernameLower,
+    phone: userPhone,
+    phoneNumber: userPhone,
+    designation: userDesignation,
     password: hashedPassword,
     role,
     permissions: permissions || [],
     bloodGroup: bloodGroup || "",
     photo: randomAvatar,
     banner: randomBanner,
+    twoFactorEnabled: false,
+    faceAuthEnabled: false,
+    fingerprintAuthEnabled: false,
+    showFloatingMailbox: false,
     createdAt: new Date().toISOString()
   };
   const snapshot = await db.collection("users").where("email", "==", email).get();
@@ -125,7 +137,10 @@ exports.put_id_3 = async (req, res) => {
     permissions,
     password,
     employeeId,
-    username
+    username,
+    phone,
+    phoneNumber,
+    designation
   } = req.body;
   const updates = {
     name,
@@ -138,6 +153,14 @@ exports.put_id_3 = async (req, res) => {
   if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
   if (username !== undefined) {
     updates.username = username ? username.toLowerCase().trim() : "";
+  }
+  const rawPhone = phone || phoneNumber;
+  if (rawPhone !== undefined) {
+    updates.phone = String(rawPhone).trim();
+    updates.phoneNumber = String(rawPhone).trim();
+  }
+  if (designation !== undefined) {
+    updates.designation = String(designation).trim();
   }
   
   if (password) {

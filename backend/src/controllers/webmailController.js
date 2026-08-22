@@ -432,7 +432,8 @@ exports.sendMessage = async (req, res) => {
     inReplyTo,
     references,
     senderName,
-    senderDesignation
+    senderDesignation,
+    senderPhone
   } = req.body || {};
 
   console.log(`[Webmail Send] Request received from user ${req.user?.email} for accountId: ${accountId}, recipient: ${to}`);
@@ -477,7 +478,8 @@ exports.sendMessage = async (req, res) => {
       inReplyTo,
       references,
       senderName,
-      senderDesignation
+      senderDesignation,
+      senderPhone
     });
 
     return success(res, {

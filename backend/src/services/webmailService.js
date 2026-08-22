@@ -598,6 +598,7 @@ const buildCompanySignature = (account, customOptions = {}) => {
   }
 
   const senderDesignation = (customOptions.senderDesignation || customOptions.designation || "").trim();
+  const senderPhone = (customOptions.senderPhone || customOptions.phone || "").trim();
   const senderEmail = account.email || "info@multimarg.com";
 
   const htmlSignature = `
@@ -627,7 +628,7 @@ const buildCompanySignature = (account, customOptions = {}) => {
         <strong>Registered Address:</strong> LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India
       </div>
 
-      <!-- Contact Links -->
+      <!-- Contact Links & Phones -->
       <div style="margin-bottom: 10px; font-size: 11.5px; line-height: 1.8;">
         <span style="color: #475569;">
           <strong>Email:</strong> <a href="mailto:${senderEmail}" style="color: #2563eb; text-decoration: none; font-weight: 600;">${senderEmail}</a>
@@ -636,6 +637,15 @@ const buildCompanySignature = (account, customOptions = {}) => {
         <span style="color: #475569;">
           <strong>Website:</strong> <a href="https://multimarg.com" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">multimarg.com</a>
         </span>
+        <br/>
+        <span style="color: #475569;">
+          <strong>Landline:</strong> <a href="tel:+915944324033" style="color: #2563eb; text-decoration: none; font-weight: 600;">+91 5944-324033</a>
+        </span>
+        ${senderPhone ? `
+        <span style="color: #cbd5e1; margin: 0 6px;">&bull;</span>
+        <span style="color: #475569;">
+          <strong>Direct:</strong> <a href="tel:${senderPhone.replace(/\s+/g, '')}" style="color: #2563eb; text-decoration: none; font-weight: 600;">${senderPhone}</a>
+        </span>` : ""}
       </div>
 
       <!-- Humble & Warm Professional Confidentiality / Regards Notice -->
@@ -650,7 +660,7 @@ const buildCompanySignature = (account, customOptions = {}) => {
 </table>
 `;
 
-  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMULTIMARG CARRIERS PRIVATE LIMITED\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\n\nThank you for connecting with Multimarg Carriers. Have a wonderful day!\n`;
+  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMULTIMARG CARRIERS PRIVATE LIMITED\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\nLandline: +91 5944-324033${senderPhone ? ` | Direct: ${senderPhone}` : ""}\n\nThank you for connecting with Multimarg Carriers. Have a wonderful day!\n`;
 
   return { htmlSignature, textSignature };
 };
@@ -658,9 +668,9 @@ const buildCompanySignature = (account, customOptions = {}) => {
 /**
  * Send email via SMTP
  */
-const sendMail = async (account, { to, cc, bcc, subject, text, html, attachments = [], inReplyTo, references, senderName, senderDesignation }) => {
+const sendMail = async (account, { to, cc, bcc, subject, text, html, attachments = [], inReplyTo, references, senderName, senderDesignation, senderPhone }) => {
   const transporter = getSmtpTransporter(account);
-  const { htmlSignature, textSignature } = buildCompanySignature(account, { senderName, senderDesignation });
+  const { htmlSignature, textSignature } = buildCompanySignature(account, { senderName, senderDesignation, senderPhone });
 
   // Top Corporate Branding Header Banner
   const topHeaderBanner = `

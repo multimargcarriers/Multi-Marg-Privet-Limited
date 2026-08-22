@@ -127,7 +127,7 @@ const Login = () => {
       const res = await axios.post(`${API_URL}/api/auth/google-login`, { idToken });
       if (res.data.success) {
         const authData = res.data.data;
-        const requires2Fa = authData.user?.twoFactorEnabled !== false;
+        const requires2Fa = (authData.user?.twoFactorEnabled === true) && (authData.user?.faceAuthEnabled === true || authData.user?.fingerprintAuthEnabled === true);
         if (requires2Fa) {
           setPendingAuth(authData);
           setView('device_auth');
@@ -223,9 +223,9 @@ const Login = () => {
       if (response.data.success) {
         const authData = response.data.data;
         const targetUser = authData.user || {};
-        const faceOn = targetUser.faceAuthEnabled !== false;
-        const fingerOn = targetUser.fingerprintAuthEnabled !== false;
-        const requires2Fa = (targetUser.twoFactorEnabled !== false) && (faceOn || fingerOn);
+        const faceOn = targetUser.faceAuthEnabled === true;
+        const fingerOn = targetUser.fingerprintAuthEnabled === true;
+        const requires2Fa = (targetUser.twoFactorEnabled === true) && (faceOn || fingerOn);
 
         if (requires2Fa) {
           setPendingAuth(authData);
@@ -808,19 +808,19 @@ const Login = () => {
           {view === 'login' && (
             <form onSubmit={handleLogin}>
               <div className="input-group">
-                <label htmlFor="login-email" className="sr-only">Email, Username, or Emp Code</label>
+                <label htmlFor="login-email" className="sr-only">Email, Phone Number, Username, or Emp Code</label>
                 <div className="icon-wrapper"><Mail size={18} strokeWidth={2} /></div>
                 <input 
                   id="login-email"
                   name="email"
                   type="text" 
                   className="input-field"
-                  placeholder="Email, Username, or Emp Code" 
+                  placeholder="Email, Phone, Username, or Emp Code" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
-                  aria-label="Email, Username, or Emp Code"
+                  aria-label="Email, Phone Number, Username, or Emp Code"
                 />
               </div>
 

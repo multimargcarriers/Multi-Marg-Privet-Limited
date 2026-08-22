@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard, Fingerprint, Scan } from 'lucide-react';
+import { Camera, User, Shield, Key, LogOut, Globe, Clock, CheckCircle, ChevronRight, LayoutGrid, ShieldCheck, Monitor, History, X, IdCard, Fingerprint, Scan, Mail } from 'lucide-react';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
 import IDCardFront from '../components/IDCardFront';
@@ -24,6 +24,8 @@ const Profile = () => {
   const [employeeId, setEmployeeId] = useState(user?.employeeId || '');
   const [username, setUsername] = useState((user?.username || '').toLowerCase());
   const [bloodGroup, setBloodGroup] = useState(user?.bloodGroup || '');
+  const [phone, setPhone] = useState(user?.phone || user?.phoneNumber || '');
+  const [designation, setDesignation] = useState(user?.designation || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [photoPreview, setPhotoPreview] = useState(user?.photo || null);
@@ -32,16 +34,19 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showTestFaceScanner, setShowTestFaceScanner] = useState(false);
 
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled !== false);
-  const [faceAuthEnabled, setFaceAuthEnabled] = useState(user?.faceAuthEnabled !== false);
-  const [fingerprintAuthEnabled, setFingerprintAuthEnabled] = useState(user?.fingerprintAuthEnabled !== false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(Boolean(user?.twoFactorEnabled === true));
+  const [faceAuthEnabled, setFaceAuthEnabled] = useState(Boolean(user?.faceAuthEnabled === true));
+  const [fingerprintAuthEnabled, setFingerprintAuthEnabled] = useState(Boolean(user?.fingerprintAuthEnabled === true));
+  const [showFloatingMailbox, setShowFloatingMailbox] = useState(Boolean(user?.showFloatingMailbox === true));
   const [toggling2Fa, setToggling2Fa] = useState(false);
+  const [togglingMailbox, setTogglingMailbox] = useState(false);
 
   useEffect(() => {
     if (user) {
-      if (user.faceAuthEnabled !== undefined) setFaceAuthEnabled(user.faceAuthEnabled !== false);
-      if (user.fingerprintAuthEnabled !== undefined) setFingerprintAuthEnabled(user.fingerprintAuthEnabled !== false);
-      if (user.twoFactorEnabled !== undefined) setTwoFactorEnabled(user.twoFactorEnabled !== false);
+      setFaceAuthEnabled(Boolean(user.faceAuthEnabled === true));
+      setFingerprintAuthEnabled(Boolean(user.fingerprintAuthEnabled === true));
+      setTwoFactorEnabled(Boolean(user.twoFactorEnabled === true));
+      setShowFloatingMailbox(Boolean(user.showFloatingMailbox === true));
     }
   }, [user]);
 
@@ -103,6 +108,8 @@ const Profile = () => {
       setEmployeeId(user.employeeId || '');
       setUsername(user.username || '');
       setBloodGroup(user.bloodGroup || '');
+      setPhone(user.phone || user.phoneNumber || '');
+      setDesignation(user.designation || '');
       const userPhoto = user.photo || user.avatar || user.picture || null;
       if (userPhoto) setPhotoPreview(userPhoto);
       if (user.banner || user.bannerUrl) setBannerPreview(user.banner || user.bannerUrl);
@@ -323,6 +330,33 @@ const Profile = () => {
     }
   };
 
+  const handleToggleFloatingMailbox = async () => {
+    setTogglingMailbox(true);
+    const nextState = !showFloatingMailbox;
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
+        { showFloatingMailbox: nextState },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        setShowFloatingMailbox(nextState);
+        updateUser({ ...user, showFloatingMailbox: nextState });
+        addToast(
+          nextState 
+            ? "Floating Mailbox Quick Button Enabled (Bottom-Right)" 
+            : "Floating Mailbox Button Disabled (Sidebar Access Only)", 
+          "success"
+        );
+      }
+    } catch (err) {
+      console.error("Failed to toggle floating mailbox button:", err);
+      addToast(err.response?.data?.message || "Failed to update mailbox button preference", "error");
+    } finally {
+      setTogglingMailbox(false);
+    }
+  };
+
   const handleSelectGallery = async (url) => {
     if (galleryType === 'photo') {
       setPhotoPreview(url);
@@ -380,6 +414,9 @@ const Profile = () => {
       const payload = {
         name,
         bloodGroup: bloodGroup || '',
+        phone: phone || '',
+        phoneNumber: phone || '',
+        designation: designation || '',
       };
       if (isSuperAdmin) {
         if (email) payload.email = email;
@@ -406,6 +443,8 @@ const Profile = () => {
         updateUser(updatedUser, response.data.data.token);
         if (updatedUser?.bloodGroup !== undefined) setBloodGroup(updatedUser.bloodGroup);
         if (updatedUser?.name) setName(updatedUser.name);
+        if (updatedUser?.phone !== undefined) setPhone(updatedUser.phone);
+        if (updatedUser?.designation !== undefined) setDesignation(updatedUser.designation);
         setPassword('');
         setCurrentPassword('');
       } else {
@@ -646,12 +685,22 @@ const Profile = () => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address {!isSuperAdmin && <span style={{ fontSize: '0.8rem', color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 500 }}>(Contact SuperAdmin to change)</span>}</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Designation / Job Role</label>
+                    <input type="text" value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="e.g. Accounts & IT Head, Operations Lead" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Phone Number</label>
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +91 98765 43210" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Email Address</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!isSuperAdmin} style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: !isSuperAdmin ? '#f1f5f9' : 'var(--bg-color)', color: !isSuperAdmin ? '#94a3b8' : 'var(--text-dark)', cursor: !isSuperAdmin ? 'not-allowed' : 'text' }} onFocus={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#0078D4'} onBlur={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#8A8886'} />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID {!isSuperAdmin && <span style={{ fontSize: '0.8rem', color: '#f59e0b', marginLeft: '0.5rem', fontWeight: 500 }}>(Contact SuperAdmin to change)</span>}</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.95rem' }}>Employee ID</label>
                     <input type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} disabled={!isSuperAdmin} placeholder="MCPL-1234" style={{ width: '100%', maxWidth: '500px', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: !isSuperAdmin ? '#f1f5f9' : 'var(--bg-color)', color: !isSuperAdmin ? '#94a3b8' : 'var(--text-dark)', cursor: !isSuperAdmin ? 'not-allowed' : 'text' }} onFocus={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#0078D4'} onBlur={(e) => !isSuperAdmin ? null : e.target.style.borderColor = '#8A8886'} />
                   </div>
 
@@ -687,273 +736,176 @@ const Profile = () => {
           )}
 
           {activeTab === 'security' && (
-            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <h1 style={{ fontSize: '2rem', fontWeight: 300, color: 'var(--text-dark)', margin: '0 0 0.5rem 0' }}>Security</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', margin: 0 }}>Keep your account safe with a strong password and two-factor authentication.</p>
+                <h1 style={{ fontSize: '1.6rem', fontWeight: 400, color: 'var(--text-dark)', margin: '0 0 0.25rem 0' }}>Security & Access Preferences</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Manage your password, biometric authentication, and quick mailbox access.</p>
               </div>
 
-              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
-                <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Key size={20} color="#0078D4" /> Password security</h3>
+              {/* Password Section */}
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: '1px solid var(--border-color)', padding: '1.25rem 1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                  <Key size={18} color="#0078D4" /> Password Security
+                </h3>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '500px' }}>
-                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '1rem', outline: 'none', transition: 'border-color 0.2s', background: 'var(--bg-color)', color: 'var(--text-dark)' }} onFocus={(e) => e.target.style.borderColor = '#0078D4'} onBlur={(e) => e.target.style.borderColor = '#8A8886'} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '440px' }}>
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)' }} />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)' }} />
 
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <button onClick={handleSubmit} disabled={isLoading || !password || !currentPassword} style={{ padding: '0.6rem 1.5rem', background: (password && currentPassword) ? '#0078D4' : '#E1DFDD', color: (password && currentPassword) ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.95rem', cursor: (password && currentPassword) ? 'pointer' : 'not-allowed', transition: 'background 0.2s' }}>
+                  <div>
+                    <button onClick={handleSubmit} disabled={isLoading || !password || !currentPassword} style={{ padding: '0.5rem 1.25rem', background: (password && currentPassword) ? '#0078D4' : '#E1DFDD', color: (password && currentPassword) ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.85rem', cursor: (password && currentPassword) ? 'pointer' : 'not-allowed' }}>
                       Change password
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div style={{ background: 'var(--surface-color)', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', padding: '2rem' }}>
-                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', gap: '4px', color: '#0078D4' }}>
-                        <Scan size={22} />
-                        <Fingerprint size={22} />
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-dark)', fontWeight: 700 }}>
-                        Biometric & 2-Step Device Verification
-                      </h3>
-                    </div>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      background: (faceAuthEnabled && fingerprintAuthEnabled) 
-                        ? 'rgba(16, 124, 65, 0.12)' 
-                        : (faceAuthEnabled || fingerprintAuthEnabled)
-                        ? 'rgba(0, 120, 212, 0.12)'
-                        : '#f1f5f9',
-                      color: (faceAuthEnabled && fingerprintAuthEnabled)
-                        ? '#107C41'
-                        : (faceAuthEnabled || fingerprintAuthEnabled)
-                        ? '#0078D4'
-                        : '#64748b'
-                    }}>
-                      {(faceAuthEnabled && fingerprintAuthEnabled) ? '✨ DUAL BIOMETRICS (EITHER METHOD)' : faceAuthEnabled ? '📸 FACE ID ONLY' : fingerprintAuthEnabled ? '👆 FINGERPRINT / PIN ONLY' : 'OFF'}
-                    </span>
+              {/* Biometrics & Preferences Unified Section */}
+              <div style={{ background: 'var(--surface-color)', borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', border: '1px solid var(--border-color)', padding: '1.25rem 1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ShieldCheck size={18} color="#0078D4" />
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-dark)', fontWeight: 600 }}>
+                      Access & Biometric Preferences
+                    </h3>
                   </div>
-                  <p style={{ margin: '0.5rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                    Configure independent verification methods. When both are enabled, <strong>any one method is sufficient to unlock</strong> your session.
-                  </p>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '8px', background: (faceAuthEnabled || fingerprintAuthEnabled) ? 'rgba(0, 120, 212, 0.1)' : '#f1f5f9', color: (faceAuthEnabled || fingerprintAuthEnabled) ? '#0078D4' : '#64748b' }}>
+                    {faceAuthEnabled && fingerprintAuthEnabled ? 'Dual Biometrics' : faceAuthEnabled ? 'Face ID On' : fingerprintAuthEnabled ? 'Fingerprint On' : 'Standard Password Login'}
+                  </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {/* TOGGLE 1: Live Face ID Verification */}
-                  <div style={{
-                    padding: '1.25rem',
-                    borderRadius: '10px',
-                    border: `1px solid ${faceAuthEnabled ? '#bae6fd' : 'var(--border-color)'}`,
-                    background: faceAuthEnabled ? 'rgba(2, 132, 199, 0.03)' : 'var(--bg-color)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '1.25rem',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ flex: 1, minWidth: '260px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
-                          <Camera size={16} />
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-dark)' }}>
-                          1. Face ID Verification
-                        </h4>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: faceAuthEnabled ? '#e0f2fe' : '#f1f5f9', color: faceAuthEnabled ? '#0284c7' : '#64748b' }}>
-                          {faceAuthEnabled ? 'ON' : 'OFF'}
-                        </span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+                  {/* ITEM 1: Live Face ID */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 0', borderBottom: '1px solid #f1f5f9', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: faceAuthEnabled ? '#0284c7' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: faceAuthEnabled ? '#fff' : '#64748b', flexShrink: 0, marginTop: '2px' }}>
+                        <Camera size={15} />
                       </div>
-                      <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4' }}>
-                        Live camera face detection & neural match on login and after 5 minutes of inactivity.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setShowTestFaceScanner(true)}
-                        style={{
-                          background: '#ffffff',
-                          color: '#0284c7',
-                          border: '1px solid #bae6fd',
-                          borderRadius: '6px',
-                          padding: '5px 12px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 1px 3px rgba(2, 132, 199, 0.1)'
-                        }}
-                      >
-                        <Camera size={13} /> Test Camera Face ID
-                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-dark)' }}>Live Face ID Verification</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: faceAuthEnabled ? '#e0f2fe' : '#f1f5f9', color: faceAuthEnabled ? '#0284c7' : '#64748b' }}>{faceAuthEnabled ? 'ON' : 'OFF'}</span>
+                        </div>
+                        <p style={{ margin: '2px 0 6px 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>Neural face match during login and session security checks.</p>
+                        <button type="button" onClick={() => setShowTestFaceScanner(true)} style={{ background: '#f8fafc', color: '#0284c7', border: '1px solid #bae6fd', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Camera size={11} /> Test Camera Face ID
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Toggle Button for Face ID */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <button
-                        type="button"
-                        onClick={handleToggleFaceAuth}
-                        disabled={toggling2Fa}
-                        aria-label="Toggle Face ID Verification"
-                        style={{
-                          width: '56px',
-                          height: '30px',
-                          borderRadius: '15px',
-                          background: faceAuthEnabled ? '#0284c7' : '#cbd5e1',
-                          position: 'relative',
-                          border: 'none',
-                          cursor: toggling2Fa ? 'not-allowed' : 'pointer',
-                          transition: 'background-color 0.25s ease',
-                          padding: 0,
-                          outline: 'none',
-                          boxShadow: faceAuthEnabled ? '0 0 10px rgba(2, 132, 199, 0.35)' : 'none'
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            background: '#ffffff',
-                            position: 'absolute',
-                            top: '3px',
-                            left: faceAuthEnabled ? '29px' : '3px',
-                            transition: 'left 0.25s ease',
-                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                          }}
-                        />
-                      </button>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: faceAuthEnabled ? '#0284c7' : '#64748b', minWidth: '45px' }}>
-                        {faceAuthEnabled ? 'Active' : 'Off'}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleFaceAuth}
+                      disabled={toggling2Fa}
+                      aria-label="Toggle Face ID"
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: faceAuthEnabled ? '#0284c7' : '#cbd5e1',
+                        position: 'relative',
+                        border: 'none',
+                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                        transition: 'background-color 0.2s',
+                        padding: 0,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: faceAuthEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </button>
                   </div>
 
-                  {/* TOGGLE 2: Fingerprint / Device PIN Verification */}
-                  <div style={{
-                    padding: '1.25rem',
-                    borderRadius: '10px',
-                    border: `1px solid ${fingerprintAuthEnabled ? '#ddd6fe' : 'var(--border-color)'}`,
-                    background: fingerprintAuthEnabled ? 'rgba(124, 58, 237, 0.03)' : 'var(--bg-color)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '1.25rem',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ flex: 1, minWidth: '260px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
-                          <Fingerprint size={16} />
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-dark)' }}>
-                          2. Fingerprint & Device PIN Verification
-                        </h4>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '6px', background: fingerprintAuthEnabled ? '#ede9fe' : '#f1f5f9', color: fingerprintAuthEnabled ? '#7c3aed' : '#64748b' }}>
-                          {fingerprintAuthEnabled ? 'ON' : 'OFF'}
-                        </span>
+                  {/* ITEM 2: Fingerprint / Device PIN */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 0', borderBottom: '1px solid #f1f5f9', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: fingerprintAuthEnabled ? '#7c3aed' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: fingerprintAuthEnabled ? '#fff' : '#64748b', flexShrink: 0, marginTop: '2px' }}>
+                        <Fingerprint size={15} />
                       </div>
-                      <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.4' }}>
-                        Hardware-backed Windows Hello, Touch ID, or Device Screen PIN verified on your secure security chip.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const res = await promptDeviceScreenLock(user);
-                          if (res.success) {
-                            addToast("Device biometrics verified successfully!", "success");
-                          } else if (res.reason === "CANCELLED") {
-                            addToast("Biometric prompt was cancelled.", "info");
-                          } else {
-                            addToast(res.message || "Biometric check failed.", "error");
-                          }
-                        }}
-                        style={{
-                          background: '#ffffff',
-                          color: '#7c3aed',
-                          border: '1px solid #ddd6fe',
-                          borderRadius: '6px',
-                          padding: '5px 12px',
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 1px 3px rgba(124, 58, 237, 0.1)'
-                        }}
-                      >
-                        <Fingerprint size={13} /> Test Fingerprint / PIN
-                      </button>
-                    </div>
-
-                    {/* Toggle Button for Fingerprint */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <button
-                        type="button"
-                        onClick={handleToggleFingerprintAuth}
-                        disabled={toggling2Fa}
-                        aria-label="Toggle Fingerprint & PIN Verification"
-                        style={{
-                          width: '56px',
-                          height: '30px',
-                          borderRadius: '15px',
-                          background: fingerprintAuthEnabled ? '#7c3aed' : '#cbd5e1',
-                          position: 'relative',
-                          border: 'none',
-                          cursor: toggling2Fa ? 'not-allowed' : 'pointer',
-                          transition: 'background-color 0.25s ease',
-                          padding: 0,
-                          outline: 'none',
-                          boxShadow: fingerprintAuthEnabled ? '0 0 10px rgba(124, 58, 237, 0.35)' : 'none'
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            background: '#ffffff',
-                            position: 'absolute',
-                            top: '3px',
-                            left: fingerprintAuthEnabled ? '29px' : '3px',
-                            transition: 'left 0.25s ease',
-                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-dark)' }}>Fingerprint & Device Screen Lock PIN</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: fingerprintAuthEnabled ? '#ede9fe' : '#f1f5f9', color: fingerprintAuthEnabled ? '#7c3aed' : '#64748b' }}>{fingerprintAuthEnabled ? 'ON' : 'OFF'}</span>
+                        </div>
+                        <p style={{ margin: '2px 0 6px 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>Windows Hello, Touch ID, or Hardware Security PIN.</p>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const res = await promptDeviceScreenLock(user);
+                            if (res.success) addToast("Device biometrics verified successfully!", "success");
+                            else if (res.reason === "CANCELLED") addToast("Biometric prompt was cancelled.", "info");
+                            else addToast(res.message || "Biometric check failed.", "error");
                           }}
-                        />
-                      </button>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: fingerprintAuthEnabled ? '#7c3aed' : '#64748b', minWidth: '45px' }}>
-                        {fingerprintAuthEnabled ? 'Active' : 'Off'}
-                      </span>
+                          style={{ background: '#f8fafc', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Fingerprint size={11} /> Test PIN / Biometrics
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Combined Architecture Info Note */}
-                <div style={{ marginTop: '1.25rem', padding: '0.85rem 1.25rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <ShieldCheck size={20} color="#059669" />
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#475569', lineHeight: '1.4' }}>
-                    {(faceAuthEnabled && fingerprintAuthEnabled) && (
-                      <span><strong>Flexible Dual Security:</strong> Both Face ID and Fingerprint are active. You can authenticate using <strong>any one method</strong> when prompted.</span>
-                    )}
-                    {faceAuthEnabled && !fingerprintAuthEnabled && (
-                      <span><strong>Face ID Active:</strong> Facial recognition will be required to unlock your session.</span>
-                    )}
-                    {!faceAuthEnabled && fingerprintAuthEnabled && (
-                      <span><strong>Fingerprint / PIN Active:</strong> Hardware biometric or screen lock PIN will be required to unlock your session.</span>
-                    )}
-                    {!faceAuthEnabled && !fingerprintAuthEnabled && (
-                      <span><strong>Biometrics Disabled:</strong> Direct password access is enabled for this account.</span>
-                    )}
-                  </p>
+                    <button
+                      type="button"
+                      onClick={handleToggleFingerprintAuth}
+                      disabled={toggling2Fa}
+                      aria-label="Toggle Fingerprint & PIN"
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: fingerprintAuthEnabled ? '#7c3aed' : '#cbd5e1',
+                        position: 'relative',
+                        border: 'none',
+                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                        transition: 'background-color 0.2s',
+                        padding: 0,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: fingerprintAuthEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </button>
+                  </div>
+
+                  {/* ITEM 3: Floating Mailbox Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 0', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: showFloatingMailbox ? '#2563eb' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: showFloatingMailbox ? '#fff' : '#64748b', flexShrink: 0, marginTop: '2px' }}>
+                        <Mail size={15} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-dark)' }}>Floating Mailbox Quick Button</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: showFloatingMailbox ? '#eff6ff' : '#f1f5f9', color: showFloatingMailbox ? '#2563eb' : '#64748b' }}>{showFloatingMailbox ? 'ON' : 'OFF'}</span>
+                        </div>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+                          {showFloatingMailbox 
+                            ? 'Floating quick button displayed on bottom-right of all screens (hidden when printing).' 
+                            : 'Disabled. Mail is accessible via the navigation sidebar.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleFloatingMailbox}
+                      disabled={togglingMailbox}
+                      aria-label="Toggle Floating Mailbox"
+                      style={{
+                        width: '44px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        background: showFloatingMailbox ? '#2563eb' : '#cbd5e1',
+                        position: 'relative',
+                        border: 'none',
+                        cursor: togglingMailbox ? 'not-allowed' : 'pointer',
+                        transition: 'background-color 0.2s',
+                        padding: 0,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: showFloatingMailbox ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                    </button>
+                  </div>
+
                 </div>
               </div>
             </div>

@@ -255,10 +255,31 @@ const Webmail = () => {
   const [selectedUids, setSelectedUids] = useState([]);
   const [hoveredUid, setHoveredUid] = useState(null);
 
-  // State: Gmail-Style Floating Dockable Compose Window
+  // Helper to load persisted sender info with user IAM profile fallbacks
+  const getInitialSenderInfo = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("multimarg_webmail_sender_info") || "{}");
+      return {
+        senderName: saved.senderName || user?.name || "",
+        senderDesignation: saved.senderDesignation || user?.designation || (user?.role === "SuperAdmin" ? "Super Admin" : user?.role || ""),
+        senderPhone: saved.senderPhone || user?.phone || user?.phoneNumber || ""
+      };
+    } catch {
+      return {
+        senderName: user?.name || "",
+        senderDesignation: user?.designation || (user?.role === "SuperAdmin" ? "Super Admin" : user?.role || ""),
+        senderPhone: user?.phone || user?.phoneNumber || ""
+      };
+    }
+  };
+
+  const initialSender = getInitialSenderInfo();
+
+  // State: Compose Floating Modal
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isComposeMinimized, setIsComposeMinimized] = useState(false);
   const [isComposeExpanded, setIsComposeExpanded] = useState(false);
+  const [isComposeMaximized, setIsComposeMaximized] = useState(false);
   const [composeData, setComposeData] = useState({
     fromAccountId: "",
     to: "",
@@ -269,13 +290,41 @@ const Webmail = () => {
     attachments: [],
     inReplyTo: "",
     references: "",
-    senderName: "",
-    senderDesignation: ""
+    senderName: initialSender.senderName,
+    senderDesignation: initialSender.senderDesignation,
+    senderPhone: initialSender.senderPhone
   });
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
-  const [showCustomSigner, setShowCustomSigner] = useState(false);
+  const [showCustomSigner, setShowCustomSigner] = useState(Boolean(initialSender.senderName || initialSender.senderDesignation || initialSender.senderPhone));
   const [sendingMail, setSendingMail] = useState(false);
+
+  // Sync user profile updates to composeData if fields are empty
+  useEffect(() => {
+    if (user) {
+      setComposeData(prev => ({
+        ...prev,
+        senderName: prev.senderName || user.name || "",
+        senderDesignation: prev.senderDesignation || user.designation || (user.role === "SuperAdmin" ? "Super Admin" : user.role || ""),
+        senderPhone: prev.senderPhone || user.phone || user.phoneNumber || ""
+      }));
+    }
+  }, [user]);
+
+  // Persist custom sender info changes
+  const updateSenderInfo = (field, value) => {
+    setComposeData(prev => {
+      const next = { ...prev, [field]: value };
+      try {
+        localStorage.setItem("multimarg_webmail_sender_info", JSON.stringify({
+          senderName: next.senderName,
+          senderDesignation: next.senderDesignation,
+          senderPhone: next.senderPhone
+        }));
+      } catch {}
+      return next;
+    });
+  };
 
   // State: Collapsible Quick Reply (Hidden until user clicks Reply on Mobile)
   const [isQuickReplyOpen, setIsQuickReplyOpen] = useState(false);
@@ -645,6 +694,7 @@ const Webmail = () => {
       if (composeData.references) formData.append("references", composeData.references);
       if (composeData.senderName) formData.append("senderName", composeData.senderName.trim());
       if (composeData.senderDesignation) formData.append("senderDesignation", composeData.senderDesignation.trim());
+      if (composeData.senderPhone) formData.append("senderPhone", composeData.senderPhone.trim());
 
       (composeData.attachments || []).forEach(file => {
         formData.append("attachments", file);
@@ -854,50 +904,64 @@ const Webmail = () => {
       style={{
         display: "flex",
         flexDirection: "column",
+        width: "100%",
         height: isFullscreenReader ? "100vh" : "100%",
         maxHeight: isFullscreenReader ? "100vh" : "100%",
         position: isFullscreenReader ? "fixed" : "relative",
         inset: isFullscreenReader ? 0 : "auto",
         zIndex: isFullscreenReader ? 99999 : 1,
         backgroundColor: "#ffffff",
-        borderRadius: isFullscreenReader ? "0px" : "16px",
+        borderRadius: "0px",
         overflow: "hidden",
-        border: isFullscreenReader ? "none" : "1px solid #e2e8f0",
-        boxShadow: isFullscreenReader ? "none" : "0 4px 20px rgba(0, 0, 0, 0.05)"
+        border: "none",
+        boxShadow: "none"
       }}
     >
       
-      {/* 1. GMAIL-STYLE TOP SEARCH & WORKSPACE BAR (Mobile Optimized) */}
+      {/* 1. GMAIL-STYLE TOP SEARCH & WORKSPACE BAR (Ultra-Responsive Single-Line) */}
       <div
         style={{
           backgroundColor: "#ffffff",
-          padding: isMobile ? "8px 12px" : "10px 18px",
+          padding: isMobile ? "6px 8px" : "10px 18px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: "1px solid #e2e8f0",
-          gap: isMobile ? "8px" : "14px"
+          gap: isMobile ? "6px" : "12px",
+          flexWrap: "nowrap",
+          width: "100%",
+          boxSizing: "border-box"
         }}
       >
         {/* Mobile Left: Hamburger Button for Folder Drawer */}
         {isMobile && (
           <button
             onClick={() => setIsSidebarDrawerOpen(true)}
-            style={{ background: "transparent", border: "none", color: "#334155", padding: "6px", cursor: "pointer", display: "flex" }}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#334155",
+              padding: "4px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0
+            }}
           >
-            <Menu size={20} />
+            <Menu size={19} />
           </button>
         )}
 
         {/* Desktop Left: Brand Identity with Multimarg Company Logo */}
         {!isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "250px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: "220px", flexShrink: 0 }}>
             <img
               src="/circle_crop_logo.png"
               alt="Multimarg Carriers Logo"
               style={{
-                width: "36px",
-                height: "36px",
+                width: "34px",
+                height: "34px",
                 borderRadius: "50%",
                 objectFit: "contain",
                 background: "#ffffff",
@@ -908,10 +972,10 @@ const Webmail = () => {
             />
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontSize: "14.5px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.01em" }}>
+                <span style={{ fontSize: "14px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.01em" }}>
                   MULTIMARG MAIL
                 </span>
-                <span style={{ fontSize: "9.5px", fontWeight: "800", color: "#1d4ed8", backgroundColor: "#eff6ff", padding: "1px 6px", borderRadius: "10px", border: "1px solid #bfdbfe", textTransform: "uppercase" }}>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "#1d4ed8", backgroundColor: "#eff6ff", padding: "1px 6px", borderRadius: "10px", border: "1px solid #bfdbfe", textTransform: "uppercase" }}>
                   Corporate
                 </span>
               </div>
@@ -924,19 +988,19 @@ const Webmail = () => {
         )}
 
         {/* Center: Iconic Gmail Search Pill Bar */}
-        <div style={{ flex: 1, maxWidth: isMobile ? "100%" : "680px", position: "relative" }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: isMobile ? "100%" : "680px", position: "relative" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               backgroundColor: "#f1f5f9",
               borderRadius: "24px",
-              padding: isMobile ? "6px 12px" : "7px 16px",
+              padding: isMobile ? "5px 10px" : "7px 16px",
               border: "1px solid transparent",
               transition: "all 0.2s ease"
             }}
           >
-            <Search size={16} style={{ color: "#64748b", marginRight: "8px" }} />
+            <Search size={15} style={{ color: "#64748b", marginRight: "6px", flexShrink: 0 }} />
             <input
               type="text"
               placeholder={isMobile ? "Search mail" : "Search in mail..."}
@@ -947,10 +1011,11 @@ const Webmail = () => {
               }}
               style={{
                 flex: 1,
+                minWidth: 0,
                 border: "none",
                 background: "transparent",
                 outline: "none",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 color: "#1e293b"
               }}
             />
@@ -960,16 +1025,16 @@ const Webmail = () => {
                   setSearchQuery("");
                   fetchMessages(true);
                 }}
-                style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", display: "flex", padding: "2px" }}
+                style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", display: "flex", padding: "2px", flexShrink: 0 }}
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Right: Executive Account Switcher Dropdown & Refresh */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* Right: Executive Account Switcher Dropdown */}
+        <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
           <div ref={accountDropdownRef} style={{ position: "relative" }}>
             <button
               type="button"
@@ -978,15 +1043,18 @@ const Webmail = () => {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "7px",
-                padding: "3px 10px 3px 5px",
-                borderRadius: "20px",
+                gap: isMobile ? "0px" : "6px",
+                padding: isMobile ? "3px" : "3px 10px 3px 4px",
+                borderRadius: isMobile ? "50%" : "20px",
                 backgroundColor: isAccountDropdownOpen ? "#eff6ff" : "#ffffff",
                 border: isAccountDropdownOpen ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
-                height: "34px"
+                height: "32px",
+                width: isMobile ? "32px" : "auto",
+                justifyContent: "center",
+                flexShrink: 0
               }}
             >
               <div
@@ -1032,8 +1100,6 @@ const Webmail = () => {
                   </span>
                 </div>
               )}
-
-              <ChevronDown size={13} style={{ color: "#64748b", transform: isAccountDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
             </button>
 
             {/* Dropdown Menu Popup */}
@@ -1186,29 +1252,8 @@ const Webmail = () => {
               )}
             </AnimatePresence>
           </div>
-
-            <button
-              onClick={() => {
-                fetchFolders();
-                fetchMessages(true);
-              }}
-              title="Refresh"
-              style={{
-                padding: "7px",
-                borderRadius: "50%",
-                border: "1px solid #e2e8f0",
-                backgroundColor: "#ffffff",
-                color: "#475569",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <RefreshCw size={14} className={loadingMessages ? "animate-spin" : ""} />
-            </button>
-          </div>
         </div>
+      </div>
 
       {/* 2. MAIN 3-PANE WORKSPACE */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
@@ -2559,34 +2604,41 @@ const Webmail = () => {
                   }}
                 />
 
-                {/* Optional Sender Name & Designation Row */}
+                {/* Optional Sender Name, Designation & Phone Row */}
                 <div style={{ marginBottom: "10px", padding: "8px 12px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showCustomSigner ? "8px" : 0 }}>
                     <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b" }}>
-                      Signature Info (Optional)
+                      Signature Info (Auto-filled from IAM Profile)
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowCustomSigner(!showCustomSigner)}
                       style={{ fontSize: "11px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
                     >
-                      {showCustomSigner ? "Hide Custom Details" : "+ Add Your Name & Designation"}
+                      {showCustomSigner ? "Hide Details" : "+ Edit Name, Designation & Phone"}
                     </button>
                   </div>
                   {showCustomSigner && (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "8px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
                       <input
                         type="text"
                         placeholder="Your Name (e.g. Akash Debnath)"
                         value={composeData.senderName || ""}
-                        onChange={(e) => setComposeData({ ...composeData, senderName: e.target.value })}
+                        onChange={(e) => updateSenderInfo("senderName", e.target.value)}
                         style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
                       />
                       <input
                         type="text"
                         placeholder="Designation (e.g. Accounts & IT Head)"
                         value={composeData.senderDesignation || ""}
-                        onChange={(e) => setComposeData({ ...composeData, senderDesignation: e.target.value })}
+                        onChange={(e) => updateSenderInfo("senderDesignation", e.target.value)}
+                        style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Direct Phone (e.g. +91 98765 43210)"
+                        value={composeData.senderPhone || ""}
+                        onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
                         style={{ padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff" }}
                       />
                     </div>
@@ -2612,7 +2664,13 @@ const Webmail = () => {
                     <div style={{ fontSize: "10.5px", fontWeight: "700", color: "#2563eb" }}>
                       MULTIMARG CARRIERS PRIVATE LIMITED
                     </div>
-                    <div style={{ fontSize: "10.5px", color: "#64748b" }}>
+                    <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "1px" }}>
+                      <span>Landline: <strong style={{ color: "#0f172a" }}>+91 5944-324033</strong></span>
+                      {composeData.senderPhone && (
+                        <span> &bull; Direct: <strong style={{ color: "#0f172a" }}>{composeData.senderPhone}</strong></span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#64748b" }}>
                       <span>{activeAccount?.email}</span> &bull; 
                       <span style={{ color: "#2563eb", fontWeight: "600", marginLeft: "3px" }}>multimarg.com</span>
                     </div>

@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {  DollarSign, FileText, Globe,  TrendingUp, Activity,  CreditCard, RefreshCw, Clock, Truck, ShoppingCart,  Receipt, HelpCircle } from 'lucide-react';
+import { IndianRupee, FileText, Globe, TrendingUp, Activity, CreditCard, RefreshCw, Clock, Truck, ShoppingCart, ReceiptText } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { DashboardSkeleton } from '../components/SkeletonLoader';
 import { formatDate } from '../utils/formatters';
 import RupeeIcon from '../components/RupeeIcon';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { CalculationExplanationModal, useHoldToExplain, HoldProgressOverlay } from '../components/CalculationExplanationModal';
 
 // High-precision formatted Currency Value with non-wrapping superscript decimals
 const FormatCurrency = ({ amount, color = undefined }) => {
@@ -32,89 +31,70 @@ const FormatCurrency = ({ amount, color = undefined }) => {
   );
 };
 
-const StatCard = ({ title, value, icon, holdProps, holdingKey, holdProgress, explanationKey, onInfoClick, accentColor = "#3b82f6" }) => (
+const StatCard = ({ title, value, icon, accentColor = "#3b82f6" }) => (
   <div
-    {...(holdProps || {})}
     className="premium-stat-card"
     style={{
       backgroundColor: '#ffffff',
-      padding: 'clamp(0.75rem, 1.8vw, 1.15rem)',
-      borderRadius: '12px',
+      padding: '0.75rem 0.85rem',
+      paddingRight: '38px',
+      borderRadius: '10px',
       border: '1px solid #e2e8f0',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between',
-      gap: '0.5rem',
+      justifyContent: 'center',
+      minHeight: '68px',
       position: 'relative',
       overflow: 'hidden',
-      cursor: 'pointer',
       userSelect: 'none',
       minWidth: 0,
       transition: 'transform 0.15s ease, box-shadow 0.15s ease'
     }}
   >
-    <HoldProgressOverlay active={holdingKey === explanationKey} progress={holdProgress} />
-    
-    {/* Card Header: Label + Info + Icon */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.35rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
-        <span style={{ 
-          color: '#64748b', 
-          fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', 
-          fontWeight: '600', 
-          textTransform: 'uppercase', 
-          letterSpacing: '0.03em',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}>
-          {title}
-        </span>
-        {onInfoClick && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onInfoClick(explanationKey);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '2px',
-              cursor: 'pointer',
-              color: '#94a3b8',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              flexShrink: 0
-            }}
-            title="Click or Hold 5s to view detailed formula"
-          >
-            <HelpCircle size={12} />
-          </button>
-        )}
-      </div>
-      <div style={{ 
+    {/* Fixed Top-Right Icon Badge */}
+    <div 
+      style={{ 
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
         backgroundColor: `${accentColor}14`, 
         color: accentColor, 
-        width: '30px', 
-        height: '30px', 
-        borderRadius: '8px', 
+        width: '26px', 
+        height: '26px', 
+        borderRadius: '6px', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
         flexShrink: 0 
-      }}>
-        {React.cloneElement(icon, { size: 16 })}
-      </div>
+      }}
+    >
+      {React.cloneElement(icon, { size: 14 })}
     </div>
 
-    {/* Card Value: Perfectly constrained, never breaks decimal point */}
+    {/* Card Label / Title (Reduced text size to prevent wrapping icon) */}
+    <div 
+      style={{ 
+        color: '#64748b', 
+        fontSize: '0.68rem', 
+        fontWeight: '700', 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.03em',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        marginBottom: '0.25rem',
+        lineHeight: 1.2
+      }}
+      title={title}
+    >
+      {title}
+    </div>
+
+    {/* Card Value (Amount size kept full and prominent) */}
     <div style={{ minWidth: 0, width: '100%', overflow: 'hidden' }}>
       <div style={{ 
-        fontSize: 'clamp(1rem, 3.4vw, 1.38rem)', 
+        fontSize: 'clamp(1.05rem, 2.8vw, 1.3rem)', 
         color: '#0f172a', 
         margin: 0, 
         whiteSpace: 'nowrap', 
@@ -132,8 +112,6 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [explanationKey, setExplanationKey] = useState(null);
-  const { holdingKey, holdProgress, getHoldProps } = useHoldToExplain(setExplanationKey, 5000);
   const { _user } = useAuth();
   const { addToast } = useToast();
 
@@ -255,164 +233,96 @@ const Dashboard = () => {
 
       {/* Financial KPIs - Sales */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.25rem' }}>
         <StatCard
-          title="Taxable Amount"
+          title="Taxable Sales"
           value={<FormatCurrency amount={(stats?.totalBillsAmount || 0) - (stats?.taxLiability || 0)} />}
           icon={<FileText />}
           accentColor="#3b82f6"
-          explanationKey="dash_sales_taxable"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_sales_taxable", "Hold for 5s or click ⓘ to view Taxable Sales calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Total GST (Tax)"
           value={<FormatCurrency amount={stats?.taxLiability || 0} />}
-          icon={<Receipt />}
+          icon={<ReceiptText />}
           accentColor="#8b5cf6"
-          explanationKey="dash_sales_gst"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_sales_gst", "Hold for 5s or click ⓘ to view Sales GST Tax calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Total Sales"
           value={<FormatCurrency amount={stats?.totalCustomerInvoiced || stats?.totalClientInvoiced || stats?.totalBillsAmount || 0} />}
-          icon={<DollarSign />}
+          icon={<IndianRupee />}
           accentColor="#10b981"
-          explanationKey="dash_sales_total"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_sales_total", "Hold for 5s or click ⓘ to view Total Sales calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Outstanding Amount"
           value={<FormatCurrency amount={stats?.outstandingReceivables || 0} color="#ef4444" />}
           icon={<Activity />}
           accentColor="#ef4444"
-          explanationKey="dash_sales_outstanding"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_sales_outstanding", "Hold for 5s or click ⓘ to view Outstanding Receivables calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
       </div>
 
       {/* Operational & Cash KPIs - Purchase */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Purchase Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Purchase Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.25rem' }}>
         <StatCard
-          title="Taxable Amount"
+          title="Taxable Purchases"
           value={<FormatCurrency amount={(stats?.totalPurchaseValue || 0) - (stats?.totalPurchaseGst || 0)} />}
           icon={<FileText />}
           accentColor="#3b82f6"
-          explanationKey="dash_purchase_taxable"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_purchase_taxable", "Hold for 5s or click ⓘ to view Taxable Purchases calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Total GST (Tax)"
           value={<FormatCurrency amount={stats?.totalPurchaseGst || 0} />}
-          icon={<Receipt />}
+          icon={<ReceiptText />}
           accentColor="#8b5cf6"
-          explanationKey="dash_purchase_gst"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_purchase_gst", "Hold for 5s or click ⓘ to view Purchase GST Tax Credit calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Total Purchases"
           value={<FormatCurrency amount={stats?.totalVendorInvoiced || stats?.totalPurchaseValue || 0} />}
           icon={<ShoppingCart />}
           accentColor="#f59e0b"
-          explanationKey="dash_purchase_total"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_purchase_total", "Hold for 5s or click ⓘ to view Total Purchases calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Outstanding Amount"
           value={<FormatCurrency amount={stats?.outstandingPurchases || 0} color="#ef4444" />}
           icon={<Activity />}
           accentColor="#ef4444"
-          explanationKey="dash_purchase_outstanding"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_purchase_outstanding", "Hold for 5s or click ⓘ to view Outstanding Payables calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
       </div>
 
       {/* Financial Overview */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Financial Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Financial Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.5rem' }}>
         <StatCard
-          title="Total Booking AWB"
+          title="Total Bookings"
           value={<span style={{ fontWeight: 700 }}>{stats?.totalBookings || 0}</span>}
           icon={<Truck />}
           accentColor="#0ea5e9"
-          explanationKey="dash_total_bookings"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_total_bookings", "Hold for 5s or click ⓘ to view Total Bookings calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
-          title="Total Unbilled AWB"
+          title="Unbilled Bookings"
           value={<span style={{ fontWeight: 700 }}>{stats?.unbilledAwbCount || 0}</span>}
           icon={<Clock />}
           accentColor="#f97316"
-          explanationKey="dash_unbilled_awb"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_unbilled_awb", "Hold for 5s or click ⓘ to view Unbilled AWBs calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Cash In"
           value={<FormatCurrency amount={stats?.totalCashIn || 0} color="#16a34a" />}
           icon={<TrendingUp />}
           accentColor="#16a34a"
-          explanationKey="dash_cash_in"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_cash_in", "Hold for 5s or click ⓘ to view Cash In calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
         <StatCard
           title="Cash Out"
           value={<FormatCurrency amount={stats?.totalCashOut || 0} color="#ea580c" />}
           icon={<CreditCard />}
           accentColor="#ea580c"
-          explanationKey="dash_cash_out"
-          holdingKey={holdingKey}
-          holdProgress={holdProgress}
-          holdProps={getHoldProps("dash_cash_out", "Hold for 5s or click ⓘ to view Cash Out calculation")}
-          onInfoClick={(k) => setExplanationKey(k)}
         />
       </div>
-
-      {/* Explanation Modal */}
-      <CalculationExplanationModal
-        isOpen={Boolean(explanationKey)}
-        explanationKey={explanationKey}
-        liveStats={stats}
-        onClose={() => setExplanationKey(null)}
-      />
 
       {/* Charts Section */}
       <div className="dashboard-charts">

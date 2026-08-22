@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 import Sidebar, { getVisibleMenuItems } from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import Topbar from '../components/Topbar';
@@ -13,9 +14,10 @@ const DashboardLayout = () => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   
   const location = useLocation();
+  const navigate = useNavigate();
   const isWebmailPage = location.pathname.startsWith('/webmail') || location.pathname.startsWith('/mail');
 
-  const { hasPermission } = useContext(AuthContext);
+  const { user, hasPermission } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
 
   const visibleMenuItems = getVisibleMenuItems(hasPermission, globalSettings);
@@ -59,7 +61,7 @@ const DashboardLayout = () => {
             height: isWebmailPage ? 'calc(100dvh - var(--topbar-height, 64px))' : 'auto',
             maxHeight: isWebmailPage ? 'calc(100dvh - var(--topbar-height, 64px))' : 'none',
             overflow: isWebmailPage ? 'hidden' : 'visible',
-            padding: isWebmailPage ? (isMobile ? '4px' : '8px') : undefined,
+            padding: isWebmailPage ? '0px' : undefined,
             justifyContent: 'space-between'
           }}
         >
@@ -98,6 +100,45 @@ const DashboardLayout = () => {
       </div>
       {hasSidebar && hasRightSidebar && <RightSidebar />}
       <CommandPalette isOpen={isCommandPaletteOpen} setIsOpen={setIsCommandPaletteOpen} />
+
+      {/* Floating Mailbox Quick Action Button (Controlled via Profile -> Security, hidden during print) */}
+      {user?.showFloatingMailbox === true && !isWebmailPage && (
+        <button
+          onClick={() => navigate('/mail')}
+          className="floating-mailbox-btn no-print"
+          title="Open Multimarg Mailbox"
+          aria-label="Open Mailbox"
+          style={{
+            position: 'fixed',
+            bottom: isMobile ? '20px' : '26px',
+            right: isMobile ? '20px' : '26px',
+            width: isMobile ? '48px' : '54px',
+            height: isMobile ? '48px' : '54px',
+            borderRadius: '50%',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            border: '2px solid #ffffff',
+            boxShadow: '0 8px 24px -4px rgba(37, 99, 235, 0.45), 0 2px 10px rgba(0, 0, 0, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 9990,
+            transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease',
+            outline: 'none'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.08) translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 12px 28px -4px rgba(37, 99, 235, 0.6), 0 4px 12px rgba(0, 0, 0, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1) translateY(0px)';
+            e.currentTarget.style.boxShadow = '0 8px 24px -4px rgba(37, 99, 235, 0.45), 0 2px 10px rgba(0, 0, 0, 0.12)';
+          }}
+        >
+          <Mail size={isMobile ? 22 : 24} />
+        </button>
+      )}
     </div>
   );
 };
