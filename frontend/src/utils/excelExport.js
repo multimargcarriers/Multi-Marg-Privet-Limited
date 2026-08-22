@@ -646,8 +646,8 @@ export async function exportSalesBillsList({
     { header: "Total Boxes", width: 12, align: "center" },
     { header: "Total Weight (KG)", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "Taxable Amount (₹)", width: 18, align: "right", numFmt: "#,##0.00" },
-    { header: "GST Amount (₹)", width: 14, align: "right", numFmt: "#,##0.00" },
-    { header: "Grand Total (₹)", width: 18, align: "right", numFmt: "#,##0.00" },
+    { header: "GST 18% (₹)", width: 14, align: "right", numFmt: "#,##0.00" },
+    { header: "Grand Total (Incl. GST) (₹)", width: 22, align: "right", numFmt: "#,##0.00" },
     { header: "Received (₹)", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "Pending Balance (₹)", width: 18, align: "right", numFmt: "#,##0.00" },
   ];
@@ -1671,6 +1671,8 @@ export async function exportPartyDetailedLedger({
         "Bill Date",
         "Bill / Invoice No",
         "Due Date",
+        "Taxable Amount (₹)",
+        "GST 18% (₹)",
         "Total Invoiced (₹)",
         "Payment Dates & Settlement Details",
         "Paid Amount (₹)",
@@ -1679,6 +1681,8 @@ export async function exportPartyDetailedLedger({
         "Remaining Due (₹)",
         "Payment Status"
       ]);
+      let totCsvTaxable = 0;
+      let totCsvGst = 0;
       let totCsvBilled = 0;
       let totCsvPaid = 0;
       let totCsvTds = 0;
@@ -1687,6 +1691,8 @@ export async function exportPartyDetailedLedger({
 
       rawBills.forEach((b, bIdx) => {
         const bTot = Number(b.amount || b.total) || 0;
+        const bTax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTot - Number(b.gstAmount || b.gst) : bTot / 1.18);
+        const bGst = Number(b.gstAmount || b.gst) || (bTot - bTax);
         const bP = Number(b.paidAmount) || 0;
         const bT = Number(b.tdsAmount) || 0;
         const bD = Number(b.debtAmount) || 0;
@@ -1696,6 +1702,8 @@ export async function exportPartyDetailedLedger({
         const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
         const stDetails = getBillSettlementDetails(b, rawCash, rawAdj);
 
+        totCsvTaxable += bTax;
+        totCsvGst += bGst;
         totCsvBilled += bTot;
         totCsvPaid += bP;
         totCsvTds += bT;
@@ -1707,6 +1715,8 @@ export async function exportPartyDetailedLedger({
           formatDate(bDate),
           bNo,
           calculateDueDate(bDate, b.dueDate),
+          Number(bTax.toFixed(2)),
+          Number(bGst.toFixed(2)),
           bTot,
           stDetails.paymentSummary,
           bP,
@@ -1722,6 +1732,8 @@ export async function exportPartyDetailedLedger({
         "",
         `TOTAL (${rawBills.length} BILLS)`,
         "",
+        Number(totCsvTaxable.toFixed(2)),
+        Number(totCsvGst.toFixed(2)),
         totCsvBilled,
         "",
         totCsvPaid,
@@ -2164,6 +2176,8 @@ export async function exportPartyDetailedLedger({
       { header: "BILL / INVOICE NO", key: "billNo", width: 22 },
       { header: "DUE DATE", key: "dueDate", width: 14, align: "center" },
       { header: "VEHICLE / DETAILS", key: "details", width: 26 },
+      { header: "TAXABLE AMOUNT (₹)", key: "taxable", width: 18, align: "right", numFmt: "#,##0.00" },
+      { header: "GST 18% (₹)", key: "gst", width: 14, align: "right", numFmt: "#,##0.00" },
       { header: "TOTAL INVOICED (₹)", key: "total", width: 18, align: "right", numFmt: "#,##0.00" },
       { header: "PAYMENT DATES & SETTLEMENT DETAILS", key: "payments", width: 38 },
       { header: "TOTAL PAID (₹)", key: "paid", width: 16, align: "right", numFmt: "#,##0.00" },
@@ -2200,6 +2214,8 @@ export async function exportPartyDetailedLedger({
       };
     });
 
+    let totTaxable2 = 0;
+    let totGst2 = 0;
     let totBilled2 = 0;
     let totPaid2 = 0;
     let totTds2 = 0;
@@ -2208,6 +2224,8 @@ export async function exportPartyDetailedLedger({
 
     rawBills.forEach((b, idx) => {
       const bTot = Number(b.amount || b.total) || 0;
+      const bTax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTot - Number(b.gstAmount || b.gst) : bTot / 1.18);
+      const bGst = Number(b.gstAmount || b.gst) || (bTot - bTax);
       const bP = Number(b.paidAmount) || 0;
       const bT = Number(b.tdsAmount) || 0;
       const bD = Number(b.debtAmount) || 0;
@@ -2215,6 +2233,8 @@ export async function exportPartyDetailedLedger({
       const bRem = isCanc ? 0 : Math.max(0, bTot - bP - bT - bD);
       const bSt = isCanc ? "CANCELLED" : bRem <= 0.01 ? "PAID" : (bP > 0 || bT > 0 || bD > 0) ? "PARTIAL" : "UNPAID";
 
+      totTaxable2 += bTax;
+      totGst2 += bGst;
       totBilled2 += bTot;
       totPaid2 += bP;
       totTds2 += bT;
@@ -2231,6 +2251,8 @@ export async function exportPartyDetailedLedger({
         bNo,
         calculateDueDate(bDate, b.dueDate),
         b.vehicleNo || b.vehicles || b.description || "-",
+        Number(bTax.toFixed(2)),
+        Number(bGst.toFixed(2)),
         bTot,
         stDetails.paymentSummary,
         bP,
@@ -2288,17 +2310,19 @@ export async function exportPartyDetailedLedger({
       c.alignment = { horizontal: "right", vertical: "middle" };
     };
 
-    setTotCell("F", totBilled2);
-    setTotCell("H", totPaid2);
-    const tdsCell = ws2.getCell(`I${totRow2Number}`);
+    setTotCell("F", totTaxable2);
+    setTotCell("G", totGst2);
+    setTotCell("H", totBilled2);
+    setTotCell("J", totPaid2);
+    const tdsCell = ws2.getCell(`K${totRow2Number}`);
     tdsCell.value = `TDS: ₹${totTds2.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
     tdsCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF92400E" } };
     tdsCell.alignment = { horizontal: "center", vertical: "middle" };
 
-    setTotCell("J", totDebt2);
-    setTotCell("K", totDue2);
+    setTotCell("L", totDebt2);
+    setTotCell("M", totDue2);
 
-    const stCell = ws2.getCell(`L${totRow2Number}`);
+    const stCell = ws2.getCell(`N${totRow2Number}`);
     stCell.value = totDue2 <= 0.01 ? "SETTLED" : "DUE";
     stCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: totDue2 <= 0.01 ? greenTextHex : redTextHex } };
     stCell.alignment = { horizontal: "center", vertical: "middle" };

@@ -551,33 +551,45 @@ const PrintSingleTrip = () => {
                       </table>
                     )}
 
-                    {/* Section 3: Payment Summary (Rendered on final page) */}
+                    {/* Section 3: Bill Summary (Rendered on final page) */}
                     {page.isLast && (
                       <>
-                        <div className="section-header" style={{ marginTop: "4px" }}>3. Payment Summary</div>
+                        <div className="section-header" style={{ marginTop: "4px" }}>3. Bill Summary</div>
                         <table className="manifest-table">
                           <tbody>
                             <tr>
-                              <td className="gray-cell" style={{ width: "25%", textAlign: "left" }}>PAYMENT MODE</td>
-                              <td className="data-cell nowrap-cell" style={{ width: "25%", textAlign: "left" }}>{(trip.payment || "-").toUpperCase()}</td>
-                              <td className="gray-cell" style={{ width: "25%", textAlign: "left" }}>TOTAL FREIGHT</td>
+                              <td className="gray-cell" style={{ width: "25%", textAlign: "left" }}>TAXABLE AMOUNT (₹)</td>
                               <td className="data-cell num-cell" style={{ width: "25%", fontWeight: "700", color: "#1e3a8a", textAlign: "right" }}>
                                 Rs. {showPrintAmounts ? baseFreight.toFixed(2) : "0"}
                               </td>
+                              <td className="gray-cell" style={{ width: "25%", textAlign: "left" }}>GST RATE</td>
+                              <td className="data-cell num-cell" style={{ width: "25%", fontWeight: "700", textAlign: "right" }}>
+                                18%
+                              </td>
                             </tr>
                             <tr>
-                              <td className="gray-cell" style={{ textAlign: "left" }}>GST (18%)</td>
-                              <td className="data-cell num-cell" style={{ textAlign: "right" }}>Rs. {showPrintAmounts ? gstAmount.toFixed(2) : "0"}</td>
-                              <td className="gray-cell" style={{ textAlign: "left" }}>GRAND TOTAL</td>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>GST AMOUNT (18%)</td>
+                              <td className="data-cell num-cell" style={{ fontWeight: "700", color: "#4f46e5", textAlign: "right" }}>
+                                Rs. {showPrintAmounts ? gstAmount.toFixed(2) : "0"}
+                              </td>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>TOTAL AMOUNT (INCL. GST)</td>
                               <td className="data-cell num-cell" style={{ color: "#059669", fontSize: "0.85rem", fontWeight: "800", textAlign: "right" }}>
                                 Rs. {showPrintAmounts ? grandTotal.toFixed(2) : "0"}
                               </td>
                             </tr>
                             <tr>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>PAYMENT MODE</td>
+                              <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>
+                                {(trip.payment || "-").toUpperCase()}
+                              </td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>AMOUNT PAID</td>
-                              <td className="data-cell num-cell" style={{ color: "#d97706", textAlign: "right" }}>Rs. {showPrintAmounts ? amountPaid.toFixed(2) : "0"}</td>
-                              <td className="gray-cell" style={{ textAlign: "left" }}>REMAINING AMOUNT</td>
-                              <td className="data-cell num-cell" style={{ color: "#dc2626", fontWeight: "700", textAlign: "right" }}>
+                              <td className="data-cell num-cell" style={{ color: "#d97706", textAlign: "right" }}>
+                                Rs. {showPrintAmounts ? amountPaid.toFixed(2) : "0"}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>BALANCE / REMAINING</td>
+                              <td colSpan="3" className="data-cell num-cell" style={{ color: "#dc2626", fontWeight: "800", fontSize: "0.8rem", textAlign: "right" }}>
                                 Rs. {showPrintAmounts ? remaining.toFixed(2) : "0"}
                               </td>
                             </tr>

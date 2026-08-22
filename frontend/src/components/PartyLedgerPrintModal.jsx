@@ -660,22 +660,26 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
             <table style={{ width: "100%", fontSize: "0.78rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
               <thead>
                 <tr style={{ background: "#334155", color: "#ffffff", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px", width: "35px", textAlign: "center" }}>SL</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "center" }}>Bill Date</th>
-                  <th style={{ padding: "6px 8px", width: "120px" }}>Bill / Invoice No</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "center" }}>Due Date</th>
+                  <th style={{ padding: "6px 8px", width: "32px", textAlign: "center" }}>SL</th>
+                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "center" }}>Bill Date</th>
+                  <th style={{ padding: "6px 8px", width: "110px" }}>Bill / Invoice No</th>
+                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "center" }}>Due Date</th>
                   <th style={{ padding: "6px 8px" }}>Vehicle / Consignment Details</th>
-                  <th style={{ padding: "6px 8px", width: "100px", textAlign: "right" }}>Total (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Paid (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "80px", textAlign: "right" }}>TDS (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "80px", textAlign: "right" }}>Debt (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "95px", textAlign: "right" }}>Remaining Due</th>
-                  <th style={{ padding: "6px 8px", width: "75px", textAlign: "center" }}>Status</th>
+                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Taxable (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "right" }}>GST (18%) (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "95px", textAlign: "right" }}>Total (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "right" }}>Paid (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "75px", textAlign: "right" }}>TDS (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "75px", textAlign: "right" }}>Debt (₹)</th>
+                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Remaining Due</th>
+                  <th style={{ padding: "6px 8px", width: "70px", textAlign: "center" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {rawBills.map((b, bIdx) => {
                   const bTot = Number(b.amount || b.total) || 0;
+                  const bTaxable = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTot - Number(b.gstAmount || b.gst) : bTot / 1.18);
+                  const bGst = Number(b.gstAmount || b.gst) || (bTot - bTaxable);
                   const bP = Number(b.paidAmount) || 0;
                   const bT = Number(b.tdsAmount) || 0;
                   const bD = Number(b.debtAmount) || 0;
@@ -705,7 +709,9 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 600 }}>{formatCurrency(bTot)}</td>
+                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#475569" }}>{formatCurrency(bTaxable)}</td>
+                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#4f46e5", fontWeight: 600 }}>{formatCurrency(bGst)}</td>
+                      <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: "#0f172a" }}>{formatCurrency(bTot)}</td>
                       <td style={{ padding: "5px 8px", textAlign: "right", color: "#16a34a", fontWeight: 600 }}>{formatCurrency(bP)}</td>
                       <td style={{ padding: "5px 8px", textAlign: "right", color: "#d97706" }}>{formatCurrency(bT)}</td>
                       <td style={{ padding: "5px 8px", textAlign: "right", color: "#7c3aed" }}>{formatCurrency(bD)}</td>
@@ -733,6 +739,19 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                   <td colSpan={5} style={{ padding: "7px 8px", textAlign: "right", color: "#1e3a8a", fontWeight: 800 }}>
                     GRAND TOTAL ({rawBills.length} BILLS)
                   </td>
+                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#475569", fontWeight: 800 }}>
+                    {formatCurrency(rawBills.reduce((acc, b) => {
+                      const tot = Number(b.amount || b.total) || 0;
+                      return acc + (Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? tot - Number(b.gstAmount || b.gst) : tot / 1.18));
+                    }, 0))}
+                  </td>
+                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#4f46e5", fontWeight: 800 }}>
+                    {formatCurrency(rawBills.reduce((acc, b) => {
+                      const tot = Number(b.amount || b.total) || 0;
+                      const tax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? tot - Number(b.gstAmount || b.gst) : tot / 1.18);
+                      return acc + (Number(b.gstAmount || b.gst) || (tot - tax));
+                    }, 0))}
+                  </td>
                   <td style={{ padding: "7px 8px", textAlign: "right", color: "#0f172a", fontWeight: 800 }}>
                     {formatCurrency(rawBills.reduce((acc, b) => acc + (Number(b.amount || b.total) || 0), 0))}
                   </td>
@@ -751,7 +770,7 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                       const p = Number(b.paidAmount) || 0;
                       const t = Number(b.tdsAmount) || 0;
                       const d = Number(b.debtAmount) || 0;
-                      return acc + Math.max(0, tot - p - t - d);
+                      return acc + (String(b.status || "").toLowerCase() === "cancelled" ? 0 : Math.max(0, tot - p - t - d));
                     }, 0))}
                   </td>
                   <td style={{ padding: "7px 8px", textAlign: "center", color: "#1e3a8a", fontSize: "0.72rem" }}>
