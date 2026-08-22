@@ -847,11 +847,11 @@ textarea.form-control {
   align-items: center;
 }
 
-/* Force flex containers with inline styles to wrap on mobile, EXCLUDING modals, tables, and table action buttons */
+/* Force flex containers with inline styles to wrap on mobile, EXCLUDING modals, tables, and webmail */
 @media (max-width: 768px) {
 
-  .page-content div[style*="display: flex"]:not([class*="modal"]):not([class*="modal"] *):not(td *):not(td):not(th):not(table *),
-  .page-content div[style*="display:flex"]:not([class*="modal"]):not([class*="modal"] *):not(td *):not(td):not(th):not(table *) {
+  .page-content div[style*="display: flex"]:not([class*="modal"]):not([class*="modal"] *):not(td *):not(td):not(th):not(table *):not([class*="gmail"]):not([class*="gmail"] *),
+  .page-content div[style*="display:flex"]:not([class*="modal"]):not([class*="modal"] *):not(td *):not(td):not(th):not(table *):not([class*="gmail"]):not([class*="gmail"] *) {
     flex-wrap: wrap !important;
   }
 }
@@ -2566,6 +2566,7 @@ table td .btn-action {
   .route-city {
     max-width: 75px;
   }
+
   .party-name {
     max-width: 65px;
   }
@@ -4418,7 +4419,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Face Scanner Animation */
 @keyframes faceLaserSweep {
-  0% { top: 8%; opacity: 0.2; }
-  50% { top: 86%; opacity: 1; }
-  100% { top: 8%; opacity: 0.2; }
+  0% {
+    top: 8%;
+    opacity: 0.2;
+  }
+
+  50% {
+    top: 86%;
+    opacity: 1;
+  }
+
+  100% {
+    top: 8%;
+    opacity: 0.2;
+  }
 }

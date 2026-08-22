@@ -321,7 +321,7 @@ const Webmail = () => {
           senderDesignation: next.senderDesignation,
           senderPhone: next.senderPhone
         }));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -602,7 +602,7 @@ const Webmail = () => {
   // Toggle Read / Unread (Optimistic Real-time)
   const handleToggleReadStatus = async (uids, makeRead) => {
     if (!selectedAccountId || !uids.length) return;
-    
+
     setMessages(prev => prev.map(m => uids.includes(m.uid) ? { ...m, isSeen: makeRead } : m));
 
     try {
@@ -625,7 +625,7 @@ const Webmail = () => {
   // Move Message(s) to Trash (Instant Optimistic update)
   const handleMoveToTrash = async (uids) => {
     if (!selectedAccountId || !uids.length) return;
-    
+
     const trashFolderObj = folders.find(f => f.role === "trash" || f.path.toUpperCase().includes("TRASH") || f.path.toUpperCase().includes("BIN"));
     const destinationFolder = trashFolderObj ? trashFolderObj.path : "Trash";
 
@@ -706,7 +706,7 @@ const Webmail = () => {
 
       if (res.data.success) {
         addToast("Email sent via Hostinger SMTP!", "success");
-        
+
         // Instant Real-Time Session Thread Append
         if (selectedUid && composeData.inReplyTo === messageDetail?.messageId) {
           setThreadReplies(prev => [
@@ -752,7 +752,7 @@ const Webmail = () => {
       return;
     }
     if (!quickReplyText.trim() || !messageDetail) return;
-    
+
     const replyContent = quickReplyText.trim();
     const replyToAddress = messageDetail.replyTo || messageDetail.from?.address;
     const formattedBody = `<p>${replyContent.replace(/\n/g, "<br/>")}</p>`;
@@ -814,7 +814,7 @@ const Webmail = () => {
     const recipient = isReply ? (messageDetail.replyTo || messageDetail.from?.address || "") : "";
     const subjectPrefix = isReply ? (messageDetail.subject.startsWith("Re:") ? "" : "Re: ") : (messageDetail.subject.startsWith("Fwd:") ? "" : "Fwd: ");
     const fullSubject = `${subjectPrefix}${messageDetail.subject}`;
-    
+
     const quoteHeader = `<br/><br/>--- ${isReply ? "Original Message" : "Forwarded Message"} ---<br/><b>From:</b> ${messageDetail.from?.name || ""} &lt;${messageDetail.from?.address}&gt;<br/><b>Date:</b> ${new Date(messageDetail.date).toLocaleString()}<br/><b>Subject:</b> ${messageDetail.subject}<br/><br/>`;
     const quoteBody = messageDetail.html || `<pre>${messageDetail.text}</pre>`;
 
@@ -917,7 +917,7 @@ const Webmail = () => {
         boxShadow: "none"
       }}
     >
-      
+
       {/* 1. GMAIL-STYLE TOP SEARCH & WORKSPACE BAR (Ultra-Responsive Single-Line) */}
       <div
         style={{
@@ -1257,7 +1257,7 @@ const Webmail = () => {
 
       {/* 2. MAIN 3-PANE WORKSPACE */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
-        
+
         {/* Pane A: GMAIL-STYLE LEFT NAVIGATION (Desktop) */}
         <div
           style={{
@@ -1327,13 +1327,13 @@ const Webmail = () => {
                 { key: "TRASH", name: "Trash", icon: <Trash2 size={17} />, role: "trash" },
                 { key: "SPAM", name: "Spam", icon: <AlertOctagon size={17} />, role: "spam" }
               ].map(fMeta => {
-                const imapFolder = folders.find(f => 
-                  f.path.toUpperCase() === fMeta.key || 
+                const imapFolder = folders.find(f =>
+                  f.path.toUpperCase() === fMeta.key ||
                   (f.role && f.role.toLowerCase() === fMeta.role) ||
                   f.path.toUpperCase().includes(fMeta.key)
                 );
-                const isSelected = currentFolder === (imapFolder ? imapFolder.path : fMeta.key) || 
-                                   (fMeta.key === "INBOX" && currentFolder === "INBOX");
+                const isSelected = currentFolder === (imapFolder ? imapFolder.path : fMeta.key) ||
+                  (fMeta.key === "INBOX" && currentFolder === "INBOX");
                 const unseen = imapFolder?.unseen || 0;
 
                 return (
@@ -1614,10 +1614,10 @@ const Webmail = () => {
 
         {/* Pane C: GMAIL CONVERSATION VIEWER (With Collapsible Mobile Quick Reply) */}
         {selectedUid && (!isMobile || mobileView === "reader") ? (
-          <div style={{ flex: 1, backgroundColor: "#ffffff", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            
+          <div style={{ flex: 1, backgroundColor: "#ffffff", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0, height: isMobile ? "calc(100dvh - 110px)" : "100%" }}>
+
             {/* Top Action Toolbar */}
-            <div style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#f8fafc" }}>
+            <div style={{ padding: "8px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#f8fafc", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <button
                   onClick={() => {
@@ -1692,8 +1692,8 @@ const Webmail = () => {
                 <span style={{ fontSize: "13px", fontWeight: "600" }}>Loading email...</span>
               </div>
             ) : messageDetail ? (
-              <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px 16px 80px 16px" : "18px 24px 50px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                
+              <div style={{ flex: 1, overflowY: "scroll", overflowX: "hidden", minHeight: 0, maxHeight: isMobile ? "calc(100dvh - 165px)" : "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y", padding: isMobile ? "14px 16px 140px 16px" : "18px 24px 60px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
                 {/* Header Title */}
                 <div>
                   <h1 style={{ fontSize: isMobile ? "17px" : "20px", fontWeight: "800", color: "#0f172a", margin: "0 0 10px 0", lineHeight: "1.3" }}>
@@ -1833,7 +1833,7 @@ const Webmail = () => {
                   }
 
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
                       {conversationCards.map((card, cIdx) => (
                         <motion.div
                           key={card.id || cIdx}
@@ -1846,7 +1846,10 @@ const Webmail = () => {
                             borderLeft: card.isMe ? "4px solid #16a34a" : "4px solid #2563eb",
                             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
                             overflow: "hidden",
-                            padding: "16px 20px"
+                            padding: isMobile ? "12px 14px" : "16px 20px",
+                            width: "100%",
+                            maxWidth: "100%",
+                            boxSizing: "border-box"
                           }}
                         >
                           {/* Chat Card Header */}
@@ -1863,23 +1866,24 @@ const Webmail = () => {
                                   alignItems: "center",
                                   justifyContent: "center",
                                   fontSize: "13px",
-                                  fontWeight: "800"
+                                  fontWeight: "800",
+                                  flexShrink: 0
                                 }}
                               >
                                 {card.isMe ? "Y" : (card.sender || "U").charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                                   <span style={{ fontSize: "13.5px", fontWeight: "800", color: card.isMe ? "#15803d" : "#0f172a" }}>
                                     {card.isMe ? "You (Outgoing Mail)" : card.sender}
                                   </span>
                                   {card.isLatest && (
-                                    <span style={{ fontSize: "10px", fontWeight: "800", backgroundColor: card.isMe ? "#dcfce7" : "#dbeafe", color: card.isMe ? "#15803d" : "#1d4ed8", padding: "1px 7px", borderRadius: "10px" }}>
+                                    <span style={{ fontSize: "10px", fontWeight: "800", backgroundColor: card.isMe ? "#dcfce7" : "#dbeafe", color: card.isMe ? "#15803d" : "#1d4ed8", padding: "1px 7px", borderRadius: "10px", whiteSpace: "nowrap" }}>
                                       Latest Reply
                                     </span>
                                   )}
                                   {card.isOriginalQuote && (
-                                    <span style={{ fontSize: "10px", fontWeight: "800", backgroundColor: "#f1f5f9", color: "#475569", padding: "1px 7px", borderRadius: "10px" }}>
+                                    <span style={{ fontSize: "10px", fontWeight: "800", backgroundColor: "#f1f5f9", color: "#475569", padding: "1px 7px", borderRadius: "10px", whiteSpace: "nowrap" }}>
                                       Original Message
                                     </span>
                                   )}
@@ -1888,10 +1892,6 @@ const Webmail = () => {
                                   &lt;{card.senderEmail}&gt;
                                 </div>
                               </div>
-                            </div>
-
-                            <div style={{ fontSize: "11.5px", color: "#64748b", fontWeight: "500" }}>
-                              {new Date(card.date).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
                             </div>
                           </div>
 
@@ -1929,6 +1929,12 @@ const Webmail = () => {
 
                           {/* Message Body */}
                           <TrimmedEmailBody html={card.html} text={card.text} />
+
+                          {/* Card Footer: Clean Professional Timestamp */}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: "10px", paddingTop: "6px", borderTop: "1px dashed rgba(0,0,0,0.06)", fontSize: "11px", color: "#64748b", fontWeight: "500", gap: "4px" }}>
+                            <Clock size={12} style={{ color: "#94a3b8" }} />
+                            <span>{new Date(card.date).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+                          </div>
                         </motion.div>
                       ))}
                     </div>
@@ -2479,7 +2485,7 @@ const Webmail = () => {
             {/* Compose Form (Visible when not minimized) */}
             {!isComposeMinimized && (
               <form onSubmit={handleSendEmail} style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", padding: "14px 18px" }}>
-                
+
                 {/* Sender Account (From Selector) */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
                   <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", minWidth: "42px" }}>From</span>
@@ -2671,7 +2677,7 @@ const Webmail = () => {
                       )}
                     </div>
                     <div style={{ fontSize: "10px", color: "#64748b" }}>
-                      <span>{activeAccount?.email}</span> &bull; 
+                      <span>{activeAccount?.email}</span> &bull;
                       <span style={{ color: "#2563eb", fontWeight: "600", marginLeft: "3px" }}>multimarg.com</span>
                     </div>
                   </div>
@@ -2827,7 +2833,7 @@ const Webmail = () => {
               </div>
 
               <form onSubmit={handleConnectAccount} style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                
+
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", padding: "8px 10px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "6px" }}>
                   <CheckCircle size={15} style={{ color: "#16a34a", flexShrink: 0, marginTop: "2px" }} />
                   <div style={{ fontSize: "11.5px", color: "#15803d" }}>
