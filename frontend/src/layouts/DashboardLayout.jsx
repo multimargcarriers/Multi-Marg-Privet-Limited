@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar, { getVisibleMenuItems } from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
 import Topbar from '../components/Topbar';
@@ -12,6 +12,9 @@ const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   
+  const location = useLocation();
+  const isWebmailPage = location.pathname.startsWith('/webmail') || location.pathname.startsWith('/mail');
+
   const { hasPermission } = useContext(AuthContext);
   const { globalSettings } = useContext(SettingsContext);
 
@@ -47,27 +50,50 @@ const DashboardLayout = () => {
       {hasSidebar && <Sidebar isOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />}
       <div className={`main-content ${hasSidebar ? (isSidebarOpen ? 'sidebar-open' : 'sidebar-closed') : 'no-sidebar'} ${!hasRightSidebar ? 'no-right-sidebar' : ''}`}>
         <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} hasSidebar={hasSidebar} />
-        <main className="page-content" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - var(--topbar-height))', justifyContent: 'space-between' }}>
-          <div style={{ flex: 1, paddingBottom: '2rem' }}>
+        <main
+          className={`page-content ${isWebmailPage ? 'webmail-layout-root' : ''}`}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: isWebmailPage ? 'calc(100dvh - var(--topbar-height, 64px))' : 'calc(100vh - var(--topbar-height))',
+            height: isWebmailPage ? 'calc(100dvh - var(--topbar-height, 64px))' : 'auto',
+            maxHeight: isWebmailPage ? 'calc(100dvh - var(--topbar-height, 64px))' : 'none',
+            overflow: isWebmailPage ? 'hidden' : 'visible',
+            padding: isWebmailPage ? (isMobile ? '4px' : '8px') : undefined,
+            justifyContent: 'space-between'
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              paddingBottom: 0,
+              height: isWebmailPage ? '100%' : 'auto',
+              display: isWebmailPage ? 'flex' : 'block',
+              flexDirection: isWebmailPage ? 'column' : 'row',
+              overflow: isWebmailPage ? 'hidden' : 'visible'
+            }}
+          >
             <Outlet />
           </div>
-          <footer className="app-footer no-print">
-            <div className="app-footer-brand">
-              <img src="/circle_crop_logo.png" alt="Logo" style={{ height: '22px', width: '22px', objectFit: 'contain' }} />
-              <span className="app-footer-brand-text">
-                MULTIMARG CARRIERS
-              </span>
-            </div>
-            <div className="app-footer-meta">
-              <span>
-                Support: <a href="mailto:info@multimarg.com" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>info@multimarg.com</a>
-              </span>
-              <span className="hide-on-mobile">•</span>
-              <span>
-                &copy; {new Date().getFullYear()} Multimarg Carriers Private Limited. All rights reserved.
-              </span>
-            </div>
-          </footer>
+          {!isWebmailPage && (
+            <footer className="app-footer no-print">
+              <div className="app-footer-brand">
+                <img src="/circle_crop_logo.png" alt="Logo" style={{ height: '22px', width: '22px', objectFit: 'contain' }} />
+                <span className="app-footer-brand-text">
+                  MULTIMARG CARRIERS
+                </span>
+              </div>
+              <div className="app-footer-meta">
+                <span>
+                  Support: <a href="mailto:info@multimarg.com" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>info@multimarg.com</a>
+                </span>
+                <span className="hide-on-mobile">•</span>
+                <span>
+                  &copy; {new Date().getFullYear()} Multimarg Carriers Private Limited. All rights reserved.
+                </span>
+              </div>
+            </footer>
+          )}
         </main>
       </div>
       {hasSidebar && hasRightSidebar && <RightSidebar />}

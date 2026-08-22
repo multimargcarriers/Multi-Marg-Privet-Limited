@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const PERMISSIONS_TREE = [
   { id: 'dashboard', name: 'Dashboard', isPage: true },
+  { id: 'mail', name: 'Webmail (Hostinger Business Mail)', isPage: true },
   { id: 'logs', name: 'Activity Logs', isPage: true },
   {
     id: 'masters',

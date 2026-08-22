@@ -34,7 +34,8 @@ import {
   Trash2,
   Calendar,
   Globe,
-  Scale
+  Scale,
+  Mail
 } from "lucide-react";
 
 export const menuItems = [
@@ -43,6 +44,12 @@ export const menuItems = [
     path: "/dashboard",
     icon: <LayoutDashboard size={20} />,
     permission: "dashboard"
+  },
+  {
+    name: "Business Mail",
+    path: "/mail",
+    icon: <Mail size={20} />,
+    permission: "mail"
   },
   {
     name: "Operations",

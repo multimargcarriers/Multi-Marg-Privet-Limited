@@ -56,7 +56,7 @@ const sendOtpEmail = async (email, otp, userName = "User") => {
     
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #232F3E 0%, #0f151c 100%); padding: 30px 15px; text-align: center; border-bottom: 3px solid #FF9900;">
-      <img src="https://multimarg.com/mc.png" alt="Multi Marg Logo" style="width: 70px; height: auto; max-width: 100%; margin-bottom: 15px; background: white; padding: 8px; border-radius: 8px;" />
+      <img src="https://soft.multimargcarriers.co.in/circle_crop_logo.png" alt="Multi Marg Logo" style="width: 70px; height: 70px; max-width: 100%; margin-bottom: 15px; background: white; padding: 4px; border-radius: 50%; object-fit: contain;" />
       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; word-break: break-word;">MULTI MARG</h1>
       <p style="color: #94a3b8; font-size: 13px; margin: 5px 0 0 0; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; word-break: break-word;">Private Limited</p>
     </div>

@@ -6,11 +6,16 @@ import App from './App.jsx'
 import appDB from './utils/appDB.js'
 import syncManager from './utils/syncManager.js'
 
-// Add Axios Request Interceptor for Global Authorization and Data Lowercasing
 const formatDataStringsToLowercase = (data) => {
+  if (!data) return data;
+  // Never touch FormData or Binary instances
+  if (typeof FormData !== 'undefined' && data instanceof FormData) return data;
+  if (typeof Blob !== 'undefined' && data instanceof Blob) return data;
+  if (typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer) return data;
+
   if (Array.isArray(data)) {
     return data.map(item => formatDataStringsToLowercase(item));
-  } else if (data !== null && typeof data === 'object') {
+  } else if (typeof data === 'object') {
     const formattedObj = {};
     for (const key in data) {
       if (Object.hasOwnProperty.call(data, key)) {
@@ -45,9 +50,12 @@ axios.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Format POST/PUT/PATCH payload strings to lowercase globally (except address & technical keys)
+  // Format POST/PUT/PATCH payload strings to lowercase globally (except address, technical keys, and webmail)
   if (config.data && typeof config.data === 'object' && ['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
-    config.data = formatDataStringsToLowercase(config.data);
+    const isWebmail = config.url && (config.url.includes('/api/webmail') || config.url.includes('/mail'));
+    if (!isWebmail) {
+      config.data = formatDataStringsToLowercase(config.data);
+    }
   }
   
   return config;

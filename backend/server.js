@@ -285,6 +285,7 @@ const trashRoutes = require("./src/routes/trash");
 const contactsRoutes = require("./src/routes/contacts");
 const cmsRoutes = require("./src/routes/cms");
 const applicationsRoutes = require("./src/routes/applications");
+const webmailRoutes = require("./src/routes/webmail");
 
 // Public Routes
 const publicTrackingRoutes = require("./src/routes/public/tracking");
@@ -405,6 +406,7 @@ app.use("/api/trash", trashRoutes);
 app.use("/api/contacts", contactsRoutes);
 app.use("/api/cms", cmsRoutes);
 app.use("/api/applications", applicationsRoutes);
+app.use("/api/webmail", webmailRoutes);
 
 const quotesRoutes = require("./src/routes/quotes");
 app.use("/api/quotes", quotesRoutes);

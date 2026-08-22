@@ -59,6 +59,7 @@ import ManageFAQ from "./pages/CMS/ManageFAQ";
 import ManageCareers from "./pages/CMS/ManageCareers";
 import ManageServices from "./pages/CMS/ManageServices";
 import JobApplications from "./pages/CMS/JobApplications";
+import Webmail from "./pages/Mail/Webmail";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -99,6 +100,11 @@ function App() {
             </Route>
             <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="dashboard" /></MaintenanceGuard>}>
               <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
+
+            {/* Business Webmail */}
+            <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="mail" /></MaintenanceGuard>}>
+              <Route path="/mail" element={<Webmail />} />
             </Route>
 
             {/* IAM - SuperAdmin Only */}
