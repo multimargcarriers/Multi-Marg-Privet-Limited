@@ -964,45 +964,58 @@ const BookingsList = () => {
       {/* Floating Bottom Toast Portal (Fixed on Viewport) */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
-          {selectedBookingIds.length > 0 && (
-            <motion.div
-              key="floating-bulk-toast-dock"
-              initial={{ opacity: 0, y: 30, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: 30, x: "-50%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 380 }}
-              className="floating-bulk-toast"
-            >
-              <div className="bulk-toast-pill">
-                <span className="bulk-toast-count" title={`${selectedBookingIds.length} Selected`}>
-                  {selectedBookingIds.length}
-                </span>
+          {selectedBookingIds.length > 0 && (() => {
+            const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
+            const awbText = selectedList.length === 1 
+              ? (selectedList[0].awbNo || selectedList[0].bookingId || "AWB")
+              : selectedList.length === 2
+              ? `${selectedList[0].awbNo || selectedList[0].bookingId}, ${selectedList[1].awbNo || selectedList[1].bookingId}`
+              : `${selectedList[0]?.awbNo || selectedList[0]?.bookingId || 'AWB'} (+${selectedList.length - 1})`;
 
-                <button
-                  type="button"
-                  className="bulk-toast-action-btn"
-                  onClick={() => {
-                    const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
-                    setBulkBookingsForTracking(selectedList);
-                    setSelectedBookingForTracking(null);
-                    setBulkConfirmModalOpen(true);
-                  }}
-                >
-                  <Truck size={15} />
-                  <span>Update Track</span>
-                </button>
+            return (
+              <motion.div
+                key="floating-bulk-toast-dock"
+                initial={{ opacity: 0, y: 30, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                exit={{ opacity: 0, y: 30, x: "-50%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 380 }}
+                className="floating-bulk-toast"
+              >
+                <div className="bulk-toast-pill">
+                  <div className="bulk-toast-awb-wrap">
+                    <span className="bulk-toast-count" title={`${selectedBookingIds.length} Selected`}>
+                      {selectedBookingIds.length}
+                    </span>
+                    <span className="bulk-toast-awb-tag" title={selectedList.map(b => b.awbNo || b.bookingId).join(', ')}>
+                      {awbText}
+                    </span>
+                  </div>
 
-                <button
-                  type="button"
-                  className="bulk-toast-clear-btn"
-                  onClick={() => setSelectedBookingIds([])}
-                  title="Clear Selection"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </motion.div>
-          )}
+                  <button
+                    type="button"
+                    className="bulk-toast-action-btn"
+                    onClick={() => {
+                      setBulkBookingsForTracking(selectedList);
+                      setSelectedBookingForTracking(null);
+                      setBulkConfirmModalOpen(true);
+                    }}
+                  >
+                    <Truck size={15} />
+                    <span>Update Track</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="bulk-toast-clear-btn"
+                    onClick={() => setSelectedBookingIds([])}
+                    title="Clear Selection"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>,
         document.body
       )}

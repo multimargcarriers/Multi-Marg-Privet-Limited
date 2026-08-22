@@ -1914,6 +1914,14 @@ table td .btn-action {
   100% { left: 160%; }
 }
 
+.bulk-toast-awb-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
 .bulk-toast-count {
   background: radial-gradient(circle at 35% 30%, rgba(56, 189, 248, 0.35) 0%, rgba(37, 99, 235, 0.15) 70%, rgba(14, 165, 233, 0.25) 100%);
   color: #0284c7;
@@ -1932,6 +1940,33 @@ table td .btn-action {
   margin: 0;
   position: relative;
   z-index: 1;
+}
+
+.bulk-toast-awb-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.80rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  padding: 3px 9px;
+  border-radius: 16px;
+  white-space: nowrap;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .bulk-toast-awb-tag {
+    max-width: 110px;
+    font-size: 0.74rem;
+    padding: 2px 6px;
+  }
 }
 
 .bulk-toast-action-btn {
@@ -2275,6 +2310,36 @@ table td .btn-action {
 .route-arrow {
   color: #3b82f6;
   flex-shrink: 0;
+}
+
+.bulk-confirm-idx-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 6px;
+  min-width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.awb-label-dim {
+  font-size: 0.70rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-right: 3px;
+}
+
+.bulk-confirm-pkgs-badge {
+  font-size: 0.70rem;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .bulk-confirm-parties {

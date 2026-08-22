@@ -86,12 +86,18 @@ const BulkTrackingConfirmModal = ({
                 const consignor = b.consignorName || b.senderName || b.sender || '-';
                 const consignee = b.consigneeName || b.receiverName || b.receiver || '-';
                 const dateStr = b.bookingDate || b.createdAt || b.date;
+                const pkgs = b.pkgs || b.packages || b.totalPkgs || b.qty || 1;
 
                 return (
                   <div key={bookingId || idx} className="bulk-confirm-item-row">
+                    {/* Serial Count Badge (1, 2, 3...) */}
+                    <div className="bulk-confirm-idx-badge" title={`Item #${idx + 1}`}>
+                      #{idx + 1}
+                    </div>
+
                     <div className="bulk-confirm-item-left">
                       <div className="bulk-confirm-awb-badge">
-                        {awbNo}
+                        <span className="awb-label-dim">AWB:</span> {awbNo}
                       </div>
                       {dateStr && (
                         <span className="bulk-confirm-date-tag">
@@ -114,6 +120,9 @@ const BulkTrackingConfirmModal = ({
                     </div>
 
                     <div className="bulk-confirm-item-right">
+                      <span className="bulk-confirm-pkgs-badge">
+                        {pkgs} Pkg{pkgs > 1 ? 's' : ''}
+                      </span>
                       {b.status && (
                         <span className="bulk-confirm-status-pill">
                           {b.status}
