@@ -216,18 +216,30 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
           </span>
         </div>
 
-        {/* Status / Inactivity Notice */}
+        {/* Status / Priority Flow Notice */}
         <div style={{
           background: '#f8fafc',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
           padding: '0.75rem 1rem',
-          fontSize: '0.8rem',
+          fontSize: '0.78rem',
           color: '#475569',
           marginBottom: '1.25rem',
-          lineHeight: '1.45'
+          lineHeight: '1.45',
+          textAlign: 'center'
         }}>
-          Session locked for security. Authenticate using your device's registered <strong>Face Lock / Fingerprint / PIN</strong> or account password.
+          <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
+            Multi-Tier Authentication Flow
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', flexWrap: 'wrap', fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
+            <span>1️⃣ Face Lock</span>
+            <span style={{ color: '#94a3b8' }}>➔</span>
+            <span>2️⃣ Fingerprint</span>
+            <span style={{ color: '#94a3b8' }}>➔</span>
+            <span>3️⃣ Device PIN</span>
+            <span style={{ color: '#94a3b8' }}>➔</span>
+            <span style={{ color: '#64748b' }}>4️⃣ Password</span>
+          </div>
         </div>
 
         {/* Error Alert */}
@@ -253,7 +265,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
         {/* Biometric Trigger or Password Input */}
         {!showPasswordMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            {/* Primary: Device Biometric Unlock (Native Face Lock / Fingerprint) */}
+            {/* Primary: Device Biometric Unlock (Native Face Lock 1st / Fingerprint 2nd / Screen Lock 3rd) */}
             <button
               onClick={handleBiometricUnlock}
               disabled={authenticating}
@@ -264,7 +276,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 border: 'none',
                 background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #1d4ed8 100%)',
                 color: '#ffffff',
-                fontSize: '0.92rem',
+                fontSize: '0.90rem',
                 fontWeight: 700,
                 cursor: authenticating ? 'not-allowed' : 'pointer',
                 display: 'flex',
@@ -279,7 +291,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 <Scan size={20} />
                 <Fingerprint size={20} className={authenticating ? "spin-animation" : ""} />
               </div>
-              <span>{authenticating ? 'Verifying Device...' : 'Unlock with Device Biometrics (Face / Fingerprint)'}</span>
+              <span>{authenticating ? 'Checking Face / Fingerprint...' : 'Unlock with Face Lock / Fingerprint / PIN'}</span>
             </button>
 
             {/* Secondary: Password fallback */}
@@ -304,7 +316,7 @@ const DeviceLockModal = ({ user, onUnlock, onLogout }) => {
                 marginTop: '2px'
               }}
             >
-              <KeyRound size={15} color="#2563eb" /> Verify with Account Password
+              <KeyRound size={15} color="#2563eb" /> Verify with Account Password (4th Option)
             </button>
           </div>
         ) : (

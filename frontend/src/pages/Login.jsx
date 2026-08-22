@@ -952,18 +952,29 @@ const Login = () => {
                 border: '1px solid rgba(37, 99, 235, 0.2)',
                 borderRadius: '12px',
                 padding: '0.75rem 1rem',
-                fontSize: '0.82rem',
+                fontSize: '0.78rem',
                 color: '#1e40af',
                 marginBottom: '1.25rem',
                 lineHeight: '1.45',
                 textAlign: 'center'
               }}>
-                Device authentication is <strong>compulsory</strong>. Verify using your device's registered <strong>Face Lock / Fingerprint / Screen Lock</strong> or enter your account password.
+                <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
+                  Compulsory Device Verification Flow
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', flexWrap: 'wrap', fontSize: '0.72rem', color: '#2563eb', fontWeight: 600 }}>
+                  <span>1️⃣ Face Lock</span>
+                  <span style={{ color: '#94a3b8' }}>➔</span>
+                  <span>2️⃣ Fingerprint</span>
+                  <span style={{ color: '#94a3b8' }}>➔</span>
+                  <span>3️⃣ Device PIN</span>
+                  <span style={{ color: '#94a3b8' }}>➔</span>
+                  <span style={{ color: '#64748b' }}>4️⃣ Password</span>
+                </div>
               </div>
 
               {!showStep2PasswordInput ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {/* Primary Option: Native Device Biometrics (Face Lock / Fingerprint / Windows Hello) */}
+                  {/* Primary Option: Native Device Biometrics (Face Lock 1st / Fingerprint 2nd / PIN 3rd) */}
                   <button
                     type="button"
                     onClick={() => triggerDeviceVerification(pendingAuth.user, pendingAuth.token)}
@@ -982,7 +993,7 @@ const Login = () => {
                       <Scan size={20} />
                       <Fingerprint size={20} className={deviceAuthLoading ? "spin-animation" : ""} />
                     </div>
-                    <span>{deviceAuthLoading ? 'Verifying Device...' : 'Scan Face Lock / Fingerprint / Device PIN'}</span>
+                    <span>{deviceAuthLoading ? 'Checking Face / Fingerprint...' : 'Unlock with Face Lock / Fingerprint / PIN'}</span>
                   </button>
 
                   {/* Secondary Option: Password */}
