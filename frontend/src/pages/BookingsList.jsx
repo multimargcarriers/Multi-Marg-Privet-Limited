@@ -237,7 +237,7 @@ const BookingsList = () => {
 
   const filtered = useMemo(() => {
     return displayBookings.filter(b => {
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -295,9 +295,9 @@ const BookingsList = () => {
             <span className="bookings-count-badge">
               {filtered.length} {filtered.length === 1 ? 'Booking' : 'Bookings'}
             </span>
-            <button 
-              onClick={fetchAllData} 
-              className="bookings-refresh-btn" 
+            <button
+              onClick={fetchAllData}
+              className="bookings-refresh-btn"
               title="Refresh Bookings"
             >
               <RefreshCw size={14} className={loading ? "spin-animation" : ""} />
@@ -316,8 +316,8 @@ const BookingsList = () => {
             </button>
 
             {(hasPermission("create_booking") || isSuperAdmin) && (
-              <button 
-                className="btn-create-booking" 
+              <button
+                className="btn-create-booking"
                 onClick={() => navigate("/bookings/create")}
                 title="Create New Consignment / Booking"
               >
@@ -350,9 +350,9 @@ const BookingsList = () => {
             )}
 
             {(isSuperAdmin && globalSettings?.integrations?.enableBulkDelete) && (
-              <button 
-                className="btn-bulk-delete" 
-                onClick={handleClearAll} 
+              <button
+                className="btn-bulk-delete"
+                onClick={handleClearAll}
                 title={(startDate || endDate) ? "Delete Filtered Bookings" : "Clear All Bookings"}
               >
                 <Trash2 size={15} />
@@ -380,10 +380,10 @@ const BookingsList = () => {
 
           {/* Sort Dropdown & Show Entries: Always in 1 same row */}
           <div className="premium-sort-show-row">
-            <SortDropdown 
-              value={sortOption} 
-              onChange={setSortOption} 
-              options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]} 
+            <SortDropdown
+              value={sortOption}
+              onChange={setSortOption}
+              options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]}
             />
 
             <div className="premium-filter-group show-entries-group">
@@ -416,8 +416,8 @@ const BookingsList = () => {
                 style={{ cursor: 'pointer' }}
               />
               {startDate && (
-                <button 
-                  onClick={() => { setStartDate(""); setCurrentPage(1); }} 
+                <button
+                  onClick={() => { setStartDate(""); setCurrentPage(1); }}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
                   title="Clear From Date"
                 >
@@ -437,8 +437,8 @@ const BookingsList = () => {
                 style={{ cursor: 'pointer' }}
               />
               {endDate && (
-                <button 
-                  onClick={() => { setEndDate(""); setCurrentPage(1); }} 
+                <button
+                  onClick={() => { setEndDate(""); setCurrentPage(1); }}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
                   title="Clear To Date"
                 >
@@ -473,9 +473,9 @@ const BookingsList = () => {
           </label>
 
           {selectedBookingIds.length > 0 && (
-            <button 
-              type="button" 
-              onClick={() => setSelectedBookingIds([])} 
+            <button
+              type="button"
+              onClick={() => setSelectedBookingIds([])}
               className="bookings-quick-clear-btn"
             >
               Clear selection ({selectedBookingIds.length})
@@ -611,8 +611,8 @@ const BookingsList = () => {
                   <div className="booking-meta-row">
                     <span className="booking-meta-badge booking-badge-awb">
                       <strong>AWB:</strong> {awb}
-                      <span 
-                        onClick={(e) => handleCopyAwb(e, awb)} 
+                      <span
+                        onClick={(e) => handleCopyAwb(e, awb)}
                         className="booking-awb-copy-btn"
                         title="Copy AWB"
                       >
@@ -630,7 +630,7 @@ const BookingsList = () => {
                         {item.mode}
                       </span>
                     )}
-                    
+
                     {/* Package / Box Count Badge */}
                     <span className="booking-meta-badge booking-badge-pkg">
                       <Package size={13} /> Pkg: {item.box || item.boxes || item.packages || item.packageCount || item.pieces || (item.dimensions && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
@@ -733,9 +733,9 @@ const BookingsList = () => {
                       return (
                         <>
                           {canModify && (
-                            <button 
-                              onClick={() => navigate(`/bookings/edit/${item.id}`)} 
-                              className="booking-action-btn booking-btn-edit" 
+                            <button
+                              onClick={() => navigate(`/bookings/edit/${item.id}`)}
+                              className="booking-action-btn booking-btn-edit"
                               title="Edit Booking"
                             >
                               <Edit size={14} />
@@ -744,17 +744,17 @@ const BookingsList = () => {
                           )}
                           {!item.isOfflinePending && (
                             <>
-                              <button 
-                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")} 
-                                className="booking-action-btn booking-btn-print" 
+                              <button
+                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                                className="booking-action-btn booking-btn-print"
                                 title="View / Print LR"
                               >
                                 <Printer size={14} />
                                 <span className="booking-action-btn-text">Print</span>
                               </button>
-                              <button 
-                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")} 
-                                className="booking-action-btn booking-btn-download" 
+                              <button
+                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                                className="booking-action-btn booking-btn-download"
                                 title="Direct Download PDF"
                               >
                                 <Download size={14} />
@@ -763,9 +763,9 @@ const BookingsList = () => {
                             </>
                           )}
                           {canModify && (
-                            <button 
-                              onClick={() => handleDelete(item.id || item._id)} 
-                              className="booking-action-btn booking-btn-delete" 
+                            <button
+                              onClick={() => handleDelete(item.id || item._id)}
+                              className="booking-action-btn booking-btn-delete"
                               title="Delete Booking"
                             >
                               <Trash2 size={14} />
@@ -939,7 +939,7 @@ const BookingsList = () => {
           bulkBookings={bulkBookingsForTracking}
           onNavigateToTracking={(awb) => navigate(`/tracking?awb=${awb}`)}
           onSuccess={() => {
-            fetchAllData(); 
+            fetchAllData();
             setSelectedBookingIds([]);
           }}
         />
@@ -964,58 +964,45 @@ const BookingsList = () => {
       {/* Floating Bottom Toast Portal (Fixed on Viewport) */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
-          {selectedBookingIds.length > 0 && (() => {
-            const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
-            const awbText = selectedList.length === 1 
-              ? (selectedList[0].awbNo || selectedList[0].bookingId || "AWB")
-              : selectedList.length === 2
-              ? `${selectedList[0].awbNo || selectedList[0].bookingId}, ${selectedList[1].awbNo || selectedList[1].bookingId}`
-              : `${selectedList[0]?.awbNo || selectedList[0]?.bookingId || 'AWB'} (+${selectedList.length - 1})`;
+          {selectedBookingIds.length > 0 && (
+            <motion.div
+              key="floating-bulk-toast-dock"
+              initial={{ opacity: 0, y: 30, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, x: "-50%" }}
+              exit={{ opacity: 0, y: 30, x: "-50%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 380 }}
+              className="floating-bulk-toast"
+            >
+              <div className="bulk-toast-pill">
+                <span className="bulk-toast-count" title={`${selectedBookingIds.length} Selected`}>
+                  {selectedBookingIds.length}
+                </span>
 
-            return (
-              <motion.div
-                key="floating-bulk-toast-dock"
-                initial={{ opacity: 0, y: 30, x: "-50%" }}
-                animate={{ opacity: 1, y: 0, x: "-50%" }}
-                exit={{ opacity: 0, y: 30, x: "-50%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 380 }}
-                className="floating-bulk-toast"
-              >
-                <div className="bulk-toast-pill">
-                  <div className="bulk-toast-awb-wrap">
-                    <span className="bulk-toast-count" title={`${selectedBookingIds.length} Selected`}>
-                      {selectedBookingIds.length}
-                    </span>
-                    <span className="bulk-toast-awb-tag" title={selectedList.map(b => b.awbNo || b.bookingId).join(', ')}>
-                      {awbText}
-                    </span>
-                  </div>
+                <button
+                  type="button"
+                  className="bulk-toast-action-btn"
+                  onClick={() => {
+                    const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
+                    setBulkBookingsForTracking(selectedList);
+                    setSelectedBookingForTracking(null);
+                    setBulkConfirmModalOpen(true);
+                  }}
+                >
+                  <Truck size={15} />
+                  <span>Update Track</span>
+                </button>
 
-                  <button
-                    type="button"
-                    className="bulk-toast-action-btn"
-                    onClick={() => {
-                      setBulkBookingsForTracking(selectedList);
-                      setSelectedBookingForTracking(null);
-                      setBulkConfirmModalOpen(true);
-                    }}
-                  >
-                    <Truck size={15} />
-                    <span>Update Track</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="bulk-toast-clear-btn"
-                    onClick={() => setSelectedBookingIds([])}
-                    title="Clear Selection"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })()}
+                <button
+                  type="button"
+                  className="bulk-toast-clear-btn"
+                  onClick={() => setSelectedBookingIds([])}
+                  title="Clear Selection"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>,
         document.body
       )}
@@ -1026,8 +1013,8 @@ const BookingsList = () => {
         onClose={() => setShowExportModal(false)}
         title="Export AWB Bookings & Consignments"
         itemCount={selectedBookingIds.length > 0 ? selectedBookingIds.length : sortedData.length}
-        subtitle={selectedBookingIds.length > 0 
-          ? `Exporting ${selectedBookingIds.length} selected booking(s)` 
+        subtitle={selectedBookingIds.length > 0
+          ? `Exporting ${selectedBookingIds.length} selected booking(s)`
           : (search || startDate || endDate ? `Exporting ${sortedData.length} filtered booking(s)` : `Exporting all ${sortedData.length} bookings`)}
         isExporting={isExporting}
         onExport={handleExecuteExport}

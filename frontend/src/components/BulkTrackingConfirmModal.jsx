@@ -80,54 +80,48 @@ const BulkTrackingConfirmModal = ({
             <div className="bulk-confirm-list">
               {selectedBookings.map((b, idx) => {
                 const bookingId = b.id || b._id;
-                const awbNo = b.awbNo || b.bookingId || `AWB-${idx + 1}`;
-                const fromCity = b.origin || b.fromCity || b.originCity || '-';
-                const toCity = b.destination || b.toCity || b.destCity || '-';
-                const consignor = b.consignorName || b.senderName || b.sender || '-';
-                const consignee = b.consigneeName || b.receiverName || b.receiver || '-';
-                const dateStr = b.bookingDate || b.createdAt || b.date;
-                const pkgs = b.pkgs || b.packages || b.totalPkgs || b.qty || 1;
+                const awbNo = b.awb || b.awbNo || b.lrNo || b.consignment || b.bookingId || "-";
+                const fromCity = b.origin || b.fromCity || b.from || b.originCity || '-';
+                const toCity = b.destination || b.toCity || b.to || b.destCity || '-';
+                const consignor = b.client || b.consignor || b.consignorName || b.senderName || b.sender || '';
+                const consignee = b.consignee || b.consigneeName || b.receiverName || b.receiver || '';
+                const rawDate = b.createdAt || b.date || b.bookingDate;
+                const dateStr = rawDate ? formatDate(rawDate) : '-';
+                const pkgs = b.box || b.boxes || b.packages || b.packageCount || b.totalPkgs || b.pkgs || 1;
 
                 return (
                   <div key={bookingId || idx} className="bulk-confirm-item-row">
-                    {/* Serial Count Badge (1, 2, 3...) */}
-                    <div className="bulk-confirm-idx-badge" title={`Item #${idx + 1}`}>
-                      #{idx + 1}
-                    </div>
-
+                    {/* Left: AWB & Date */}
                     <div className="bulk-confirm-item-left">
                       <div className="bulk-confirm-awb-badge">
-                        <span className="awb-label-dim">AWB:</span> {awbNo}
+                        AWB: {awbNo}
                       </div>
-                      {dateStr && (
-                        <span className="bulk-confirm-date-tag">
-                          {formatDate(dateStr)}
-                        </span>
-                      )}
+                      <span className="bulk-confirm-date-tag">
+                        📅 {dateStr}
+                      </span>
                     </div>
 
+                    {/* Middle: Route & Uppercase Parties Hint */}
                     <div className="bulk-confirm-item-mid">
                       <div className="bulk-confirm-route">
-                        <span className="route-city">{fromCity}</span>
-                        <ArrowRight size={13} className="route-arrow" />
-                        <span className="route-city">{toCity}</span>
+                        <span className="route-city" title={fromCity}>{fromCity}</span>
+                        <ArrowRight size={12} className="route-arrow" />
+                        <span className="route-city" title={toCity}>{toCity}</span>
                       </div>
-                      <div className="bulk-confirm-parties">
-                        <span className="party-name" title={consignor}>{consignor}</span>
-                        <span className="party-sep">→</span>
-                        <span className="party-name" title={consignee}>{consignee}</span>
-                      </div>
+                      {(consignor || consignee) && (
+                        <div className="bulk-confirm-parties">
+                          <span className="party-name" title={consignor}>{(consignor || '-').toUpperCase()}</span>
+                          <span className="party-sep">→</span>
+                          <span className="party-name" title={consignee}>{(consignee || '-').toUpperCase()}</span>
+                        </div>
+                      )}
                     </div>
 
+                    {/* Right: Pkgs & Remove Cross */}
                     <div className="bulk-confirm-item-right">
-                      <span className="bulk-confirm-pkgs-badge">
-                        {pkgs} Pkg{pkgs > 1 ? 's' : ''}
+                      <span className="bulk-confirm-pkgs-badge" title={`${pkgs} Packages`}>
+                        <Package size={11} /> {pkgs} Pkg{pkgs > 1 ? 's' : ''}
                       </span>
-                      {b.status && (
-                        <span className="bulk-confirm-status-pill">
-                          {b.status}
-                        </span>
-                      )}
                       {onRemoveBooking && (
                         <button
                           type="button"
@@ -135,7 +129,7 @@ const BulkTrackingConfirmModal = ({
                           onClick={() => onRemoveBooking(bookingId)}
                           title="Remove from batch"
                         >
-                          <X size={14} />
+                          <X size={13} />
                         </button>
                       )}
                     </div>
