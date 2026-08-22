@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter, Layers, FileSpreadsheet, CheckSquare, Square, Building2 } from "lucide-react";
+import { Plus, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter, Layers, FileSpreadsheet, CheckSquare, Square, Building2, RefreshCw } from "lucide-react";
 import RupeeIcon from '../components/RupeeIcon';
 
 import { TablePageSkeleton } from '../components/SkeletonLoader';
@@ -625,40 +625,48 @@ const Trips = () => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', width: '100%', marginBottom: '1.5rem', gap: '1rem' }} className="no-print">
-        {/* Left Side: Refresh */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button 
-            className="page-header-btn page-header-btn-primary" 
-            onClick={fetchData}
-            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', fontWeight: 800, letterSpacing: '1px' }}
-          >
-            REFRESH
-          </button>
-        </div>
-        
-        {/* Center Side: Main Action */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {!showForm && hasAccess('trips') && (
+      {/* ── Page Header Toolbar ── */}
+      <div className="bookings-header-toolbar no-print">
+        <div className="bookings-header-main-row">
+          {/* Left: Page Title with Count & Refresh */}
+          <div className="bookings-header-title-group">
+            <h2 className="bookings-page-title">
+              MANIFEST / TRIPS
+            </h2>
+            <span className="bookings-count-badge">
+              {filteredTrips.length} {filteredTrips.length === 1 ? 'Trip' : 'Trips'}
+            </span>
             <button 
-              className="page-header-btn page-header-btn-primary" 
-              onClick={() => setShowForm(true)}
-              style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)' }}
+              onClick={fetchData} 
+              className="bookings-refresh-btn" 
+              title="Refresh Trips"
             >
-              + New Manifest
+              <RefreshCw size={14} className={loading ? "spin-animation" : ""} />
             </button>
-          )}
-        </div>
+          </div>
 
-        {/* Right Side: Export */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
-          <button 
-            className="page-header-btn page-header-btn-primary" 
-            onClick={handleOpenExportModal}
-            style={{ padding: '0 2.5rem', height: '42px', fontSize: '1.05rem', whiteSpace: 'nowrap', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.2)', gap: "8px" }}
-          >
-            <Download size={18} /> EXPORT
-          </button>
+          {/* Right: Primary Action Buttons (Export on Left & + New Manifest on Right) */}
+          <div className="bookings-header-primary-actions">
+            <button
+              onClick={handleOpenExportModal}
+              className="btn-export-bookings"
+              title="Export Trips to Excel / CSV"
+            >
+              <Download size={15} />
+              <span>Export</span>
+            </button>
+
+            {!showForm && hasAccess('trips') && (
+              <button 
+                className="btn-create-booking" 
+                onClick={() => setShowForm(true)}
+                title="Create New Manifest / Trip"
+              >
+                <Plus size={16} />
+                <span>New Manifest</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

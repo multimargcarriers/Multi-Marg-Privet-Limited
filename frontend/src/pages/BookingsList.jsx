@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2, Plus, RefreshCw } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
@@ -12,7 +13,8 @@ import StatsPanel from "../components/StatsPanel";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import BoxEntryModal from "../components/box/BoxEntryModal";
 import TrackingUpdateModal from "../components/TrackingUpdateModal";
-import { AnimatePresence } from "framer-motion";
+import BulkTrackingConfirmModal from "../components/BulkTrackingConfirmModal";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSocketSync } from '../hooks/useSocketSync';
 import { BadgeContext } from "../context/BadgeContext";
 import { SettingsContext } from "../context/SettingsContext";
@@ -48,6 +50,7 @@ const BookingsList = () => {
 
   // Tracking modal state
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [bulkConfirmModalOpen, setBulkConfirmModalOpen] = useState(false);
   const [selectedBookingForTracking, setSelectedBookingForTracking] = useState(null);
   const [bulkBookingsForTracking, setBulkBookingsForTracking] = useState([]);
 
@@ -448,19 +451,10 @@ const BookingsList = () => {
         </div>
       </div>
 
-      {/* Select All / Batch Action Toolbar */}
+      {/* Quick Select All Toggle Bar (Clean Micro Bar) */}
       {currentEntries.length > 0 && (
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "#ffffff",
-          padding: "0.65rem 1rem",
-          borderRadius: "8px",
-          border: "1px solid #cbd5e1",
-          marginBottom: "1rem",
-        }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", fontSize: "0.85rem", color: "#334155" }}>
+        <div className="bookings-quick-select-bar">
+          <label className="bookings-quick-select-label">
             <input
               type="checkbox"
               checked={currentEntries.length > 0 && currentEntries.every(b => selectedBookingIds.includes(b.id || b._id))}
@@ -473,48 +467,19 @@ const BookingsList = () => {
                   setSelectedBookingIds(prev => Array.from(new Set([...prev, ...visibleIds])));
                 }
               }}
-              style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2563eb" }}
+              className="bookings-quick-checkbox"
             />
-            <span>Select All Visible ({currentEntries.length})</span>
+            <span>Select All on Page ({currentEntries.length})</span>
           </label>
 
           {selectedBookingIds.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "0.8rem", color: "#2563eb", fontWeight: "700" }}>
-                {selectedBookingIds.length} booking(s) selected
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
-                  setBulkBookingsForTracking(selectedList);
-                  setSelectedBookingForTracking(null);
-                  setTrackingModalOpen(true);
-                }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                  color: "#ffffff",
-                  border: "none",
-                  padding: "0.45rem 0.9rem",
-                  borderRadius: "7px",
-                  fontWeight: 700,
-                  fontSize: "0.82rem",
-                  cursor: "pointer",
-                  boxShadow: "0 2px 4px rgba(37,99,235,0.25)"
-                }}
-              >
-                <Truck size={14} /> Bulk Update Tracking ({selectedBookingIds.length})
-              </button>
-              <button
-                onClick={() => setSelectedBookingIds([])}
-                style={{ background: "transparent", border: "none", color: "#64748b", fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline" }}
-              >
-                Clear Selection
-              </button>
-            </div>
+            <button 
+              type="button" 
+              onClick={() => setSelectedBookingIds([])} 
+              className="bookings-quick-clear-btn"
+            >
+              Clear selection ({selectedBookingIds.length})
+            </button>
           )}
         </div>
       )}
@@ -978,7 +943,69 @@ const BookingsList = () => {
             setSelectedBookingIds([]);
           }}
         />
+
+        <BulkTrackingConfirmModal
+          key="bulk-tracking-confirm-modal"
+          isOpen={bulkConfirmModalOpen}
+          onClose={() => setBulkConfirmModalOpen(false)}
+          selectedBookings={bulkBookingsForTracking}
+          onRemoveBooking={(idToRemove) => {
+            setSelectedBookingIds(prev => prev.filter(id => id !== idToRemove));
+            setBulkBookingsForTracking(prev => prev.filter(b => (b.id || b._id) !== idToRemove));
+          }}
+          onConfirm={() => {
+            setBulkConfirmModalOpen(false);
+            setTrackingModalOpen(true);
+          }}
+        />
+
       </AnimatePresence>
+
+      {/* Floating Bottom Toast Portal (Fixed on Viewport) */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {selectedBookingIds.length > 0 && (
+            <motion.div
+              key="floating-bulk-toast-dock"
+              initial={{ opacity: 0, y: 30, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, x: "-50%" }}
+              exit={{ opacity: 0, y: 30, x: "-50%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 380 }}
+              className="floating-bulk-toast"
+            >
+              <div className="bulk-toast-pill">
+                <span className="bulk-toast-count" title={`${selectedBookingIds.length} Selected`}>
+                  {selectedBookingIds.length}
+                </span>
+
+                <button
+                  type="button"
+                  className="bulk-toast-action-btn"
+                  onClick={() => {
+                    const selectedList = bookings.filter(b => selectedBookingIds.includes(b.id || b._id));
+                    setBulkBookingsForTracking(selectedList);
+                    setSelectedBookingForTracking(null);
+                    setBulkConfirmModalOpen(true);
+                  }}
+                >
+                  <Truck size={15} />
+                  <span>Update Track</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="bulk-toast-clear-btn"
+                  onClick={() => setSelectedBookingIds([])}
+                  title="Clear Selection"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Unified Export Modal */}
       <ExportModal
