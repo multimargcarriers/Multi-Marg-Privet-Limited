@@ -38,8 +38,10 @@ import { useToast } from "../context/ToastContext";
 import { useDialog } from "../context/DialogContext";
 import Table from "../components/Table";
 import ExportModal from "../components/ExportModal";
+import OutstandingExportFilterModal from "../components/OutstandingExportFilterModal";
 import { CalculationExplanationModal, useHoldToExplain, HoldProgressOverlay } from "../components/CalculationExplanationModal";
-import { buildProfessionalExcelReport, exportGenericCSV, toExportCaps } from "../utils/excelExport";
+import { buildProfessionalExcelReport, exportGenericCSV, toExportCaps, exportPartyDetailedLedger } from "../utils/excelExport";
+import PartyLedgerPrintModal from "../components/PartyLedgerPrintModal";
 import { useSocketSync } from "../hooks/useSocketSync";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -872,13 +874,15 @@ const OutstandingFinalSheet = () => {
 
     // Sales Bills
     bills.forEach((b) => {
+      const bDate = b.invoice_date || b.billDate || b.date || b.createdAt || b.invoiceDate;
+      const bInv = (b.invoice || b.billNo || b.invoiceNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
       list.push({
         id: b.id || b._id,
-        date: b.invoice_date || b.date || b.createdAt,
+        date: bDate,
         partyType: "Client",
         partyName: b.client || b.billedTo || "Client",
         type: "Sales Invoice",
-        refNo: b.invoice || b.billNo || "-",
+        refNo: bInv,
         debitAmt: Number(b.amount || b.total) || 0, // Invoiced to client (+)
         creditAmt: 0,
         paid: Number(b.paidAmount) || 0,
@@ -891,13 +895,15 @@ const OutstandingFinalSheet = () => {
 
     // Purchase Bills
     purchases.forEach((p) => {
+      const pDate = p.purchaseDate || p.date || p.createdAt || p.invoice_date;
+      const pInv = (p.purchaseNo || p.billNo || p.invoiceNo || p.billNumber || (p.id ? String(p.id).slice(-6) : "") || "-").toUpperCase();
       list.push({
         id: p.id || p._id,
-        date: p.date || p.createdAt,
+        date: pDate,
         partyType: "Vendor",
         partyName: p.vendor || "Vendor",
         type: "Purchase Bill",
-        refNo: p.billNo || "-",
+        refNo: pInv,
         debitAmt: 0,
         creditAmt: Number(p.amount || p.total) || 0, // Payable to vendor (-)
         paid: Number(p.paidAmount) || 0,
@@ -969,20 +975,108 @@ const OutstandingFinalSheet = () => {
   }, [unifiedStream, searchQuery]);
 
   // -------------------------------------------------------------
-  // 6. Professional Excel / CSV Export Handler
+  // 6. Comprehensive Export & Statement Configuration Handlers
   // -------------------------------------------------------------
-  const handleExport = async ({ format }) => {
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filterModalTarget, setFilterModalTarget] = useState(null);
+  const [filterModalFormat, setFilterModalFormat] = useState("excel");
+  const [printPartyConfig, setPrintPartyConfig] = useState({ party: null, statusFilter: "all", dateRange: null });
+  const [exportingPartyKey, setExportingPartyKey] = useState(null);
+
+  // Direct One-Click Export for Individual Client or Vendor (No questions/modal)
+  const handleDirectPartyExport = async (party, format = "excel", e) => {
+    if (e) e.stopPropagation();
+    if (!party) return;
+
+    if (format === "print") {
+      setPrintPartyConfig({ party, statusFilter: "all", dateRange: null });
+      return;
+    }
+
     setIsExporting(true);
     try {
-      const isClientTab = activeTab === "clients" || activeTab === "combined";
-      const targetList = isClientTab ? filteredClientList : filteredVendorList;
-      const reportTitle = isClientTab
+      setExportingPartyKey(`${party.partyKey}_${format}`);
+      await exportPartyDetailedLedger({
+        party,
+        format,
+        statusFilter: "all",
+        dateRange: null
+      });
+      addToast(
+        `Detailed Ledger (${format.toUpperCase()}) for "${party.partyName}" exported successfully!`,
+        "success"
+      );
+    } catch (err) {
+      console.error("Direct party export error:", err);
+      addToast(`Failed to export statement for ${party.partyName}: ${err.message}`, "error");
+    } finally {
+      setIsExporting(false);
+      setExportingPartyKey(null);
+    }
+  };
+
+  // Header Export (Opens Filter & Configuration Modal)
+  const openExportModal = (targetParty = null, defaultFormat = "excel", e) => {
+    if (e) e.stopPropagation();
+    setFilterModalTarget(targetParty);
+    setFilterModalFormat(defaultFormat);
+    setFilterModalOpen(true);
+  };
+
+  const handleExecuteConfiguredExport = async (config) => {
+    const { targetScope, party, filteredList, statusFilter, amountRange, dateRange, format } = config;
+
+    // A. Single Party Export
+    if (targetScope === "single_party" && party) {
+      if (format === "print") {
+        setFilterModalOpen(false);
+        setPrintPartyConfig({ party, statusFilter, dateRange });
+        return;
+      }
+
+      setIsExporting(true);
+      try {
+        setExportingPartyKey(`${party.partyKey}_${format}`);
+        await exportPartyDetailedLedger({
+          party,
+          format,
+          statusFilter,
+          dateRange
+        });
+        addToast(
+          `Statement of Account (${statusFilter.toUpperCase()}) for "${party.partyName}" exported to ${format.toUpperCase()} successfully!`,
+          "success"
+        );
+        setFilterModalOpen(false);
+      } catch (err) {
+        console.error("Party export error:", err);
+        addToast(`Failed to export statement for ${party.partyName}: ${err.message}`, "error");
+      } finally {
+        setIsExporting(false);
+        setExportingPartyKey(null);
+      }
+      return;
+    }
+
+    // B. Master List Export (All Clients or Vendors)
+    const isClientTarget = targetScope === "clients";
+    const targetList = filteredList || (isClientTarget ? filteredClientList : filteredVendorList);
+
+    if (format === "print") {
+      setFilterModalOpen(false);
+      window.print();
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const reportTitle = isClientTarget
         ? "CLIENT OUTSTANDING & LEDGER MASTER SHEET"
         : "VENDOR OUTSTANDING & PAYABLES MASTER SHEET";
 
       const columns = [
         { header: "SL", width: 6 },
-        { header: isClientTab ? "CLIENT NAME" : "VENDOR NAME", width: 28 },
+        { header: isClientTarget ? "CLIENT NAME" : "VENDOR NAME", width: 28 },
         { header: "CODE", width: 12 },
         { header: "GSTIN", width: 18 },
         { header: "PRIOR OPENING DUE", width: 18, align: "right", numFmt: "#,##0.00" },
@@ -1031,17 +1125,18 @@ const OutstandingFinalSheet = () => {
       });
 
       const today = new Date().toISOString().split("T")[0];
+      const filterSuffix = statusFilter !== "all" ? `_${statusFilter.toUpperCase()}` : "";
 
       if (format === "csv") {
         exportGenericCSV({
           headers: columns.map((c) => c.header),
           rows,
-          filename: `Outstanding_Master_Sheet_${today}.csv`
+          filename: `Outstanding_Master_Sheet${filterSuffix}_${today}.csv`
         });
       } else {
         await buildProfessionalExcelReport({
           reportTitle,
-          subtitle: `Generated on ${formatCleanDate(new Date())} - Total Records: ${targetList.length}`,
+          subtitle: `Generated on ${formatCleanDate(new Date())} - Filter: ${statusFilter.toUpperCase()} - Total Records: ${targetList.length}`,
           columns,
           rows,
           summaryTotals: {
@@ -1056,12 +1151,12 @@ const OutstandingFinalSheet = () => {
               { colIndex: 11, value: Number(grandNetDue.toFixed(2)), numFmt: "#,##0.00", align: "right" }
             ]
           },
-          filename: `Outstanding_Master_Sheet_${today}.xlsx`
+          filename: `Outstanding_Master_Sheet${filterSuffix}_${today}.xlsx`
         });
       }
 
-      addToast("Master Sheet exported successfully!", "success");
-      setExportModalOpen(false);
+      addToast(`Master Sheet (${statusFilter.toUpperCase()}) exported to ${format.toUpperCase()} successfully!`, "success");
+      setFilterModalOpen(false);
     } catch (err) {
       console.error("Export error:", err);
       addToast("Failed to export: " + err.message, "error");
@@ -1131,7 +1226,7 @@ const OutstandingFinalSheet = () => {
 
             <button
               type="button"
-              onClick={() => setExportModalOpen(true)}
+              onClick={() => openExportModal(null, "excel")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1152,7 +1247,7 @@ const OutstandingFinalSheet = () => {
 
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => openExportModal(null, "print")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1776,7 +1871,8 @@ const OutstandingFinalSheet = () => {
                 minWidth: "120px"
               },
               { label: "Status", align: "center", minWidth: "110px" },
-              { label: "Details", align: "center", minWidth: "100px" }
+              { label: "Export Statement", align: "center", minWidth: "190px" },
+              { label: "Details", align: "center", minWidth: "90px" }
             ]}
             data={activeTab === "clients" ? filteredClientList : filteredVendorList}
             pagination={true}
@@ -1865,7 +1961,90 @@ const OutstandingFinalSheet = () => {
                         {row.status === "paid" ? "Settled" : row.status === "partial" ? "Partial" : "Unpaid"}
                       </span>
                     </td>
-                    <td style={{ minWidth: "100px", padding: "12px 14px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                    <td style={{ minWidth: "190px", padding: "10px 8px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDirectPartyExport(row, "excel", e)}
+                          disabled={exportingPartyKey === `${row.partyKey}_excel`}
+                          title={`Direct One-Click Excel Ledger for ${row.partyName}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            background: "#ecfdf5",
+                            color: "#059669",
+                            border: "1px solid #a7f3d0",
+                            padding: "4px 7px",
+                            borderRadius: "6px",
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            cursor: exportingPartyKey === `${row.partyKey}_excel` ? "not-allowed" : "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                          }}
+                        >
+                          {exportingPartyKey === `${row.partyKey}_excel` ? (
+                            <RefreshCw size={11} className="spin-animation" />
+                          ) : (
+                            <Download size={11} />
+                          )}
+                          Excel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDirectPartyExport(row, "csv", e)}
+                          disabled={exportingPartyKey === `${row.partyKey}_csv`}
+                          title={`Direct One-Click CSV Ledger for ${row.partyName}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            padding: "4px 7px",
+                            borderRadius: "6px",
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            cursor: exportingPartyKey === `${row.partyKey}_csv` ? "not-allowed" : "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                          }}
+                        >
+                          {exportingPartyKey === `${row.partyKey}_csv` ? (
+                            <RefreshCw size={11} className="spin-animation" />
+                          ) : (
+                            <FileText size={11} />
+                          )}
+                          CSV
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDirectPartyExport(row, "print", e)}
+                          title={`Open Printable PDF Statement for ${row.partyName}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            background: "#f8fafc",
+                            color: "#475569",
+                            border: "1px solid #cbd5e1",
+                            padding: "4px 7px",
+                            borderRadius: "6px",
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                          }}
+                        >
+                          <Printer size={11} />
+                          Print
+                        </button>
+                      </div>
+                    </td>
+                    <td style={{ minWidth: "90px", padding: "12px 10px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); toggleExpand(row.partyKey); }}
@@ -1892,7 +2071,7 @@ const OutstandingFinalSheet = () => {
                   {/* Inline Drill-down Details */}
                   {isExpanded && (
                     <tr>
-                      <td colSpan={11} style={{ padding: "1.25rem", background: "#f8fafc", borderBottom: "2px solid #cbd5e1" }}>
+                      <td colSpan={12} style={{ padding: "1.25rem", background: "#f8fafc", borderBottom: "2px solid #cbd5e1" }}>
                         <div style={{ background: "#ffffff", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
                           {/* Drill-down Header */}
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.75rem" }}>
@@ -1905,7 +2084,71 @@ const OutstandingFinalSheet = () => {
                               </span>
                             </div>
 
-                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDirectPartyExport(row, "excel", e)}
+                                disabled={exportingPartyKey === `${row.partyKey}_excel`}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  background: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  padding: "5px 12px",
+                                  borderRadius: "7px",
+                                  fontSize: "0.80rem",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  boxShadow: "0 2px 4px rgba(16, 185, 129, 0.25)"
+                                }}
+                              >
+                                <Download size={13} /> Export Excel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDirectPartyExport(row, "csv", e)}
+                                disabled={exportingPartyKey === `${row.partyKey}_csv`}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  background: "#eff6ff",
+                                  color: "#1d4ed8",
+                                  border: "1px solid #bfdbfe",
+                                  padding: "5px 12px",
+                                  borderRadius: "7px",
+                                  fontSize: "0.80rem",
+                                  fontWeight: 700,
+                                  cursor: "pointer"
+                                }}
+                              >
+                                <FileText size={13} /> Export CSV
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDirectPartyExport(row, "print", e)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  background: "#1e3a8a",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  padding: "5px 12px",
+                                  borderRadius: "7px",
+                                  fontSize: "0.80rem",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  boxShadow: "0 2px 4px rgba(30, 58, 138, 0.25)"
+                                }}
+                              >
+                                <Printer size={13} /> Print / PDF Statement
+                              </button>
+
+                              <div style={{ width: "1px", height: "20px", background: "#e2e8f0", margin: "0 4px" }} />
+
                               <button
                                 type="button"
                                 onClick={() => setDrilldownTab("bills")}
@@ -2003,10 +2246,12 @@ const OutstandingFinalSheet = () => {
                                         const bT = Number(item.tdsAmount) || 0;
                                         const bD = Number(item.debtAmount) || 0;
                                         const bRemaining = Math.max(0, bTot - bPd - bT - bD);
+                                        const bDate = item.invoice_date || item.billDate || item.date || item.createdAt || item.purchaseDate || item.invoiceDate;
+                                        const bInv = (item.invoice || item.billNo || item.invoiceNo || item.purchaseNo || item.billNumber || item.invNo || item.refNo || (item.id ? String(item.id).slice(-6) : "") || "-").toUpperCase();
                                         return (
                                           <tr key={item.id || bIdx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                            <td style={{ padding: "6px 10px" }}>{formatCleanDate(item.invoice_date || item.date || item.createdAt)}</td>
-                                            <td style={{ padding: "6px 10px", fontWeight: 600, color: "#2563eb" }}>{item.invoice || item.billNo || "-"}</td>
+                                            <td style={{ padding: "6px 10px" }}>{formatCleanDate(bDate)}</td>
+                                            <td style={{ padding: "6px 10px", fontWeight: 600, color: "#2563eb" }}>{bInv}</td>
                                             <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600 }}>{formatCurrency(bTot)}</td>
                                             <td style={{ padding: "6px 10px", textAlign: "right", color: "#16a34a" }}>{formatCurrency(bPd)}</td>
                                             <td style={{ padding: "6px 10px", textAlign: "right", color: "#d97706" }}>{formatCurrency(bT)}</td>
@@ -2232,14 +2477,16 @@ const OutstandingFinalSheet = () => {
         </div>
       )}
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        onExport={handleExport}
-        title="Export Outstanding Master Sheet"
-        subtitle={`Exporting ${activeTab === "clients" ? filteredClientList.length : filteredVendorList.length} party records`}
-        itemCount={activeTab === "clients" ? filteredClientList.length : filteredVendorList.length}
+      {/* Advanced Filtered Export & Print Configuration Modal */}
+      <OutstandingExportFilterModal
+        isOpen={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+        onExecuteExport={handleExecuteConfiguredExport}
+        initialTarget={filterModalTarget}
+        clientList={filteredClientList}
+        vendorList={filteredVendorList}
+        activeTab={activeTab}
+        defaultFormat={filterModalFormat}
         isExporting={isExporting}
       />
 
@@ -2248,6 +2495,15 @@ const OutstandingFinalSheet = () => {
         isOpen={Boolean(explanationKey)}
         onClose={() => setExplanationKey(null)}
         explanationKey={explanationKey}
+      />
+
+      {/* Printable Statement of Account & Ledger Modal */}
+      <PartyLedgerPrintModal
+        party={printPartyConfig.party}
+        isOpen={Boolean(printPartyConfig.party)}
+        onClose={() => setPrintPartyConfig({ party: null, statusFilter: "all", dateRange: null })}
+        initialStatusFilter={printPartyConfig.statusFilter}
+        initialDateRange={printPartyConfig.dateRange}
       />
     </div>
   );

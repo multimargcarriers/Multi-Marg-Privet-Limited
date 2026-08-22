@@ -42,29 +42,35 @@ exports.get_gst_1 = async (req, res) => {
     if (fr) {
       const fromTime = parseAnyDateToMillis(fr);
       if (fromTime > 0) {
-        filtered = filtered.filter(b => parseAnyDateToMillis(b.date || b.createdAt) >= fromTime);
+        filtered = filtered.filter(b => parseAnyDateToMillis(b.invoice_date || b.billDate || b.date || b.createdAt) >= fromTime);
       }
     }
     if (to) {
       const toTime = parseAnyDateToMillis(to) + 86400000 - 1; // End of day
       if (toTime > 0) {
-        filtered = filtered.filter(b => parseAnyDateToMillis(b.date || b.createdAt) <= toTime);
+        filtered = filtered.filter(b => parseAnyDateToMillis(b.invoice_date || b.billDate || b.date || b.createdAt) <= toTime);
       }
     }
 
-    return filtered.map(b => ({
-      date: b.date || b.createdAt,
-      invoice: b.billNo || b.invoiceNo || b.invoice || "-",
-      client: b.client || b.clientName || "-",
-      gstin: b.gstin || "N/A",
-      sac: b.sac || "996511",
-      taxable: parseFloat(b.taxable || (b.subtotal || 0)),
-      igst: parseFloat(b.igst || 0),
-      cgst: parseFloat(b.cgst || 0),
-      sgst: parseFloat(b.sgst || 0),
-      totalTax: parseFloat(b.totalTax || (parseFloat(b.igst || 0) + parseFloat(b.cgst || 0) + parseFloat(b.sgst || 0))),
-      total: parseFloat(b.total || (parseFloat(b.grand_total || 0)))
-    }));
+    return filtered.map(b => {
+      const dVal = b.invoice_date || b.billDate || b.date || (b.createdAt ? String(b.createdAt).split('T')[0] : "-");
+      const invVal = String(b.invoice || b.billNo || b.invoiceNo || "-").toUpperCase();
+      const clientVal = String(b.client || b.clientName || "-").toUpperCase();
+      const gstinVal = String(b.gstin || (typeof b.gst === "string" ? b.gst : "") || "N/A").toUpperCase();
+      return {
+        date: dVal,
+        invoice: invVal,
+        client: clientVal,
+        gstin: gstinVal,
+        sac: b.sac || b.sacCode || "996511",
+        taxable: parseFloat(b.taxable || b.subtotal || b.amount || 0),
+        igst: parseFloat(b.igst || 0),
+        cgst: parseFloat(b.cgst || 0),
+        sgst: parseFloat(b.sgst || 0),
+        totalTax: parseFloat(b.totalTax || (parseFloat(b.igst || 0) + parseFloat(b.cgst || 0) + parseFloat(b.sgst || 0))),
+        total: parseFloat(b.total || b.amount || b.totalPayable || 0)
+      };
+    });
   }, 120);
 
   return success(res, "GST report fetched successfully", data);

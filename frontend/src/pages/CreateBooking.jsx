@@ -692,12 +692,11 @@ const CreateBooking = () => {
 
         {/* 3. Invoice Details */}
         <hr style={{ border: 0, borderTop: "1px solid #e2e8f0", margin: "1.25rem 0" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+        <div style={{ marginBottom: "0.75rem" }}>
           <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>3. Invoice Details</h5>
-          <button type="button" onClick={addInvoiceRow} style={{ background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "4px 12px", fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>+ Add Invoice</button>
         </div>
         
-        <div style={{ overflowX: "auto", marginBottom: "1rem" }}>
+        <div style={{ overflowX: "auto", marginBottom: "0.75rem" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
@@ -739,6 +738,12 @@ const CreateBooking = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+          <button type="button" onClick={addInvoiceRow} style={{ background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1", padding: "4px 12px", fontSize: "0.75rem", borderRadius: "4px", fontWeight: "600", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            + Add <span style={{ fontSize: "0.65rem", color: "#64748b" }}>(Ctrl + +)</span>
+          </button>
         </div>
 
         {/* 4. Cargo details */}

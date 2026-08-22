@@ -4,6 +4,7 @@ import { Search, Download, RefreshCw, FileText, Calendar, Filter, X } from 'luci
 import RupeeIcon from '../components/RupeeIcon';
 import Table from '../components/Table';
 import { toExportCaps } from "../utils/excelExport";
+import { formatDate } from "../utils/formatters";
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -328,7 +329,7 @@ const GST = () => {
           data={filteredData}
           renderRow={(item, index) => (
             <tr key={index} style={{ borderBottom: "1px solid #f1f5f9" }}>
-              <td style={{ whiteSpace: "nowrap", fontSize: "0.82rem" }}>{item.date || "-"}</td>
+              <td style={{ whiteSpace: "nowrap", fontSize: "0.82rem" }}>{formatDate(item.date)}</td>
               <td style={{ whiteSpace: "nowrap", fontWeight: 700, color: "#1e3a8a", fontSize: "0.82rem" }}>{item.invoice || "-"}</td>
               <td style={{ fontSize: "0.82rem", fontWeight: 600, color: "#0f172a" }}>{item.client || "-"}</td>
               <td style={{ whiteSpace: "nowrap", fontSize: "0.78rem", color: "#64748b", fontFamily: "monospace" }}>{item.gstin || "-"}</td>

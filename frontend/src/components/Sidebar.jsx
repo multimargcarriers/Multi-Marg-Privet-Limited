@@ -453,6 +453,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen, isMobile }) => {
                       <NavLink
                         key={cIndex}
                         to={child.path}
+                        end
                         title={!isExpanded ? child.name : ""}
                         onClick={handleLinkClick}
                         style={({ isActive }) => ({
@@ -517,6 +518,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen, isMobile }) => {
                       <NavLink
                         key={cIndex}
                         to={child.path}
+                        end
                         onClick={handleLinkClick}
                         style={({ isActive }) => ({
                           display: "flex",
@@ -553,6 +555,7 @@ const Sidebar = ({ isOpen, setIsSidebarOpen, isMobile }) => {
             <NavLink
               key={index}
               to={item.path}
+              end
               title={!isExpanded ? item.name : ""}
               onClick={handleLinkClick}
               style={({ isActive }) => ({

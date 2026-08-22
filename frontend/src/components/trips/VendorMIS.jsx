@@ -852,12 +852,11 @@ const VendorMIS = () => {
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb", marginBottom: "1rem" }}>
+            <div style={{ paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb", marginBottom: "1rem" }}>
               <label className="form-label" style={{ fontWeight: "600", color: "#111827", textTransform: "uppercase", marginBottom: 0 }}>DETAILS<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <button type="button" onClick={() => setVendorMisForm({...vendorMisForm, details: [...vendorMisForm.details, { ...initialVendorMisRow }]})} style={{ background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", color: "#374151", cursor: "pointer", fontWeight: "600", fontSize: "0.875rem", padding: "4px 12px", display: "flex", alignItems: "center" }}>+ Add Row <span style={{ fontSize: "0.65rem", marginLeft: "6px", color: "#6b7280" }}>(Ctrl + +)</span></button>
             </div>
             
-            <div style={{ marginBottom: "2rem", paddingBottom: "1rem" }}>
+            <div style={{ marginBottom: "1rem" }}>
               {vendorMisForm.details.map((detail, idx) => (
                 <div key={idx} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1rem", marginBottom: "1rem", position: "relative" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #e5e7eb", paddingBottom: "0.5rem" }}>
@@ -945,6 +944,16 @@ const VendorMIS = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
+              <button
+                type="button"
+                onClick={() => setVendorMisForm({ ...vendorMisForm, details: [...vendorMisForm.details, { ...initialVendorMisRow }] })}
+                style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", color: "#374151", cursor: "pointer", fontWeight: "600", fontSize: "0.8rem", padding: "4px 12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+              >
+                + Add <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>(Ctrl + +)</span>
+              </button>
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>

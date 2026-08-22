@@ -419,11 +419,8 @@ const UpdateBill = () => {
 
               {/* INVOICE DETAILS */}
               <div style={{ marginBottom: "1.5rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #CBD5E1", marginBottom: "1rem" }}>
+                <div style={{ paddingBottom: "0.5rem", borderBottom: "1px solid #CBD5E1", marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "800", color: "#0F172A", textTransform: "uppercase", marginBottom: 0, fontSize: "0.95rem" }}>INVOICE DETAILS</label>
-                  <button type="button" onClick={addInvoiceRow} style={{ padding: "0.35rem 0.75rem", background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}>
-                    + Add Row
-                  </button>
                 </div>
                 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 1fr", gap: "10px", marginBottom: "5px", padding: "8px 0", background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
@@ -447,17 +444,20 @@ const UpdateBill = () => {
                     </div>
                   </div>
                 ))}
+                
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+                  <button type="button" onClick={addInvoiceRow} style={{ padding: "4px 12px", background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "0.78rem", fontWeight: "600", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    + Add <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>(Ctrl + +)</span>
+                  </button>
+                </div>
               </div>
 
               {/* Editable LR Items Table Grid */}
               <div style={{ marginBottom: "1.5rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <div style={{ marginBottom: "0.5rem" }}>
                   <h5 style={{ margin: 0, fontWeight: "800", color: "#0F172A", fontSize: "0.95rem" }}>
                     Itemized LR Rows (Editable Weight, Quantity, Rates & Charges)
                   </h5>
-                  <button type="button" onClick={addItemRow} style={{ padding: "0.35rem 0.75rem", background: "#0D5C96", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}>
-                    + Add LR Row
-                  </button>
                 </div>
 
                 <div className="table-responsive" style={{ border: "1px solid #CBD5E1", borderRadius: "6px" }}>
@@ -539,6 +539,12 @@ const UpdateBill = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+                  <button type="button" onClick={addItemRow} style={{ padding: "4px 12px", background: "#f8fafc", color: "#0D5C96", border: "1px solid #93c5fd", borderRadius: "4px", fontSize: "0.78rem", fontWeight: "600", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    + Add <span style={{ fontSize: "0.65rem", color: "#2563eb" }}>(Ctrl + +)</span>
+                  </button>
                 </div>
               </div>
 

@@ -66,6 +66,39 @@ export const formatDate = (dateValue) => {
   return `${day}-${month}-${year}`;
 };
 
+/**
+ * Computes due date (default 30 days after invoice/bill date) if not explicitly set.
+ */
+export const calculateDueDate = (dateValue, explicitDueDate, daysOffset = 30) => {
+  if (explicitDueDate && explicitDueDate !== "-" && explicitDueDate !== "Invalid Date") {
+    const formattedExplicit = formatDate(explicitDueDate);
+    if (formattedExplicit !== "-") return formattedExplicit;
+  }
+  if (!dateValue || dateValue === "-") return "-";
+
+  try {
+    let dateObj;
+    if (typeof dateValue === "string") {
+      const matchDDMMYYYY = /^(\d{2})[-/](\d{2})[-/](\d{4})/.exec(dateValue.split("T")[0]);
+      if (matchDDMMYYYY) {
+        dateObj = new Date(`${matchDDMMYYYY[3]}-${matchDDMMYYYY[2]}-${matchDDMMYYYY[1]}`);
+      } else {
+        dateObj = new Date(dateValue);
+      }
+    } else if (typeof dateValue === "object" && dateValue.seconds) {
+      dateObj = new Date(dateValue.seconds * 1000);
+    } else {
+      dateObj = new Date(dateValue);
+    }
+
+    if (isNaN(dateObj.getTime())) return "-";
+    const dueTime = new Date(dateObj.getTime() + daysOffset * 24 * 60 * 60 * 1000);
+    return formatDate(dueTime);
+  } catch (_e) {
+    return "-";
+  }
+};
+
 export const formatAmount = (value) => {
   if (value === undefined || value === null || value === "") return "-";
   const num = parseFloat(value);

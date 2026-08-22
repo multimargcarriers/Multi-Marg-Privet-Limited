@@ -50,7 +50,7 @@ const TripMIS = () => {
   const isClientUser = user?.role === 'Client' || user?.role?.toLowerCase() === 'client';
 
   const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "0", freight: "0", pickup: "0", delivery: "0", special: "0", other: "0", parking: "0", labor: "0" };
-  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", parcels: [ { ...initialParcel } ] };
+  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", freight: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
   const [activeRemarksModal, setActiveRemarksModal] = useState(null);
@@ -374,23 +374,32 @@ const TripMIS = () => {
       {showTripListForm && (
          <form className="glass-panel slide-down" style={{ padding: "2rem", marginBottom: "2rem" }} onSubmit={async (e) => {
              e.preventDefault();
-              const totalFreight = tripListForm.parcels.reduce((sum, p) => sum + 
-                (parseFloat(p.freight) || 0) + 
-                (parseFloat(p.pickup) || 0) + 
-                (parseFloat(p.delivery) || 0) + 
-                (parseFloat(p.special) || 0) + 
-                (parseFloat(p.other) || 0) + 
-                (parseFloat(p.parking) || 0) + 
-                (parseFloat(p.labor) || 0), 0);
+              const totalFreight = tripListForm.mode === "Special"
+                ? (parseFloat(tripListForm.freight) || 0)
+                : tripListForm.parcels.reduce((sum, p) => sum + 
+                    (parseFloat(p.freight) || 0) + 
+                    (parseFloat(p.pickup) || 0) + 
+                    (parseFloat(p.delivery) || 0) + 
+                    (parseFloat(p.special) || 0) + 
+                    (parseFloat(p.other) || 0) + 
+                    (parseFloat(p.parking) || 0) + 
+                    (parseFloat(p.labor) || 0), 0);
               const totalBox = tripListForm.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
               const totalWeight = tripListForm.parcels.reduce((sum, p) => sum + (parseFloat(p.weight) || 0), 0);
-              const cleanParcels = tripListForm.parcels.map(p => {
+              const cleanParcels = tripListForm.parcels.map((p, idx) => {
                 const { rate, ...rest } = p;
                 return {
                   ...rest,
                   origin: p.origin || tripListForm.origin || "",
                   destination: p.destination || tripListForm.destination || "",
-                  mode: p.mode || tripListForm.mode || "Normal"
+                  mode: p.mode || tripListForm.mode || "Normal",
+                  freight: tripListForm.mode === "Special" ? (idx === 0 ? String(totalFreight) : "0") : (p.freight || "0"),
+                  pickup: tripListForm.mode === "Special" ? "0" : (p.pickup || "0"),
+                  delivery: tripListForm.mode === "Special" ? "0" : (p.delivery || "0"),
+                  special: tripListForm.mode === "Special" ? "0" : (p.special || "0"),
+                  other: tripListForm.mode === "Special" ? "0" : (p.other || "0"),
+                  parking: tripListForm.mode === "Special" ? "0" : (p.parking || "0"),
+                  labor: tripListForm.mode === "Special" ? "0" : (p.labor || "0"),
                 };
               });
               
@@ -572,14 +581,34 @@ const TripMIS = () => {
                   <option value="Credit">Credit</option>
                 </select>
               </div>
+
+              {tripListForm.mode === "Special" && (
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>
+                    Total Freight<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem", color: "#6b7280" }}>₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-control"
+                      style={{ fontSize: "0.95rem", paddingLeft: "24px" }}
+                      placeholder="0.00"
+                      value={tripListForm.freight !== undefined ? tripListForm.freight : ""}
+                      onChange={e => setTripListForm({ ...tripListForm, freight: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb", marginBottom: "1rem" }}>
+            <div style={{ paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb", marginBottom: "1rem" }}>
               <label className="form-label" style={{ fontWeight: "600", color: "#111827", textTransform: "uppercase", marginBottom: 0 }}>PARCEL DETAILS<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-              <button type="button" onClick={() => setTripListForm({...tripListForm, parcels: [...tripListForm.parcels, { ...initialParcel }]})} style={{ background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: "4px", color: "#374151", cursor: "pointer", fontWeight: "600", fontSize: "0.875rem", padding: "4px 12px", display: "flex", alignItems: "center" }}>+ Add Row <span style={{ fontSize: "0.65rem", marginLeft: "6px", color: "#6b7280" }}>(Ctrl + +)</span></button>
             </div>
             
-            <div style={{ marginBottom: "2rem", paddingBottom: "1rem" }}>
+            <div style={{ marginBottom: "1rem" }}>
               {tripListForm.parcels.map((parcel, idx) => {
                 const rowTotal = (parseFloat(parcel.freight) || 0) + (parseFloat(parcel.pickup) || 0) + (parseFloat(parcel.delivery) || 0) + (parseFloat(parcel.special) || 0) + (parseFloat(parcel.other) || 0) + (parseFloat(parcel.parking) || 0) + (parseFloat(parcel.labor) || 0);
                 return (
@@ -633,46 +662,60 @@ const TripMIS = () => {
                       <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Weight</label>
                       <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Weight" value={parcel.weight} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].weight = e.target.value; const w = parseFloat(e.target.value) || 0; const r = parseFloat(newParcels[idx].rate) || 0; if (r > 0) { newParcels[idx].freight = (w * r).toFixed(2); } setTripListForm({...tripListForm, parcels: newParcels}); }} required />
                     </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Rate</label>
-                      <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Rate" value={parcel.rate || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].rate = e.target.value; const r = parseFloat(e.target.value) || 0; const w = parseFloat(newParcels[idx].weight) || 0; if (w > 0 || r > 0) { newParcels[idx].freight = (w * r).toFixed(2); } setTripListForm({...tripListForm, parcels: newParcels}); }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Freight</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="0.00" value={parcel.freight !== undefined ? parcel.freight : "0"} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].freight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required={isVendorUser} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Pickup</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Pickup" value={parcel.pickup} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].pickup = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Delivery</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Delivery" value={parcel.delivery} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].delivery = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Special</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Special" value={parcel.special} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].special = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Other</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Other" value={parcel.other} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].other = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Parking</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Parking" value={parcel.parking || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].parking = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Labor</label>
-                      <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Labor" value={parcel.labor || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].labor = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Total</label>
-                      <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.85rem", fontWeight: "700", color: "#10b981", display: "flex", alignItems: "center", height: "37px" }}>₹ {rowTotal.toFixed(2)}</div>
-                    </div>
+                    {tripListForm.mode !== "Special" && (
+                      <>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Rate</label>
+                          <input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px" }} placeholder="Rate" value={parcel.rate || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].rate = e.target.value; const r = parseFloat(e.target.value) || 0; const w = parseFloat(newParcels[idx].weight) || 0; if (w > 0 || r > 0) { newParcels[idx].freight = (w * r).toFixed(2); } setTripListForm({...tripListForm, parcels: newParcels}); }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Freight</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="0.00" value={parcel.freight !== undefined ? parcel.freight : "0"} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].freight = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} required={isVendorUser} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Pickup</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Pickup" value={parcel.pickup} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].pickup = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Delivery</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Delivery" value={parcel.delivery} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].delivery = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Special</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Special" value={parcel.special} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].special = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Other</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Other" value={parcel.other} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].other = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Parking</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Parking" value={parcel.parking || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].parking = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Labor</label>
+                          <div style={{position: "relative"}}><span style={{position: "absolute", left: "6px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#9ca3af"}}>₹</span><input className="form-control" type="number" step="0.01" style={{ fontSize: "0.85rem", padding: "8px 8px 8px 20px" }} placeholder="Labor" value={parcel.labor || ""} onChange={e => { const newParcels = [...tripListForm.parcels]; newParcels[idx].labor = e.target.value; setTripListForm({...tripListForm, parcels: newParcels}); }} /></div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Total</label>
+                          <div style={{ background: "#f1f5f9", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.85rem", fontWeight: "700", color: "#10b981", display: "flex", alignItems: "center", height: "37px" }}>₹ {rowTotal.toFixed(2)}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 );
               })}
+            </div>
+            
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1.5rem" }}>
+              <button
+                type="button"
+                onClick={() => setTripListForm({ ...tripListForm, parcels: [...tripListForm.parcels, { ...initialParcel }] })}
+                style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", color: "#374151", cursor: "pointer", fontWeight: "600", fontSize: "0.8rem", padding: "4px 12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+              >
+                + Add <span style={{ fontSize: "0.65rem", color: "#6b7280" }}>(Ctrl + +)</span>
+              </button>
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
@@ -968,7 +1011,7 @@ const TripMIS = () => {
                         ...initialParcel,
                         ...p
                       }));
-                      setTripListForm({ ...item, parcels: safeParcels });
+                      setTripListForm({ ...item, freight: item.freight !== undefined ? item.freight : "0", parcels: safeParcels });
                       setEditingId(item.id);
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowTripListForm(true);
