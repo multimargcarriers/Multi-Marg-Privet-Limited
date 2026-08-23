@@ -18,6 +18,19 @@ const hpp = require("hpp");
 // Load environment variables
 dotenv.config();
 
+const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || "development";
+
+console.log("====================================================");
+console.log(`[Hostinger Backend Init] Node.js Version: ${process.version}`);
+console.log(`[Hostinger Backend Init] Environment: ${NODE_ENV}`);
+console.log(`[Hostinger Backend Init] Configured Port: ${PORT}`);
+console.log(`[Hostinger Backend Init] Working Dir: ${process.cwd()}`);
+console.log(`[Hostinger Backend Init] MONGODB_URI: ${process.env.MONGODB_URI ? "EXISTS (Length: " + process.env.MONGODB_URI.length + ")" : "MISSING / NOT SET!"}`);
+console.log(`[Hostinger Backend Init] JWT_SECRET: ${process.env.JWT_SECRET ? "EXISTS" : "MISSING / NOT SET!"}`);
+console.log(`[Hostinger Backend Init] REDIS: ${process.env.USE_REDIS === "true" ? "ENABLED" : "DISABLED"}`);
+console.log("====================================================");
+
 // Import configs
 const { logger } = require("./src/config/logger");
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
@@ -31,8 +44,17 @@ let cloudinaryConfigured = false;
 
 const app = express();
 app.set("trust proxy", 1);
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || "development";
+
+// Real-Time Request Logging for Hostinger Runtime Logs
+app.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[Hostinger Request] ${new Date().toISOString()} | ${req.method} ${req.originalUrl || req.url} | IP: ${req.ip}`);
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`[Hostinger Response] ${req.method} ${req.originalUrl || req.url} -> HTTP ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
 
 
 

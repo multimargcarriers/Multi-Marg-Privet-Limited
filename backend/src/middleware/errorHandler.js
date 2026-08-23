@@ -31,7 +31,14 @@ function notFound(req, res, next) {
  * Global error handler middleware
  */
 function errorHandler(err, req, res, _next) {
-  // Log the error
+  // Always log full error details to console.error so Hostinger Runtime Logs capture them
+  console.error(`[API ERROR] ${new Date().toISOString()} | ${req.method} ${req.originalUrl || req.url}`);
+  console.error(`[API ERROR MESSAGE]:`, err.message);
+  if (err.stack) {
+    console.error(`[API ERROR STACK]:`, err.stack);
+  }
+
+  // Log to structured logger
   logger.error(`${err.message}`, {
     method: req.method,
     url: req.originalUrl,
@@ -45,7 +52,7 @@ function errorHandler(err, req, res, _next) {
   // Build response
   const response = {
     success: false,
-    message: err.isOperational ? err.message : "Internal server error",
+    message: err.message || "Internal server error",
   };
 
   // Add details if available
@@ -53,8 +60,8 @@ function errorHandler(err, req, res, _next) {
     response.details = err.details;
   }
 
-  // In development, include stack trace
-  if (process.env.NODE_ENV === "development" && !err.isOperational) {
+  // Include error message info for easy production debugging
+  if (process.env.NODE_ENV !== "production") {
     response.stack = err.stack;
   }
 
