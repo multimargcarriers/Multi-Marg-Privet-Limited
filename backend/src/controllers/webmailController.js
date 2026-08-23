@@ -403,8 +403,10 @@ exports.downloadAttachment = async (req, res) => {
       attachmentId
     });
 
-    res.setHeader("Content-Type", file.contentType);
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.filename)}"`);
+    const isPdf = file.contentType === "application/pdf" || (file.filename && file.filename.toLowerCase().endsWith(".pdf"));
+    const disposition = isPdf ? "inline" : "attachment";
+    res.setHeader("Content-Type", file.contentType || (isPdf ? "application/pdf" : "application/octet-stream"));
+    res.setHeader("Content-Disposition", `${disposition}; filename="${encodeURIComponent(file.filename)}"`);
     if (file.size) {
       res.setHeader("Content-Length", file.size);
     }

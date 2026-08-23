@@ -46,7 +46,7 @@ export const menuItems = [
     permission: "dashboard"
   },
   {
-    name: "Business Mail",
+    name: "Multimarg Mailbox",
     path: "/mail",
     icon: <Mail size={20} />,
     permission: "mail"

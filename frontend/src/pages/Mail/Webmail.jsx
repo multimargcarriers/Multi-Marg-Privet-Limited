@@ -53,9 +53,17 @@ import {
   HardDrive,
   LogOut,
   UserPlus,
-  Check
+  Check,
+  GripHorizontal,
+  FileSpreadsheet,
+  FileType,
+  FolderPlus,
+  Upload,
+  Building2
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { useSocketSync } from "../../hooks/useSocketSync";
+import AttachSoftwareModal from "../../components/mail/AttachSoftwareModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -200,6 +208,16 @@ const Webmail = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
 
+  // Handle window resizing dynamically so switching between desktop & mobile works instantly
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Mobile active pane: 'list' | 'reader'
   const [mobileView, setMobileView] = useState("list");
   const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState(false);
@@ -273,6 +291,7 @@ const Webmail = () => {
   const initialSender = getInitialSenderInfo();
 
   // State: Compose Floating Modal
+  const composeDragControls = useDragControls();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isComposeMinimized, setIsComposeMinimized] = useState(false);
   const [isComposeExpanded, setIsComposeExpanded] = useState(false);
@@ -293,8 +312,11 @@ const Webmail = () => {
   });
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
-  const [showCustomSigner, setShowCustomSigner] = useState(Boolean(initialSender.senderName || initialSender.senderDesignation || initialSender.senderPhone));
+  const [showCustomSigner, setShowCustomSigner] = useState(false);
   const [sendingMail, setSendingMail] = useState(false);
+  const [isAttachSoftwareModalOpen, setIsAttachSoftwareModalOpen] = useState(false);
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+  const deviceFileInputRef = React.useRef(null);
 
   // Sync user profile updates to composeData if fields are empty
   useEffect(() => {
@@ -462,15 +484,52 @@ const Webmail = () => {
     }
   }, [selectedAccountId, currentFolder, activeFilter]);
 
-  // Silent Background Auto-Sync every 45s (Gmail heartbeat)
+  // Robust, Non-blocking Silent Auto-Sync Engine
+  const isSyncingRef = useRef(false);
+
+  const silentSync = useCallback(async () => {
+    if (!selectedAccountId || isSyncingRef.current) return;
+    try {
+      isSyncingRef.current = true;
+      await Promise.allSettled([
+        fetchFolders(),
+        fetchMessages(false, true)
+      ]);
+    } catch (_e) {
+      // silent background error handling
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [selectedAccountId, fetchFolders, fetchMessages]);
+
+  // Real-Time Background Auto-Sync Heartbeat (every 10 seconds without manual clicking)
   useEffect(() => {
     if (!selectedAccountId) return;
     const interval = setInterval(() => {
-      fetchFolders();
-      fetchMessages(false, true);
-    }, 45000);
+      silentSync();
+    }, 10000);
     return () => clearInterval(interval);
-  }, [selectedAccountId, currentFolder, page, searchQuery, activeFilter]);
+  }, [selectedAccountId, silentSync]);
+
+  // Immediate Auto-Sync on Tab / Window Focus & Visibility change
+  useEffect(() => {
+    if (!selectedAccountId) return;
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        silentSync();
+      }
+    };
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    return () => {
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+    };
+  }, [selectedAccountId, silentSync]);
+
+  // Instant WebSocket Sync
+  useSocketSync("mail", silentSync);
+  useSocketSync("webmail", silentSync);
 
   // Fetch Full Message Detail
   const fetchMessageDetail = async (uid) => {
@@ -726,6 +785,7 @@ const Webmail = () => {
           references: ""
         });
         fetchFolders();
+        fetchMessages(false, true);
       }
     } catch (err) {
       console.error("Error sending email:", err);
@@ -784,6 +844,8 @@ const Webmail = () => {
         setMessages(prev => prev.map(m => m.uid === selectedUid ? { ...m, isAnswered: true } : m));
         setQuickReplyText("");
         setIsQuickReplyOpen(false); // Auto collapse after send
+        fetchFolders();
+        fetchMessages(false, true);
 
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -963,10 +1025,14 @@ const Webmail = () => {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "14px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.01em" }}>
-                  MULTIMARG MAIL
+                  MULTIMARG MAILBOX
                 </span>
                 <span style={{ fontSize: "9px", fontWeight: "800", color: "#1d4ed8", backgroundColor: "#eff6ff", padding: "1px 6px", borderRadius: "10px", border: "1px solid #bfdbfe", textTransform: "uppercase" }}>
                   Corporate
+                </span>
+                <span style={{ fontSize: "9px", fontWeight: "800", color: "#16a34a", backgroundColor: "#f0fdf4", padding: "1px 6px", borderRadius: "10px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", backgroundColor: "#16a34a" }} />
+                  Live Sync
                 </span>
               </div>
               <div style={{ fontSize: "11px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
@@ -1269,7 +1335,8 @@ const Webmail = () => {
                   addToast("Please connect a mail account first", "warning");
                   return;
                 }
-                setComposeData({
+                setComposeData(prev => ({
+                  ...prev,
                   to: "",
                   cc: "",
                   bcc: "",
@@ -1278,9 +1345,10 @@ const Webmail = () => {
                   attachments: [],
                   inReplyTo: "",
                   references: ""
-                });
-                setIsComposeOpen(true);
+                }));
                 setIsComposeMinimized(false);
+                setIsComposeExpanded(false);
+                setIsComposeOpen(true);
               }}
               disabled={!activeAccount}
               style={{
@@ -1387,8 +1455,10 @@ const Webmail = () => {
         {/* Pane B: GMAIL-STYLE EMAIL LIST */}
         <div
           style={{
-            width: isMobile ? "100%" : (selectedUid && !isFullscreenReader ? "380px" : "100%"),
+            width: isMobile ? "100%" : "380px",
             minWidth: isMobile ? "100%" : "320px",
+            maxWidth: isMobile ? "100%" : "420px",
+            flex: isMobile ? "1 1 100%" : "0 0 380px",
             backgroundColor: "#ffffff",
             borderRight: "1px solid #e2e8f0",
             display: isMobile && mobileView !== "list" ? "none" : "flex",
@@ -2080,7 +2150,7 @@ const Webmail = () => {
 
           </div>
         ) : (
-          /* Empty Placeholder with Official Company Logo */
+          /* Executive Enterprise Webmail Dashboard (When no email is selected) */
           <div
             style={{
               flex: 1,
@@ -2088,18 +2158,195 @@ const Webmail = () => {
               display: isMobile ? "none" : "flex",
               alignItems: "center",
               justifyContent: "center",
-              flexDirection: "column",
-              color: "#94a3b8",
-              padding: "40px"
+              padding: "36px 28px",
+              overflowY: "auto"
             }}
           >
-            <div style={{ background: "#ffffff", padding: "16px", borderRadius: "50%", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", marginBottom: "14px", border: "1px solid #e2e8f0" }}>
-              <img src="/circle_crop_logo.png" alt="Multimarg Carriers Logo" style={{ width: "52px", height: "52px", objectFit: "contain", display: "block", borderRadius: "50%" }} />
+            <div
+              style={{
+                maxWidth: "560px",
+                width: "100%",
+                backgroundColor: "#ffffff",
+                borderRadius: "20px",
+                padding: "32px 36px",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center"
+              }}
+            >
+              {/* Multimarg Official Crest Badge */}
+              <div
+                style={{
+                  width: "72px",
+                  height: "72px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ffffff",
+                  boxShadow: "0 8px 24px rgba(37, 99, 235, 0.15)",
+                  border: "2px solid #dbeafe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px",
+                  padding: "10px"
+                }}
+              >
+                <img
+                  src="/circle_crop_logo.png"
+                  alt="Multimarg Carriers Logo"
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              </div>
+
+              {/* Title & Subtitle */}
+              <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.01em" }}>
+                Multimarg Enterprise Mailbox
+              </h2>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0", lineHeight: "1.5" }}>
+                Select any email from the list on the left to read conversations, reply with threads, or attach live ERP documents.
+              </p>
+
+              {/* Active Account Status Pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  backgroundColor: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "30px",
+                  padding: "6px 16px",
+                  fontSize: "12px",
+                  color: "#1e40af",
+                  fontWeight: "700",
+                  marginBottom: "24px"
+                }}
+              >
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#16a34a", display: "inline-block" }} />
+                <span>{activeAccount?.email || "info@multimarg.com"}</span>
+                <span style={{ color: "#93c5fd" }}>•</span>
+                <span style={{ color: "#3b82f6", fontWeight: "600" }}>Hostinger Cloud IMAP/SMTP</span>
+              </div>
+
+              {/* 3 Quick Action Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", width: "100%", marginBottom: "22px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposeData(prev => ({
+                      ...prev,
+                      to: "",
+                      cc: "",
+                      bcc: "",
+                      subject: "",
+                      body: "",
+                      attachments: [],
+                      inReplyTo: "",
+                      references: ""
+                    }));
+                    setIsComposeMinimized(false);
+                    setIsComposeExpanded(false);
+                    setIsComposeOpen(true);
+                  }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    backgroundColor: "#f8fafc",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#2563eb";
+                    e.currentTarget.style.backgroundColor = "#eff6ff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                  }}
+                >
+                  <div style={{ backgroundColor: "#dbeafe", padding: "8px", borderRadius: "8px", display: "flex" }}>
+                    <Plus size={16} color="#1d4ed8" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a" }}>Compose Mail</div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Create & send with official signature</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAttachSoftwareOpen(true)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "6px",
+                    padding: "14px 16px",
+                    backgroundColor: "#f8fafc",
+                    border: "1.5px solid #e2e8f0",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#16a34a";
+                    e.currentTarget.style.backgroundColor = "#f0fdf4";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#e2e8f0";
+                    e.currentTarget.style.backgroundColor = "#f8fafc";
+                  }}
+                >
+                  <div style={{ backgroundColor: "#dcfce7", padding: "8px", borderRadius: "8px", display: "flex" }}>
+                    <Building2 size={16} color="#15803d" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f172a" }}>Attach ERP Dossier</div>
+                    <div style={{ fontSize: "11px", color: "#64748b" }}>Statements, Invoices, AWBs</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Enterprise System Highlights */}
+              <div
+                style={{
+                  width: "100%",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "12px",
+                  padding: "12px 16px",
+                  border: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-around",
+                  fontSize: "11.5px",
+                  color: "#475569"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <HardDrive size={14} color="#2563eb" />
+                  <span>Cloud IMAP Gateway</span>
+                </div>
+                <div style={{ width: "1px", height: "14px", backgroundColor: "#cbd5e1" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <FileText size={14} color="#16a34a" />
+                  <span>A4 Statement Engine</span>
+                </div>
+                <div style={{ width: "1px", height: "14px", backgroundColor: "#cbd5e1" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <RefreshCw size={14} color="#7c3aed" />
+                  <span>Real-Time Sync</span>
+                </div>
+              </div>
             </div>
-            <h3 style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px 0" }}>Select an email to view</h3>
-            <p style={{ fontSize: "12.5px", color: "#64748b", margin: 0, textAlign: "center", maxWidth: "280px" }}>
-              MULTIMARG CARRIERS PRIVATE LIMITED &bull; Enterprise Corporate Mailbox
-            </p>
           </div>
         )}
 
@@ -2108,10 +2355,22 @@ const Webmail = () => {
       {/* MOBILE FLOATING COMPOSE BUTTON (FAB) */}
       {isMobile && activeAccount && (
         <button
+          type="button"
           onClick={() => {
-            setComposeData({ to: "", cc: "", bcc: "", subject: "", body: "", attachments: [], inReplyTo: "", references: "" });
-            setIsComposeOpen(true);
+            setComposeData(prev => ({
+              ...prev,
+              to: "",
+              cc: "",
+              bcc: "",
+              subject: "",
+              body: "",
+              attachments: [],
+              inReplyTo: "",
+              references: ""
+            }));
             setIsComposeMinimized(false);
+            setIsComposeExpanded(false);
+            setIsComposeOpen(true);
           }}
           style={{
             position: "fixed",
@@ -2127,7 +2386,7 @@ const Webmail = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 99,
+            zIndex: 9999,
             cursor: "pointer"
           }}
           title="Compose Email"
@@ -2326,7 +2585,7 @@ const Webmail = () => {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <img src="/circle_crop_logo.png" alt="Logo" style={{ width: "26px", height: "26px", borderRadius: "50%" }} />
-                    <span style={{ fontSize: "14.5px", fontWeight: "800", color: "#0f172a" }}>Multimarg Folders</span>
+                    <span style={{ fontSize: "14.5px", fontWeight: "800", color: "#0f172a" }}>Multimarg Mailbox</span>
                   </div>
                   <button onClick={() => setIsSidebarDrawerOpen(false)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer" }}>
                     <X size={18} />
@@ -2397,58 +2656,145 @@ const Webmail = () => {
         )}
       </AnimatePresence>
 
-      {/* 4. GMAIL-STYLE DOCKABLE BOTTOM-RIGHT COMPOSER WINDOW */}
+      {/* 4. GMAIL-STYLE DOCKABLE & DRAGGABLE COMPOSER WINDOW */}
       <AnimatePresence>
         {isComposeOpen && (
           <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 50, opacity: 0 }}
-            style={{
+            initial={isMobile ? { y: "100%", opacity: 0 } : { y: 50, opacity: 0 }}
+            animate={isMobile ? { y: 0, opacity: 1 } : { y: 0, opacity: 1 }}
+            exit={isMobile ? { y: "100%", opacity: 0 } : { y: 50, opacity: 0 }}
+            transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
+            {...(!isMobile && !isComposeExpanded ? {
+              drag: true,
+              dragControls: composeDragControls,
+              dragListener: false,
+              dragMomentum: false,
+              dragElastic: 0.04
+            } : {})}
+            style={isMobile ? {
               position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
               bottom: 0,
-              right: isMobile ? 0 : "24px",
-              width: isMobile ? "100vw" : isComposeExpanded ? "800px" : "560px",
-              height: isComposeMinimized ? "46px" : isMobile ? "100vh" : isComposeExpanded ? "80vh" : "520px",
+              width: "100%",
+              height: "100%",
+              maxHeight: "100dvh",
               backgroundColor: "#ffffff",
-              borderRadius: isMobile ? "0px" : "12px 12px 0 0",
-              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+              zIndex: 999999,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            } : {
+              position: "fixed",
+              bottom: "20px",
+              right: "24px",
+              width: isComposeExpanded ? "800px" : "560px",
+              height: isComposeMinimized ? "46px" : isComposeExpanded ? "80vh" : "520px",
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              boxShadow: "0 14px 40px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(0, 0, 0, 0.08)",
               border: "1px solid #cbd5e1",
-              borderBottom: "none",
-              zIndex: 99999,
+              zIndex: 999999,
               display: "flex",
               flexDirection: "column",
               overflow: "hidden"
             }}
           >
-            {/* Header Toolbar (Minimize, Maximize, Close) */}
+            {/* Header Toolbar (Draggable on Desktop ONLY, Fixed on Mobile with Top Action Buttons) */}
             <div
+              onPointerDown={(e) => {
+                if (!isMobile && !isComposeExpanded) {
+                  composeDragControls.start(e);
+                }
+              }}
               style={{
                 backgroundColor: "#f1f5f9",
-                padding: "10px 16px",
+                padding: isMobile ? "12px 14px" : "10px 16px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 borderBottom: "1px solid #e2e8f0",
-                cursor: "pointer"
+                cursor: (!isMobile && !isComposeExpanded) ? "grab" : "default",
+                userSelect: "none",
+                touchAction: isMobile ? "auto" : "none",
+                flexShrink: 0
               }}
-              onClick={() => setIsComposeMinimized(!isComposeMinimized)}
+              onDoubleClick={() => !isMobile && setIsComposeMinimized(!isComposeMinimized)}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontWeight: "700", fontSize: "13.5px", color: "#0f172a" }}>
+                {!isMobile && !isComposeExpanded && (
+                  <span title="Drag to move window anywhere on screen" style={{ color: "#94a3b8", display: "flex", alignItems: "center", cursor: "grab" }}>
+                    <GripHorizontal size={16} />
+                  </span>
+                )}
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setIsComposeOpen(false)}
+                    style={{ background: "none", border: "none", color: "#334155", padding: "4px", display: "flex", cursor: "pointer", marginRight: "2px" }}
+                  >
+                    <ArrowLeft size={19} />
+                  </button>
+                )}
+                <span style={{ fontWeight: "700", fontSize: isMobile ? "14.5px" : "13.5px", color: "#0f172a" }}>
                   {composeData.subject ? composeData.subject : "New Message"}
                 </span>
+                {!isMobile && !isComposeExpanded && (
+                  <span style={{ fontSize: "10px", color: "#64748b", backgroundColor: "#e2e8f0", padding: "1px 6px", borderRadius: "8px", fontWeight: "600" }}>
+                    Drag to move
+                  </span>
+                )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={() => setIsComposeMinimized(!isComposeMinimized)}
-                  title="Minimize"
-                  style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "2px", display: "flex" }}
-                >
-                  <Minus size={15} />
-                </button>
+              <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "6px", position: "relative" }} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                {/* Mobile Quick Attach & Quick Send on Top Header Bar */}
+                {isMobile && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+                      style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", padding: "4px" }}
+                      title="Attach File or Software Document"
+                    >
+                      <Paperclip size={19} />
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={sendingMail}
+                      onClick={handleSendEmail}
+                      title="Send Message"
+                      style={{
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "6px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontWeight: "700",
+                        fontSize: "12.5px",
+                        cursor: sendingMail ? "not-allowed" : "pointer"
+                      }}
+                    >
+                      {sendingMail ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+                      <span>Send</span>
+                    </button>
+                  </>
+                )}
+
+                {!isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setIsComposeMinimized(!isComposeMinimized)}
+                    title="Minimize"
+                    style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "2px", display: "flex" }}
+                  >
+                    <Minus size={15} />
+                  </button>
+                )}
 
                 {!isMobile && (
                   <button
@@ -2467,252 +2813,296 @@ const Webmail = () => {
                   title="Close"
                   style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "2px", display: "flex" }}
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
 
             {/* Compose Form (Visible when not minimized) */}
             {!isComposeMinimized && (
-              <form onSubmit={handleSendEmail} style={{ display: "flex", flexDirection: "column", flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+              <form onSubmit={handleSendEmail} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden" }}>
+                {/* Scrollable Fields & Content Body */}
+                <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 14px" : "14px 18px", display: "flex", flexDirection: "column", minHeight: 0 }}>
+                  {/* Sender Account (From Selector) */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", minWidth: "42px" }}>From</span>
+                    {accounts.length > 1 ? (
+                      <select
+                        value={composeData.fromAccountId || selectedAccountId || ""}
+                        onChange={(e) => setComposeData({ ...composeData, fromAccountId: e.target.value })}
+                        style={{
+                          flex: 1,
+                          padding: "5px 10px",
+                          borderRadius: "6px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "12.5px",
+                          fontWeight: "600",
+                          color: "#0f172a",
+                          backgroundColor: "#f8fafc",
+                          outline: "none",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {accounts.map(acc => (
+                          <option key={acc.id} value={acc.id}>
+                            {acc.email}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>
+                        {activeAccount?.email}
+                      </span>
+                    )}
+                  </div>
 
-                {/* Sender Account (From Selector) */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", minWidth: "42px" }}>From</span>
-                  {accounts.length > 1 ? (
-                    <select
-                      value={composeData.fromAccountId || selectedAccountId || ""}
-                      onChange={(e) => setComposeData({ ...composeData, fromAccountId: e.target.value })}
-                      style={{
-                        flex: 1,
-                        padding: "5px 10px",
-                        borderRadius: "6px",
-                        border: "1px solid #cbd5e1",
-                        fontSize: "12.5px",
-                        fontWeight: "600",
-                        color: "#0f172a",
-                        backgroundColor: "#f8fafc",
-                        outline: "none",
-                        cursor: "pointer"
-                      }}
-                    >
-                      {accounts.map(acc => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.email}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "#1e293b" }}>
-                      {activeAccount?.email}
-                    </span>
+                  {/* Recipients (To) - Supports comma separated multiple emails */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>To</span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Recipients (separate multiple with commas)"
+                      value={composeData.to}
+                      onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
+                      style={{ flex: 1, border: "none", outline: "none", fontSize: "13.5px" }}
+                    />
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      {!showCc && (
+                        <button
+                          type="button"
+                          onClick={() => setShowCc(true)}
+                          style={{ fontSize: "11.5px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Cc
+                        </button>
+                      )}
+                      {!showBcc && (
+                        <button
+                          type="button"
+                          onClick={() => setShowBcc(true)}
+                          style={{ fontSize: "11.5px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Bcc
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CC Field - Supports comma separated multiple emails */}
+                  {showCc && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>Cc</span>
+                      <input
+                        type="text"
+                        placeholder="Carbon copy recipients (separated by commas)"
+                        value={composeData.cc}
+                        onChange={(e) => setComposeData({ ...composeData, cc: e.target.value })}
+                        style={{ flex: 1, border: "none", outline: "none", fontSize: "13px" }}
+                      />
+                    </div>
+                  )}
+
+                  {/* BCC Field - Supports comma separated multiple emails */}
+                  {showBcc && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>Bcc</span>
+                      <input
+                        type="text"
+                        placeholder="Blind carbon copy recipients (separated by commas)"
+                        value={composeData.bcc}
+                        onChange={(e) => setComposeData({ ...composeData, bcc: e.target.value })}
+                        style={{ flex: 1, border: "none", outline: "none", fontSize: "13px" }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Subject */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "10px" }}>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Subject"
+                      value={composeData.subject}
+                      onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
+                      style={{ width: "100%", border: "none", outline: "none", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}
+                    />
+                  </div>
+
+                  {/* Message Body */}
+                  <textarea
+                    rows={isMobile ? 8 : (isComposeExpanded ? 14 : 8)}
+                    required
+                    placeholder="Write your email here..."
+                    value={composeData.body}
+                    onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
+                    style={{
+                      width: "100%",
+                      flex: isMobile ? 1 : "none",
+                      minHeight: isMobile ? "140px" : "120px",
+                      border: "none",
+                      fontSize: "13.5px",
+                      lineHeight: "1.6",
+                      outline: "none",
+                      resize: isMobile ? "none" : "vertical",
+                      marginBottom: "10px"
+                    }}
+                  />
+
+                  {/* Sender Identity & Signature Contact Row (Hidden by default, prefilled in background) */}
+                  {showCustomSigner && (
+                    <div style={{ marginBottom: "12px", padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span>Sender Info &amp; Contact (Included in Signature)</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomSigner(false)}
+                          style={{ background: "none", border: "none", color: "#64748b", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          Hide
+                        </button>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Sender Name</label>
+                          <input
+                            type="text"
+                            placeholder="Your Name (e.g. Akash Debnath)"
+                            value={composeData.senderName || ""}
+                            onChange={(e) => updateSenderInfo("senderName", e.target.value)}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Role / Designation</label>
+                          <input
+                            type="text"
+                            placeholder="Designation (e.g. Accounts & IT Head)"
+                            value={composeData.senderDesignation || ""}
+                            onChange={(e) => updateSenderInfo("senderDesignation", e.target.value)}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Direct Phone</label>
+                          <input
+                            type="tel"
+                            placeholder="Phone (e.g. +91 98765 43210)"
+                            value={composeData.senderPhone || ""}
+                            onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Official Signature Badge (Prefilled) */}
+                  <div style={{ padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", borderLeft: "3px solid #2563eb", marginBottom: "10px", display: "flex", alignItems: "center", gap: "12px" }}>
+                    <img
+                      src="/circle_crop_logo.png"
+                      alt="Multimarg Logo"
+                      style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "contain", background: "#ffffff", padding: "1px", border: "1px solid #e2e8f0" }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a" }}>
+                        {composeData.senderName || (activeAccount?.displayName?.toLowerCase() === "accounts" ? "Accounts" : activeAccount?.displayName) || (activeAccount?.email ? (activeAccount.email.split("@")[0].toLowerCase() === "accounts" ? "Accounts" : activeAccount.email.split("@")[0].toUpperCase()) : "Multimarg Team")}
+                      </div>
+                      {composeData.senderDesignation && (
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569" }}>
+                          {composeData.senderDesignation}
+                        </div>
+                      )}
+                      <div style={{ fontSize: "10.5px", fontWeight: "700", color: "#2563eb" }}>
+                        MULTIMARG CARRIERS PRIVATE LIMITED
+                      </div>
+                      <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "1px" }}>
+                        <span>Landline: <strong style={{ color: "#0f172a" }}>+91 5944-324033</strong></span>
+                        {composeData.senderPhone && (
+                          <span> &bull; Direct: <strong style={{ color: "#0f172a" }}>{composeData.senderPhone}</strong></span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#64748b" }}>
+                        <span>{activeAccount?.email}</span> &bull;
+                        <span style={{ color: "#2563eb", fontWeight: "600", marginLeft: "3px" }}>multimarg.com</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomSigner(!showCustomSigner)}
+                        title="Edit Signature Details"
+                        style={{ background: "none", border: "none", color: "#2563eb", fontSize: "10.5px", fontWeight: "700", cursor: "pointer", padding: "2px 4px" }}
+                      >
+                        {showCustomSigner ? "Done" : "Edit"}
+                      </button>
+                      <span style={{ fontSize: "9.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#dcfce7", padding: "2px 8px", borderRadius: "10px" }}>
+                        OFFICIAL
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Attachment Chips with Rich Document Format Badges */}
+                  {(composeData.attachments || []).length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+                      {composeData.attachments.map((file, i) => {
+                        const isPdf = file.name.toLowerCase().endsWith(".pdf");
+                        const isExcel = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+                        const isCsv = file.name.toLowerCase().endsWith(".csv");
+
+                        return (
+                          <span
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "4px 9px",
+                              backgroundColor: isPdf ? "#fef2f2" : isExcel ? "#f0fdf4" : isCsv ? "#fffbeb" : "#eff6ff",
+                              color: isPdf ? "#b91c1c" : isExcel ? "#15803d" : isCsv ? "#b45309" : "#1d4ed8",
+                              borderRadius: "6px",
+                              fontSize: "11.5px",
+                              fontWeight: "600",
+                              border: isPdf ? "1px solid #fecaca" : isExcel ? "1px solid #bbf7d0" : isCsv ? "1px solid #fde68a" : "1px solid #bfdbfe"
+                            }}
+                          >
+                            {isPdf ? <FileText size={13} /> : isExcel ? <FileSpreadsheet size={13} /> : isCsv ? <FileType size={13} /> : <Paperclip size={13} />}
+                            <span>{file.name}</span>
+                            <span style={{ fontSize: "10px", opacity: 0.75 }}>
+                              ({(file.size / 1024 < 1024) ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`})
+                            </span>
+                            <X
+                              size={13}
+                              style={{ cursor: "pointer", marginLeft: "2px" }}
+                              onClick={() => setComposeData(prev => ({ ...prev, attachments: prev.attachments.filter((_, idx) => idx !== i) }))}
+                            />
+                          </span>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
-                {/* Recipients (To) - Supports comma separated multiple emails */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
-                  <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>To</span>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Recipients (separate multiple with commas)"
-                    value={composeData.to}
-                    onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
-                    style={{ flex: 1, border: "none", outline: "none", fontSize: "13.5px" }}
-                  />
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {!showCc && (
-                      <button
-                        type="button"
-                        onClick={() => setShowCc(true)}
-                        style={{ fontSize: "11.5px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
-                      >
-                        Cc
-                      </button>
-                    )}
-                    {!showBcc && (
-                      <button
-                        type="button"
-                        onClick={() => setShowBcc(true)}
-                        style={{ fontSize: "11.5px", color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: "700" }}
-                      >
-                        Bcc
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* CC Field - Supports comma separated multiple emails */}
-                {showCc && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
-                    <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>Cc</span>
-                    <input
-                      type="text"
-                      placeholder="Carbon copy recipients (separated by commas)"
-                      value={composeData.cc}
-                      onChange={(e) => setComposeData({ ...composeData, cc: e.target.value })}
-                      style={{ flex: 1, border: "none", outline: "none", fontSize: "13px" }}
-                    />
-                  </div>
-                )}
-
-                {/* BCC Field - Supports comma separated multiple emails */}
-                {showBcc && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "7px" }}>
-                    <span style={{ fontSize: "12.5px", fontWeight: "700", color: "#64748b", width: "38px" }}>Bcc</span>
-                    <input
-                      type="text"
-                      placeholder="Blind carbon copy recipients (separated by commas)"
-                      value={composeData.bcc}
-                      onChange={(e) => setComposeData({ ...composeData, bcc: e.target.value })}
-                      style={{ flex: 1, border: "none", outline: "none", fontSize: "13px" }}
-                    />
-                  </div>
-                )}
-
-                {/* Subject */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "7px", marginBottom: "10px" }}>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Subject"
-                    value={composeData.subject}
-                    onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-                    style={{ width: "100%", border: "none", outline: "none", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}
-                  />
-                </div>
-
-                {/* Message Body */}
-                <textarea
-                  rows={isComposeExpanded ? 12 : 7}
-                  required
-                  placeholder="Write your email here..."
-                  value={composeData.body}
-                  onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
+                {/* Pinned Bottom Action Toolbar (Always Visible) */}
+                <div
                   style={{
-                    width: "100%",
-                    border: "none",
-                    fontSize: "13.5px",
-                    lineHeight: "1.6",
-                    outline: "none",
-                    resize: "none",
-                    marginBottom: "10px"
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    borderTop: "1px solid #e2e8f0",
+                    padding: isMobile ? "10px 14px" : "10px 18px",
+                    backgroundColor: "#ffffff",
+                    flexShrink: 0,
+                    boxShadow: isMobile ? "0 -2px 8px rgba(0,0,0,0.06)" : "none",
+                    position: "relative"
                   }}
-                />
-
-                {/* Sender Identity & Signature Contact Row (Always prefilled & editable) */}
-                <div style={{ marginBottom: "12px", padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569", marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>Sender Info &amp; Contact (Included in Signature)</span>
-                    <span style={{ fontSize: "10px", fontWeight: "600", color: "#2563eb" }}>Prefilled &bull; Editable</span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "8px" }}>
-                    <div>
-                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Sender Name</label>
-                      <input
-                        type="text"
-                        placeholder="Your Name (e.g. Akash Debnath)"
-                        value={composeData.senderName || ""}
-                        onChange={(e) => updateSenderInfo("senderName", e.target.value)}
-                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Role / Designation</label>
-                      <input
-                        type="text"
-                        placeholder="Designation (e.g. Accounts & IT Head)"
-                        value={composeData.senderDesignation || ""}
-                        onChange={(e) => updateSenderInfo("senderDesignation", e.target.value)}
-                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "#64748b", marginBottom: "2px" }}>Direct Phone</label>
-                      <input
-                        type="tel"
-                        placeholder="Phone (e.g. +91 98765 43210)"
-                        value={composeData.senderPhone || ""}
-                        onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
-                        style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Official Signature Badge */}
-                <div style={{ padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", borderLeft: "3px solid #2563eb", marginBottom: "10px", display: "flex", alignItems: "center", gap: "12px" }}>
-                  <img
-                    src="/circle_crop_logo.png"
-                    alt="Multimarg Logo"
-                    style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "contain", background: "#ffffff", padding: "1px", border: "1px solid #e2e8f0" }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a" }}>
-                      {composeData.senderName || (activeAccount?.displayName?.toLowerCase() === "accounts" ? "Accounts" : activeAccount?.displayName) || (activeAccount?.email ? (activeAccount.email.split("@")[0].toLowerCase() === "accounts" ? "Accounts" : activeAccount.email.split("@")[0].toUpperCase()) : "Multimarg Team")}
-                    </div>
-                    {composeData.senderDesignation && (
-                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569" }}>
-                        {composeData.senderDesignation}
-                      </div>
-                    )}
-                    <div style={{ fontSize: "10.5px", fontWeight: "700", color: "#2563eb" }}>
-                      MULTIMARG CARRIERS PRIVATE LIMITED
-                    </div>
-                    <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "1px" }}>
-                      <span>Landline: <strong style={{ color: "#0f172a" }}>+91 5944-324033</strong></span>
-                      {composeData.senderPhone && (
-                        <span> &bull; Direct: <strong style={{ color: "#0f172a" }}>{composeData.senderPhone}</strong></span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#64748b" }}>
-                      <span>{activeAccount?.email}</span> &bull;
-                      <span style={{ color: "#2563eb", fontWeight: "600", marginLeft: "3px" }}>multimarg.com</span>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: "9.5px", fontWeight: "800", color: "#15803d", backgroundColor: "#dcfce7", padding: "2px 8px", borderRadius: "10px" }}>
-                    OFFICIAL
-                  </span>
-                </div>
-
-                {/* Attachment Chips */}
-                {(composeData.attachments || []).length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
-                    {composeData.attachments.map((file, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "5px",
-                          padding: "3px 8px",
-                          backgroundColor: "#eff6ff",
-                          color: "#1d4ed8",
-                          borderRadius: "6px",
-                          fontSize: "11px",
-                          fontWeight: "500",
-                          border: "1px solid #bfdbfe"
-                        }}
-                      >
-                        {file.name}
-                        <X
-                          size={12}
-                          style={{ cursor: "pointer" }}
-                          onClick={() => setComposeData(prev => ({ ...prev, attachments: prev.attachments.filter((_, idx) => idx !== i) }))}
-                        />
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Gmail-Style Bottom Formatting Bar */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #e2e8f0", paddingTop: "10px", marginTop: "auto" }}>
+                >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <button
                       type="submit"
                       disabled={sendingMail}
                       style={{
-                        padding: "8px 20px",
+                        padding: isMobile ? "9px 24px" : "8px 20px",
                         borderRadius: "20px",
                         backgroundColor: "#2563eb",
                         color: "#fff",
@@ -2731,28 +3121,125 @@ const Webmail = () => {
                       <span>{sendingMail ? "Sending..." : "Send"}</span>
                     </button>
 
-                    <label
-                      htmlFor="floating-composer-attachments"
-                      style={{
-                        padding: "6px",
-                        borderRadius: "6px",
-                        color: "#64748b",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center"
-                      }}
-                      title="Attach Files"
-                    >
-                      <Paperclip size={18} />
-                    </label>
+                    {/* Attachment Choice Trigger Button */}
+                    <div style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+                        style={{
+                          padding: isMobile ? "7px 12px" : "6px 12px",
+                          borderRadius: "8px",
+                          color: "#1e3a8a",
+                          backgroundColor: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          fontSize: "12.5px",
+                          fontWeight: "700"
+                        }}
+                        title="Attach Files or Software Documents"
+                      >
+                        <Paperclip size={16} />
+                        <span>Attach</span>
+                      </button>
+
+                      {/* Attachment Choice Dropdown Popover */}
+                      {isAttachMenuOpen && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "100%",
+                            left: 0,
+                            marginBottom: "8px",
+                            width: "280px",
+                            backgroundColor: "#ffffff",
+                            borderRadius: "12px",
+                            boxShadow: "0 12px 30px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08)",
+                            border: "1px solid #cbd5e1",
+                            padding: "6px",
+                            zIndex: 999999,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "4px"
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAttachMenuOpen(false);
+                              if (deviceFileInputRef.current) {
+                                deviceFileInputRef.current.click();
+                              }
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "10px",
+                              padding: "10px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              backgroundColor: "transparent",
+                              textAlign: "left",
+                              cursor: "pointer",
+                              transition: "background-color 0.15s ease"
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                          >
+                            <div style={{ backgroundColor: "#eff6ff", color: "#2563eb", padding: "7px", borderRadius: "8px", marginTop: "1px" }}>
+                              <Upload size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "12.5px", fontWeight: "700", color: "#0f172a" }}>Upload from Computer</div>
+                              <div style={{ fontSize: "11px", color: "#64748b" }}>Choose PDF, image, Excel or files from device</div>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAttachMenuOpen(false);
+                              setIsAttachSoftwareModalOpen(true);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "10px",
+                              padding: "10px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              backgroundColor: "#f0fdf4",
+                              textAlign: "left",
+                              cursor: "pointer",
+                              transition: "background-color 0.15s ease"
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#dcfce7")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0fdf4")}
+                          >
+                            <div style={{ backgroundColor: "#dcfce7", color: "#16a34a", padding: "7px", borderRadius: "8px", marginTop: "1px" }}>
+                              <FolderPlus size={16} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "12.5px", fontWeight: "800", color: "#15803d" }}>From Multimarg Software</div>
+                              <div style={{ fontSize: "11px", color: "#166534" }}>Attach live Bills, LRs, Trips or Ledgers as PDF/Excel/CSV</div>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hidden Native File Input */}
                     <input
                       type="file"
-                      id="floating-composer-attachments"
+                      ref={deviceFileInputRef}
                       multiple
                       style={{ display: "none" }}
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
                         setComposeData(prev => ({ ...prev, attachments: [...prev.attachments, ...files] }));
+                        e.target.value = "";
                       }}
                     />
                   </div>
@@ -2761,13 +3248,25 @@ const Webmail = () => {
                     type="button"
                     onClick={() => setIsComposeOpen(false)}
                     title="Discard Draft"
-                    style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "6px", display: "flex" }}
+                    style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", gap: "4px" }}
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               </form>
             )}
+
+            {/* Attach from Multimarg Software Modal */}
+            <AttachSoftwareModal
+              isOpen={isAttachSoftwareModalOpen}
+              onClose={() => setIsAttachSoftwareModalOpen(false)}
+              onAttachFiles={(files) => {
+                setComposeData(prev => ({
+                  ...prev,
+                  attachments: [...prev.attachments, ...files]
+                }));
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
