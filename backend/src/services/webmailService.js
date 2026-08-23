@@ -259,64 +259,102 @@ const getMessages = async (account, { folder = "INBOX", page = 1, limit = 30, se
       const targetUids = uids.slice(startIndex, startIndex + limit);
 
       if (targetUids.length > 0) {
-        for await (const msg of client.fetch(targetUids, {
-          uid: true,
-          flags: true,
-          envelope: true,
-          bodyStructure: true,
-          size: true
-        })) {
-          const from = msg.envelope?.from?.[0] ? {
-            name: msg.envelope.from[0].name || "",
-            address: msg.envelope.from[0].address || ""
-          } : { name: "", address: "Unknown" };
+        try {
+          for await (const msg of client.fetch(targetUids, {
+            uid: true,
+            flags: true,
+            envelope: true,
+            bodyStructure: true,
+            size: true
+          }, { uid: true })) {
+            const from = msg.envelope?.from?.[0] ? {
+              name: msg.envelope.from[0].name || "",
+              address: msg.envelope.from[0].address || ""
+            } : { name: "", address: "Unknown" };
 
-          const to = (msg.envelope?.to || []).map(t => ({
-            name: t.name || "",
-            address: t.address || ""
-          }));
+            const to = (msg.envelope?.to || []).map(t => ({
+              name: t.name || "",
+              address: t.address || ""
+            }));
 
-          const cc = (msg.envelope?.cc || []).map(c => ({
-            name: c.name || "",
-            address: c.address || ""
-          }));
+            const cc = (msg.envelope?.cc || []).map(c => ({
+              name: c.name || "",
+              address: c.address || ""
+            }));
 
-          const flags = Array.from(msg.flags || []);
-          const isSeen = flags.includes("\\Seen");
-          const isFlagged = flags.includes("\\Flagged");
-          const isAnswered = flags.includes("\\Answered");
+            const flags = Array.from(msg.flags || []);
+            const isSeen = flags.includes("\\Seen");
+            const isFlagged = flags.includes("\\Flagged");
+            const isAnswered = flags.includes("\\Answered");
 
-          // Check if message has attachments
-          let hasAttachments = false;
-          if (msg.bodyStructure) {
-            const checkAttachments = (struct) => {
-              if (!struct) return false;
-              if (struct.disposition === "attachment" || (struct.type && !struct.type.startsWith("text/") && !struct.type.startsWith("multipart/"))) {
-                return true;
-              }
-              if (struct.childNodes && Array.isArray(struct.childNodes)) {
-                return struct.childNodes.some(checkAttachments);
-              }
-              return false;
-            };
-            hasAttachments = checkAttachments(msg.bodyStructure);
+            // Check if message has attachments
+            let hasAttachments = false;
+            if (msg.bodyStructure) {
+              const checkAttachments = (struct) => {
+                if (!struct) return false;
+                if (struct.disposition === "attachment" || (struct.type && !struct.type.startsWith("text/") && !struct.type.startsWith("multipart/"))) {
+                  return true;
+                }
+                if (struct.childNodes && Array.isArray(struct.childNodes)) {
+                  return struct.childNodes.some(checkAttachments);
+                }
+                return false;
+              };
+              hasAttachments = checkAttachments(msg.bodyStructure);
+            }
+
+            messages.push({
+              uid: msg.uid,
+              seq: msg.seq,
+              subject: msg.envelope?.subject || "(No Subject)",
+              from,
+              to,
+              cc,
+              date: msg.envelope?.date ? new Date(msg.envelope.date).toISOString() : new Date().toISOString(),
+              messageId: msg.envelope?.messageId || "",
+              isSeen,
+              isFlagged,
+              isAnswered,
+              hasAttachments,
+              size: msg.size || 0
+            });
           }
+        } catch (fetchErr) {
+          console.warn("[Webmail Service] Batch UID fetch error, attempting single-message fallback:", fetchErr.message);
+          for (const singleUid of targetUids) {
+            try {
+              for await (const msg of client.fetch(singleUid, {
+                uid: true,
+                flags: true,
+                envelope: true,
+                bodyStructure: true,
+                size: true
+              }, { uid: true })) {
+                const from = msg.envelope?.from?.[0] ? {
+                  name: msg.envelope.from[0].name || "",
+                  address: msg.envelope.from[0].address || ""
+                } : { name: "", address: "Unknown" };
 
-          messages.push({
-            uid: msg.uid,
-            seq: msg.seq,
-            subject: msg.envelope?.subject || "(No Subject)",
-            from,
-            to,
-            cc,
-            date: msg.envelope?.date ? new Date(msg.envelope.date).toISOString() : new Date().toISOString(),
-            messageId: msg.envelope?.messageId || "",
-            isSeen,
-            isFlagged,
-            isAnswered,
-            hasAttachments,
-            size: msg.size || 0
-          });
+                messages.push({
+                  uid: msg.uid,
+                  seq: msg.seq,
+                  subject: msg.envelope?.subject || "(No Subject)",
+                  from,
+                  to: (msg.envelope?.to || []).map(t => ({ name: t.name || "", address: t.address || "" })),
+                  cc: (msg.envelope?.cc || []).map(c => ({ name: c.name || "", address: c.address || "" })),
+                  date: msg.envelope?.date ? new Date(msg.envelope.date).toISOString() : new Date().toISOString(),
+                  messageId: msg.envelope?.messageId || "",
+                  isSeen: Array.from(msg.flags || []).includes("\\Seen"),
+                  isFlagged: Array.from(msg.flags || []).includes("\\Flagged"),
+                  isAnswered: Array.from(msg.flags || []).includes("\\Answered"),
+                  hasAttachments: false,
+                  size: msg.size || 0
+                });
+              }
+            } catch (_singleErr) {
+              // skip unreadable deleted message
+            }
+          }
         }
       }
 
