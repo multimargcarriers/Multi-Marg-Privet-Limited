@@ -282,15 +282,71 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 10mm !important;
+            padding: 8mm !important;
             box-shadow: none !important;
             border: none !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          #party-ledger-printable-sheet table {
+            font-size: 0.70rem !important;
+          }
+          #party-ledger-printable-sheet table th,
+          #party-ledger-printable-sheet table td {
+            padding: 3px 5px !important;
+          }
           .no-print {
             display: none !important;
           }
+        }
+        /* Page break marker for html2pdf.js */
+        .pdf-page-break {
+          page-break-before: always;
+          break-before: page;
+        }
+        /* Compact formatting for ledger tables */
+        .ledger-table {
+          table-layout: fixed;
+          width: 100%;
+          font-size: 0.72rem;
+          border-collapse: collapse;
+          border: 1px solid #cbd5e1;
+        }
+        .ledger-table th, .ledger-table td {
+          padding: 4px 6px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          word-break: break-word;
+          vertical-align: top;
+          line-height: 1.3;
+        }
+        .ledger-table thead th {
+          white-space: nowrap;
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+        /* Section context header */
+        .section-context-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+          border: 1px solid #bfdbfe;
+          border-radius: 6px;
+          padding: 6px 12px;
+          margin-bottom: 8px;
+          font-size: 0.70rem;
+          color: #1e3a8a;
+        }
+        .section-context-bar .party-name {
+          font-weight: 800;
+          font-size: 0.75rem;
+        }
+        .section-context-bar .meta {
+          font-weight: 600;
+          color: #475569;
+          font-size: 0.68rem;
         }
       `}</style>
 
@@ -411,14 +467,15 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: "1120px",
+          maxWidth: "1100px",
           background: "#ffffff",
           borderRadius: "12px",
-          padding: "2rem",
+          padding: "1.5rem 1.75rem",
           boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
           color: "#0f172a",
           fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
-          boxSizing: "border-box"
+          boxSizing: "border-box",
+          fontSize: "0.78rem"
         }}
       >
         {/* Company Header Block */}
@@ -567,20 +624,33 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
             </h4>
           </div>
 
-          <table style={{ width: "100%", fontSize: "0.78rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+          <table className="ledger-table" style={{ tableLayout: "fixed", width: "100%", fontSize: "0.72rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+            <colgroup>
+              <col style={{ width: "28px" }} />
+              <col style={{ width: "72px" }} />
+              <col style={{ width: "105px" }} />
+              <col style={{ width: "95px" }} />
+              <col /> {/* Particulars - takes remaining space */}
+              <col style={{ width: "72px" }} />
+              <col style={{ width: "82px" }} />
+              <col style={{ width: "82px" }} />
+              <col style={{ width: "68px" }} />
+              <col style={{ width: "88px" }} />
+              <col style={{ width: "52px" }} />
+            </colgroup>
             <thead>
               <tr style={{ background: "#1e3a8a", color: "#ffffff", textAlign: "left" }}>
-                <th style={{ padding: "6px 8px", width: "35px", textAlign: "center" }}>SL</th>
-                <th style={{ padding: "6px 8px", width: "85px", textAlign: "center" }}>Date</th>
-                <th style={{ padding: "6px 8px", width: "135px" }}>Transaction Type</th>
-                <th style={{ padding: "6px 8px", width: "110px" }}>Ref / Bill No</th>
-                <th style={{ padding: "6px 8px" }}>Particulars / Narration</th>
-                <th style={{ padding: "6px 8px", width: "95px", textAlign: "center" }}>Mode</th>
-                <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Debit (₹)</th>
-                <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Credit (₹)</th>
-                <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>TDS Deducted (₹)</th>
-                <th style={{ padding: "6px 8px", width: "100px", textAlign: "right" }}>Balance (₹)</th>
-                <th style={{ padding: "6px 8px", width: "70px", textAlign: "center" }}>Status</th>
+                <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>SL</th>
+                <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>Date</th>
+                <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Type</th>
+                <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Ref / Bill No</th>
+                <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Particulars</th>
+                <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>Mode</th>
+                <th style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.67rem" }}>Debit (₹)</th>
+                <th style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.67rem" }}>Credit (₹)</th>
+                <th style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.67rem" }}>TDS (₹)</th>
+                <th style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.67rem" }}>Balance (₹)</th>
+                <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -588,30 +658,31 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                 const isEven = idx % 2 === 1;
                 return (
                   <tr key={idx} style={{ background: isEven ? "#f8fafc" : "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "5px 8px", textAlign: "center", color: "#64748b" }}>{idx + 1}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "center", whiteSpace: "nowrap", fontWeight: 600 }}>{entry.date}</td>
-                    <td style={{ padding: "5px 8px", fontWeight: 600, color: entry.tds > 0 ? "#b45309" : "#334155" }}>{entry.type}</td>
-                    <td style={{ padding: "5px 8px", fontWeight: 700, color: "#2563eb" }}>{entry.ref}</td>
-                    <td style={{ padding: "5px 8px", color: "#334155" }}>{entry.particulars}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "center", fontSize: "0.72rem", color: "#64748b" }}>{entry.mode}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 600, color: entry.debit > 0 ? "#0f172a" : "#94a3b8" }}>
+                    <td style={{ padding: "4px", textAlign: "center", color: "#64748b", fontSize: "0.70rem" }}>{idx + 1}</td>
+                    <td style={{ padding: "4px", textAlign: "center", whiteSpace: "nowrap", fontWeight: 600, fontSize: "0.70rem" }}>{entry.date}</td>
+                    <td style={{ padding: "4px", fontWeight: 600, color: entry.tds > 0 ? "#b45309" : "#334155", fontSize: "0.70rem", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.type}</td>
+                    <td style={{ padding: "4px", fontWeight: 700, color: "#2563eb", fontSize: "0.68rem", wordBreak: "break-all" }}>{entry.ref}</td>
+                    <td style={{ padding: "4px", color: "#334155", fontSize: "0.68rem", lineHeight: "1.25", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.particulars}</td>
+                    <td style={{ padding: "4px", textAlign: "center", fontSize: "0.65rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.mode}</td>
+                    <td style={{ padding: "4px", textAlign: "right", fontWeight: 600, color: entry.debit > 0 ? "#0f172a" : "#94a3b8", fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                       {entry.debit > 0 ? formatCurrency(entry.debit) : "-"}
                     </td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 600, color: entry.credit > 0 ? "#16a34a" : "#94a3b8" }}>
+                    <td style={{ padding: "4px", textAlign: "right", fontWeight: 600, color: entry.credit > 0 ? "#16a34a" : "#94a3b8", fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                       {entry.credit > 0 ? formatCurrency(entry.credit) : "-"}
                     </td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: entry.tds > 0 ? "#d97706" : entry.debt > 0 ? "#7c3aed" : "#94a3b8" }}>
+                    <td style={{ padding: "4px", textAlign: "right", fontWeight: 700, fontSize: "0.70rem", whiteSpace: "nowrap", color: entry.tds > 0 ? "#d97706" : entry.debt > 0 ? "#7c3aed" : "#94a3b8" }}>
                       {entry.tds > 0 ? formatCurrency(entry.tds) : entry.debt > 0 ? formatCurrency(entry.debt) : "-"}
                     </td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 800, color: entry.runningBalance > 0 ? (isClient ? "#1e3a8a" : "#be123c") : "#16a34a" }}>
+                    <td style={{ padding: "4px", textAlign: "right", fontWeight: 800, fontSize: "0.72rem", whiteSpace: "nowrap", color: entry.runningBalance > 0 ? (isClient ? "#1e3a8a" : "#be123c") : "#16a34a" }}>
                       {formatCurrency(entry.runningBalance)}
                     </td>
-                    <td style={{ padding: "5px 8px", textAlign: "center" }}>
+                    <td style={{ padding: "4px", textAlign: "center" }}>
                       <span style={{
-                        padding: "2px 6px",
-                        borderRadius: "8px",
-                        fontSize: "0.68rem",
+                        padding: "1px 4px",
+                        borderRadius: "6px",
+                        fontSize: "0.60rem",
                         fontWeight: 700,
+                        whiteSpace: "nowrap",
                         backgroundColor: entry.status === "PAID" || entry.status === "SETTLED" ? "#dcfce7" : entry.status === "PARTIAL" ? "#fef3c7" : entry.status === "ADJUSTED" ? "#fef3c7" : "#fee2e2",
                         color: entry.status === "PAID" || entry.status === "SETTLED" ? "#166534" : entry.status === "PARTIAL" ? "#92400e" : entry.status === "ADJUSTED" ? "#92400e" : "#991b1b"
                       }}>
@@ -624,22 +695,22 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
             </tbody>
             <tfoot>
               <tr style={{ background: "#dbeafe", fontWeight: 800, color: "#1e3a8a", borderTop: "2px solid #1e3a8a" }}>
-                <td colSpan={6} style={{ padding: "7px 10px", textAlign: "right", fontSize: "0.82rem" }}>
-                  GRAND TOTAL ({ledgerEntries.length} TRANSACTIONS):
+                <td colSpan={6} style={{ padding: "5px 6px", textAlign: "right", fontSize: "0.72rem" }}>
+                  TOTAL ({ledgerEntries.length} TXN):
                 </td>
-                <td style={{ padding: "7px 8px", textAlign: "right", fontSize: "0.82rem" }}>
+                <td style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.72rem", whiteSpace: "nowrap" }}>
                   {formatCurrency(totalDebit)}
                 </td>
-                <td style={{ padding: "7px 8px", textAlign: "right", fontSize: "0.82rem", color: "#16a34a" }}>
+                <td style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.72rem", color: "#16a34a", whiteSpace: "nowrap" }}>
                   {formatCurrency(totalCredit)}
                 </td>
-                <td style={{ padding: "7px 8px", textAlign: "right", fontSize: "0.82rem", color: "#d97706" }}>
+                <td style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.72rem", color: "#d97706", whiteSpace: "nowrap" }}>
                   {formatCurrency(totalTdsDeducted)}
                 </td>
-                <td style={{ padding: "7px 8px", textAlign: "right", fontSize: "0.90rem", fontWeight: 900, color: party.netOutstandingDue > 0 ? "#dc2626" : "#16a34a" }}>
+                <td style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.78rem", fontWeight: 900, whiteSpace: "nowrap", color: party.netOutstandingDue > 0 ? "#dc2626" : "#16a34a" }}>
                   {formatCurrency(party.netOutstandingDue)}
                 </td>
-                <td style={{ padding: "7px 8px", textAlign: "center", fontSize: "0.72rem", color: party.status === "paid" ? "#166534" : "#991b1b" }}>
+                <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.62rem", color: party.status === "paid" ? "#166534" : "#991b1b" }}>
                   {party.status === "paid" ? "SETTLED" : "DUE"}
                 </td>
               </tr>
@@ -649,30 +720,57 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
 
         {/* Section 2: Detailed Invoices & Bills Breakdown */}
         {rawBills.length > 0 && (
-          <div style={{ marginBottom: "1.5rem", pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.5rem" }}>
-              <FileText size={16} color="#1e3a8a" />
-              <h4 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 800, color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                2. {isClient ? "Sales Invoices" : "Purchase Bills"} Breakdown ({rawBills.length} Bills)
-              </h4>
+          <div className="pdf-page-break" style={{ marginBottom: "1.5rem" }}>
+            {/* Section Context Header & Title - Keep together */}
+            <div style={{ pageBreakInside: "avoid" }}>
+              <div className="section-context-bar">
+                <div>
+                  <span className="party-name">{partyName}</span>
+                  <span style={{ marginLeft: "8px", fontWeight: 600, fontSize: "0.68rem", color: "#64748b" }}>({partyTypeLabel})</span>
+                </div>
+                <div className="meta">
+                  Statement Date: {formattedToday} &nbsp;|&nbsp; Net Due: <strong style={{ color: party.netOutstandingDue > 0 ? "#dc2626" : "#16a34a" }}>{formatCurrency(party.netOutstandingDue)}</strong>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.5rem" }}>
+                <FileText size={16} color="#1e3a8a" />
+                <h4 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 800, color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  2. {isClient ? "Sales Invoices" : "Purchase Bills"} Breakdown ({rawBills.length} Bills)
+                </h4>
+              </div>
             </div>
 
-            <table style={{ width: "100%", fontSize: "0.78rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+            <table className="ledger-table" style={{ tableLayout: "fixed", width: "100%", fontSize: "0.72rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+              <colgroup>
+                <col style={{ width: "26px" }} />
+                <col style={{ width: "70px" }} />
+                <col style={{ width: "90px" }} />
+                <col style={{ width: "70px" }} />
+                <col /> {/* Vehicle/Details - takes remaining space */}
+                <col style={{ width: "78px" }} />
+                <col style={{ width: "68px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "72px" }} />
+                <col style={{ width: "58px" }} />
+                <col style={{ width: "58px" }} />
+                <col style={{ width: "80px" }} />
+                <col style={{ width: "50px" }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: "#334155", color: "#ffffff", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px", width: "32px", textAlign: "center" }}>SL</th>
-                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "center" }}>Bill Date</th>
-                  <th style={{ padding: "6px 8px", width: "110px" }}>Bill / Invoice No</th>
-                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "center" }}>Due Date</th>
-                  <th style={{ padding: "6px 8px" }}>Vehicle / Consignment Details</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Taxable (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "right" }}>GST (18%) (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "95px", textAlign: "right" }}>Total (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "85px", textAlign: "right" }}>Paid (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "75px", textAlign: "right" }}>TDS (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "75px", textAlign: "right" }}>Debt (₹)</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "right" }}>Remaining Due</th>
-                  <th style={{ padding: "6px 8px", width: "70px", textAlign: "center" }}>Status</th>
+                  <th style={{ padding: "5px 3px", textAlign: "center", fontSize: "0.65rem" }}>SL</th>
+                  <th style={{ padding: "5px 3px", textAlign: "center", fontSize: "0.65rem" }}>Date</th>
+                  <th style={{ padding: "5px 3px", fontSize: "0.65rem" }}>Bill No</th>
+                  <th style={{ padding: "5px 3px", textAlign: "center", fontSize: "0.65rem" }}>Due Date</th>
+                  <th style={{ padding: "5px 3px", fontSize: "0.65rem" }}>Details</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>Taxable</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>GST</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>Total (₹)</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>Paid (₹)</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>TDS</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>Debt</th>
+                  <th style={{ padding: "5px 3px", textAlign: "right", fontSize: "0.65rem" }}>Due (₹)</th>
+                  <th style={{ padding: "5px 3px", textAlign: "center", fontSize: "0.65rem" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -692,38 +790,39 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
 
                   return (
                     <tr key={bIdx} style={{ background: bIdx % 2 === 1 ? "#f8fafc" : "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
-                      <td style={{ padding: "5px 8px", textAlign: "center", color: "#64748b" }}>{bIdx + 1}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "center", whiteSpace: "nowrap" }}>{formatDate(bDate)}</td>
-                      <td style={{ padding: "5px 8px", fontWeight: 700, color: "#2563eb" }}>{bNo}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "center", color: "#64748b" }}>{calculateDueDate(bDate, b.dueDate)}</td>
-                      <td style={{ padding: "5px 8px", color: "#334155" }}>
-                        <div style={{ fontWeight: 600 }}>{b.vehicleNo || b.vehicles || b.description || (isClient ? "Freight & Transportation Services" : "Vendor Transport Charges")}</div>
+                      <td style={{ padding: "3px", textAlign: "center", color: "#64748b", fontSize: "0.68rem" }}>{bIdx + 1}</td>
+                      <td style={{ padding: "3px", textAlign: "center", whiteSpace: "nowrap", fontSize: "0.68rem" }}>{formatDate(bDate)}</td>
+                      <td style={{ padding: "3px", fontWeight: 700, color: "#2563eb", fontSize: "0.66rem", wordBreak: "break-all" }}>{bNo}</td>
+                      <td style={{ padding: "3px", textAlign: "center", color: "#64748b", fontSize: "0.66rem", whiteSpace: "nowrap" }}>{calculateDueDate(bDate, b.dueDate)}</td>
+                      <td style={{ padding: "3px 4px", color: "#334155", fontSize: "0.66rem", lineHeight: "1.25", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ fontWeight: 600 }}>{b.vehicleNo || b.vehicles || b.description || (isClient ? "Freight & Transport" : "Vendor Charges")}</div>
                         {stDetails.paymentSummary !== "-" && (
-                          <div style={{ fontSize: "0.70rem", color: "#166534", marginTop: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
-                            <CheckCircle2 size={10} color="#16a34a" /> {stDetails.paymentSummary}
+                          <div style={{ fontSize: "0.62rem", color: "#166534", marginTop: "1px", display: "flex", alignItems: "center", gap: "2px" }}>
+                            <CheckCircle2 size={8} color="#16a34a" /> {stDetails.paymentSummary}
                           </div>
                         )}
                         {stDetails.tdsSummary !== "-" && (
-                          <div style={{ fontSize: "0.70rem", color: "#b45309", marginTop: "1px" }}>
+                          <div style={{ fontSize: "0.62rem", color: "#b45309", marginTop: "1px" }}>
                             🏷️ {stDetails.tdsSummary}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#475569" }}>{formatCurrency(bTaxable)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#4f46e5", fontWeight: 600 }}>{formatCurrency(bGst)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: "#0f172a" }}>{formatCurrency(bTot)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#16a34a", fontWeight: 600 }}>{formatCurrency(bP)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#d97706" }}>{formatCurrency(bT)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", color: "#7c3aed" }}>{formatCurrency(bD)}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: bRem > 0 ? "#dc2626" : "#16a34a" }}>
+                      <td style={{ padding: "3px", textAlign: "right", color: "#475569", fontSize: "0.68rem", whiteSpace: "nowrap" }}>{formatCurrency(bTaxable)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", color: "#4f46e5", fontWeight: 600, fontSize: "0.68rem", whiteSpace: "nowrap" }}>{formatCurrency(bGst)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", fontWeight: 700, color: "#0f172a", fontSize: "0.70rem", whiteSpace: "nowrap" }}>{formatCurrency(bTot)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", color: "#16a34a", fontWeight: 600, fontSize: "0.68rem", whiteSpace: "nowrap" }}>{formatCurrency(bP)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", color: "#d97706", fontSize: "0.68rem", whiteSpace: "nowrap" }}>{formatCurrency(bT)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", color: "#7c3aed", fontSize: "0.68rem", whiteSpace: "nowrap" }}>{formatCurrency(bD)}</td>
+                      <td style={{ padding: "3px", textAlign: "right", fontWeight: 700, color: bRem > 0 ? "#dc2626" : "#16a34a", fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                         {formatCurrency(bRem)}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "center" }}>
+                      <td style={{ padding: "3px", textAlign: "center" }}>
                         <span style={{
-                          padding: "2px 6px",
-                          borderRadius: "8px",
-                          fontSize: "0.68rem",
+                          padding: "1px 4px",
+                          borderRadius: "6px",
+                          fontSize: "0.58rem",
                           fontWeight: 700,
+                          whiteSpace: "nowrap",
                           backgroundColor: bSt === "PAID" ? "#dcfce7" : bSt === "PARTIAL" ? "#fef3c7" : "#fee2e2",
                           color: bSt === "PAID" ? "#166534" : bSt === "PARTIAL" ? "#92400e" : "#991b1b"
                         }}>
@@ -736,35 +835,35 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
               </tbody>
               <tfoot style={{ background: "#f1f5f9", fontWeight: 700, borderTop: "2px solid #cbd5e1" }}>
                 <tr>
-                  <td colSpan={5} style={{ padding: "7px 8px", textAlign: "right", color: "#1e3a8a", fontWeight: 800 }}>
-                    GRAND TOTAL ({rawBills.length} BILLS)
+                  <td colSpan={5} style={{ padding: "5px 4px", textAlign: "right", color: "#1e3a8a", fontWeight: 800, fontSize: "0.70rem" }}>
+                    TOTAL ({rawBills.length} BILLS)
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#475569", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#475569", fontWeight: 800, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => {
                       const tot = Number(b.amount || b.total) || 0;
                       return acc + (Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? tot - Number(b.gstAmount || b.gst) : tot / 1.18));
                     }, 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#4f46e5", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#4f46e5", fontWeight: 800, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => {
                       const tot = Number(b.amount || b.total) || 0;
                       const tax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? tot - Number(b.gstAmount || b.gst) : tot / 1.18);
                       return acc + (Number(b.gstAmount || b.gst) || (tot - tax));
                     }, 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#0f172a", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#0f172a", fontWeight: 800, fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => acc + (Number(b.amount || b.total) || 0), 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#16a34a", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#16a34a", fontWeight: 800, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => acc + (Number(b.paidAmount) || 0), 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#d97706", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#d97706", fontWeight: 800, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => acc + (Number(b.tdsAmount) || 0), 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#7c3aed", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#7c3aed", fontWeight: 800, fontSize: "0.68rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => acc + (Number(b.debtAmount) || 0), 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#dc2626", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 3px", textAlign: "right", color: "#dc2626", fontWeight: 800, fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(rawBills.reduce((acc, b) => {
                       const tot = Number(b.amount || b.total) || 0;
                       const p = Number(b.paidAmount) || 0;
@@ -773,7 +872,7 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                       return acc + (String(b.status || "").toLowerCase() === "cancelled" ? 0 : Math.max(0, tot - p - t - d));
                     }, 0))}
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "center", color: "#1e3a8a", fontSize: "0.72rem" }}>
+                  <td style={{ padding: "5px 3px", textAlign: "center", color: "#1e3a8a", fontSize: "0.60rem" }}>
                     TOTALS
                   </td>
                 </tr>
@@ -784,40 +883,62 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
 
         {/* Section 3: Payments & Adjustments Schedule */}
         {(rawCash.length > 0 || rawAdj.length > 0) && (
-          <div style={{ marginBottom: "1.5rem", pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.5rem" }}>
-              <FileText size={16} color="#1e3a8a" />
-              <h4 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 800, color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                3. Cash Receipts, Bank Settlements & Tax Deductions
-              </h4>
+          <div className="pdf-page-break" style={{ marginBottom: "1.5rem" }}>
+            {/* Section Context Header & Title - Keep together */}
+            <div style={{ pageBreakInside: "avoid" }}>
+              <div className="section-context-bar">
+                <div>
+                  <span className="party-name">{partyName}</span>
+                  <span style={{ marginLeft: "8px", fontWeight: 600, fontSize: "0.68rem", color: "#64748b" }}>({partyTypeLabel})</span>
+                </div>
+                <div className="meta">
+                  Statement Date: {formattedToday} &nbsp;|&nbsp; Net Due: <strong style={{ color: party.netOutstandingDue > 0 ? "#dc2626" : "#16a34a" }}>{formatCurrency(party.netOutstandingDue)}</strong>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.5rem" }}>
+                <FileText size={16} color="#1e3a8a" />
+                <h4 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 800, color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  3. Cash Receipts, Bank Settlements & Tax Deductions
+                </h4>
+              </div>
             </div>
 
-            <table style={{ width: "100%", fontSize: "0.78rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+            <table className="ledger-table" style={{ tableLayout: "fixed", width: "100%", fontSize: "0.72rem", borderCollapse: "collapse", border: "1px solid #cbd5e1" }}>
+              <colgroup>
+                <col style={{ width: "28px" }} />
+                <col style={{ width: "75px" }} />
+                <col style={{ width: "130px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "100px" }} />
+                <col style={{ width: "90px" }} />
+                <col /> {/* Narration - takes remaining space */}
+                <col style={{ width: "95px" }} />
+              </colgroup>
               <thead>
                 <tr style={{ background: "#475569", color: "#ffffff", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px", width: "35px", textAlign: "center" }}>SL</th>
-                  <th style={{ padding: "6px 8px", width: "90px", textAlign: "center" }}>Date</th>
-                  <th style={{ padding: "6px 8px", width: "150px" }}>Category / Type</th>
-                  <th style={{ padding: "6px 8px", width: "115px" }}>Voucher / Ref</th>
-                  <th style={{ padding: "6px 8px", width: "115px" }}>Linked Bill No</th>
-                  <th style={{ padding: "6px 8px", width: "105px", textAlign: "center" }}>Payment Mode</th>
-                  <th style={{ padding: "6px 8px" }}>Narration / Remarks</th>
-                  <th style={{ padding: "6px 8px", width: "105px", textAlign: "right" }}>Amount (₹)</th>
+                  <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>SL</th>
+                  <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>Date</th>
+                  <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Category / Type</th>
+                  <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Voucher / Ref</th>
+                  <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Linked Bill</th>
+                  <th style={{ padding: "5px 4px", textAlign: "center", fontSize: "0.67rem" }}>Mode</th>
+                  <th style={{ padding: "5px 4px", fontSize: "0.67rem" }}>Narration</th>
+                  <th style={{ padding: "5px 4px", textAlign: "right", fontSize: "0.67rem" }}>Amount (₹)</th>
                 </tr>
               </thead>
               <tbody>
                 {rawCash.map((c, cIdx) => (
                   <tr key={`c-${cIdx}`} style={{ background: cIdx % 2 === 1 ? "#f8fafc" : "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "5px 8px", textAlign: "center", color: "#64748b" }}>{cIdx + 1}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "center" }}>{formatDate(c.date || c.createdAt)}</td>
-                    <td style={{ padding: "5px 8px", fontWeight: 600, color: c.type === "in" ? "#16a34a" : "#dc2626" }}>
+                    <td style={{ padding: "4px", textAlign: "center", color: "#64748b", fontSize: "0.70rem" }}>{cIdx + 1}</td>
+                    <td style={{ padding: "4px", textAlign: "center", fontSize: "0.70rem", whiteSpace: "nowrap" }}>{formatDate(c.date || c.createdAt)}</td>
+                    <td style={{ padding: "4px", fontWeight: 600, color: c.type === "in" ? "#16a34a" : "#dc2626", fontSize: "0.70rem" }}>
                       {c.type === "in" ? "Cash/Bank Receipt" : "Cash/Bank Payment"}
                     </td>
-                    <td style={{ padding: "5px 8px", fontWeight: 700, color: "#2563eb" }}>{c.voucherNo || c.referenceNo || c.refNo || "-"}</td>
-                    <td style={{ padding: "5px 8px", fontWeight: 600, color: "#475569" }}>{c.billNo || c.referenceNo || "-"}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "center", fontSize: "0.72rem" }}>{c.paymentMode || c.mode || "BANK / CASH"}</td>
-                    <td style={{ padding: "5px 8px", color: "#334155" }}>{c.narration || c.notes || c.particulars || "-"}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: "#16a34a" }}>
+                    <td style={{ padding: "4px", fontWeight: 700, color: "#2563eb", fontSize: "0.68rem", wordBreak: "break-all" }}>{c.voucherNo || c.referenceNo || c.refNo || "-"}</td>
+                    <td style={{ padding: "4px", fontWeight: 600, color: "#475569", fontSize: "0.68rem", wordBreak: "break-all" }}>{c.billNo || c.referenceNo || "-"}</td>
+                    <td style={{ padding: "4px", textAlign: "center", fontSize: "0.66rem", color: "#64748b" }}>{c.paymentMode || c.mode || "BANK / CASH"}</td>
+                    <td style={{ padding: "4px", color: "#334155", fontSize: "0.68rem", overflow: "hidden", textOverflow: "ellipsis" }}>{c.narration || c.notes || c.particulars || "-"}</td>
+                    <td style={{ padding: "4px", textAlign: "right", fontWeight: 700, color: "#16a34a", fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                       {formatCurrency(c.amount)}
                     </td>
                   </tr>
@@ -826,16 +947,16 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                   const part = String(adj.particulars || "tds").toLowerCase();
                   return (
                     <tr key={`a-${aIdx}`} style={{ background: "#fdf4ff", borderBottom: "1px solid #e2e8f0" }}>
-                      <td style={{ padding: "5px 8px", textAlign: "center", color: "#64748b" }}>{rawCash.length + aIdx + 1}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "center" }}>{formatDate(adj.date || adj.createdAt)}</td>
-                      <td style={{ padding: "5px 8px", fontWeight: 700, color: part === "tds" ? "#d97706" : "#7c3aed" }}>
-                        {part === "tds" ? "TDS Tax Deduction" : "Bad Debt / Discount"}
+                      <td style={{ padding: "4px", textAlign: "center", color: "#64748b", fontSize: "0.70rem" }}>{rawCash.length + aIdx + 1}</td>
+                      <td style={{ padding: "4px", textAlign: "center", fontSize: "0.70rem", whiteSpace: "nowrap" }}>{formatDate(adj.date || adj.createdAt)}</td>
+                      <td style={{ padding: "4px", fontWeight: 700, color: part === "tds" ? "#d97706" : "#7c3aed", fontSize: "0.70rem" }}>
+                        {part === "tds" ? "TDS Deduction" : "Debt / Discount"}
                       </td>
-                      <td style={{ padding: "5px 8px", fontWeight: 700, color: "#2563eb" }}>{adj.voucherNo || adj.referenceNo || "ADJ-ENTRY"}</td>
-                      <td style={{ padding: "5px 8px", fontWeight: 600, color: "#475569" }}>{adj.billNo || adj.linkedBillNo || "-"}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "center", fontSize: "0.72rem" }}>{part === "tds" ? "TAX DEDUCTED" : "DISCOUNT"}</td>
-                      <td style={{ padding: "5px 8px", color: "#334155" }}>{adj.remarks || adj.reason || (part === "tds" ? "TDS Tax Deducted" : "Debt write-off")}</td>
-                      <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700, color: "#7c3aed" }}>
+                      <td style={{ padding: "4px", fontWeight: 700, color: "#2563eb", fontSize: "0.68rem", wordBreak: "break-all" }}>{adj.voucherNo || adj.referenceNo || "ADJ-ENTRY"}</td>
+                      <td style={{ padding: "4px", fontWeight: 600, color: "#475569", fontSize: "0.68rem", wordBreak: "break-all" }}>{adj.billNo || adj.linkedBillNo || "-"}</td>
+                      <td style={{ padding: "4px", textAlign: "center", fontSize: "0.66rem", color: "#64748b" }}>{part === "tds" ? "TAX DEDUCTED" : "DISCOUNT"}</td>
+                      <td style={{ padding: "4px", color: "#334155", fontSize: "0.68rem", overflow: "hidden", textOverflow: "ellipsis" }}>{adj.remarks || adj.reason || (part === "tds" ? "TDS Tax Deducted" : "Debt write-off")}</td>
+                      <td style={{ padding: "4px", textAlign: "right", fontWeight: 700, color: "#7c3aed", fontSize: "0.70rem", whiteSpace: "nowrap" }}>
                         {formatCurrency(adj.amount)}
                       </td>
                     </tr>
@@ -844,10 +965,10 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
               </tbody>
               <tfoot style={{ background: "#f1f5f9", fontWeight: 700, borderTop: "2px solid #cbd5e1" }}>
                 <tr>
-                  <td colSpan={7} style={{ padding: "7px 8px", textAlign: "right", color: "#1e3a8a", fontWeight: 800 }}>
-                    TOTAL DISBURSEMENTS / SETTLEMENTS
+                  <td colSpan={7} style={{ padding: "5px 6px", textAlign: "right", color: "#1e3a8a", fontWeight: 800, fontSize: "0.72rem" }}>
+                    TOTAL SETTLEMENTS
                   </td>
-                  <td style={{ padding: "7px 8px", textAlign: "right", color: "#16a34a", fontWeight: 800 }}>
+                  <td style={{ padding: "5px 4px", textAlign: "right", color: "#16a34a", fontWeight: 800, fontSize: "0.72rem", whiteSpace: "nowrap" }}>
                     {formatCurrency(
                       rawCash.reduce((acc, c) => acc + (Number(c.amount) || 0), 0) +
                       rawAdj.reduce((acc, a) => acc + (Number(a.amount) || 0), 0)
@@ -860,7 +981,47 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
         )}
 
         {/* Verification & Sign-off Footer */}
-        <div style={{ borderTop: "2px solid #cbd5e1", paddingTop: "1.25rem", marginTop: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-end", pageBreakInside: "avoid" }}>
+        <div className="pdf-page-break" style={{ paddingTop: "1.25rem", marginTop: "0.5rem" }}>
+          {/* Final Summary Box */}
+          <div style={{
+            background: "linear-gradient(135deg, #f0f9ff 0%, #eff6ff 50%, #e0f2fe 100%)",
+            border: "2px solid #1e3a8a",
+            borderRadius: "10px",
+            padding: "1.25rem 1.5rem",
+            marginBottom: "1.5rem",
+            pageBreakInside: "avoid"
+          }}>
+            <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 900, color: "#1e3a8a", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                ACCOUNT SETTLEMENT SUMMARY
+              </h3>
+              <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#475569" }}>
+                {partyName} &nbsp;|&nbsp; {partyTypeLabel} &nbsp;|&nbsp; As on {formattedToday}
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px", marginBottom: "1rem" }}>
+              <div style={{ background: "#ffffff", borderRadius: "8px", padding: "10px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>Total Billed</div>
+                <div style={{ fontSize: "1rem", fontWeight: 900, color: "#0f172a" }}>{formatCurrency(party.totalInvoiced)}</div>
+              </div>
+              <div style={{ background: "#ffffff", borderRadius: "8px", padding: "10px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>Total Paid</div>
+                <div style={{ fontSize: "1rem", fontWeight: 900, color: "#16a34a" }}>{formatCurrency(party.totalPaid)}</div>
+              </div>
+              <div style={{ background: "#ffffff", borderRadius: "8px", padding: "10px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "0.68rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>TDS & Adjustments</div>
+                <div style={{ fontSize: "1rem", fontWeight: 900, color: "#7c3aed" }}>{formatCurrency((party.totalTds || 0) + (party.totalDebt || 0))}</div>
+              </div>
+              <div style={{ background: party.netOutstandingDue > 0 ? "#fee2e2" : "#dcfce7", borderRadius: "8px", padding: "10px", textAlign: "center", border: `1px solid ${party.netOutstandingDue > 0 ? "#fca5a5" : "#86efac"}` }}>
+                <div style={{ fontSize: "0.68rem", color: party.netOutstandingDue > 0 ? "#991b1b" : "#166534", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>Net Outstanding</div>
+                <div style={{ fontSize: "1.15rem", fontWeight: 900, color: party.netOutstandingDue > 0 ? "#dc2626" : "#16a34a" }}>{formatCurrency(party.netOutstandingDue)}</div>
+              </div>
+                       </div>{/* close grid */}
+          </div>{/* close summary box */}
+
+          {/* Sign-off section */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", pageBreakInside: "avoid", marginTop: "1.5rem" }}>
           <div>
             <p style={{ margin: 0, fontSize: "0.78rem", color: "#64748b" }}>
               This is a computer-generated Statement of Account from Multimarg ERP.
@@ -884,6 +1045,14 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
                 Authorized Signatory
               </div>
             </div>
+          </div>
+          </div>
+
+          {/* Disclaimer */}
+          <div style={{ marginTop: "1.5rem", textAlign: "center", borderTop: "1px solid #e2e8f0", paddingTop: "8px" }}>
+            <p style={{ margin: 0, fontSize: "0.72rem", color: "#94a3b8", fontStyle: "italic" }}>
+              This is a computer-generated Statement of Account. For any discrepancies, please contact our accounts department.
+            </p>
           </div>
         </div>
       </div>

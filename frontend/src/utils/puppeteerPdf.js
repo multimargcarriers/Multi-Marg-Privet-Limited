@@ -54,24 +54,68 @@ export const downloadViaPuppeteer = async ({
   const finalFilename = safeFilename.toLowerCase().endsWith(".pdf") ? safeFilename : `${safeFilename}.pdf`;
   const isAutoPrint = autoPrint === true;
 
+
   try {
     const html2pdf = (await import("html2pdf.js")).default;
     const opt = {
-      margin: [2, 2, 2, 2],
+      margin: [14, 6, 14, 6],
       filename: finalFilename,
       image: { type: "jpeg", quality: 0.98 },
       // Force windowWidth to 1200px to ensure mobile responsive media queries do not trigger!
       html2canvas: { scale: 2, useCORS: true, logging: false, width: canvasWidth, windowWidth: 1200 },
       jsPDF: { unit: "mm", format: "a4", orientation: landscape ? "landscape" : "portrait" },
-      pagebreak: { mode: ['avoid-all'] }
+      pagebreak: { mode: ['css', 'legacy'], before: '.pdf-page-break' }
     };
 
+    // Generate PDF and add page decorations
+    const worker = html2pdf().set(opt).from(clone);
+    const pdf = await worker.outputPdf('datauristring');
+
+    // Re-generate with jsPDF access for decorations
+    const pdfDoc = await worker.toPdf().get('pdf');
+    const totalPages = pdfDoc.internal.getNumberOfPages();
+    const pageWidth = pdfDoc.internal.pageSize.getWidth();
+    const pageHeight = pdfDoc.internal.pageSize.getHeight();
+
+    for (let i = 1; i <= totalPages; i++) {
+      pdfDoc.setPage(i);
+
+      // Draw page border (elegant double-line effect)
+      pdfDoc.setDrawColor(30, 58, 138); // #1e3a8a
+      pdfDoc.setLineWidth(0.5);
+      pdfDoc.rect(4, 4, pageWidth - 8, pageHeight - 8);
+      pdfDoc.setDrawColor(148, 163, 184); // #94a3b8
+      pdfDoc.setLineWidth(0.2);
+      pdfDoc.rect(5.5, 5.5, pageWidth - 11, pageHeight - 11);
+
+      // Top header bar on every page
+      pdfDoc.setFillColor(30, 58, 138);
+      pdfDoc.rect(5.5, 5.5, pageWidth - 11, 8, 'F');
+      pdfDoc.setFont("helvetica", "bold");
+      pdfDoc.setFontSize(7.5);
+      pdfDoc.setTextColor(255, 255, 255);
+      pdfDoc.text("MULTIMARG CARRIERS PVT. LTD.  |  STATEMENT OF ACCOUNT", 9, 10.5);
+      pdfDoc.setFontSize(6.5);
+      pdfDoc.text(`Page ${i} of ${totalPages}`, pageWidth - 9, 10.5, { align: "right" });
+
+      // Bottom footer bar
+      pdfDoc.setFillColor(241, 245, 249);
+      pdfDoc.rect(5.5, pageHeight - 11.5, pageWidth - 11, 6, 'F');
+      pdfDoc.setFontSize(5.5);
+      pdfDoc.setTextColor(100, 116, 139);
+      pdfDoc.setFont("helvetica", "normal");
+      pdfDoc.text("Computer Generated Statement  |  Multimarg ERP System", 9, pageHeight - 7.5);
+      pdfDoc.setFont("helvetica", "bold");
+      pdfDoc.setTextColor(30, 58, 138);
+      pdfDoc.text(`Page ${i} / ${totalPages}`, pageWidth - 9, pageHeight - 7.5, { align: "right" });
+    }
+
     if (isAutoPrint) {
-      const pdfBlob = await html2pdf().set(opt).from(clone).outputPdf('blob');
+      const pdfBlob = pdfDoc.output('blob');
       const url = window.URL.createObjectURL(new Blob([pdfBlob], { type: "application/pdf" }));
       printFromUrl(url);
     } else {
-      await html2pdf().set(opt).from(clone).save();
+      pdfDoc.save(finalFilename);
     }
   } catch (err) {
     console.error("PDF generation failed:", err);
@@ -131,15 +175,52 @@ export const getPdfBase64ViaPuppeteer = async ({
 
   const html2pdf = (await import("html2pdf.js")).default;
   const opt = {
-    margin: [2, 2, 2, 2],
+    margin: [14, 6, 14, 6],
     image: { type: "jpeg", quality: 0.98 },
     // Force windowWidth to 1200px to bypass mobile responsive media queries completely!
     html2canvas: { scale: 2, useCORS: true, logging: false, width: canvasWidth, windowWidth: 1200 },
     jsPDF: { unit: "mm", format: "a4", orientation: landscape ? "landscape" : "portrait" },
-    pagebreak: { mode: ['avoid-all'] }
+    pagebreak: { mode: ['css', 'legacy'], before: '.pdf-page-break' }
   };
-  const dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring');
-  return dataUri.split(';base64,')[1];
+  
+  const worker = html2pdf().set(opt).from(clone);
+  const pdfDoc = await worker.toPdf().get('pdf');
+  const totalPages = pdfDoc.internal.getNumberOfPages();
+  const pageWidth = pdfDoc.internal.pageSize.getWidth();
+  const pageHeight = pdfDoc.internal.pageSize.getHeight();
+
+  for (let i = 1; i <= totalPages; i++) {
+    pdfDoc.setPage(i);
+    // Page border
+    pdfDoc.setDrawColor(30, 58, 138);
+    pdfDoc.setLineWidth(0.5);
+    pdfDoc.rect(4, 4, pageWidth - 8, pageHeight - 8);
+    pdfDoc.setDrawColor(148, 163, 184);
+    pdfDoc.setLineWidth(0.2);
+    pdfDoc.rect(5.5, 5.5, pageWidth - 11, pageHeight - 11);
+    // Top header
+    pdfDoc.setFillColor(30, 58, 138);
+    pdfDoc.rect(5.5, 5.5, pageWidth - 11, 8, 'F');
+    pdfDoc.setFont("helvetica", "bold");
+    pdfDoc.setFontSize(7.5);
+    pdfDoc.setTextColor(255, 255, 255);
+    pdfDoc.text("MULTIMARG CARRIERS PVT. LTD.  |  STATEMENT OF ACCOUNT", 9, 10.5);
+    pdfDoc.setFontSize(6.5);
+    pdfDoc.text(`Page ${i} of ${totalPages}`, pageWidth - 9, 10.5, { align: "right" });
+    // Bottom footer
+    pdfDoc.setFillColor(241, 245, 249);
+    pdfDoc.rect(5.5, pageHeight - 11.5, pageWidth - 11, 6, 'F');
+    pdfDoc.setFontSize(5.5);
+    pdfDoc.setTextColor(100, 116, 139);
+    pdfDoc.setFont("helvetica", "normal");
+    pdfDoc.text("Computer Generated Statement  |  Multimarg ERP System", 9, pageHeight - 7.5);
+    pdfDoc.setFont("helvetica", "bold");
+    pdfDoc.setTextColor(30, 58, 138);
+    pdfDoc.text(`Page ${i} / ${totalPages}`, pageWidth - 9, pageHeight - 7.5, { align: "right" });
+  }
+
+  const pdfOutput = pdfDoc.output('datauristring');
+  return pdfOutput.split(';base64,')[1];
 };
 
 // --- Helper: Download a blob URL as a file ---

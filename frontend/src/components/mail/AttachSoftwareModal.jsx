@@ -110,6 +110,203 @@ const normalizePartyKey = (name) => {
 };
 
 // =========================================================================
+// MODULAR DOCUMENT HTML GENERATORS (A4 Sized: 780px wide)
+// =========================================================================
+
+const renderBillHtml = (billData) => {
+  const taxableAmt = Number(billData.taxableAmount || billData.amount || 0);
+  const gstAmt = Number(billData.gst || billData.gstAmount || 0);
+  const totalAmt = Number(billData.totalAmount || billData.amount || 0);
+  const amountInWords = numberToWordsIndian(totalAmt);
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 14px; background: #ffffff; width: 780px; box-sizing: border-box;">
+      <div style="border-bottom: 2px solid #0C4A6E; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <img src="/mc.png" alt="Logo" style="width: 70px; height: auto;" />
+        <div style="text-align: center; line-height: 1.2;">
+          <h1 style="margin: 0; color: #0C4A6E; font-size: 18px; font-weight: 900;">MULTIMARG CARRIERS PVT. LTD.</h1>
+          <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153</span>
+          <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">GSTIN: 05AANCM3054E1ZN | PAN: AANCM3054E | CIN: U60300UR2020PTC010749</span>
+        </div>
+        <div style="min-width: 70px;"></div>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0C4A6E; padding-bottom: 3px;">
+        <h2 style="margin: 0; font-size: 13.5px; font-weight: 900; color: #0C4A6E; text-transform: uppercase;">TAX INVOICE</h2>
+      </div>
+
+      <div style="border: 1.5px solid #000000; border-radius: 2px; overflow: hidden; margin-bottom: 10px;">
+        <div style="display: flex; border-bottom: 1.5px solid #000000;">
+          <div style="flex: 1.4; padding: 8px 10px; border-right: 1.5px solid #000000; background: #FAFBFD;">
+            <div style="font-size: 8.5px; font-weight: 800; color: #0C4A6E; text-transform: uppercase;">Bill To:</div>
+            <h3 style="margin: 0 0 3px 0; font-size: 13px; font-weight: 900; color: #0F172A;">${billData.client || billData.clientName || "Valued Client"}</h3>
+            <p style="margin: 0; font-size: 10px; color: #334155;">${billData.clientAddress || billData.address || "Industrial Area"}</p>
+            <div style="margin-top: 3px; font-size: 10px; font-weight: 700;">GSTIN: ${billData.clientGst || billData.gstin || "URP"}</div>
+          </div>
+          <div style="flex: 1; padding: 8px 10px; background: #F1F5F9; font-size: 10px; line-height: 1.5;">
+            <div>Invoice No: <strong style="color: #0C4A6E;">${billData.invoice || billData.billNo || billData.billNumber || "-"}</strong></div>
+            <div>Date: <strong>${formatDate(billData.invoice_date || billData.date || billData.createdAt)}</strong></div>
+            <div>Mode: <strong>${billData.mode || "ROAD"}</strong> &nbsp;|&nbsp; SAC: <strong>996511</strong></div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+          <thead>
+            <tr style="background: #FFFFFF; border-bottom: 1.5px solid #000000;">
+              <th style="padding: 5px; border-right: 1px solid #334155;">SI</th>
+              <th style="padding: 5px; border-right: 1px solid #334155; text-align: left;">LR / REF NO</th>
+              <th style="padding: 5px; border-right: 1px solid #334155; text-align: left;">ROUTE / DETAILS</th>
+              <th style="padding: 5px; border-right: 1px solid #334155; text-align: right;">TAXABLE (₹)</th>
+              <th style="padding: 5px; border-right: 1px solid #334155; text-align: right;">GST (₹)</th>
+              <th style="padding: 5px; text-align: right;">TOTAL (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: center;">1</td>
+              <td style="padding: 5px; border-right: 1px solid #cbd5e1; font-weight: 700;">#${billData.billNo || billData.billNumber || "INV"}</td>
+              <td style="padding: 5px; border-right: 1px solid #cbd5e1;">Freight & Transportation Services</td>
+              <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: right;">${formatCurrency(taxableAmt)}</td>
+              <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: right;">${formatCurrency(gstAmt)}</td>
+              <td style="padding: 5px; text-align: right; font-weight: 700;">${formatCurrency(totalAmt)}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background: #F1F5F9; font-weight: 800; border-top: 1.5px solid #000000;">
+              <td colspan="3" style="padding: 5px; text-align: right;">Grand Total:</td>
+              <td style="padding: 5px; text-align: right;">${formatCurrency(taxableAmt)}</td>
+              <td style="padding: 5px; text-align: right;">${formatCurrency(gstAmt)}</td>
+              <td style="padding: 5px; text-align: right; font-size: 11px; color: #0C4A6E;">${formatCurrency(totalAmt)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="border-top: 1.5px solid #000000; padding: 6px 10px; background: #FAFBFD; font-size: 9.5px;">
+          <div><strong>Amount In Words:</strong> <span style="color: #0C4A6E; font-weight: 700;">${amountInWords}</span></div>
+          <div style="margin-top: 3px;">Bank: <strong>HDFC Bank</strong> | A/c No: <strong>50200065432109</strong> | IFSC: <strong>HDFC0001234</strong> | Branch: <strong>Pantnagar</strong></div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; font-size: 9px;">
+        <div>Terms: Goods transported at owner's risk. Subject to Pantnagar jurisdiction.</div>
+        <div style="text-align: right;">
+          <div style="font-weight: 800; color: #0C4A6E;">For MULTIMARG CARRIERS PVT. LTD.</div>
+          <div style="margin-top: 16px; font-weight: 700;">Authorized Signatory</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const renderAwbHtml = (booking) => {
+  const awbNo = booking.consignment || booking.awb || booking.lrNo || booking.awbNo || booking.id || "LR";
+
+  return `
+    <div style="border: 2px solid #1e293b; padding: 12px; font-family: Arial, sans-serif; background: #ffffff; width: 780px; box-sizing: border-box;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px;">
+        <img src="/mc.png" alt="Logo" style="width: 65px; height: auto;" />
+        <div style="text-align: center; line-height: 1.2;">
+          <h1 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e3a8a;">MULTIMARG CARRIERS PVT. LTD.</h1>
+          <span style="font-size: 9px; color: #475569; display: block;">LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</span>
+          <span style="font-size: 9px; font-weight: 700; color: #0f172a; display: block;">GSTIN: 05AANCM3054E1ZN | PAN: AANCM3054E1ZN</span>
+        </div>
+        <div style="width: 65px;"></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 6px 0; border-bottom: 1.5px solid #64748b; font-size: 10px;">
+        <div>AWB / LR NO: <strong style="color: #ef4444; font-size: 11.5px;">#${awbNo}</strong></div>
+        <div>DATE: <strong>${formatDate(booking.dispatch_date || booking.date || booking.bookingDate || booking.createdAt)}</strong></div>
+        <div>MODE: <strong style="text-transform: uppercase;">${booking.mode || "ROAD"}</strong></div>
+      </div>
+
+      <div style="background: #1e293b; color: #ffffff; padding: 3px 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-top: 5px;">1. Party Details</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 9.5px; padding: 5px 0;">
+        <div>Consignor: <strong>${(booking.consignor || "N/A").toUpperCase()}</strong> (${booking.consignorGst || "URP"})</div>
+        <div>Consignee: <strong>${(booking.consignee || "N/A").toUpperCase()}</strong> (${booking.consigneeGst || "URP"})</div>
+      </div>
+
+      <div style="background: #1e293b; color: #ffffff; padding: 3px 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-top: 5px;">2. Shipment Information</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 9.5px; padding: 5px 0;">
+        <div>Route: <strong>${booking.from || "Pantnagar"} → ${booking.to || "Destination"}</strong></div>
+        <div>Packages: <strong>${booking.packages || 1} Pkgs</strong></div>
+        <div>Weight: <strong>${booking.weight || 0} KG</strong></div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #64748b; padding-top: 6px; margin-top: 6px; font-size: 10.5px;">
+        <div>Payment: <strong>${booking.paymentType || "TBB"}</strong></div>
+        <div>Total Freight: <strong style="color: #1e3a8a; font-size: 12.5px;">${formatCurrency(booking.grandTotal || booking.freight || 0)}</strong></div>
+      </div>
+    </div>
+  `;
+};
+
+const renderTripHtml = (trip) => {
+  const tripNo = trip.tripNo || trip.tripNumber || "TRIP";
+  const driver = trip.driverName || trip.driver || "N/A";
+  const vehicle = trip.vehicleNo || trip.vehicle || "N/A";
+  const hire = Number(trip.hireAmount || trip.freight || trip.totalAmount || 0);
+  const adv = Number(trip.advance || trip.advanceAmount || 0);
+  const diesel = Number(trip.diesel || trip.dieselAmount || 0);
+  const bal = Number(trip.balance || (hire - adv - diesel));
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 14px; background: #ffffff; width: 780px; box-sizing: border-box; border: 1.5px solid #1e3a8a;">
+      <div style="border-bottom: 2px solid #1e3a8a; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <img src="/mc.png" alt="Logo" style="width: 60px; height: auto;" />
+        <div style="text-align: center; line-height: 1.2;">
+          <h1 style="margin: 0; color: #1e3a8a; font-size: 17px; font-weight: 900;">MULTIMARG CARRIERS PVT. LTD.</h1>
+          <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR-263153</span>
+          <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">GSTIN: 05AANCM3054E1ZN | PAN: AANCM3054E</span>
+        </div>
+        <div style="text-align: right;">
+          <span style="background: #1e3a8a; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block;">TRIP SHEET / DISPATCH</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; font-size: 10px;">
+        <div><strong>Trip No:</strong> <span style="color: #1e3a8a; font-weight: 800;">#${tripNo}</span></div>
+        <div><strong>Date:</strong> <span>${formatDate(trip.date || trip.tripDate || trip.createdAt)}</span></div>
+        <div><strong>Status:</strong> <span style="font-weight: 800; color: #16a34a;">${String(trip.status || "DISPATCHED").toUpperCase()}</span></div>
+        <div><strong>Vehicle No:</strong> <span style="font-weight: 700;">${vehicle}</span></div>
+        <div><strong>Driver:</strong> <span>${driver} (${trip.driverPhone || trip.phone || "-"})</span></div>
+        <div><strong>Route:</strong> <span>${trip.from || "Origin"} → ${trip.to || "Destination"}</span></div>
+      </div>
+
+      <div style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; margin-bottom: 10px;">
+        <div style="background: #1e3a8a; color: #fff; font-size: 9.5px; font-weight: 800; padding: 4px 8px; text-transform: uppercase;">Financial & Settlement Breakdown</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 5px 8px; color: #475569;">Total Freight / Hire Amount:</td><td style="padding: 5px 8px; text-align: right; font-weight: 800; color: #0f172a;">${formatCurrency(hire)}</td></tr>
+            <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;"><td style="padding: 5px 8px; color: #475569;">Advance Paid (Driver / Vendor):</td><td style="padding: 5px 8px; text-align: right; font-weight: 700; color: #16a34a;">${formatCurrency(adv)}</td></tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 5px 8px; color: #475569;">Diesel / Fuel Expense:</td><td style="padding: 5px 8px; text-align: right; font-weight: 700; color: #d97706;">${formatCurrency(diesel)}</td></tr>
+            <tr style="background: #eff6ff; font-weight: 800;"><td style="padding: 6px 8px; color: #1e3a8a;">Balance Payable / Recoverable:</td><td style="padding: 6px 8px; text-align: right; font-size: 11px; color: #1e3a8a;">${formatCurrency(bal)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 14px; font-size: 9px; color: #64748b;">
+        <div>Verified dispatch record from Multimarg ERP system.</div>
+        <div style="text-align: right;">
+          <div style="font-weight: 800; color: #1e3a8a;">For MULTIMARG CARRIERS PVT. LTD.</div>
+          <div style="margin-top: 20px; font-weight: 700;">Authorized Signatory</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const renderNoticeHtml = (docType, message, partyName) => `
+  <div style="font-family: Arial, sans-serif; padding: 30px; background: #ffffff; width: 780px; box-sizing: border-box; text-align: center; border: 1.5px solid #1e3a8a; border-radius: 8px;">
+    <img src="/mc.png" alt="Logo" style="width: 60px; height: auto; margin-bottom: 12px;" />
+    <h2 style="margin: 0 0 6px 0; color: #1e3a8a; font-size: 16px; font-weight: 900;">MULTIMARG CARRIERS PVT. LTD.</h2>
+    <h3 style="margin: 0 0 16px 0; color: #475569; font-size: 13px; font-weight: 800;">${docType} — ${partyName}</h3>
+    <div style="background: #f8fafc; border: 1px dashed #94a3b8; padding: 24px; border-radius: 6px; color: #64748b; font-size: 12px; font-weight: 600;">
+      ${message}
+    </div>
+  </div>
+`;
+
+// =========================================================================
 // CRISP A4 COMPACT LAYOUT (PROPORTIONED PERFECTLY FOR STANDARD A4 SHEET)
 // =========================================================================
 
@@ -545,6 +742,8 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState("outstanding");
+  const [companyAttachType, setCompanyAttachType] = useState("ledger");
+  const [companyFilter, setCompanyFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [exportFormat, setExportFormat] = useState("pdf");
@@ -826,14 +1025,21 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
     return finalParties.sort((a, b) => b.netOutstandingDue - a.netOutstandingDue);
   }, [clients, openingBalances, bills, cashEntries, adjustments, bookings]);
 
+  // List of unique companies for the dropdown filter
+  const uniqueCompanies = useMemo(() => {
+    return partyMasterList.map(p => p.partyName).sort();
+  }, [partyMasterList]);
+
   // Filtered dataset for current active tab
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const cFilter = companyFilter.toLowerCase();
 
     if (activeTab === "outstanding") {
       return partyMasterList.filter(c => {
         if (statusFilter === "due_only" && c.netOutstandingDue <= 0.01) return false;
         if (statusFilter === "zero_only" && c.netOutstandingDue > 0.01) return false;
+        if (companyFilter !== "all" && c.partyName.toLowerCase() !== cFilter) return false;
         if (!q) return true;
         return (
           c.partyName.toLowerCase().includes(q) ||
@@ -847,37 +1053,41 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
         const bStatus = String(b.status || "").toLowerCase();
         if (statusFilter === "due_only" && (bStatus === "paid" || Number(b.pendingAmount || b.balance) === 0)) return false;
         if (statusFilter === "zero_only" && bStatus !== "paid") return false;
+        if (companyFilter !== "all" && String(b.client || b.clientName || "").toLowerCase() !== cFilter) return false;
         if (!q) return true;
         return (
           String(b.billNo || b.billNumber || "").toLowerCase().includes(q) ||
           String(b.client || b.clientName || "").toLowerCase().includes(q) ||
           String(b.clientAddress || "").toLowerCase().includes(q) ||
-          String(b.clientGst || b.gstin || "").toLowerCase().includes(q)
+          String(b.clientGst || b.gstin || "").toLowerCase().includes(q) ||
+          String(b.amount || "").toLowerCase().includes(q)
         );
       });
     } else if (activeTab === "bookings") {
-      return bookings.filter(lr => {
+      return bookings.filter(b => {
+        if (companyFilter !== "all" && String(b.consignor || b.consignee || "").toLowerCase() !== cFilter) return false;
         if (!q) return true;
         return (
-          String(lr.awbNo || lr.lrNo || lr.consignment || "").toLowerCase().includes(q) ||
-          String(lr.consignor || "").toLowerCase().includes(q) ||
-          String(lr.consignee || "").toLowerCase().includes(q) ||
-          String(lr.from || "").toLowerCase().includes(q) ||
-          String(lr.to || "").toLowerCase().includes(q)
+          String(b.awbNo || b.lrNo || b.consignment || "").toLowerCase().includes(q) ||
+          String(b.consignor || "").toLowerCase().includes(q) ||
+          String(b.consignee || "").toLowerCase().includes(q) ||
+          String(b.ewayBill || b.ewayBillNumber || "").toLowerCase().includes(q)
         );
       });
     } else if (activeTab === "trips") {
       return trips.filter(t => {
+        if (companyFilter !== "all" && String(t.client || t.clientName || t.vendor || "").toLowerCase() !== cFilter) return false;
         if (!q) return true;
         return (
           String(t.tripNo || t.tripNumber || "").toLowerCase().includes(q) ||
-          String(t.vehicleNo || "").toLowerCase().includes(q) ||
-          String(t.driverName || "").toLowerCase().includes(q)
+          String(t.vehicleNo || t.vehicle || "").toLowerCase().includes(q) ||
+          String(t.driverName || t.driver || "").toLowerCase().includes(q) ||
+          String(t.route || "").toLowerCase().includes(q)
         );
       });
     }
     return [];
-  }, [activeTab, search, partyMasterList, bills, bookings, trips, statusFilter]);
+  }, [activeTab, search, partyMasterList, bills, bookings, trips, statusFilter, companyFilter]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -917,42 +1127,85 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
       // 1. CSV EXPORT
       // ==========================================
       if (exportFormat === "csv") {
-        for (const party of selectedItems) {
+        for (const item of selectedItems) {
           if (activeTab === "outstanding") {
-            const ledgerEntries = [];
-            if ((party.openingDue || 0) > 0 || (party.priorBilled || 0) > 0) {
-              ledgerEntries.push({
-                date: party.openingDoc?.financialYear ? `OPENING (${party.openingDoc.financialYear})` : "FY OPENING",
-                type: "OPENING BALANCE",
-                ref: "OPENING-BAL",
-                particulars: "Prior financial year balance",
-                mode: "OPENING",
-                debit: party.openingDue,
-                credit: 0,
-                status: party.openingDue > 0 ? "UNPAID" : "SETTLED"
-              });
-            }
-            (party.bills || []).forEach(b => {
-              const bTotal = Number(b.amount || b.totalAmount || 0);
-              const bPaid = Number(b.paidAmount || 0);
-              ledgerEntries.push({
-                date: formatDate(b.date || b.billDate || b.createdAt),
-                type: "SALES INVOICE",
-                ref: b.billNo || b.billNumber || "INV",
-                particulars: "Freight & Transportation Services",
-                mode: "BILL",
-                debit: bTotal,
-                credit: bPaid,
-                status: bPaid >= bTotal ? "PAID" : "DUE"
-              });
-            });
+            const party = item;
+            const safeDocName = String(party.partyName).replace(/[^a-zA-Z0-9_-]/g, "_");
+            const dateStr = new Date().toISOString().slice(0, 10);
 
-            const headers = ["Date", "Type", "Ref / Bill No", "Particulars", "Debit (INR)", "Credit (INR)", "Status"];
-            const rows = ledgerEntries.map(e => [e.date, e.type, e.ref, e.particulars, e.debit || 0, e.credit || 0, e.status]);
-            const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))].join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const fileName = `Multimarg_Statement_${party.partyName.replace(/[^a-zA-Z0-9_-]/g, "_")}.csv`;
-            generatedFiles.push(new File([blob], fileName, { type: "text/csv" }));
+            if (companyAttachType === "bills") {
+              const partyBills = bills.filter(b => normalizePartyKey(b.client || b.clientName) === party.partyKey);
+              const headers = ["SL", "Bill No", "Date", "Particulars", "Taxable Amount", "GST Amount", "Total Amount", "Paid Amount", "Balance Due", "Status"];
+              const rows = partyBills.map((b, idx) => [
+                idx + 1,
+                b.billNo || b.billNumber || "-",
+                formatDate(b.date || b.billDate || b.createdAt),
+                "Freight Charges",
+                Number(b.taxableAmount || b.amount || 0),
+                Number(b.gst || b.gstAmount || 0),
+                Number(b.totalAmount || b.amount || 0),
+                Number(b.paidAmount || 0),
+                Number(b.balance || b.pendingAmount || 0),
+                b.status || "DUE"
+              ]);
+              const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))].join("\n");
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              generatedFiles.push(new File([blob], `TAX_INVOICES_${safeDocName}_${dateStr}.csv`, { type: "text/csv" }));
+            } else if (companyAttachType === "awb") {
+              const partyAwbs = bookings.filter(b => normalizePartyKey(b.consignor) === party.partyKey || normalizePartyKey(b.consignee) === party.partyKey);
+              const headers = ["SL", "AWB / LR No", "Date", "Consignor", "Consignee", "From", "To", "Packages", "Weight (KG)", "Freight (INR)", "Payment Type"];
+              const rows = partyAwbs.map((b, idx) => [
+                idx + 1,
+                b.consignment || b.awb || b.lrNo || b.awbNo || "-",
+                formatDate(b.dispatch_date || b.date || b.bookingDate || b.createdAt),
+                b.consignor || "-",
+                b.consignee || "-",
+                b.from || "-",
+                b.to || "-",
+                b.packages || 1,
+                b.weight || 0,
+                Number(b.grandTotal || b.freight || 0),
+                b.paymentType || "TBB"
+              ]);
+              const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))].join("\n");
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              generatedFiles.push(new File([blob], `CONSIGNMENTS_${safeDocName}_${dateStr}.csv`, { type: "text/csv" }));
+            } else {
+              // Default: Party Ledger CSV
+              const ledgerEntries = [];
+              if ((party.openingDue || 0) > 0 || (party.priorBilled || 0) > 0) {
+                ledgerEntries.push({
+                  date: party.openingDoc?.financialYear ? `OPENING (${party.openingDoc.financialYear})` : "FY OPENING",
+                  type: "OPENING BALANCE",
+                  ref: "OPENING-BAL",
+                  particulars: "Prior financial year balance",
+                  mode: "OPENING",
+                  debit: party.openingDue,
+                  credit: 0,
+                  status: party.openingDue > 0 ? "UNPAID" : "SETTLED"
+                });
+              }
+              (party.bills || []).forEach(b => {
+                const bTotal = Number(b.amount || b.totalAmount || 0);
+                const bPaid = Number(b.paidAmount || 0);
+                ledgerEntries.push({
+                  date: formatDate(b.date || b.billDate || b.createdAt),
+                  type: "SALES INVOICE",
+                  ref: b.billNo || b.billNumber || "INV",
+                  particulars: "Freight & Transportation Services",
+                  mode: "BILL",
+                  debit: bTotal,
+                  credit: bPaid,
+                  status: bPaid >= bTotal ? "PAID" : "DUE"
+                });
+              });
+
+              const headers = ["Date", "Type", "Ref / Bill No", "Particulars", "Debit (INR)", "Credit (INR)", "Status"];
+              const rows = ledgerEntries.map(e => [e.date, e.type, e.ref, e.particulars, e.debit || 0, e.credit || 0, e.status]);
+              const csvContent = [headers.join(","), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))].join("\n");
+              const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+              generatedFiles.push(new File([blob], `STATEMENT_${safeDocName}_${dateStr}.csv`, { type: "text/csv" }));
+            }
           }
         }
 
@@ -960,11 +1213,15 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
       // 2. EXCEL (.XLSX) EXPORT
       // ==========================================
       } else if (exportFormat === "excel") {
-        for (const party of selectedItems) {
+        const ExcelJS = (await import("exceljs/dist/exceljs.min.js")).default || (await import("exceljs")).default;
+
+        for (const item of selectedItems) {
           if (activeTab === "outstanding") {
-            const ExcelJS = (await import("exceljs/dist/exceljs.min.js")).default || (await import("exceljs")).default;
+            const party = item;
             const workbook = new ExcelJS.Workbook();
             workbook.creator = "Multimarg Carriers Pvt. Ltd.";
+            const safeDocName = String(party.partyName).replace(/[^a-zA-Z0-9_-]/g, "_");
+            const dateStr = new Date().toISOString().slice(0, 10);
 
             const ws = workbook.addWorksheet("Statement of Account");
             ws.mergeCells("A1", "H1");
@@ -977,7 +1234,7 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
 
             ws.mergeCells("A2", "H2");
             const h2 = ws.getCell("A2");
-            h2.value = `STATEMENT OF ACCOUNT & OUTSTANDING LEDGER - ${party.partyName.toUpperCase()}`;
+            h2.value = `STATEMENT OF ACCOUNT - ${party.partyName.toUpperCase()}`;
             h2.font = { size: 11, bold: true, color: { argb: "FF1E3A8A" } };
             h2.alignment = { horizontal: "center", vertical: "middle" };
             ws.getRow(2).height = 22;
@@ -1005,178 +1262,32 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
 
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            const fileName = `Multimarg_Statement_${party.partyName.replace(/[^a-zA-Z0-9_-]/g, "_")}.xlsx`;
+            const fileName = `Multimarg_Statement_${safeDocName}_${dateStr}.xlsx`;
             generatedFiles.push(new File([blob], fileName, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
           }
         }
 
       // ==========================================
-      // 3. OFFICIAL A4 PDF EXPORT (COMPACT A4 PORTRAIT)
+      // 3. OFFICIAL A4 PDF EXPORT
       // ==========================================
       } else {
         const { html2canvas, jsPDF } = await getPdfEngine();
 
-        for (const item of selectedItems) {
-          const todayFormatted = formatDate(new Date());
+        // Helper to append an array of HTML page strings to a jsPDF instance
+        const renderHtmlListToPdf = async (htmlPages) => {
+          const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4"
+          });
 
-          // --- A. COMPANY-WISE STATEMENT OF ACCOUNT (A4 PORTRAIT) ---
-          if (activeTab === "outstanding") {
-            const party = item;
-            const pagesHtml = buildPaginatedPartyLedgerPages(party, todayFormatted);
+          const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
+          const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+          const marginX = 5;
+          const marginY = 5;
+          const printableWidth = pageWidth - (marginX * 2); // 200mm
 
-            const pdf = new jsPDF({
-              orientation: "portrait",
-              unit: "mm",
-              format: "a4"
-            });
-
-            const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
-            const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
-            const marginX = 5;
-            const marginY = 5;
-            const printableWidth = pageWidth - (marginX * 2); // 200mm
-
-            for (let pIdx = 0; pIdx < pagesHtml.length; pIdx++) {
-              const container = document.createElement("div");
-              container.style.position = "fixed";
-              container.style.top = "0";
-              container.style.left = "0";
-              container.style.width = "780px";
-              container.style.zIndex = "99999999";
-              container.style.backgroundColor = "#ffffff";
-              container.style.color = "#000000";
-              container.style.opacity = "1";
-              container.style.pointerEvents = "none";
-              container.style.boxSizing = "border-box";
-              container.innerHTML = pagesHtml[pIdx];
-              document.body.appendChild(container);
-
-              // Wait for images
-              const images = Array.from(container.querySelectorAll("img"));
-              await Promise.all(images.map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise(res => {
-                  img.onload = res;
-                  img.onerror = res;
-                  setTimeout(res, 180);
-                });
-              }));
-
-              await new Promise(r => setTimeout(r, 60));
-
-              const pageCanvas = await html2canvas(container, {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                width: 780,
-                windowWidth: 1200
-              });
-
-              if (container && container.parentNode) {
-                container.parentNode.removeChild(container);
-              }
-
-              const imgData = pageCanvas.toDataURL("image/jpeg", 0.98);
-              const imgHeightMm = (pageCanvas.height * printableWidth) / pageCanvas.width;
-
-              if (pIdx > 0) {
-                pdf.addPage();
-              }
-              pdf.addImage(imgData, "JPEG", marginX, marginY, printableWidth, Math.min(imgHeightMm, pageHeight - (marginY * 2)));
-            }
-
-            const pdfBlob = pdf.output("blob");
-            const safeDocName = String(party.partyName).replace(/[^a-zA-Z0-9_-]/g, "_");
-            const cleanName = `STATEMENT_OF_ACCOUNT_${safeDocName}_${new Date().toISOString().slice(0, 10)}.pdf`;
-            generatedFiles.push(new File([pdfBlob], cleanName, { type: "application/pdf" }));
-
-          // --- B. TAX INVOICE (PORTRAIT A4) ---
-          } else if (activeTab === "bills") {
-            const billData = item;
-            const taxableAmt = Number(billData.taxableAmount || billData.amount || 0);
-            const gstAmt = Number(billData.gst || billData.gstAmount || 0);
-            const totalAmt = Number(billData.totalAmount || billData.amount || 0);
-            const amountInWords = numberToWordsIndian(totalAmt);
-
-            const contentHtml = `
-              <div style="font-family: Arial, sans-serif; color: #0f172a; padding: 14px; background: #ffffff; width: 780px; box-sizing: border-box;">
-                <div style="border-bottom: 2px solid #0C4A6E; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                  <img src="/mc.png" alt="Logo" style="width: 70px; height: auto;" />
-                  <div style="text-align: center; line-height: 1.2;">
-                    <h1 style="margin: 0; color: #0C4A6E; font-size: 18px; font-weight: 900;">MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">LIG-194, NEAR NATIONAL PUBLIC SCHOOL, AVAS VIKAS, RUDRAPUR-263153</span>
-                    <span style="color: #0288D1; font-size: 9.5px; font-weight: 700; display: block;">GSTIN: 05AANCM3054E1ZN | PAN: AANCM3054E | CIN: U60300UR2020PTC010749</span>
-                  </div>
-                  <div style="min-width: 70px;"></div>
-                </div>
-
-                <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0C4A6E; padding-bottom: 3px;">
-                  <h2 style="margin: 0; font-size: 13.5px; font-weight: 900; color: #0C4A6E; text-transform: uppercase;">TAX INVOICE</h2>
-                </div>
-
-                <div style="border: 1.5px solid #000000; border-radius: 2px; overflow: hidden; margin-bottom: 10px;">
-                  <div style="display: flex; border-bottom: 1.5px solid #000000;">
-                    <div style="flex: 1.4; padding: 8px 10px; border-right: 1.5px solid #000000; background: #FAFBFD;">
-                      <div style="font-size: 8.5px; font-weight: 800; color: #0C4A6E; text-transform: uppercase;">Bill To:</div>
-                      <h3 style="margin: 0 0 3px 0; font-size: 13px; font-weight: 900; color: #0F172A;">${billData.client || billData.clientName}</h3>
-                      <p style="margin: 0; font-size: 10px; color: #334155;">${billData.clientAddress || "Industrial Area, Pantnagar"}</p>
-                      <div style="margin-top: 3px; font-size: 10px; font-weight: 700;">GSTIN: ${billData.clientGst || billData.gstin || "URP"}</div>
-                    </div>
-                    <div style="flex: 1; padding: 8px 10px; background: #F1F5F9; font-size: 10px; line-height: 1.5;">
-                      <div>Invoice No: <strong style="color: #0C4A6E;">${billData.invoice || billData.billNo || billData.billNumber}</strong></div>
-                      <div>Date: <strong>${formatDate(billData.invoice_date || billData.date || billData.createdAt)}</strong></div>
-                      <div>Mode: <strong>${billData.mode || "ROAD"}</strong> &nbsp;|&nbsp; SAC: <strong>996511</strong></div>
-                    </div>
-                  </div>
-
-                  <table style="width: 100%; border-collapse: collapse; font-size: 9.5px;">
-                    <thead>
-                      <tr style="background: #FFFFFF; border-bottom: 1.5px solid #000000;">
-                        <th style="padding: 5px; border-right: 1px solid #334155;">SI</th>
-                        <th style="padding: 5px; border-right: 1px solid #334155; text-align: left;">LR / REF NO</th>
-                        <th style="padding: 5px; border-right: 1px solid #334155; text-align: left;">ROUTE</th>
-                        <th style="padding: 5px; border-right: 1px solid #334155; text-align: right;">TAXABLE (₹)</th>
-                        <th style="padding: 5px; border-right: 1px solid #334155; text-align: right;">GST (₹)</th>
-                        <th style="padding: 5px; text-align: right;">TOTAL (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: center;">1</td>
-                        <td style="padding: 5px; border-right: 1px solid #cbd5e1; font-weight: 700;">#${billData.billNo || billData.billNumber}</td>
-                        <td style="padding: 5px; border-right: 1px solid #cbd5e1;">Freight & Transportation Services</td>
-                        <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: right;">${formatCurrency(taxableAmt)}</td>
-                        <td style="padding: 5px; border-right: 1px solid #cbd5e1; text-align: right;">${formatCurrency(gstAmt)}</td>
-                        <td style="padding: 5px; text-align: right; font-weight: 700;">${formatCurrency(totalAmt)}</td>
-                      </tr>
-                    </tbody>
-                    <tfoot>
-                      <tr style="background: #F1F5F9; font-weight: 800; border-top: 1.5px solid #000000;">
-                        <td colspan="3" style="padding: 5px; text-align: right;">Grand Total:</td>
-                        <td style="padding: 5px; text-align: right;">${formatCurrency(taxableAmt)}</td>
-                        <td style="padding: 5px; text-align: right;">${formatCurrency(gstAmt)}</td>
-                        <td style="padding: 5px; text-align: right; font-size: 11px; color: #0C4A6E;">${formatCurrency(totalAmt)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-
-                  <div style="border-top: 1.5px solid #000000; padding: 6px 10px; background: #FAFBFD; font-size: 9.5px;">
-                    <div><strong>Amount In Words:</strong> <span style="color: #0C4A6E; font-weight: 700;">${amountInWords}</span></div>
-                    <div style="margin-top: 3px;">Bank: <strong>HDFC Bank</strong> | A/c No: <strong>50200065432109</strong> | IFSC: <strong>HDFC0001234</strong> | Branch: <strong>Pantnagar</strong></div>
-                  </div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; font-size: 9px;">
-                  <div>Terms: Goods transported at owner's risk. Subject to Pantnagar jurisdiction.</div>
-                  <div style="text-align: right;">
-                    <div style="font-weight: 800; color: #0C4A6E;">For MULTIMARG CARRIERS PVT. LTD.</div>
-                    <div style="margin-top: 16px; font-weight: 700;">Authorized Signatory</div>
-                  </div>
-                </div>
-              </div>
-            `;
-
+          for (let pIdx = 0; pIdx < htmlPages.length; pIdx++) {
             const container = document.createElement("div");
             container.style.position = "fixed";
             container.style.top = "0";
@@ -1187,100 +1298,131 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
             container.style.color = "#000000";
             container.style.opacity = "1";
             container.style.pointerEvents = "none";
-            container.innerHTML = contentHtml;
+            container.style.boxSizing = "border-box";
+            container.innerHTML = htmlPages[pIdx];
             document.body.appendChild(container);
+
+            const images = Array.from(container.querySelectorAll("img"));
+            await Promise.all(images.map(img => {
+              if (img.complete) return Promise.resolve();
+              return new Promise(res => {
+                img.onload = res;
+                img.onerror = res;
+                setTimeout(res, 180);
+              });
+            }));
 
             await new Promise(r => setTimeout(r, 60));
 
-            const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false, width: 780, windowWidth: 1200 });
-            if (container && container.parentNode) container.parentNode.removeChild(container);
+            const pageCanvas = await html2canvas(container, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              logging: false,
+              width: 780,
+              windowWidth: 1200
+            });
 
-            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const margin = 5;
-            const printableWidth = pageWidth - (margin * 2);
-            pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", margin, margin, printableWidth, (canvas.height * printableWidth) / canvas.width);
+            if (container && container.parentNode) {
+              container.parentNode.removeChild(container);
+            }
 
-            const pdfBlob = pdf.output("blob");
+            const imgData = pageCanvas.toDataURL("image/jpeg", 0.98);
+            const imgHeightMm = (pageCanvas.height * printableWidth) / pageCanvas.width;
+
+            if (pIdx > 0) {
+              pdf.addPage();
+            }
+            pdf.addImage(imgData, "JPEG", marginX, marginY, printableWidth, Math.min(imgHeightMm, pageHeight - (marginY * 2)));
+          }
+
+          return pdf.output("blob");
+        };
+
+        for (const item of selectedItems) {
+          const todayFormatted = formatDate(new Date());
+          const dateStr = new Date().toISOString().slice(0, 10);
+
+          // --- A. COMPANY-WISE ATTACHMENTS ---
+          if (activeTab === "outstanding") {
+            const party = item;
+            const safeDocName = String(party.partyName).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+            if (companyAttachType === "bills") {
+              const partyBills = bills.filter(b => normalizePartyKey(b.client || b.clientName) === party.partyKey);
+              const pagesHtml = partyBills.length > 0
+                ? partyBills.map(b => renderBillHtml(b))
+                : [renderNoticeHtml("Tax Invoices", "No tax invoices found for this company in current records.", party.partyName)];
+              const pdfBlob = await renderHtmlListToPdf(pagesHtml);
+              generatedFiles.push(new File([pdfBlob], `TAX_INVOICES_${safeDocName}_${dateStr}.pdf`, { type: "application/pdf" }));
+
+            } else if (companyAttachType === "awb") {
+              const partyAwbs = bookings.filter(b => normalizePartyKey(b.consignor) === party.partyKey || normalizePartyKey(b.consignee) === party.partyKey);
+              const pagesHtml = partyAwbs.length > 0
+                ? partyAwbs.map(b => renderAwbHtml(b))
+                : [renderNoticeHtml("LRs / Consignment Notes", "No consignment notes found for this company in current records.", party.partyName)];
+              const pdfBlob = await renderHtmlListToPdf(pagesHtml);
+              generatedFiles.push(new File([pdfBlob], `CONSIGNMENT_AWBS_${safeDocName}_${dateStr}.pdf`, { type: "application/pdf" }));
+
+            } else if (companyAttachType === "trips") {
+              const partyTrips = trips.filter(t => normalizePartyKey(t.client || t.clientName || t.vendor) === party.partyKey);
+              const pagesHtml = partyTrips.length > 0
+                ? partyTrips.map(t => renderTripHtml(t))
+                : [renderNoticeHtml("Trips & Dispatches", "No dispatch trip records found for this company in current records.", party.partyName)];
+              const pdfBlob = await renderHtmlListToPdf(pagesHtml);
+              generatedFiles.push(new File([pdfBlob], `TRIP_DISPATCHES_${safeDocName}_${dateStr}.pdf`, { type: "application/pdf" }));
+
+            } else if (companyAttachType === "all_detailed") {
+              const ledgerPages = buildPaginatedPartyLedgerPages(party, todayFormatted);
+              const partyBills = bills.filter(b => normalizePartyKey(b.client || b.clientName) === party.partyKey);
+              const billPages = partyBills.map(b => renderBillHtml(b));
+              const partyAwbs = bookings.filter(b => normalizePartyKey(b.consignor) === party.partyKey || normalizePartyKey(b.consignee) === party.partyKey);
+              const awbPages = partyAwbs.map(b => renderAwbHtml(b));
+              const partyTrips = trips.filter(t => normalizePartyKey(t.client || t.clientName || t.vendor) === party.partyKey);
+              const tripPages = partyTrips.map(t => renderTripHtml(t));
+
+              const allPages = [...ledgerPages, ...billPages, ...awbPages, ...tripPages];
+              const pdfBlob = await renderHtmlListToPdf(allPages);
+              generatedFiles.push(new File([pdfBlob], `ALL_DETAILED_RECORDS_${safeDocName}_${dateStr}.pdf`, { type: "application/pdf" }));
+
+            } else {
+              // Standard Party Ledger Statement
+              const pagesHtml = buildPaginatedPartyLedgerPages(party, todayFormatted);
+              const pdfBlob = await renderHtmlListToPdf(pagesHtml);
+              generatedFiles.push(new File([pdfBlob], `STATEMENT_OF_ACCOUNT_${safeDocName}_${dateStr}.pdf`, { type: "application/pdf" }));
+            }
+
+          // --- B. INDIVIDUAL TAX INVOICE TAB ---
+          } else if (activeTab === "bills") {
+            const billData = item;
+            const pagesHtml = [renderBillHtml(billData)];
+            const pdfBlob = await renderHtmlListToPdf(pagesHtml);
             const cleanName = `TAX_INVOICE_${billData.billNo || billData.billNumber || "Doc"}.pdf`;
             generatedFiles.push(new File([pdfBlob], cleanName, { type: "application/pdf" }));
 
-          // --- C. AWB / LR (PORTRAIT A4) ---
-          } else {
+          // --- C. INDIVIDUAL AWB / LR TAB ---
+          } else if (activeTab === "bookings") {
             const booking = item;
-            const awbNo = booking.consignment || booking.awb || booking.lrNo || booking.awbNo || booking.id;
-
-            const contentHtml = `
-              <div style="border: 2px solid #1e293b; padding: 12px; font-family: Arial, sans-serif; background: #ffffff; width: 780px; box-sizing: border-box;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px;">
-                  <img src="/mc.png" alt="Logo" style="width: 65px; height: auto;" />
-                  <div style="text-align: center; line-height: 1.2;">
-                    <h1 style="margin: 0; font-size: 16px; font-weight: 900; color: #1e3a8a;">MULTIMARG CARRIERS PVT. LTD.</h1>
-                    <span style="font-size: 9px; color: #475569; display: block;">LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</span>
-                    <span style="font-size: 9px; font-weight: 700; color: #0f172a; display: block;">GSTIN: 05AANCM3054E1ZN | PAN: AANCM3054E1ZN</span>
-                  </div>
-                  <div style="width: 65px;"></div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 6px 0; border-bottom: 1.5px solid #64748b; font-size: 10px;">
-                  <div>AWB NO: <strong style="color: #ef4444; font-size: 11.5px;">#${awbNo}</strong></div>
-                  <div>DATE: <strong>${formatDate(booking.dispatch_date || booking.date || booking.createdAt)}</strong></div>
-                  <div>MODE: <strong style="text-transform: uppercase;">${booking.mode || "ROAD"}</strong></div>
-                </div>
-
-                <div style="background: #1e293b; color: #ffffff; padding: 3px 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-top: 5px;">1. Party Details</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 9.5px; padding: 5px 0;">
-                  <div>Consignor: <strong>${(booking.consignor || "N/A").toUpperCase()}</strong> (${booking.consignorGst || "URP"})</div>
-                  <div>Consignee: <strong>${(booking.consignee || "N/A").toUpperCase()}</strong> (${booking.consigneeGst || "URP"})</div>
-                </div>
-
-                <div style="background: #1e293b; color: #ffffff; padding: 3px 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; margin-top: 5px;">2. Shipment Information</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 9.5px; padding: 5px 0;">
-                  <div>Route: <strong>${booking.from || "Pantnagar"} → ${booking.to || "Destination"}</strong></div>
-                  <div>Packages: <strong>${booking.packages || 1} Pkgs</strong></div>
-                  <div>Weight: <strong>${booking.weight || 0} KG</strong></div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #64748b; padding-top: 6px; margin-top: 6px; font-size: 10.5px;">
-                  <div>Payment: <strong>${booking.paymentType || "TBB"}</strong></div>
-                  <div>Total Freight: <strong style="color: #1e3a8a; font-size: 12.5px;">${formatCurrency(booking.grandTotal || booking.freight || 0)}</strong></div>
-                </div>
-              </div>
-            `;
-
-            const container = document.createElement("div");
-            container.style.position = "fixed";
-            container.style.top = "0";
-            container.style.left = "0";
-            container.style.width = "780px";
-            container.style.zIndex = "99999999";
-            container.style.backgroundColor = "#ffffff";
-            container.style.color = "#000000";
-            container.style.opacity = "1";
-            container.style.pointerEvents = "none";
-            container.innerHTML = contentHtml;
-            document.body.appendChild(container);
-
-            await new Promise(r => setTimeout(r, 60));
-
-            const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false, width: 780, windowWidth: 1200 });
-            if (container && container.parentNode) container.parentNode.removeChild(container);
-
-            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const margin = 5;
-            const printableWidth = pageWidth - (margin * 2);
-            pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", margin, margin, printableWidth, (canvas.height * printableWidth) / canvas.width);
-
-            const pdfBlob = pdf.output("blob");
+            const awbNo = booking.consignment || booking.awb || booking.lrNo || booking.awbNo || booking.id || "LR";
+            const pagesHtml = [renderAwbHtml(booking)];
+            const pdfBlob = await renderHtmlListToPdf(pagesHtml);
             const cleanName = `CONSIGNMENT_${awbNo}.pdf`;
+            generatedFiles.push(new File([pdfBlob], cleanName, { type: "application/pdf" }));
+
+          // --- D. INDIVIDUAL TRIPS TAB ---
+          } else if (activeTab === "trips") {
+            const trip = item;
+            const tripNo = trip.tripNo || trip.tripNumber || "TRIP";
+            const pagesHtml = [renderTripHtml(trip)];
+            const pdfBlob = await renderHtmlListToPdf(pagesHtml);
+            const cleanName = `TRIP_DISPATCH_${tripNo}.pdf`;
             generatedFiles.push(new File([pdfBlob], cleanName, { type: "application/pdf" }));
           }
         }
       }
 
       onAttachFiles(generatedFiles);
-      addToast(`Attached ${generatedFiles.length} official document(s) matching exact system format!`, "success");
+addToast(`Attached ${generatedFiles.length} official document(s) matching exact system format!`, "success");
       onClose();
     } catch (err) {
       console.error("Error generating software attachments:", err);
@@ -1297,50 +1439,113 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.65)",
-        backdropFilter: "blur(4px)",
+        backgroundColor: "rgba(15, 23, 42, 0.70)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
         zIndex: 9999999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "16px"
+        padding: "clamp(6px, 2vw, 16px)"
       }}
       onClick={onClose}
     >
+      <style>{`
+        .modal-container-responsive {
+          width: 100%;
+          max-width: 1080px;
+          max-height: 94vh;
+          display: flex;
+          flex-direction: column;
+          background-color: #ffffff;
+          border-radius: 16px;
+          box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+          border: 1px solid #cbd5e1;
+          animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalPop {
+          from { opacity: 0; transform: scale(0.97) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .attach-card-item {
+          transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+        }
+        .attach-card-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px -4px rgba(30, 58, 138, 0.10);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        @media (max-width: 640px) {
+          .modal-container-responsive {
+            max-height: 98vh;
+            border-radius: 12px;
+          }
+          .toolbar-row-responsive {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .cards-grid-responsive {
+            grid-template-columns: 1fr !important;
+          }
+          .footer-responsive {
+            flex-direction: column-reverse !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .footer-responsive > div {
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+        }
+      `}</style>
+
       <div
-        style={{
-          backgroundColor: "#ffffff",
-          borderRadius: "16px",
-          width: "100%",
-          maxWidth: "1020px",
-          maxHeight: "92vh",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 25px 60px rgba(0, 0, 0, 0.3)",
-          overflow: "hidden",
-          border: "1px solid #cbd5e1"
-        }}
+        className="modal-container-responsive"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
         <div
           style={{
-            backgroundColor: "#1e3a8a",
-            padding: "16px 20px",
+            background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)",
+            padding: "clamp(12px, 2vw, 16px) clamp(14px, 2.5vw, 22px)",
             color: "#ffffff",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
+            gap: "12px",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.12)"
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", padding: "8px", borderRadius: "10px" }}>
-              <Layers size={20} color="#ffffff" />
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+            <div style={{ backgroundColor: "rgba(255, 255, 255, 0.16)", padding: "7px", borderRadius: "10px", flexShrink: 0 }}>
+              <Layers size={18} color="#ffffff" />
             </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: "16px", fontWeight: "800" }}>Attach from Multimarg Software</h2>
-              <p style={{ margin: 0, fontSize: "12px", color: "#bfdbfe" }}>
-                Official Outstanding Ledgers, Tax Invoices, and AWBs matching the exact ERP records & calculations
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ margin: 0, fontSize: "clamp(14px, 2vw, 16.5px)", fontWeight: "800", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Attach from Multimarg Software
+              </h2>
+              <p style={{ margin: "2px 0 0", fontSize: "clamp(10.5px, 1.5vw, 12px)", color: "#bfdbfe", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Official Outstanding Ledgers, Tax Invoices, and AWBs matching exact ERP records
               </p>
             </div>
           </div>
@@ -1348,27 +1553,42 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
           <button
             type="button"
             onClick={onClose}
-            style={{ background: "none", border: "none", color: "#ffffff", cursor: "pointer", padding: "4px", display: "flex" }}
+            style={{
+              background: "rgba(255, 255, 255, 0.12)",
+              border: "none",
+              color: "#ffffff",
+              cursor: "pointer",
+              padding: "6px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              transition: "background 0.15s ease"
+            }}
+            title="Close modal"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Categories Tab Bar */}
         <div
+          className="no-scrollbar"
           style={{
             display: "flex",
             borderBottom: "1px solid #e2e8f0",
             backgroundColor: "#f8fafc",
-            padding: "0 16px",
-            overflowX: "auto"
+            padding: "0 clamp(8px, 2vw, 16px)",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            gap: "4px"
           }}
         >
           {[
-            { id: "outstanding", label: "Company-Wise Full Ledger & Statement", icon: Building2, count: partyMasterList.length },
+            { id: "outstanding", label: "Company Ledgers", icon: Building2, count: partyMasterList.length },
             { id: "bills", label: "Tax Invoices & Bills", icon: FileText, count: bills.length },
-            { id: "bookings", label: "LRs / Consignment Notes", icon: Package, count: bookings.length },
-            { id: "trips", label: "Trips & Dispatches", icon: Truck, count: trips.length }
+            { id: "bookings", label: "LRs / AWBs", icon: Package, count: bookings.length },
+            { id: "trips", label: "Trip MIS & Dispatches", icon: Truck, count: trips.length }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1376,29 +1596,37 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === "bills") setCompanyAttachType("bills");
+                  else if (tab.id === "bookings") setCompanyAttachType("awb");
+                  else if (tab.id === "trips") setCompanyAttachType("trips");
+                  else setCompanyAttachType("ledger");
+                  setSelectedIds(new Set());
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "7px",
-                  padding: "12px 18px",
+                  gap: "6px",
+                  padding: "10px 14px",
                   border: "none",
                   background: "none",
                   borderBottom: isActive ? "3px solid #2563eb" : "3px solid transparent",
-                  color: isActive ? "#2563eb" : "#64748b",
+                  color: isActive ? "#1d4ed8" : "#64748b",
                   fontWeight: isActive ? "800" : "600",
-                  fontSize: "13px",
+                  fontSize: "12.5px",
                   cursor: "pointer",
-                  whiteSpace: "nowrap"
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease"
                 }}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
                   <span
                     style={{
-                      fontSize: "10.5px",
-                      padding: "1px 7px",
+                      fontSize: "10px",
+                      padding: "1px 6px",
                       borderRadius: "10px",
                       backgroundColor: isActive ? "#dbeafe" : "#e2e8f0",
                       color: isActive ? "#1e40af" : "#475569",
@@ -1413,44 +1641,51 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
           })}
         </div>
 
-        {/* Controls Toolbar */}
         <div
           style={{
-            padding: "12px 20px",
+            padding: "clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)",
             backgroundColor: "#ffffff",
             borderBottom: "1px solid #f1f5f9",
             display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "12px"
+            flexDirection: "column",
+            gap: "10px"
           }}
         >
-          {/* Search Box & Quick Status Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: "260px" }}>
+          <div
+            className="toolbar-row-responsive"
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "8px",
+              width: "100%"
+            }}
+          >
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
                 backgroundColor: "#f8fafc",
-                border: "1px solid #cbd5e1",
+                border: "1.5px solid #cbd5e1",
                 borderRadius: "8px",
                 padding: "7px 12px",
-                flex: 1,
-                maxWidth: "380px"
+                flex: "1 1 220px",
+                minWidth: "180px",
+                boxSizing: "border-box",
+                height: "38px"
               }}
             >
-              <Search size={15} color="#64748b" />
+              <Search size={15} color="#64748b" style={{ flexShrink: 0 }} />
               <input
                 type="text"
                 placeholder={
                   activeTab === "outstanding"
-                    ? "Search company, address, GSTIN, code..."
+                    ? "Search company, GSTIN, address..."
                     : activeTab === "bills"
-                    ? "Search bill no, client, GSTIN, amount..."
+                    ? "Search bill no, client, amount..."
                     : activeTab === "bookings"
-                    ? "Search LR/AWB no, consignor, e-way bill..."
+                    ? "Search LR/AWB no, consignor, route..."
                     : "Search trip no, vehicle, driver..."
                 }
                 value={search}
@@ -1460,55 +1695,178 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                   outline: "none",
                   fontSize: "12.5px",
                   width: "100%",
-                  backgroundColor: "transparent"
+                  backgroundColor: "transparent",
+                  color: "#0f172a",
+                  fontWeight: "500"
                 }}
               />
               {search && (
-                <X size={14} color="#94a3b8" style={{ cursor: "pointer" }} onClick={() => setSearch("")} />
+                <X size={14} color="#94a3b8" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setSearch("")} />
               )}
             </div>
 
-            {/* Quick Status Toggle */}
-            {(activeTab === "outstanding" || activeTab === "bills") && (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto" }}>
+              <div
                 style={{
-                  padding: "7px 10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  backgroundColor: "#eff6ff",
+                  border: "1.5px solid #3b82f6",
+                  padding: "0 10px",
                   borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
+                  height: "38px",
+                  boxSizing: "border-box",
+                  flex: "1 1 auto"
+                }}
+              >
+                <Filter size={13} color="#1d4ed8" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#1e40af", whiteSpace: "nowrap" }}>Category:</span>
+                <select
+                  value={
+                    activeTab === "bills" ? "bills" :
+                    activeTab === "bookings" ? "awb" :
+                    activeTab === "trips" ? "trips" :
+                    companyAttachType === "all_detailed" ? "all_detailed" : "ledger"
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "bills") {
+                      setActiveTab("bills");
+                      setCompanyAttachType("bills");
+                    } else if (val === "awb") {
+                      setActiveTab("bookings");
+                      setCompanyAttachType("awb");
+                    } else if (val === "trips") {
+                      setActiveTab("trips");
+                      setCompanyAttachType("trips");
+                    } else if (val === "all_detailed") {
+                      setActiveTab("outstanding");
+                      setCompanyAttachType("all_detailed");
+                    } else {
+                      setActiveTab("outstanding");
+                      setCompanyAttachType("ledger");
+                    }
+                    setSelectedIds(new Set());
+                  }}
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "none",
+                    outline: "none",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    color: "#1e40af",
+                    cursor: "pointer",
+                    maxWidth: "200px"
+                  }}
+                >
+                  <option value="ledger">🏢 Company Statements</option>
+                  <option value="bills">📄 Tax Invoices (Bills)</option>
+                  <option value="awb">📦 LRs / AWBs Only</option>
+                  <option value="trips">🚚 Trip MIS Dispatches</option>
+                  <option value="all_detailed">📑 Master Combined PDF</option>
+                </select>
+              </div>
+
+              <select
+                value={companyFilter}
+                onChange={(e) => setCompanyFilter(e.target.value)}
+                style={{
+                  padding: "0 10px",
+                  borderRadius: "8px",
+                  border: "1.5px solid #cbd5e1",
                   backgroundColor: "#f8fafc",
                   fontSize: "12px",
                   fontWeight: "600",
                   color: "#334155",
                   outline: "none",
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  height: "38px",
+                  maxWidth: "220px",
+                  flex: "1 1 auto"
                 }}
               >
-                <option value="all">Show All Companies</option>
-                <option value="due_only">With Outstanding Balance Only</option>
-                <option value="zero_only">Settled / Zero Due Only</option>
+                <option value="all">Filter By Company (All)</option>
+                {uniqueCompanies.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
-            )}
+
+              {activeTab === "bills" ? (
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{
+                    padding: "0 10px",
+                    borderRadius: "8px",
+                    border: "1.5px solid #cbd5e1",
+                    backgroundColor: "#f8fafc",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "#334155",
+                    outline: "none",
+                    cursor: "pointer",
+                    height: "38px",
+                    flex: "1 1 auto"
+                  }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="due_only">Pending Balance Only</option>
+                  <option value="zero_only">Paid / Cleared Only</option>
+                </select>
+              ) : activeTab === "outstanding" ? (
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  style={{
+                    padding: "0 10px",
+                    borderRadius: "8px",
+                    border: "1.5px solid #cbd5e1",
+                    backgroundColor: "#f8fafc",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "#334155",
+                    outline: "none",
+                    cursor: "pointer",
+                    height: "38px",
+                    flex: "1 1 auto"
+                  }}
+                >
+                  <option value="all">All Companies</option>
+                  <option value="due_only">With Outstanding Due</option>
+                  <option value="zero_only">Settled / Zero Due</option>
+                </select>
+              ) : null}
+            </div>
           </div>
 
-          {/* Controls: Select All & Output Format */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "8px",
+              paddingTop: "6px",
+              borderTop: "1px dashed #f1f5f9"
+            }}
+          >
             <button
               type="button"
               onClick={toggleSelectAll}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "5px",
-                background: "none",
-                border: "1px solid #cbd5e1",
+                gap: "6px",
+                backgroundColor: selectedIds.size > 0 ? "#eff6ff" : "#f8fafc",
+                border: selectedIds.size > 0 ? "1.5px solid #2563eb" : "1.5px solid #cbd5e1",
                 padding: "6px 12px",
-                borderRadius: "6px",
+                borderRadius: "8px",
                 fontSize: "12px",
-                fontWeight: "600",
-                color: "#334155",
-                cursor: "pointer"
+                fontWeight: "700",
+                color: selectedIds.size > 0 ? "#1d4ed8" : "#334155",
+                cursor: "pointer",
+                transition: "all 0.15s ease"
               }}
             >
               {selectedIds.size === filteredData.length && filteredData.length > 0 ? (
@@ -1519,7 +1877,6 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
               <span>Select All ({filteredData.length})</span>
             </button>
 
-            {/* Document Format Switcher */}
             <div style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#f1f5f9", padding: "3px", borderRadius: "8px" }}>
               <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", padding: "0 6px" }}>Format:</span>
               {[
@@ -1542,7 +1899,8 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                     color: exportFormat === fmt.id ? "#ffffff" : "#475569",
                     fontSize: "11.5px",
                     fontWeight: exportFormat === fmt.id ? "700" : "600",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
                   }}
                 >
                   <fmt.icon size={13} />
@@ -1553,21 +1911,36 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
           </div>
         </div>
 
-        {/* Data Cards List */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", minHeight: "340px", backgroundColor: "#f8fafc" }}>
+        <div
+          className="custom-scrollbar"
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "clamp(10px, 1.8vw, 18px)",
+            minHeight: "320px",
+            backgroundColor: "#f8fafc"
+          }}
+        >
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", color: "#64748b", gap: "10px" }}>
-              <RefreshCw size={24} className="animate-spin" color="#2563eb" />
-              <span style={{ fontSize: "13px", fontWeight: "600" }}>Loading Multimarg master records...</span>
+              <RefreshCw size={26} className="animate-spin" color="#2563eb" />
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "#1e3a8a" }}>Loading Multimarg master records...</span>
             </div>
           ) : filteredData.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", color: "#94a3b8", gap: "8px" }}>
-              <Filter size={32} color="#cbd5e1" />
+              <Filter size={34} color="#cbd5e1" />
               <span style={{ fontSize: "14px", fontWeight: "700", color: "#64748b" }}>No matching records found</span>
-              <span style={{ fontSize: "12px", color: "#94a3b8" }}>Try adjusting your search or filters</span>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>Try adjusting your category, company, or search query</span>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(450px, 1fr))", gap: "12px" }}>
+            <div
+              className="cards-grid-responsive"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 420px), 1fr))",
+                gap: "12px"
+              }}
+            >
               {filteredData.map(item => {
                 const id = item.id || item._id || item.partyKey || item.billNo || item.awbNo || item.tripNo;
                 const isSelected = selectedIds.has(id);
@@ -1576,29 +1949,28 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                   <div
                     key={id}
                     onClick={() => toggleSelect(id)}
+                    className="attach-card-item"
                     style={{
-                      backgroundColor: "#ffffff",
-                      borderRadius: "10px",
+                      backgroundColor: isSelected ? "#f8faff" : "#ffffff",
+                      borderRadius: "12px",
                       border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
-                      padding: "14px 16px",
+                      padding: "clamp(12px, 1.6vw, 16px)",
                       cursor: "pointer",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
-                      gap: "8px",
-                      boxShadow: isSelected ? "0 4px 14px rgba(37, 99, 235, 0.12)" : "0 1px 4px rgba(0,0,0,0.03)",
-                      transition: "all 0.15s ease",
+                      gap: "10px",
+                      boxShadow: isSelected ? "0 6px 18px -2px rgba(37, 99, 235, 0.16)" : "0 1px 4px rgba(0,0,0,0.03)",
                       position: "relative"
                     }}
                   >
-                    {/* Header Row */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => {}}
-                          style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "#2563eb" }}
+                          style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "#2563eb", flexShrink: 0 }}
                         />
                         <span
                           style={{
@@ -1608,7 +1980,10 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                             backgroundColor: activeTab === "outstanding" ? "#f1f5f9" : "#eff6ff",
                             padding: "2px 8px",
                             borderRadius: "6px",
-                            border: activeTab === "outstanding" ? "1px solid #e2e8f0" : "1px solid #bfdbfe"
+                            border: activeTab === "outstanding" ? "1px solid #e2e8f0" : "1px solid #bfdbfe",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis"
                           }}
                         >
                           {activeTab === "outstanding" && item.partyName}
@@ -1619,19 +1994,20 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                       </div>
 
                       {activeTab !== "outstanding" ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#64748b", fontWeight: "600", flexShrink: 0 }}>
                           <Calendar size={12} />
                           <span>{formatDate(item.date || item.billDate || item.bookingDate || item.tripDate || item.createdAt)}</span>
                         </div>
                       ) : (
                         <span
                           style={{
-                            fontSize: "11px",
+                            fontSize: "10.5px",
                             fontWeight: "800",
-                            padding: "2px 9px",
-                            borderRadius: "10px",
+                            padding: "2px 8px",
+                            borderRadius: "8px",
                             backgroundColor: item.netOutstandingDue > 0.01 ? "#fee2e2" : "#dcfce7",
-                            color: item.netOutstandingDue > 0.01 ? "#b91c1c" : "#15803d"
+                            color: item.netOutstandingDue > 0.01 ? "#b91c1c" : "#15803d",
+                            flexShrink: 0
                           }}
                         >
                           {item.netOutstandingDue > 0.01 ? `${formatCurrency(item.netOutstandingDue)} DUE` : "CLEARED"}
@@ -1639,71 +2015,65 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
                       )}
                     </div>
 
-                    {/* Content Details */}
                     <div style={{ fontSize: "12px", color: "#334155", display: "flex", flexDirection: "column", gap: "5px" }}>
-                      {/* COMPANY-WISE VIEW */}
                       {activeTab === "outstanding" && (
                         <>
-                          <div style={{ color: "#475569", fontSize: "11.5px" }}>
+                          <div style={{ color: "#475569", fontSize: "11.5px", lineHeight: "1.3" }}>
                             <strong>Address:</strong> {item.address || "N/A"}
                           </div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", color: "#64748b", fontSize: "11px" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 12px", color: "#64748b", fontSize: "11px" }}>
                             <span>GSTIN: <strong style={{ color: "#1e3a8a" }}>{item.gst}</strong></span>
                             <span>Contact: <strong>{item.contact}</strong></span>
                             <span>Bills Count: <strong>{item.bills.length} Invoices</strong></span>
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", backgroundColor: "#f8fafc", padding: "6px 10px", borderRadius: "6px", fontSize: "11px" }}>
-                            <div>Total Invoiced: <strong>{formatCurrency(item.totalInvoiced)}</strong></div>
-                            <div>Total Paid: <strong style={{ color: "#16a34a" }}>{formatCurrency(item.totalPaid)}</strong></div>
-                            <div>TDS / Adjustments: <strong style={{ color: "#7c3aed" }}>{formatCurrency(item.totalTds + item.totalDebt)}</strong></div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", backgroundColor: isSelected ? "#eff6ff" : "#f8fafc", padding: "6px 8px", borderRadius: "6px", fontSize: "10.5px", border: "1px solid #e2e8f0" }}>
+                            <div>Total Invoiced: <strong style={{ display: "block", color: "#0f172a" }}>{formatCurrency(item.totalInvoiced)}</strong></div>
+                            <div>Total Paid: <strong style={{ display: "block", color: "#16a34a" }}>{formatCurrency(item.totalPaid)}</strong></div>
+                            <div>TDS / Adjustments: <strong style={{ display: "block", color: "#7c3aed" }}>{formatCurrency(item.totalTds + item.totalDebt)}</strong></div>
                           </div>
                         </>
                       )}
 
-                      {/* BILLS VIEW */}
                       {activeTab === "bills" && (
                         <>
-                          <div style={{ fontWeight: "700", color: "#0f172a" }}>Client: {item.client || item.clientName || "N/A"}</div>
+                          <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "12.5px" }}>Client: {item.client || item.clientName || "N/A"}</div>
                           <div style={{ color: "#64748b", fontSize: "11px" }}>
                             <div>Address: {item.clientAddress || "N/A"}</div>
-                            <div>GSTIN: <strong>{item.clientGst || item.gstin || "N/A"}</strong></div>
+                            <div>GSTIN: <strong style={{ color: "#1e3a8a" }}>{item.clientGst || item.gstin || "N/A"}</strong></div>
                           </div>
                         </>
                       )}
 
-                      {/* BOOKINGS / LR VIEW */}
                       {activeTab === "bookings" && (
                         <>
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: "700", color: "#0f172a" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: "700", color: "#0f172a", fontSize: "12px", flexWrap: "wrap" }}>
                             <span>{item.consignor || "N/A"}</span>
                             <span style={{ color: "#94a3b8" }}>→</span>
                             <span>{item.consignee || "N/A"}</span>
                           </div>
                           <div style={{ color: "#64748b", fontSize: "11px" }}>
                             <div>Route: <strong>{item.from || "N/A"} → {item.to || "N/A"}</strong></div>
-                            <div>Cargo: {item.packages || 1} pkgs ({item.weight || 0} KG) • Type: {item.paymentType || "TBB"}</div>
+                            <div>Cargo: {item.packages || 1} pkgs ({item.weight || 0} KG) • Mode: <strong>{item.mode || "ROAD"}</strong></div>
                           </div>
                         </>
                       )}
 
-                      {/* TRIPS VIEW */}
                       {activeTab === "trips" && (
                         <>
-                          <div style={{ fontWeight: "700", color: "#0f172a" }}>Vehicle: {item.vehicleNo || "N/A"} • Driver: {item.driverName || "N/A"}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: "11px" }}>
+                          <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "12.5px" }}>Vehicle: {item.vehicleNo || "N/A"} • Driver: {item.driverName || "N/A"}</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: "11px", flexWrap: "wrap", gap: "4px" }}>
                             <span>Route: {item.fromBranch || item.from} → {item.toBranch || item.to}</span>
-                            <span>Status: {item.status || "Dispatched"}</span>
+                            <span style={{ fontWeight: "700", color: "#16a34a" }}>Status: {item.status || "Dispatched"}</span>
                           </div>
                         </>
                       )}
                     </div>
 
-                    {/* Bottom Financial Row */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #f1f5f9", paddingTop: "6px", marginTop: "2px" }}>
                       <span style={{ fontSize: "11px", fontWeight: "600", color: "#64748b" }}>
                         {activeTab === "outstanding" ? "Current Net Balance Due" : activeTab === "bills" ? "Total Bill Value" : activeTab === "bookings" ? "Total Freight Charge" : "Dispatch Status"}
                       </span>
-                      <span style={{ fontSize: "13.5px", fontWeight: "800", color: activeTab === "outstanding" ? (item.netOutstandingDue > 0.01 ? "#b91c1c" : "#15803d") : "#1e3a8a" }}>
+                      <span style={{ fontSize: "13px", fontWeight: "800", color: activeTab === "outstanding" ? (item.netOutstandingDue > 0.01 ? "#b91c1c" : "#15803d") : "#1e3a8a" }}>
                         {activeTab === "outstanding" && formatCurrency(item.netOutstandingDue)}
                         {activeTab === "bills" && formatCurrency(item.totalAmount || item.amount || 0)}
                         {activeTab === "bookings" && formatCurrency(item.grandTotal || item.freight || 0)}
@@ -1717,38 +2087,40 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
           )}
         </div>
 
-        {/* Modal Footer */}
         <div
+          className="footer-responsive"
           style={{
-            padding: "14px 20px",
+            padding: "clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)",
             backgroundColor: "#ffffff",
             borderTop: "1px solid #e2e8f0",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
+            gap: "10px"
           }}
         >
-          <div style={{ fontSize: "13px", fontWeight: "700", color: "#475569" }}>
+          <div style={{ fontSize: "12.5px", fontWeight: "700", color: "#475569" }}>
             <span>Selected: </span>
-            <strong style={{ color: "#2563eb" }}>{selectedIds.size} record(s)</strong>
-            <span style={{ fontSize: "11.5px", color: "#64748b", marginLeft: "6px" }}>
-              (Exact Multimarg ERP official document format)
+            <strong style={{ color: "#2563eb", fontSize: "13.5px" }}>{selectedIds.size} record(s)</strong>
+            <span style={{ fontSize: "11px", color: "#64748b", marginLeft: "6px" }}>
+              ({exportFormat.toUpperCase()} format)
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
               onClick={onClose}
               style={{
                 padding: "8px 16px",
                 borderRadius: "8px",
-                border: "1px solid #cbd5e1",
+                border: "1.5px solid #cbd5e1",
                 backgroundColor: "#ffffff",
-                fontSize: "13px",
-                fontWeight: "600",
+                fontSize: "12.5px",
+                fontWeight: "700",
                 color: "#475569",
-                cursor: "pointer"
+                cursor: "pointer",
+                transition: "all 0.15s ease"
               }}
             >
               Cancel
@@ -1759,22 +2131,32 @@ const AttachSoftwareModal = ({ isOpen, onClose, onAttachFiles }) => {
               disabled={selectedIds.size === 0 || generating}
               onClick={handleAttachSelected}
               style={{
-                padding: "8px 22px",
+                padding: "8px 20px",
                 borderRadius: "8px",
                 border: "none",
-                backgroundColor: selectedIds.size === 0 || generating ? "#94a3b8" : "#2563eb",
+                background: selectedIds.size === 0 || generating ? "#94a3b8" : "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)",
                 color: "#ffffff",
-                fontSize: "13px",
-                fontWeight: "700",
+                fontSize: "12.5px",
+                fontWeight: "800",
                 cursor: selectedIds.size === 0 || generating ? "not-allowed" : "pointer",
+                boxShadow: selectedIds.size === 0 || generating ? "none" : "0 4px 14px rgba(37, 99, 235, 0.35)",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                boxShadow: selectedIds.size > 0 ? "0 2px 8px rgba(37, 99, 235, 0.3)" : "none"
+                transition: "all 0.15s ease"
               }}
             >
-              {generating ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
-              <span>{generating ? "Generating Official Documents..." : `Attach Selected (${selectedIds.size})`}</span>
+              {generating ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Generating {exportFormat.toUpperCase()}...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  <span>Attach Selected ({selectedIds.size})</span>
+                </>
+              )}
             </button>
           </div>
         </div>
