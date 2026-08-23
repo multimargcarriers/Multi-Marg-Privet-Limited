@@ -69,41 +69,17 @@ app.use(
   }),
 );
 
-// CORS
+// CORS Configuration for Production & Localhost
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      const allowed = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:3000",
-        "http://localhost:5000",
-        "https://app.multimarg.com",
-        "https://indocreo.multimarg.com",
-        "https://multimarg.com",
-        "https://www.multimarg.com",
-        "https://soft.multimarg.com",
-        "https://soft.multimargcarriers.co.in",
-        process.env.FRONTEND_ORIGIN,
-        process.env.PUBLIC_FRONTEND_ORIGIN
-      ].filter(Boolean);
-
-      if (
-        allowed.includes(origin) ||
-        origin.endsWith(".multimarg.com") ||
-        origin.endsWith(".multimargcarriers.co.in") ||
-        origin.includes("localhost") ||
-        origin.includes("127.0.0.1")
-      ) {
-        return callback(null, true);
-      }
       return callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
   }),
 );
 

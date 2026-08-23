@@ -1,0 +1,19 @@
+# ═════════════════════════════════════════════════════════════════
+# HOSTINGER NODE.JS / APACHE / LITESPEED CONFIGURATION
+# ═════════════════════════════════════════════════════════════════
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Proxy pass to local Node.js port if running independently
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ http://127.0.0.1:5000/$1 [P,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+  Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+  Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+</IfModule>
