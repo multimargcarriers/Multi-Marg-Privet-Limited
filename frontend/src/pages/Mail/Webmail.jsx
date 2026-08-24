@@ -290,6 +290,21 @@ const Webmail = () => {
 
   const initialSender = getInitialSenderInfo();
 
+  // Helper to load persisted email draft from localStorage
+  const loadSavedDraft = () => {
+    try {
+      const saved = localStorage.getItem("mm_webmail_draft");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load draft:", e);
+    }
+    return null;
+  };
+
+  const savedDraft = loadSavedDraft();
+
   // State: Compose Floating Modal
   const composeDragControls = useDragControls();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -297,15 +312,15 @@ const Webmail = () => {
   const [isComposeExpanded, setIsComposeExpanded] = useState(false);
   const [isComposeMaximized, setIsComposeMaximized] = useState(false);
   const [composeData, setComposeData] = useState({
-    fromAccountId: "",
-    to: "",
-    cc: "",
-    bcc: "",
-    subject: "",
-    body: "",
+    fromAccountId: savedDraft?.fromAccountId || "",
+    to: savedDraft?.to || "",
+    cc: savedDraft?.cc || "",
+    bcc: savedDraft?.bcc || "",
+    subject: savedDraft?.subject || "",
+    body: savedDraft?.body || "",
     attachments: [],
-    inReplyTo: "",
-    references: "",
+    inReplyTo: savedDraft?.inReplyTo || "",
+    references: savedDraft?.references || "",
     senderName: initialSender.senderName,
     senderDesignation: initialSender.senderDesignation,
     senderPhone: initialSender.senderPhone
@@ -330,6 +345,25 @@ const Webmail = () => {
     }
   }, [user]);
 
+  // Auto-save draft changes to localStorage
+  useEffect(() => {
+    const isNotEmpty = composeData.to || composeData.cc || composeData.bcc || composeData.subject || composeData.body;
+    if (isNotEmpty) {
+      localStorage.setItem("mm_webmail_draft", JSON.stringify({
+        fromAccountId: composeData.fromAccountId,
+        to: composeData.to,
+        cc: composeData.cc,
+        bcc: composeData.bcc,
+        subject: composeData.subject,
+        body: composeData.body,
+        inReplyTo: composeData.inReplyTo,
+        references: composeData.references
+      }));
+    } else {
+      localStorage.removeItem("mm_webmail_draft");
+    }
+  }, [composeData.fromAccountId, composeData.to, composeData.cc, composeData.bcc, composeData.subject, composeData.body, composeData.inReplyTo, composeData.references]);
+
   // Persist custom sender info changes
   const updateSenderInfo = (field, value) => {
     setComposeData(prev => {
@@ -343,6 +377,35 @@ const Webmail = () => {
       } catch { }
       return next;
     });
+  };
+
+  const handleDiscardDraft = () => {
+    const isNotEmpty = composeData.to || composeData.cc || composeData.bcc || composeData.subject || composeData.body;
+    if (!isNotEmpty) {
+      setIsComposeOpen(false);
+      setIsComposeMinimized(false);
+      return;
+    }
+    if (window.confirm("Are you sure you want to discard this draft? All typed content will be lost.")) {
+      localStorage.removeItem("mm_webmail_draft");
+      setComposeData({
+        fromAccountId: "",
+        to: "",
+        cc: "",
+        bcc: "",
+        subject: "",
+        body: "",
+        attachments: [],
+        inReplyTo: "",
+        references: "",
+        senderName: initialSender.senderName,
+        senderDesignation: initialSender.senderDesignation,
+        senderPhone: initialSender.senderPhone
+      });
+      setIsComposeOpen(false);
+      setIsComposeMinimized(false);
+      addToast("Draft discarded", "info");
+    }
   };
 
   // State: Collapsible Quick Reply (Hidden until user clicks Reply on Mobile)
@@ -774,6 +837,7 @@ const Webmail = () => {
 
         setIsComposeOpen(false);
         setIsComposeMinimized(false);
+        localStorage.removeItem("mm_webmail_draft");
         setComposeData({
           to: "",
           cc: "",
@@ -3244,14 +3308,21 @@ const Webmail = () => {
                     />
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsComposeOpen(false)}
-                    title="Discard Draft"
-                    style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {(composeData.to || composeData.cc || composeData.bcc || composeData.subject || composeData.body) && (
+                      <span style={{ fontSize: "11.5px", color: "#16a34a", display: "flex", alignItems: "center", gap: "4px", fontWeight: "600" }}>
+                        <Check size={14} /> Draft saved
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleDiscardDraft}
+                      title="Discard Draft"
+                      style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "6px", display: "flex", alignItems: "center", gap: "4px" }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </form>
             )}

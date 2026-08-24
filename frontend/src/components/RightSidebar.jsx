@@ -1,19 +1,48 @@
 import React, { useContext, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Plus, Receipt, Upload, IndianRupee, FileText, MapPin, Users, Briefcase, Building2, TrendingUp, Activity } from 'lucide-react';
+import { Plus, Receipt, Upload, IndianRupee, FileText, MapPin, Users, Briefcase, Building2, TrendingUp, Activity, Mail, Truck, ClipboardList, Scale } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
-const RightSidebar = () => {
+const RightSidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const { hasPermission } = useContext(AuthContext);
   const [isHovered, setIsHovered] = useState(false);
+  const [wasSidebarOpen, setWasSidebarOpen] = useState(false);
 
   const quickLinks = [
+    {
+      name: "Multimarg Mailbox",
+      path: "/mail",
+      icon: <Mail size={18} />,
+      permission: "mail",
+      color: "#2563eb"
+    },
     {
       name: "New Booking (LR)",
       path: "/bookings/create",
       icon: <Plus size={18} />,
       permission: "bookings",
       color: "var(--primary-color)"
+    },
+    {
+      name: "All AWB Bookings",
+      path: "/bookings",
+      icon: <ClipboardList size={18} />,
+      permission: "bookings",
+      color: "#6366F1"
+    },
+    {
+      name: "Vehicle Trip MIS",
+      path: "/trip-mis",
+      icon: <FileText size={18} />,
+      permission: "tripmis",
+      color: "#8B5CF6"
+    },
+    {
+      name: "Vendor Vehicle MIS",
+      path: "/vendor-mis",
+      icon: <Truck size={18} />,
+      permission: "vendormis",
+      color: "#F97316"
     },
     {
       name: "Generate Bill",
@@ -79,6 +108,13 @@ const RightSidebar = () => {
       color: "#3B82F6" // Blue
     },
     {
+      name: "Balances Summary",
+      path: "/outstanding/final-sheet",
+      icon: <Scale size={18} />,
+      permission: "accounts",
+      color: "#10B981"
+    },
+    {
       name: "Deep Analytics",
       path: "/reports/analytics",
       icon: <TrendingUp size={18} />,
@@ -96,14 +132,30 @@ const RightSidebar = () => {
 
   const visibleLinks = quickLinks.filter(link => !link.permission || hasPermission(link.permission));
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (window.innerWidth > 1024 && isSidebarOpen && setIsSidebarOpen) {
+      setWasSidebarOpen(true);
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (window.innerWidth > 1024 && wasSidebarOpen && setIsSidebarOpen) {
+      setIsSidebarOpen(true);
+      setWasSidebarOpen(false);
+    }
+  };
+
   if (visibleLinks.length === 0) return null;
 
   return (
     <aside 
       className="right-sidebar glass-panel" 
       style={{ height: 'calc(100vh - var(--topbar-height))', overflowY: 'hidden', overflowX: 'hidden' }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="right-sidebar-header" style={{ padding: isHovered ? '1rem' : '1rem 0', borderBottom: '1px solid var(--border-color)', textAlign: isHovered ? 'left' : 'center', transition: 'padding var(--transition)' }}>
         {isHovered ? (

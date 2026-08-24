@@ -98,7 +98,7 @@ const DashboardLayout = () => {
           )}
         </main>
       </div>
-      {hasSidebar && hasRightSidebar && <RightSidebar />}
+      {hasSidebar && hasRightSidebar && <RightSidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />}
       <CommandPalette isOpen={isCommandPaletteOpen} setIsOpen={setIsCommandPaletteOpen} />
 
       {/* Floating Mailbox Quick Action Button (Controlled via Profile -> Security, hidden during print) */}

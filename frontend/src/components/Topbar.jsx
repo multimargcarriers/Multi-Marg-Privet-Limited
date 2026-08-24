@@ -1,5 +1,5 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { Bell, Menu, Plus, Minus, AlertCircle, Search, User, Settings, LogOut, Type, Clock } from 'lucide-react';
+import { Bell, Menu, Plus, Minus, AlertCircle, Search, User, Settings, LogOut, Type, Clock, Mail, Truck, ClipboardList, FileText, Shield } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { SettingsContext } from '../context/SettingsContext';
@@ -179,14 +179,14 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }} className="topbar-right">
         {/* Quick Action Buttons */}
         <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingBottom: '2px' }} className="hide-on-mobile">
+          {hasPermission('mail') && (
+            <NavLink to="/mail" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Mail size={14} /> Mailbox
+            </NavLink>
+          )}
           {hasPermission('bookings') && (
             <NavLink to="/bookings/create" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary-color)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.1)', whiteSpace: 'nowrap' }}>
               <Plus size={14} /> New LR
-            </NavLink>
-          )}
-          {hasPermission('trips') && (
-            <NavLink to="/trips" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
-              <Plus size={14} /> Add Trip
             </NavLink>
           )}
           {(hasPermission('billing') || hasPermission('all_bills')) && (
@@ -194,19 +194,24 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
               <Plus size={14} /> New Bill
             </NavLink>
           )}
-          {hasPermission('pod') && (
-            <NavLink to="/pod" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
-              <Plus size={14} /> POD Upload
+          {hasPermission('trips') && (
+            <NavLink to="/trips" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Truck size={14} /> Ship MIS
             </NavLink>
           )}
-          {hasPermission('upload_box') && (
-            <NavLink to="/upload-box" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
-              <Plus size={14} /> Box Upload
+          {hasPermission('vendormis') && (
+            <NavLink to="/vendor-mis" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Truck size={14} /> Vendor MIS
             </NavLink>
           )}
-          {(!user || hasPermission('tracking')) && (
-            <NavLink to="/tracking" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
-              <Search size={14} /> Tracking
+          {hasPermission('tripmis') && (
+            <NavLink to="/trip-mis" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <FileText size={14} /> Vehicle MIS
+            </NavLink>
+          )}
+          {hasPermission('superadmin') && (
+            <NavLink to="/iam" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255, 255, 255, 0.1)', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
+              <Shield size={14} /> IAM
             </NavLink>
           )}
         </div>

@@ -411,6 +411,9 @@ const Trips = () => {
       trainChWeight: calculateTotalChWeight(filteredTrips, ['train', 'rail']),
       flightChWeight: calculateTotalChWeight(filteredTrips, ['air', 'flight']),
       roadChWeight: calculateTotalChWeight(filteredTrips, ['road']),
+      roadTripsCount: filteredTrips.filter(t => (t.mode || "").toLowerCase() === 'road').length,
+      trainTripsCount: filteredTrips.filter(t => ['train', 'rail'].includes((t.mode || "").toLowerCase())).length,
+      flightTripsCount: filteredTrips.filter(t => ['air', 'flight'].includes((t.mode || "").toLowerCase())).length,
     };
   }, [filteredTrips, activeFilteredTrips]);
 
@@ -674,7 +677,12 @@ const Trips = () => {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }} className="no-print">
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #3b82f6" }}>
             <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>Total Trip</div>
-            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827" }}>{filteredTrips.length}</div>
+            <div style={{ fontSize: "1.875rem", fontWeight: "700", color: "#111827", display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
+              <span>{filteredTrips.length}</span>
+              <span style={{ fontSize: "0.95rem", color: "#4b5563", fontWeight: "600" }}>
+                ( <span style={{ color: "#f97316" }}>R:</span> {tripsStats.roadTripsCount} | <span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainTripsCount} | <span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightTripsCount} )
+              </span>
+            </div>
           </div>
 
           <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #f59e0b" }}>
