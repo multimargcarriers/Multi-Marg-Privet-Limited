@@ -119,6 +119,55 @@ app.use(compression());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// ============================================================
+// Global String Casing Normalization Middleware
+// ============================================================
+const formatValue = (key, val) => {
+  if (typeof val !== "string") return val;
+  const k = String(key || "").toLowerCase().trim();
+  const v = val.trim();
+
+  // 1. Skip system config, permissions, roles, URLs, signatures, credentials, and user account names
+  const keysToSkip = ["permission", "permissions", "role", "roles", "scope", "scopes", "password", "token", "secret", "hash", "photo", "avatar", "banner", "signature", "stamp", "url", "username", "createdBy", "creatorName", "name"];
+  if (keysToSkip.some(skipKey => k.includes(skipKey)) || v.startsWith("data:image") || v.startsWith("data:application") || (v.startsWith("http") && v.includes("res.cloudinary.com")) || v.includes("/uploads/")) {
+    return val;
+  }
+
+  // 2. Store all other text data in lowercase (small case) in the Database
+  return v.toLowerCase();
+};
+
+const formatBody = (obj) => {
+  if (!obj || typeof obj !== "object") return;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const val = obj[key];
+      if (typeof val === "string") {
+        obj[key] = formatValue(key, val);
+      } else if (Array.isArray(val)) {
+        val.forEach(item => {
+          if (item && typeof item === "object") {
+            formatBody(item);
+          }
+        });
+      } else if (typeof val === "object") {
+        formatBody(val);
+      }
+    }
+  }
+};
+
+app.use((req, res, next) => {
+  if (req.body && (req.method === "POST" || req.method === "PUT" || req.method === "PATCH")) {
+    // Skip formatting for raw file buffers or other non-JSON POST requests
+    const contentType = String(req.headers["content-type"] || "").toLowerCase();
+    if (contentType.includes("application/json") || contentType.includes("application/x-www-form-urlencoded")) {
+      formatBody(req.body);
+    }
+  }
+  next();
+});
+
 // Data Sanitization against NoSQL query injection
 // app.use(mongoSanitize()); // Disabled: Incompatible with Express 5 (req.query is read-only)
 

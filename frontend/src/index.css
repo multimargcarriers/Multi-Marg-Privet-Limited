@@ -4434,3 +4434,54 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.2;
   }
 }
+
+/* Global Text Casing Overrides for Display & Inputs */
+
+/* 1. Default to ALL CAPS for data text display and text inputs */
+.table td:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]):not([id*="email" i]):not([id*="website" i]):not([id*="address" i]), 
+.booking-card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
+.trip-card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
+.card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
+.details-grid span:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
+.stats-panel span,
+.lr-row span,
+input[type="text"]:not([name*="email"]):not([name*="website"]):not([name*="address"]):not([id*="email"]):not([id*="website"]):not([id*="address"]),
+input[type="search"],
+textarea:not([name*="address"]):not([id*="address"]) {
+  text-transform: uppercase;
+}
+
+/* 2. Lowercase override for Email IDs and Website/URLs */
+a[href^="mailto:"],
+a[href^="http://"],
+a[href^="https://"],
+.email-cell,
+.website-cell,
+.email-text,
+.website-text,
+[class*="email" i],
+[class*="website" i],
+[class*="url" i],
+[id*="email" i],
+[id*="website" i],
+input[name*="email"], 
+input[id*="email"], 
+input[type="email"],
+input[name*="website"], 
+input[id*="website"], 
+input[name*="url"], 
+input[id*="url"] {
+  text-transform: lowercase !important;
+}
+
+/* 3. Title Case override (1st alphabet caps) for addresses */
+.address-cell,
+.address-text,
+[class*="address" i],
+[id*="address" i],
+input[name*="address"], 
+input[id*="address"], 
+textarea[name*="address"], 
+textarea[id*="address"] {
+  text-transform: capitalize !important;
+}
