@@ -108,8 +108,87 @@ exports.delete_id_4 = async (req, res) => {
   const { id } = req.params;
   const doc = await db.collection("tracking").doc(id).get();
   if (!doc.exists) return error(res, "Tracking entry not found", 404);
+  
+  const entry = doc.data();
+  const awbNo = String(entry.awb || '').trim();
+
   await db.collection("tracking").doc(id).delete();
-  await delCache(CACHE_KEY);
+
+  try {
+    if (awbNo && db.mongoDb) {
+      const awbRegex = new RegExp(`^${awbNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      
+      const existingBooking = await db.mongoDb.collection("bookings").findOne({
+        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+      });
+
+      if (existingBooking) {
+        const snapshot = await db.collection("tracking").where("awb", "==", awbNo).get();
+        const checkpoints = [];
+        snapshot.forEach(doc => {
+          if (doc.id !== id) {
+            checkpoints.push(doc.data());
+          }
+        });
+
+        const podDoc = await db.mongoDb.collection("pod").findOne({
+          $or: [
+            { lrNo: awbRegex },
+            { bookingId: existingBooking.id || existingBooking._id.toString() }
+          ]
+        });
+
+        let newStatus = "Picked Up";
+        let currentLocation = null;
+
+        if (podDoc) {
+          newStatus = "Delivered";
+        } else if (checkpoints.length > 0) {
+          const parseDateSecurely = (dateVal) => {
+            if (!dateVal) return 0;
+            const parsed = new Date(dateVal);
+            return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+          };
+          checkpoints.sort((a, b) => parseDateSecurely(b.date || b.updatedAt || b.createdAt) - parseDateSecurely(a.date || a.updatedAt || a.createdAt));
+          
+          const latestCheckpoint = checkpoints[0];
+          newStatus = latestCheckpoint.status || "Picked Up";
+          currentLocation = latestCheckpoint.location || null;
+        }
+
+        const bookingUpdate = {
+          transitStatus: newStatus,
+          trackingStatus: newStatus,
+          status: (existingBooking.status === "Billed" || existingBooking.status === "Unbilled") ? existingBooking.status : newStatus,
+          currentLocation: currentLocation,
+          podUploaded: Boolean(podDoc),
+          podUrl: podDoc ? (podDoc.podUrl || podDoc.cloudinaryUrl) : null,
+          updatedAt: new Date().toISOString()
+        };
+
+        if (newStatus !== "Delivered") {
+          bookingUpdate.deliveryDate = null;
+        }
+
+        await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
+      }
+    }
+  } catch (bkErr) {
+    console.error("[Tracking Delete Sync to Booking Error]:", bkErr);
+  }
+
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("bookings"),
+    delCache("dashboard_stats")
+  ]);
+
+  try {
+    const { emitDataUpdated } = require("../utils/socket");
+    emitDataUpdated("tracking", "delete");
+    emitDataUpdated("bookings", "update");
+  } catch (sockErr) {}
+
   return success(res, "Tracking entry deleted successfully");
 };
 

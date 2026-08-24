@@ -16,6 +16,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+
 router.get("/", requirePermission(readPerms), asyncHandler(getRoot_1));
 
 router.post(

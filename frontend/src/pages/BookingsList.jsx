@@ -562,21 +562,25 @@ const BookingsList = () => {
             const awbClean = awbStr.toLowerCase();
             const awbStripped = awbClean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
 
-            const hasBox = Boolean(
+            const activeBox = (
               boxMap[awbStr] || 
               boxMap[awbClean] || 
               boxMap[awbStripped] || 
               (item.id && boxMap[String(item.id)]) || 
-              (item._id && boxMap[String(item._id)])
+              (item._id && boxMap[String(item._id)]) ||
+              (item.boxUrl ? { boxUrl: item.boxUrl } : null)
             );
+            const hasBox = Boolean(activeBox || item.boxUploaded || item.boxUrl);
 
-            const hasPodEntry = Boolean(
+            const activePod = (
               podMap[awbStr] || 
               podMap[awbClean] || 
               podMap[awbStripped] || 
               (item.id && podMap[String(item.id)]) || 
-              (item._id && podMap[String(item._id)])
+              (item._id && podMap[String(item._id)]) ||
+              (item.podUrl ? { podUrl: item.podUrl } : null)
             );
+            const hasPodEntry = Boolean(activePod || item.podUploaded || item.podUrl);
 
             return (
               <div key={itemId || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: isSelected ? "2px solid #2563eb" : (item.isOfflinePending ? "2px dashed #f59e0b" : undefined), background: isSelected ? "#f8faff" : undefined }}>
@@ -913,7 +917,8 @@ const BookingsList = () => {
                         onClick={() => {
                           if (hasBox) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = hasBox.boxUrl || hasBox.cloudinaryUrl || `${apiUrl}/uploads/box/${hasBox.fileName || hasBox.filename}`;
+                            const boxObj = activeBox || {};
+                            let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
                             fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
                             navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
                           } else {
@@ -946,15 +951,16 @@ const BookingsList = () => {
                         onClick={() => {
                           if (hasPodEntry) {
                             const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            let fileUrl = hasPodEntry.podUrl || hasPodEntry.cloudinaryUrl || hasPodEntry.fileData || `${apiUrl}/uploads/pod/${hasPodEntry.fileName || hasPodEntry.filename}`;
-                            if (fileUrl.startsWith('data:')) {
+                            const podObj = activePod || {};
+                            let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
+                            if (fileUrl && fileUrl.startsWith('data:')) {
                               try {
                                 sessionStorage.setItem('tempPodData', fileUrl);
                                 navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
                               } catch (e) {
                                 navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                               }
-                            } else {
+                            } else if (fileUrl) {
                               fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
                               navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                             }
