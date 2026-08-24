@@ -225,6 +225,16 @@ axios.interceptors.response.use(
       return response;
     }
     if (response.data && typeof response.data === 'object') {
+      // Performance guard: skip recursive transform for large array responses
+      // (>300 items) to avoid blocking the main thread
+      const dataArray = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+          ? response.data.data
+          : null;
+      if (dataArray && dataArray.length > 300) {
+        return response; // Return as-is for large lists
+      }
       response.data = formatDataStrings(response.data);
     }
     return response;

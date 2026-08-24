@@ -130,6 +130,9 @@ export const SettingsProvider = ({ children }) => {
   }, [globalSettings?.ui?.darkMode]);
 
   const updateGlobalSettings = async (newSettings) => {
+    // Apply optimistically first — instant UI response
+    setGlobalSettings(newSettings);
+    appDB.set('globalSettings', newSettings);
     try {
       const response = await axios.put(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/settings/config`, newSettings, {
         withCredentials: true,
@@ -138,6 +141,7 @@ export const SettingsProvider = ({ children }) => {
         }
       });
       if (response.data.success) {
+        // Sync with authoritative server response
         setGlobalSettings(response.data.data);
         appDB.set('globalSettings', response.data.data);
         return true;
@@ -145,6 +149,9 @@ export const SettingsProvider = ({ children }) => {
       return false;
     } catch (err) {
       console.error('Failed to update settings:', err);
+      // On failure, revert to last known good settings from cache
+      const lastGood = appDB.memGet('globalSettings');
+      if (lastGood) setGlobalSettings(lastGood);
       return false;
     }
   };

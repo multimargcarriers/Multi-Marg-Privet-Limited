@@ -57,7 +57,32 @@ export default defineConfig({
     })
   ],
   build: {
-    sourcemap: true,
+    chunkSizeWarningLimit: 3000, // Suppress warnings on large vendor chunks
+    sourcemap: false, // Disabled in production — reduces build size significantly
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-animation';
+            }
+            if (id.includes('exceljs')) {
+              return 'vendor-excel';
+            }
+            if (id.includes('html2pdf.js')) {
+              return 'vendor-pdf';
+            }
+            return 'vendor-utils';
+          }
+        }
+      }
+    }
   },
   server: {
     port: 5173,

@@ -29,7 +29,6 @@ import PurchaseReports from "./pages/reports/PurchaseReports";
 import CashsheetReports from "./pages/reports/CashsheetReports";
 import ClientTripReports from "./pages/reports/ClientTripReports";
 import Analytics from "./pages/Analytics";
-
 import MiscBill from "./pages/MiscBill";
 import TdsDebtManagement from "./pages/TdsDebtManagement";
 import OpeningOutstanding from "./pages/OpeningOutstanding";
@@ -127,7 +126,6 @@ function App() {
               <Route path="/vendors" element={<ProtectedRoute requiredPermission="vendors"><Vendors /></ProtectedRoute>} />
               <Route path="/branches" element={<ProtectedRoute requiredPermission="branches"><Branches /></ProtectedRoute>} />
               <Route path="/cities" element={<ProtectedRoute requiredPermission="cities"><Cities /></ProtectedRoute>} />
-              
               <Route path="/rates" element={<ProtectedRoute requiredPermission="client_rates"><Rates /></ProtectedRoute>} />
             </Route>
 
@@ -146,11 +144,11 @@ function App() {
               <Route path="/tracking" element={<Tracking />} />
             </Route>
 
-            {/* Trips - Has its own permission requirement because vendors need it without operations */}
+            {/* Trips */}
             <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="trips" /></MaintenanceGuard>}>
               <Route path="/trips" element={<Trips />} />
             </Route>
-            
+
             {/* Trip MIS */}
             <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="tripmis" /></MaintenanceGuard>}>
               <Route path="/trip-mis" element={<TripMIS />} />
@@ -184,7 +182,6 @@ function App() {
               <Route path="/opening-outstanding" element={<ProtectedRoute requiredPermission="accounts"><OpeningOutstanding /></ProtectedRoute>} />
             </Route>
 
-            
             {/* Reports */}
             <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
               <Route path="/reports/analytics" element={<ProtectedRoute requiredPermission="analytics"><Analytics /></ProtectedRoute>} />

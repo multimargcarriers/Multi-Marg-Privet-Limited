@@ -56,7 +56,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
-  const [updatingToggles, setUpdatingToggles] = useState(false);
+  const [savingToggles, setSavingToggles] = useState({});
   
   const tripFileRef = useRef(null);
   const vendorFileRef = useRef(null);
@@ -150,17 +150,33 @@ const Settings = () => {
     addToast("Reset to default vector stamp seal.", "success");
   };
 
-  const handleToggle = async (category, key) => {
-    if (!globalSettings || updatingToggles) return;
-    setUpdatingToggles(true);
-    const newSettings = { ...globalSettings };
-    if (!newSettings[category]) newSettings[category] = {};
-    newSettings[category][key] = !newSettings[category][key];
-    if (localCompany && Object.keys(localCompany).length > 0) {
+  const handleToggle = (category, key) => {
+    if (!globalSettings) return;
+    const toggleKey = `${category}.${key}`;
+    if (savingToggles[toggleKey]) return; // Only block same key, not all toggles
+
+    // 1. Optimistic local update — instant UI response
+    const newSettings = {
+      ...globalSettings,
+      [category]: {
+        ...(globalSettings[category] || {}),
+        [key]: !globalSettings[category]?.[key]
+      }
+    };
+    // Only merge localCompany when saving company-category toggles
+    if (category === 'company' && localCompany && Object.keys(localCompany).length > 0) {
       newSettings.company = { ...newSettings.company, ...localCompany };
     }
-    await updateGlobalSettings(newSettings);
-    setUpdatingToggles(false);
+
+    // Apply immediately to context (instant UI)
+    updateGlobalSettings(newSettings);
+
+    // 2. Track per-key saving state for visual indicator only
+    setSavingToggles(prev => ({ ...prev, [toggleKey]: true }));
+    // Clear after short delay (server roundtrip is fire-and-forget for UX)
+    setTimeout(() => {
+      setSavingToggles(prev => { const n = { ...prev }; delete n[toggleKey]; return n; });
+    }, 800);
   };
 
   const handleCompanyChange = (e) => {
@@ -455,7 +471,7 @@ const Settings = () => {
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '1rem',
-                cursor: updatingToggles ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                 transition: 'background 0.3s ease'
               }}
@@ -642,7 +658,7 @@ const Settings = () => {
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.95rem', color: '#334155' }}>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                        <button onClick={() => handleToggle('ui', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                        <button onClick={() => handleToggle('ui', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
                           {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                         </button>
                       </div>
@@ -717,7 +733,7 @@ const Settings = () => {
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.95rem', color: '#334155' }}>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                        <button onClick={() => handleToggle('billing', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                        <button onClick={() => handleToggle('billing', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
                           {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                         </button>
                       </div>
@@ -770,7 +786,7 @@ const Settings = () => {
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.95rem', color: '#334155' }}>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                        <button onClick={() => handleToggle('security', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                        <button onClick={() => handleToggle('security', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
                           {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                         </button>
                       </div>
@@ -793,7 +809,7 @@ const Settings = () => {
                     return (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.95rem', color: '#334155' }}>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
-                        <button onClick={() => handleToggle('notifications', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                        <button onClick={() => handleToggle('notifications', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
                           {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                         </button>
                       </div>
@@ -814,7 +830,7 @@ const Settings = () => {
                 {Object.entries(globalSettings.modules || {}).map(([key, value]) => (
                   <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: '#334155' }}>{key} Module</span>
-                    <button onClick={() => handleToggle('modules', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#6366f1' : '#94a3b8' }}>
+                    <button onClick={() => handleToggle('modules', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#6366f1' : '#94a3b8' }}>
                       {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                     </button>
                   </div>
@@ -842,7 +858,7 @@ const Settings = () => {
                     </div>
                     <button 
                       onClick={() => handleToggle('integrations', 'enableGlobalBookingWindow')} 
-                      style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: (globalSettings.integrations?.enableGlobalBookingWindow !== false) ? '#10b981' : '#94a3b8' }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: (globalSettings.integrations?.enableGlobalBookingWindow !== false) ? '#10b981' : '#94a3b8' }}
                       title="Toggle Global Booking Visibility Window"
                     >
                       {(globalSettings.integrations?.enableGlobalBookingWindow !== false) ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
@@ -901,7 +917,7 @@ const Settings = () => {
                   return (
                     <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: key === 'enableBulkDelete' ? '#dc2626' : '#334155', fontWeight: key === 'enableBulkDelete' ? '600' : 'normal' }}>{label}</span>
-                      <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: updatingToggles ? 'not-allowed' : 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                      <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
                         {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                       </button>
                     </div>

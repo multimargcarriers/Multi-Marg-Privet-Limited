@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import syncManager from '../utils/syncManager';
 import { useToast } from './ToastContext';
 
@@ -11,19 +11,24 @@ export const SyncProvider = ({ children }) => {
   const [syncQueue, setSyncQueue] = useState(syncManager.getQueue());
   const [isSyncing, setIsSyncing] = useState(false);
   const { addToast } = useToast();
+  // Stable ref so the effect doesn't re-run every time ToastContext re-renders
+  const addToastRef = useRef(addToast);
+  useEffect(() => { addToastRef.current = addToast; }, [addToast]);
 
   useEffect(() => {
+    const toast = (...args) => addToastRef.current(...args);
+
     const handleOnline = () => {
       setIsOnline(true);
       if (syncManager.getQueue().length > 0) {
-        addToast('Back online. Synchronizing data...', 'info');
+        toast('Back online. Synchronizing data...', 'info');
         syncManager.syncAll();
       }
     };
     
     const handleOffline = () => {
       setIsOnline(false);
-      addToast('You are offline. Changes will be saved locally.', 'warning');
+      toast('You are offline. Changes will be saved locally.', 'warning');
     };
 
     const handleQueueUpdated = (e) => setSyncQueue(e.detail);
@@ -31,11 +36,11 @@ export const SyncProvider = ({ children }) => {
     const handleSyncCompleted = () => {
       setIsSyncing(false);
       if (syncManager.getQueue().length === 0) {
-        addToast('All offline changes have been synchronized.', 'success');
+        toast('All offline changes have been synchronized.', 'success');
       }
     };
     const handleSyncError = (e) => {
-      addToast(`Failed to sync a request: ${e.detail.error.message}`, 'error');
+      toast(`Failed to sync a request: ${e.detail.error.message}`, 'error');
     };
 
     window.addEventListener('online', handleOnline);
@@ -58,7 +63,7 @@ export const SyncProvider = ({ children }) => {
       window.removeEventListener('sync-completed', handleSyncCompleted);
       window.removeEventListener('sync-error', handleSyncError);
     };
-  }, [addToast]);
+  }, []); // Empty deps — event handlers use stable ref, no re-attachment
 
   return (
     <SyncContext.Provider value={{ isOnline, isSyncing, syncQueue }}>

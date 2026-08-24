@@ -171,23 +171,26 @@ exports.postRoot_1 = async (req, res) => {
   
   if (!isAdmin || !booking.consignment) {
     try {
-      // Find max AWB to ensure continuity with existing data
-      const allBookings = await db.mongoDb.collection("bookings").find({}, { projection: { consignment: 1, awb: 1, lrNo: 1 } }).toArray();
+      // Fast counter check: only scan collection if counter doesn't exist in counters collection
       let maxNum = 0;
-      allBookings.forEach(b => {
-        const awbStr = b.awb || b.consignment || b.lrNo || "";
-        const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
-        if (match) {
-          const num = parseInt(match[2], 10);
-          if (num > maxNum) maxNum = num;
-        }
-      });
-      
-      const counterDoc = await db.mongoDb.collection("counters").findOneAndUpdate(
-        { _id: "awb_counter" },
-        { $max: { seq: maxNum } }, // Ensure counter is at least maxNum
-        { returnDocument: "after", upsert: true }
-      );
+      const existingCounter = await db.mongoDb.collection("counters").findOne({ _id: "awb_counter" });
+      if (!existingCounter) {
+        // Find max AWB to ensure continuity with existing data (ran only once if counter is missing)
+        const allBookings = await db.mongoDb.collection("bookings").find({}, { projection: { consignment: 1, awb: 1, lrNo: 1 } }).toArray();
+        allBookings.forEach(b => {
+          const awbStr = b.awb || b.consignment || b.lrNo || "";
+          const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
+          if (match) {
+            const num = parseInt(match[2], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        await db.mongoDb.collection("counters").findOneAndUpdate(
+          { _id: "awb_counter" },
+          { $max: { seq: maxNum } },
+          { returnDocument: "after", upsert: true }
+        );
+      }
       
       const updatedCounter = await db.mongoDb.collection("counters").findOneAndUpdate(
         { _id: "awb_counter" },

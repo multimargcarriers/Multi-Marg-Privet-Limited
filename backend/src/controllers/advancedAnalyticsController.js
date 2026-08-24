@@ -1,5 +1,6 @@
 const { db } = require("../config/database");
 const { success } = require("../utils/response");
+const { getCache, setCache } = require("../config/redis");
 
 const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -43,6 +44,16 @@ exports.getAdvancedAnalytics = async (req, res) => {
   try {
     const { startDate, endDate, groupBy = "month", client } = req.query;
     const mongoDb = db.mongoDb;
+
+    const cacheKey = `analytics:advanced:${startDate || ''}:${endDate || ''}:${groupBy}:${client || ''}`;
+    try {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return success(res, "Advanced Analytics fetched successfully (cached)", cached);
+      }
+    } catch (err) {
+      console.warn("[Redis] Failed to fetch cache for advanced analytics:", err.message);
+    }
 
     const fromMillis = startDate ? new Date(startDate).getTime() : null;
     const toMillis = endDate ? new Date(endDate).getTime() : null;
@@ -211,7 +222,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
 
     const cashFlowData = Object.values(cashFlowMap).sort((a, b) => a.name.localeCompare(b.name));
 
-    return success(res, "Advanced Analytics fetched successfully", {
+    const responseData = {
       financial: {
         totalRevenue,
         paidAmount,
@@ -228,7 +239,15 @@ exports.getAdvancedAnalytics = async (req, res) => {
       modeDistribution,
       salesByClient,
       cashFlowData
-    });
+    };
+
+    try {
+      await setCache(cacheKey, responseData, 300); // cache for 5 minutes
+    } catch (err) {
+      console.warn("[Redis] Failed to set cache for advanced analytics:", err.message);
+    }
+
+    return success(res, "Advanced Analytics fetched successfully", responseData);
 
   } catch (error) {
     console.error("Advanced Analytics Error:", error);

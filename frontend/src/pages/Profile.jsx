@@ -38,7 +38,8 @@ const Profile = () => {
   const [faceAuthEnabled, setFaceAuthEnabled] = useState(Boolean(user?.faceAuthEnabled === true));
   const [fingerprintAuthEnabled, setFingerprintAuthEnabled] = useState(Boolean(user?.fingerprintAuthEnabled === true));
   const [showFloatingMailbox, setShowFloatingMailbox] = useState(Boolean(user?.showFloatingMailbox === true));
-  const [toggling2Fa, setToggling2Fa] = useState(false);
+  const [togglingFace, setTogglingFace] = useState(false);
+  const [togglingFingerprint, setTogglingFingerprint] = useState(false);
   const [togglingMailbox, setTogglingMailbox] = useState(false);
 
   useEffect(() => {
@@ -244,8 +245,13 @@ const Profile = () => {
   };
 
   const handleToggleFaceAuth = async () => {
-    setToggling2Fa(true);
+    if (togglingFace) return;
+    setTogglingFace(true);
     const nextState = !faceAuthEnabled;
+    // Optimistic update
+    setFaceAuthEnabled(nextState);
+    const new2Fa = nextState || fingerprintAuthEnabled;
+    setTwoFactorEnabled(new2Fa);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
@@ -253,28 +259,38 @@ const Profile = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data?.success) {
-        setFaceAuthEnabled(nextState);
-        const new2Fa = nextState || fingerprintAuthEnabled;
-        setTwoFactorEnabled(new2Fa);
         updateUser({ ...user, faceAuthEnabled: nextState, twoFactorEnabled: new2Fa });
         addToast(
-          nextState 
-            ? "Live Face ID Verification Enabled" 
-            : "Face ID Verification Disabled", 
+          nextState
+            ? "Live Face ID Verification Enabled"
+            : "Face ID Verification Disabled",
           "success"
         );
+      } else {
+        // Revert on failure
+        setFaceAuthEnabled(!nextState);
+        setTwoFactorEnabled(!nextState || fingerprintAuthEnabled);
+        addToast("Failed to update Face ID preference", "error");
       }
     } catch (err) {
+      // Revert on failure
+      setFaceAuthEnabled(!nextState);
+      setTwoFactorEnabled(!nextState || fingerprintAuthEnabled);
       console.error("Failed to toggle Face Auth:", err);
       addToast(err.response?.data?.message || "Failed to update Face ID preference", "error");
     } finally {
-      setToggling2Fa(false);
+      setTogglingFace(false);
     }
   };
 
   const handleToggleFingerprintAuth = async () => {
-    setToggling2Fa(true);
+    if (togglingFingerprint) return;
+    setTogglingFingerprint(true);
     const nextState = !fingerprintAuthEnabled;
+    // Optimistic update
+    setFingerprintAuthEnabled(nextState);
+    const new2Fa = faceAuthEnabled || nextState;
+    setTwoFactorEnabled(new2Fa);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
@@ -282,28 +298,39 @@ const Profile = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data?.success) {
-        setFingerprintAuthEnabled(nextState);
-        const new2Fa = faceAuthEnabled || nextState;
-        setTwoFactorEnabled(new2Fa);
         updateUser({ ...user, fingerprintAuthEnabled: nextState, twoFactorEnabled: new2Fa });
         addToast(
-          nextState 
-            ? "Fingerprint & Device PIN Verification Enabled" 
-            : "Fingerprint & Device PIN Verification Disabled", 
+          nextState
+            ? "Fingerprint & Device PIN Verification Enabled"
+            : "Fingerprint & Device PIN Verification Disabled",
           "success"
         );
+      } else {
+        // Revert on failure
+        setFingerprintAuthEnabled(!nextState);
+        setTwoFactorEnabled(faceAuthEnabled || !nextState);
+        addToast("Failed to update Fingerprint preference", "error");
       }
     } catch (err) {
+      // Revert on failure
+      setFingerprintAuthEnabled(!nextState);
+      setTwoFactorEnabled(faceAuthEnabled || !nextState);
       console.error("Failed to toggle Fingerprint Auth:", err);
       addToast(err.response?.data?.message || "Failed to update Fingerprint preference", "error");
     } finally {
-      setToggling2Fa(false);
+      setTogglingFingerprint(false);
     }
   };
 
   const handleToggle2FA = async () => {
-    setToggling2Fa(true);
+    if (togglingFace || togglingFingerprint) return;
+    setTogglingFace(true);
+    setTogglingFingerprint(true);
     const nextState = !twoFactorEnabled;
+    // Optimistic
+    setTwoFactorEnabled(nextState);
+    setFaceAuthEnabled(nextState);
+    setFingerprintAuthEnabled(nextState);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
@@ -311,28 +338,38 @@ const Profile = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data?.success) {
-        setTwoFactorEnabled(nextState);
-        setFaceAuthEnabled(nextState);
-        setFingerprintAuthEnabled(nextState);
         updateUser({ ...user, twoFactorEnabled: nextState, faceAuthEnabled: nextState, fingerprintAuthEnabled: nextState });
         addToast(
-          nextState 
-            ? "All Biometric Verification Enabled" 
-            : "All Biometric Verification Disabled", 
+          nextState
+            ? "All Biometric Verification Enabled"
+            : "All Biometric Verification Disabled",
           "success"
         );
+      } else {
+        // Revert
+        setTwoFactorEnabled(!nextState);
+        setFaceAuthEnabled(!nextState);
+        setFingerprintAuthEnabled(!nextState);
       }
     } catch (err) {
+      // Revert
+      setTwoFactorEnabled(!nextState);
+      setFaceAuthEnabled(!nextState);
+      setFingerprintAuthEnabled(!nextState);
       console.error("Failed to toggle 2FA:", err);
       addToast(err.response?.data?.message || "Failed to update 2-step verification preference", "error");
     } finally {
-      setToggling2Fa(false);
+      setTogglingFace(false);
+      setTogglingFingerprint(false);
     }
   };
 
   const handleToggleFloatingMailbox = async () => {
+    if (togglingMailbox) return;
     setTogglingMailbox(true);
     const nextState = !showFloatingMailbox;
+    // Optimistic update
+    setShowFloatingMailbox(nextState);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/toggle-2fa`,
@@ -340,16 +377,18 @@ const Profile = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data?.success) {
-        setShowFloatingMailbox(nextState);
         updateUser({ ...user, showFloatingMailbox: nextState });
         addToast(
-          nextState 
-            ? "Floating Mailbox Quick Button Enabled (Bottom-Right)" 
-            : "Floating Mailbox Button Disabled (Sidebar Access Only)", 
+          nextState
+            ? "Floating Mailbox Quick Button Enabled (Bottom-Right)"
+            : "Floating Mailbox Button Disabled (Sidebar Access Only)",
           "success"
         );
+      } else {
+        setShowFloatingMailbox(!nextState); // Revert
       }
     } catch (err) {
+      setShowFloatingMailbox(!nextState); // Revert
       console.error("Failed to toggle floating mailbox button:", err);
       addToast(err.response?.data?.message || "Failed to update mailbox button preference", "error");
     } finally {
@@ -797,7 +836,7 @@ const Profile = () => {
                     <button
                       type="button"
                       onClick={handleToggleFaceAuth}
-                      disabled={toggling2Fa}
+                      disabled={togglingFace}
                       aria-label="Toggle Face ID"
                       style={{
                         width: '44px',
@@ -806,7 +845,7 @@ const Profile = () => {
                         background: faceAuthEnabled ? '#0284c7' : '#cbd5e1',
                         position: 'relative',
                         border: 'none',
-                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                        cursor: togglingFace ? 'not-allowed' : 'pointer',
                         transition: 'background-color 0.2s',
                         padding: 0,
                         flexShrink: 0
@@ -846,7 +885,7 @@ const Profile = () => {
                     <button
                       type="button"
                       onClick={handleToggleFingerprintAuth}
-                      disabled={toggling2Fa}
+                      disabled={togglingFingerprint}
                       aria-label="Toggle Fingerprint & PIN"
                       style={{
                         width: '44px',
@@ -855,7 +894,7 @@ const Profile = () => {
                         background: fingerprintAuthEnabled ? '#7c3aed' : '#cbd5e1',
                         position: 'relative',
                         border: 'none',
-                        cursor: toggling2Fa ? 'not-allowed' : 'pointer',
+                        cursor: togglingFingerprint ? 'not-allowed' : 'pointer',
                         transition: 'background-color 0.2s',
                         padding: 0,
                         flexShrink: 0
