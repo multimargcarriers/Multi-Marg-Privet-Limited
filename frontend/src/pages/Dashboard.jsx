@@ -24,7 +24,7 @@ const FormatCurrency = ({ amount, color = undefined }) => {
       fontWeight: 700,
       lineHeight: 1.15
     }}>
-      <RupeeIcon size={14} style={{ marginRight: '1px', alignSelf: 'center', opacity: 0.85 }} />
+      <RupeeIcon style={{ width: '1em', height: '1em', marginRight: '1px', alignSelf: 'center', opacity: 0.85 }} />
       <span>{intPart}</span>
       <span style={{ fontSize: '0.78em', opacity: 0.8, fontWeight: 600 }}>.{decPart}</span>
     </span>
@@ -76,7 +76,7 @@ const StatCard = ({ title, value, icon, accentColor = "#3b82f6" }) => (
     <div 
       style={{ 
         color: '#64748b', 
-        fontSize: '0.68rem', 
+        fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', 
         fontWeight: '700', 
         textTransform: 'uppercase', 
         letterSpacing: '0.03em',
@@ -94,7 +94,7 @@ const StatCard = ({ title, value, icon, accentColor = "#3b82f6" }) => (
     {/* Card Value (Amount size kept full and prominent) */}
     <div style={{ minWidth: 0, width: '100%', overflow: 'hidden' }}>
       <div style={{ 
-        fontSize: 'clamp(1.05rem, 2.8vw, 1.3rem)', 
+        fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', 
         color: '#0f172a', 
         margin: 0, 
         whiteSpace: 'nowrap', 
@@ -233,7 +233,7 @@ const Dashboard = () => {
 
       {/* Financial KPIs - Sales */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.25rem' }}>
         <StatCard
@@ -264,7 +264,7 @@ const Dashboard = () => {
 
       {/* Operational & Cash KPIs - Purchase */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Purchase Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Purchase Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.25rem' }}>
         <StatCard
@@ -295,7 +295,7 @@ const Dashboard = () => {
 
       {/* Financial Overview */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.65rem 0' }}>
-        <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Financial Overview</h4>
+        <h4 style={{ margin: 0, color: '#1e293b', fontSize: 'clamp(0.7rem, 1.5vw, 0.8rem)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Financial Overview</h4>
       </div>
       <div className="stats-panel-grid" style={{ marginBottom: '1.5rem' }}>
         <StatCard
