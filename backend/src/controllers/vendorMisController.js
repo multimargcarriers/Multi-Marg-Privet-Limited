@@ -27,7 +27,7 @@ const matchVendorUser = (data, user) => {
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
 
   // Cache full collection, filter per-user in memory
   const allRecords = await getOrSet(CACHE_KEY, async () => {
@@ -38,8 +38,13 @@ exports.getRoot_1 = async (req, res) => {
   }, 300);
 
   let records = allRecords;
-  if (!isAdmin) {
+  const isVendor = user && (user.role === 'Vendor' || user.role?.toLowerCase() === 'vendor');
+  if (isVendor) {
+    // Vendors see only entries where they are the mapped vendor
     records = allRecords.filter(r => matchVendorUser(r, user));
+  } else if (!isAdmin) {
+    // Employees can only see entries they created
+    records = allRecords.filter(r => r.createdBy === user.id);
   }
 
   return success(res, "Vendor MIS fetched successfully", records);

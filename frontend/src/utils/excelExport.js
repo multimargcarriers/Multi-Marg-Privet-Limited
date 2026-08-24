@@ -1110,6 +1110,7 @@ export async function exportVehicleTripMisList({
     { header: "Freight (₹)", width: 16, numFmt: "#,##0.00", align: "right" },
     { header: "Extra Chgs (₹)", width: 14, numFmt: "#,##0.00", align: "right" },
     { header: "Payment", width: 14, align: "center" },
+    { header: "Remarks", width: 22 }
   ];
 
   const rows = [];
@@ -1153,6 +1154,7 @@ export async function exportVehicleTripMisList({
           frt || "-",
           extra || "-",
           pIdx === 0 ? trip.payment || "Credit" : "",
+          pIdx === 0 ? trip.tripRemarks || "-" : "",
         ]);
       });
       sl++;
@@ -1178,6 +1180,7 @@ export async function exportVehicleTripMisList({
         frt || "-",
         "-",
         trip.payment || "Credit",
+        trip.tripRemarks || "-",
       ]);
       sl++;
     }

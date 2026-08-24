@@ -417,7 +417,7 @@ const PrintSingleTrip = () => {
                               <td className="gray-cell" style={{ textAlign: "left" }}>VEHICLE TYPE</td>
                               <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleType || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>{isSpecialMode ? "TOTAL FREIGHT" : "PAYMENT"}</td>
-                              <td className="data-cell nowrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "left" }}>
+                              <td className="data-cell nowrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "right" }}>
                                 {isSpecialMode ? (showPrintAmounts ? `Rs. ${baseFreight.toFixed(2)}` : "Rs. 0") : (trip.payment || "-").toUpperCase()}
                               </td>
                             </tr>
@@ -551,6 +551,10 @@ const PrintSingleTrip = () => {
                       </table>
                     )}
 
+                    <div style={{ marginTop: "6px", padding: "6px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "0.7rem", color: "#334155" }}>
+                      <strong>Remarks / Instructions:</strong> {trip.tripRemarks || "N/A"}
+                    </div>
+
                     {/* Section 3: Bill Summary (Rendered on final page) */}
                     {page.isLast && (
                       <>
@@ -579,7 +583,7 @@ const PrintSingleTrip = () => {
                             </tr>
                             <tr>
                               <td className="gray-cell" style={{ textAlign: "left" }}>PAYMENT MODE</td>
-                              <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>
+                              <td className="data-cell nowrap-cell" style={{ textAlign: "right" }}>
                                 {(trip.payment || "-").toUpperCase()}
                               </td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>AMOUNT PAID</td>

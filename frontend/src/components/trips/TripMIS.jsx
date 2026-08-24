@@ -53,8 +53,8 @@ const TripMIS = () => {
   const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
   const isClientUser = user?.role === 'Client' || user?.role?.toLowerCase() === 'client';
 
-  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "0", freight: "0", pickup: "0", delivery: "0", special: "0", other: "0", parking: "0", labor: "0" };
-  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", freight: "", parcels: [ { ...initialParcel } ] };
+  const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "0", freight: "0", pickup: "0", delivery: "0", special: "0", other: "0", parking: "0", labor: "0", remarks: "" };
+  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", freight: "", tripRemarks: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
   const [activeRemarksModal, setActiveRemarksModal] = useState(null);
@@ -219,6 +219,7 @@ const TripMIS = () => {
               clientName: row['Client'] || '',
               origin: row['Origin'] || '',
               destination: row['Destination'] || '',
+              tripRemarks: row['Remarks'] || row['Trip Remarks'] || '',
               paidAmount: 0,
               parcels: []
             };
@@ -424,6 +425,7 @@ const TripMIS = () => {
                 freight: totalFreight,
                 box: totalBox,
                 weight: totalWeight,
+                tripRemarks: tripListForm.tripRemarks || "",
                 paidAmount: 0
               };
               
@@ -639,6 +641,18 @@ const TripMIS = () => {
               )}
             </div>
 
+            <div style={{ marginBottom: "2rem" }}>
+              <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Trip Remarks / Instructions (Optional)</label>
+              <textarea 
+                className="form-control" 
+                rows="2" 
+                placeholder="Enter any remarks, notes, or special instructions for this trip..."
+                value={tripListForm.tripRemarks || ""}
+                onChange={e => setTripListForm({...tripListForm, tripRemarks: e.target.value})}
+                style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", resize: "vertical" }}
+              />
+            </div>
+
             <div style={{ paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb", marginBottom: "1rem" }}>
               <label className="form-label" style={{ fontWeight: "600", color: "#111827", textTransform: "uppercase", marginBottom: 0 }}>PARCEL DETAILS<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             </div>
@@ -811,8 +825,8 @@ const TripMIS = () => {
             </div>,
             "Trip No & Route", "Client Name", "Date", "Vehicle Details", "Parcels & LR Details", "Total Box", "Total Weight", 
             user?.role === 'SuperAdmin' ? (
-              <div style={{ textAlign: "center", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>
-            ) : "Total Freight",
+              <div style={{ textAlign: "right", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>
+            ) : <div style={{ textAlign: "right" }}>Total Freight</div>,
             "Status", "Remarks", "Actions"
           ]}
           data={filteredEntries}
@@ -907,19 +921,19 @@ const TripMIS = () => {
               </td>
               <td>{item.box || item.parcels?.reduce((s, p) => s + (parseInt(p.box)||0), 0) || "0"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.weight || item.parcels?.reduce((s, p) => s + (parseFloat(p.weight)||0), 0) || "0"} kg</td>
-              <td style={{ whiteSpace: "nowrap" }}>
-                <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+              <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
+                <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
                   <RupeeIcon size={14} />{((parseFloat(item.freight) || 0) * 1.18).toFixed(2)}
                   <span style={{ fontSize: "0.6rem", color: "#6b7280" }}>(Inc 18% GST)</span>
                 </div>
                 {user?.role === 'SuperAdmin' && (
-                  <>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                     {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (
                       <div style={{ fontSize: "0.75rem", color: "#f59e0b", marginBottom: "6px", fontWeight: "600" }}>
                         Paid: {item.paidAmount} | Rem: {(((parseFloat(item.freight) || 0) * 1.18) - parseFloat(item.paidAmount)).toFixed(2)}
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
                       <span style={{
                         padding: "2px 8px", borderRadius: "12px", fontSize: "0.65rem", fontWeight: "600",
                         background: item.payment === 'Paid' ? '#dcfce7' : item.payment === 'To Pay' ? '#fee2e2' : '#e0e7ff',
@@ -928,7 +942,7 @@ const TripMIS = () => {
                         {item.payment}
                       </span>
                     </div>
-                  </>
+                  </div>
                 )}
               </td>
               <td>
@@ -941,7 +955,12 @@ const TripMIS = () => {
                 </span>
               </td>
               {/* Remarks Column */}
-              <td style={{ textAlign: "center" }}>
+              <td style={{ textAlign: "center", minWidth: "150px" }}>
+                {item.tripRemarks && (
+                  <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "#374151", marginBottom: "6px", background: "#f8fafc", border: "1px solid #e2e8f0", padding: "4px 8px", borderRadius: "6px", wordBreak: "break-word", whiteSpace: "normal", textAlign: "left" }}>
+                    {item.tripRemarks}
+                  </div>
+                )}
                 <button
                   onClick={() => { setActiveRemarksModal(item); setRemarkText(""); }}
                   style={{
@@ -1478,56 +1497,83 @@ const TripMIS = () => {
               const tripDate = item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : "-");
               const parcels = item.parcels && item.parcels.length > 0 ? item.parcels : [{}];
               
-              return parcels.map((p, pIdx) => (
-                <tr key={`${idx}-${pIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    {pIdx === 0 && (
-                      <>
-                        <strong>{item.tripNo || "-"}</strong><br/>
-                        <span style={{ color: "#64748b", fontSize: "8pt" }}>{tripDate}</span><br/>
-                        <span style={{ color: "#475569", fontSize: "8pt" }}>{item.clientName}</span>
-                      </>
-                    )}
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    {pIdx === 0 && (
-                      <>
-                        <strong>{item.vehicleNo}</strong> <span style={{ color: "#64748b", fontSize: "8pt" }}>({item.vehicleType})</span><br/>
-                        <span style={{ fontSize: "8pt" }}>{item.origin} &rarr; {item.destination}</span>
-                      </>
-                    )}
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    <strong>{p.lrNo || "-"}</strong><br/>
-                    <span style={{ fontSize: "8pt", color: "#475569" }}>From: {p.consignor || "-"}</span><br/>
-                    <span style={{ fontSize: "8pt", color: "#475569" }}>To: {p.consignee || "-"}</span>
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                    Box: {p.box || "0"} | Wt: {p.weight || "0"}<br/>
-                    <span style={{ fontSize: "8pt", color: "#64748b" }}>{p.origin || "-"} &rarr; {p.destination || "-"}</span>
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>
-                    <strong>{showPrintAmounts ? parseFloat(p.freight || 0).toFixed(2) : "0"}</strong><br/>
-                    {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Pickup: {showPrintAmounts ? p.pickup : "0"}</span>}
-                    {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Del: {showPrintAmounts ? p.delivery : "0"}</span>}
-                    {parseFloat(p.special || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Special: {showPrintAmounts ? p.special : "0"}</span>}
-                    {parseFloat(p.other || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Other: {showPrintAmounts ? p.other : "0"}</span>}
-                    {parseFloat(p.parking || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Parking: {showPrintAmounts ? p.parking : "0"}</span>}
-                    {parseFloat(p.labor || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Labor: {showPrintAmounts ? p.labor : "0"}</span>}
-                  </td>
-                  <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: String(item.approvalStatus).toLowerCase() === 'pending' ? '#d97706' : '#16a34a' }}>
-                    {pIdx === 0 ? (item.approvalStatus || 'Approved') : ''}
-                  </td>
-                </tr>
-              ));
+              return (
+                <React.Fragment key={idx}>
+                  {parcels.map((p, pIdx) => (
+                    <tr key={`${idx}-${pIdx}`} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                        {pIdx === 0 && (
+                          <>
+                            <strong>{item.tripNo || "-"}</strong><br/>
+                            <span style={{ color: "#64748b", fontSize: "8pt" }}>{tripDate}</span><br/>
+                            <span style={{ color: "#475569", fontSize: "8pt" }}>{item.clientName}</span>
+                          </>
+                        )}
+                      </td>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                        {pIdx === 0 && (
+                          <>
+                            <strong>{item.vehicleNo}</strong> <span style={{ color: "#64748b", fontSize: "8pt" }}>({item.vehicleType})</span><br/>
+                            <span style={{ fontSize: "8pt" }}>{item.origin} &rarr; {item.destination}</span>
+                          </>
+                        )}
+                      </td>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                        <strong>{p.lrNo || "-"}</strong><br/>
+                        <span style={{ fontSize: "8pt", color: "#475569" }}>From: {p.consignor || "-"}</span><br/>
+                        <span style={{ fontSize: "8pt", color: "#475569" }}>To: {p.consignee || "-"}</span>
+                      </td>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
+                        Box: {p.box || "0"} | Wt: {p.weight || "0"}<br/>
+                        <span style={{ fontSize: "8pt", color: "#64748b" }}>{p.origin || "-"} &rarr; {p.destination || "-"}</span>
+                      </td>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "right" }}>
+                        <strong>{showPrintAmounts ? parseFloat(p.freight || 0).toFixed(2) : "0"}</strong><br/>
+                        {parseFloat(p.pickup || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Pickup: {showPrintAmounts ? p.pickup : "0"}</span>}
+                        {parseFloat(p.delivery || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Del: {showPrintAmounts ? p.delivery : "0"}</span>}
+                        {parseFloat(p.special || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Special: {showPrintAmounts ? p.special : "0"}</span>}
+                        {parseFloat(p.other || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Other: {showPrintAmounts ? p.other : "0"}</span>}
+                        {parseFloat(p.parking || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Parking: {showPrintAmounts ? p.parking : "0"}</span>}
+                        {parseFloat(p.labor || 0) > 0 && <span style={{ fontSize: "8pt", color: "#64748b", display: "block" }}>+ Labor: {showPrintAmounts ? p.labor : "0"}</span>}
+                        {pIdx === 0 && (
+                          <span style={{ fontSize: "8.5pt", fontWeight: "700", display: "block", marginTop: "6px", color: item.payment === 'Paid' ? '#166534' : item.payment === 'To Pay' ? '#b91c1c' : '#4338ca' }}>
+                            {String(item.payment || 'Credit').toUpperCase()}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ border: "1px solid #cbd5e1", padding: "8px", textAlign: "center", fontWeight: "bold", color: String(item.approvalStatus).toLowerCase() === 'pending' ? '#d97706' : '#16a34a' }}>
+                        {pIdx === 0 ? (item.approvalStatus || 'Approved') : ''}
+                      </td>
+                    </tr>
+                  ))}
+                  {item.tripRemarks && (
+                    <tr style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f8fafc" }}>
+                      <td colSpan="6" style={{ border: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "8.5pt", color: "#374151" }}>
+                        <strong>Remarks / Instructions:</strong> {item.tripRemarks}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
             })}
-            {filteredEntries.length === 0 && (
-              <tr>
-                <td colSpan="6" style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No data available for the selected dates.</td>
-              </tr>
-            )}
           </tbody>
         </table>
+        
+        {/* Render remarks separately for each trip to avoid tr span issues */}
+        {filteredEntries.some(item => item.tripRemarks) && (
+          <div style={{ marginTop: "20px" }}>
+            <h5 style={{ borderBottom: "1px solid #cbd5e1", paddingBottom: "4px", marginBottom: "8px" }}>Trip Remarks</h5>
+            {filteredEntries.map((item, idx) => item.tripRemarks ? (
+              <div key={`rem-${idx}`} style={{ marginBottom: "6px", fontSize: "9pt", padding: "6px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px" }}>
+                <strong>{item.tripNo || "N/A"}: </strong> {item.tripRemarks}
+              </div>
+            ) : null)}
+          </div>
+        )}
+
+            {filteredEntries.length === 0 && (
+              <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>No data available for the selected dates.</div>
+            )}
       </div>
 
       {showQuickAddClient && (

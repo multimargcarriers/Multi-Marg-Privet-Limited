@@ -26,7 +26,7 @@ const parseDateSecurely = (dateVal) => {
 const filterByAccess = (documents, user, collectionType = "bookings", settings = null) => {
   if (!user) return [];
   const role = (user.role || "").toLowerCase().replace(/\s+/g, '');
-  
+
   // SuperAdmins & Admins see everything permanently
   if (role === 'superadmin' || role === 'admin' || user.email === 'admin@multimarg.com') {
     return documents;
@@ -41,7 +41,7 @@ const filterByAccess = (documents, user, collectionType = "bookings", settings =
     if (collectionType === "bookings") {
       const mappedName = String(user.name || "").toLowerCase().trim();
       const mappedEmail = String(user.email || "").toLowerCase().trim();
-      
+
       const isCreator = (
         doc.createdBy_id === user.id ||
         String(doc.clerk_name || "").toLowerCase().trim() === mappedName ||
@@ -87,7 +87,7 @@ const filterByAccess = (documents, user, collectionType = "bookings", settings =
           (mappedName && String(doc.consignee || "").toLowerCase().includes(mappedName))
         );
       }
-      
+
       if (role === 'vendor') {
         // Vendors see bookings within the visibility window where they are mapped
         if (!withinWindow) return false;

@@ -49,7 +49,7 @@ const matchVendorUser = (data, user) => {
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   const isVendor = user && (user.role === 'Vendor' || user.role?.toLowerCase() === 'vendor');
 
@@ -67,7 +67,8 @@ exports.getRoot_1 = async (req, res) => {
   } else if (isVendor) {
     records = allRecords.filter(data => matchVendorUser(data, user));
   } else if (!isAdmin) {
-    records = allRecords.filter(data => data.createdBy === user.id || matchVendorUser(data, user));
+    // Employees can only see entries they created
+    records = allRecords.filter(data => data.createdBy === user.id);
   }
 
   return success(res, "Trip MIS fetched successfully", records);

@@ -27,7 +27,8 @@ const CACHE_KEY = "trips";
 
 
 exports.getRoot_1 = async (req, res) => {
-  const data = await getOrSet(CACHE_KEY, async () => {
+  const user = req.user;
+  const allTrips = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("trips").orderBy("date", "desc").get();
     const trips = [];
     snapshot.forEach(doc => trips.push({
@@ -36,6 +37,33 @@ exports.getRoot_1 = async (req, res) => {
     }));
     return trips;
   }, 300);
+
+  // Admin / SuperAdmin see everything
+  const role = (user?.role || '').toLowerCase().replace(/\s+/g, '');
+  const isAdmin = role === 'superadmin' || role === 'admin' || user?.email === 'admin@multimarg.com';
+
+  let data = allTrips;
+  if (!isAdmin && user) {
+    const isVendor = role === 'vendor';
+    if (isVendor) {
+      // Vendors see trips where they are the mapped vendor
+      const userName = (user.name || '').toLowerCase().trim();
+      const userVendor = (user.vendorName || user.vendor || '').toLowerCase().trim();
+      data = allTrips.filter(t => {
+        const v = (t.vendor || '').toLowerCase().trim();
+        return (
+          t.createdBy === user.id ||
+          t.userId === user.id ||
+          (userVendor && (v === userVendor || v.includes(userVendor) || userVendor.includes(v))) ||
+          (userName && (v === userName || v.includes(userName) || userName.includes(v)))
+        );
+      });
+    } else {
+      // Employees (and any other non-admin role) see only their own entries
+      data = allTrips.filter(t => t.createdBy === user.id || t.userId === user.id);
+    }
+  }
+
   return success(res, "Trips fetched successfully", data);
 };
 
@@ -45,6 +73,9 @@ exports.postRoot_2 = async (req, res) => {
   const trip = req.body;
   trip.date = trip.date || new Date().toISOString();
   trip.status = "Active";
+  trip.createdBy = req.user?.id || null;
+  trip.creatorRole = req.user?.role || 'Unknown';
+  trip.creatorName = req.user?.name || req.user?.email || 'Unknown';
   trip.approvalStatus = req.user?.role === 'Vendor' ? 'Pending' : 'Approved';
   
   if (!trip.tripNo || trip.tripNo.trim() === '') {
