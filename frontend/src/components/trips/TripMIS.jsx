@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -45,8 +46,9 @@ const getNextTripNo = (clientName, entries) => {
 const TripMIS = () => {
   const { addToast } = useToast();
   const { confirm } = useDialog();
-  const { token, user } = useContext(AuthContext);
-  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const { token, user, hasPermission } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || (user?.role === 'Employee' && hasPermission('tripmis'));
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
   const isClientUser = user?.role === 'Client' || user?.role?.toLowerCase() === 'client';
@@ -322,7 +324,10 @@ const TripMIS = () => {
     <div>
       <div className="no-print">
       <div className="header-flex" style={{ marginBottom: "1.5rem" }}>
-         <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vehicle Trip MIS</h3>
+         <button onClick={() => navigate(-1)} style={{ background: "transparent", border: "none", cursor: "pointer", marginRight: "8px" }} title="Back">
+            <ArrowLeft size={16} color="#111827" />
+          </button>
+          <h3 style={{ fontSize: "1.5rem", color: "#111827", margin: 0 }}>Vehicle Trip MIS</h3>
          <div className="top-actions-container">
            <div className="date-filter-group" style={{ display: "flex", gap: "5px", alignItems: "center", background: "white", padding: "4px 8px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
              <Filter size={16} color="#64748b" />

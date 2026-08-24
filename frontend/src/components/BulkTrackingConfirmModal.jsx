@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Truck, X, MapPin, Package, ArrowRight, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
+import { Truck, X, Package, ArrowRight } from "lucide-react";
 import { formatDate } from "../utils/formatters";
 
 const BulkTrackingConfirmModal = ({
@@ -12,16 +12,6 @@ const BulkTrackingConfirmModal = ({
   onConfirm
 }) => {
   if (!isOpen || typeof document === "undefined") return null;
-
-  const totalPkgs = selectedBookings.reduce((sum, b) => {
-    const val = Number(b.pkgs || b.packages || b.totalPkgs || b.qty || 1);
-    return sum + (isNaN(val) ? 1 : val);
-  }, 0);
-
-  const totalWeight = selectedBookings.reduce((sum, b) => {
-    const val = Number(b.totalWeight || b.chargedWeight || b.actualWeight || b.weight || 0);
-    return sum + (isNaN(val) ? 0 : val);
-  }, 0);
 
   return ReactDOM.createPortal(
     <AnimatePresence>
@@ -58,16 +48,6 @@ const BulkTrackingConfirmModal = ({
               <span className="metric-label">Selected:</span>
               <span className="metric-val">{selectedBookings.length} AWBs</span>
             </div>
-            <div className="bulk-confirm-metric-pill">
-              <span className="metric-label">Total Pkgs:</span>
-              <span className="metric-val">{totalPkgs}</span>
-            </div>
-            {totalWeight > 0 && (
-              <div className="bulk-confirm-metric-pill">
-                <span className="metric-label">Total Wt:</span>
-                <span className="metric-val">{totalWeight.toFixed(2)} KG</span>
-              </div>
-            )}
           </div>
 
           {/* Scrollable Booking List */}

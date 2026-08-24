@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { Loader2, X, Truck, MapPin, CheckCircle2, Clock, PackageCheck, AlertTriangle, RotateCcw } from "lucide-react";
+import { Loader2, X, Truck, MapPin, CheckCircle2, Clock, PackageCheck, AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const STATUS_OPTIONS = [
-  { value: "Picked Up", label: "📦 Picked Up (From Origin / Consignor)" },
-  { value: "In Transit", label: "🔄 In Transit (En Route to Destination)" },
-  { value: "Reached Hub", label: "🏢 Arrived at Transshipment Hub / Facility" },
-  { value: "Out for Delivery", label: "🚚 Out for Delivery (Final Destination)" },
-  { value: "Delivered", label: "✅ Delivered (Received by Consignee)" },
-  { value: "Delayed", label: "⚠️ In Transit - Delayed" },
-  { value: "Returned", label: "↩️ Return to Origin (RTO)" }
+  { value: "Picked Up", label: "📦 Picked Up" },
+  { value: "In Transit", label: "🔄 In Transit" },
+  { value: "Reached Hub", label: "🏢 Arrived" },
+  { value: "Out for Delivery", label: "🚚 Out for Delivery" },
+  { value: "Delivered", label: "✅ Delivered" },
+  { value: "Delayed", label: "⚠️ Delayed" },
+  { value: "Returned", label: "↩️ Return to Origin" }
 ];
 
 const getStatusColor = (status) => {
@@ -33,21 +33,21 @@ const getSensibleRemark = (status, location) => {
   const loc = location ? String(location).trim() : "facility";
   switch (status) {
     case "Delivered":
-      return `Shipment successfully delivered at destination in ${loc}`;
+      return `Shipment delivers to client in ${loc}`;
     case "In Transit":
-      return `Shipment in transit en route via ${loc}`;
+      return `Shipment leaves ${loc}`;
     case "Reached Hub":
-      return `Shipment arrived at transshipment facility in ${loc}`;
+      return `Shipment arrives at ${loc}`;
     case "Out for Delivery":
-      return `Shipment out for delivery in ${loc}`;
+      return `Shipment goes for delivery in ${loc}`;
     case "Picked Up":
-      return `Shipment picked up and booked at ${loc}`;
+      return `We pick up shipment at ${loc}`;
     case "Delayed":
-      return `Shipment in transit - operational delay at ${loc}`;
+      return `Shipment delays at ${loc}`;
     case "Returned":
-      return `Shipment returned to origin facility at ${loc}`;
+      return `Shipment returns to ${loc}`;
     default:
-      return `Shipment update recorded at ${loc}`;
+      return `Shipment is at ${loc}`;
   }
 };
 
@@ -79,7 +79,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           date: new Date().toISOString().split('T')[0],
           location: defaultLoc,
           status: initialStatus,
-          remarks: getSensibleRemark(initialStatus, defaultLoc)
+          remarks: ""
         });
       } else if (booking) {
         const awb = booking.awb || booking.consignment || booking.lrNo || booking.id?.slice(-6) || "";
@@ -91,7 +91,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           date: new Date().toISOString().split('T')[0],
           location: defaultLoc,
           status: initialStatus,
-          remarks: getSensibleRemark(initialStatus, defaultLoc)
+          remarks: ""
         });
       }
     }
@@ -112,16 +112,14 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
     const newStatus = e.target.value;
     setFormData(prev => ({
       ...prev,
-      status: newStatus,
-      remarks: getSensibleRemark(newStatus, prev.location)
+      status: newStatus
     }));
   };
 
   const handleLocationChange = (newLocation) => {
     setFormData(prev => ({
       ...prev,
-      location: newLocation,
-      remarks: getSensibleRemark(prev.status, newLocation)
+      location: newLocation
     }));
   };
 
@@ -381,9 +379,22 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, remarks: getSensibleRemark(formData.status, formData.location) })}
-                style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#4f46e5', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 700, 
+                  cursor: 'pointer', 
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Auto-Generate Description"
               >
-                Auto-generate
+                <Sparkles size={13} />
+                <span>AI Generate</span>
               </button>
             </div>
             <input

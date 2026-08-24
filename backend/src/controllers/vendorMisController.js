@@ -27,7 +27,7 @@ const matchVendorUser = (data, user) => {
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
 
   // Cache full collection, filter per-user in memory
   const allRecords = await getOrSet(CACHE_KEY, async () => {
@@ -54,7 +54,7 @@ exports.postRoot_2 = async (req, res) => {
   payload.creatorRole = user.role;
   payload.creatorName = user.name || user.email || 'Unknown';
 
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
 
   if (!isAdmin) {
     payload.approvalStatus = 'Pending';
@@ -95,7 +95,7 @@ exports.put_id_3 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
   const isVendorOwner = matchVendorUser(existingData, user);
 
   // Authorization check
@@ -172,7 +172,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
   const isVendorOwner = matchVendorUser(existingData, user);
 
   if (!isAdmin && !isVendorOwner) {
@@ -204,7 +204,7 @@ exports.addRemark_5 = async (req, res) => {
   if (!doc.exists) return error(res, "Vendor MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'vendormis' || p === 'operations')));
   const isVendorOwner = matchVendorUser(existingData, user);
 
   if (!isAdmin && !isVendorOwner) {

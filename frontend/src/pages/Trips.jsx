@@ -25,13 +25,13 @@ const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api`
 
 const Trips = () => {
   const _navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, hasPermission } = useContext(AuthContext);
   const { confirm } = useDialog();
   const { clearBadge } = useContext(BadgeContext);
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
-  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || (user?.role === 'Employee' && hasPermission('trips'));
 
-  const hasAccess = (perm) => isSuperAdmin || (user?.permissions || []).includes('all') || (user?.permissions || []).includes(perm);
+  const hasAccess = (perm) => hasPermission(perm);
 
   const [trips, setTrips] = useState([]);
   const [clients, setClients] = useState([]);

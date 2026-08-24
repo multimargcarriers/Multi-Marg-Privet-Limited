@@ -25,6 +25,37 @@ import { useToast } from "../context/ToastContext";
 import ExportModal from "../components/ExportModal";
 import { exportBookingsList } from "../utils/excelExport";
 
+const parseDateSecurely = (dateVal) => {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) return dateVal;
+  const dateStr = String(dateVal).trim();
+  if (!dateStr) return null;
+
+  // Match DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1; // 0-indexed
+    const year = parseInt(dmyMatch[3], 10);
+    
+    const timeMatch = dateStr.match(/\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      return new Date(year, month, day, hours, minutes, seconds);
+    }
+    
+    return new Date(year, month, day);
+  }
+
+  const parsedDate = new Date(dateStr);
+  if (!isNaN(parsedDate.getTime())) {
+    return parsedDate;
+  }
+  return null;
+};
+
 const BookingsList = () => {
   const { syncQueue } = useSync();
   const { user, hasPermission } = useContext(AuthContext);
@@ -158,7 +189,11 @@ const BookingsList = () => {
       // Build Tracking map
       if (trackingRes.data.success && Array.isArray(trackingRes.data.data)) {
         const map = {};
-        const sorted = [...trackingRes.data.data].sort((a, b) => new Date(a.updatedAt || a.date || a.createdAt) - new Date(b.updatedAt || b.date || b.createdAt));
+        const sorted = [...trackingRes.data.data].sort((a, b) => {
+          const dateA = parseDateSecurely(a.updatedAt || a.date || a.createdAt);
+          const dateB = parseDateSecurely(b.updatedAt || b.date || b.createdAt);
+          return (dateA ? dateA.getTime() : 0) - (dateB ? dateB.getTime() : 0);
+        });
         sorted.forEach(t => {
           if (t.awb) {
             const raw = String(t.awb).trim();

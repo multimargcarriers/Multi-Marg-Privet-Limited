@@ -316,10 +316,21 @@ exports.get_id_3 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
-  return success(res, "Booking fetched successfully", {
-    id: doc.id,
-    ...doc.data()
-  });
+  
+  const settings = await getOrSet("global_config", async () => {
+    if (db && db.mongoDb) {
+      return await db.mongoDb.collection("system_settings").findOne({ type: "global_config" });
+    }
+    return null;
+  }, 3600);
+
+  const bookingData = { id: doc.id, ...doc.data() };
+  const filtered = filterByAccess([bookingData], req.user, "bookings", settings);
+  if (filtered.length === 0) {
+    return error(res, "Forbidden: Access denied to this booking", 403);
+  }
+
+  return success(res, "Booking fetched successfully", bookingData);
 };
 
 exports.put_id_4 = async (req, res) => {
@@ -328,6 +339,20 @@ exports.put_id_4 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
+  
+  const settings = await getOrSet("global_config", async () => {
+    if (db && db.mongoDb) {
+      return await db.mongoDb.collection("system_settings").findOne({ type: "global_config" });
+    }
+    return null;
+  }, 3600);
+
+  const bookingData = { id, ...doc.data() };
+  const filtered = filterByAccess([bookingData], req.user, "bookings", settings);
+  if (filtered.length === 0) {
+    return error(res, "Forbidden: Access denied to edit this booking", 403);
+  }
+
   await db.collection("bookings").doc(id).update(req.body);
   
   const updatedBooking = { id, ...doc.data(), ...req.body };
@@ -335,7 +360,7 @@ exports.put_id_4 = async (req, res) => {
   
   await delCache(CACHE_KEY);
   emitDataUpdated("bookings", "update");
-    return success(res, "Booking updated successfully", {
+  return success(res, "Booking updated successfully", {
     id,
     ...req.body
   });
@@ -346,6 +371,19 @@ exports.delete_id_5 = async (req, res) => {
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
   const bookingData = doc.data(); // capture before deletion
+
+  const settings = await getOrSet("global_config", async () => {
+    if (db && db.mongoDb) {
+      return await db.mongoDb.collection("system_settings").findOne({ type: "global_config" });
+    }
+    return null;
+  }, 3600);
+
+  const filtered = filterByAccess([{ id, ...bookingData }], req.user, "bookings", settings);
+  if (filtered.length === 0) {
+    return error(res, "Forbidden: Access denied to delete this booking", 403);
+  }
+
   await db.collection("bookings").doc(id).delete(req.user);
 
   // Cascade delete related tracking entries

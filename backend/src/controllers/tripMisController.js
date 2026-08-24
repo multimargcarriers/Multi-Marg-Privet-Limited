@@ -49,7 +49,7 @@ const matchVendorUser = (data, user) => {
 
 exports.getRoot_1 = async (req, res) => {
   const user = req.user;
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   const isVendor = user && (user.role === 'Vendor' || user.role?.toLowerCase() === 'vendor');
 
@@ -82,7 +82,7 @@ exports.postRoot_2 = async (req, res) => {
   payload.creatorRole = user.role;
   payload.creatorName = user.name || user.email || 'Unknown';
 
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
 
   if (!isAdmin) {
     payload.approvalStatus = 'Pending';
@@ -129,7 +129,7 @@ exports.put_id_3 = async (req, res) => {
 
   const existingData = doc.data();
 
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
   const isClient = user && (user.role === 'Client' || user.role?.toLowerCase() === 'client');
   const isVendor = user && (user.role === 'Vendor' || user.role?.toLowerCase() === 'vendor');
   const isOwner = matchClientUser(existingData, user) || matchVendorUser(existingData, user);
@@ -190,7 +190,7 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
   const isOwner = matchClientUser(existingData, user) || matchVendorUser(existingData, user);
 
   if (user && (user.role === 'Client' || user.role?.toLowerCase() === 'client')) {
@@ -226,7 +226,7 @@ exports.addRemark_5 = async (req, res) => {
   if (!doc.exists) return error(res, "Trip MIS entry not found", 404);
 
   const existingData = doc.data();
-  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com');
+  const isAdmin = user && (user.role === 'SuperAdmin' || user.role === 'Admin' || user.email === 'admin@multimarg.com' || (user.role === 'Employee' && (user.permissions || []).some(p => p === 'all' || p === 'tripmis' || p === 'operations')));
   const isClientMatch = matchClientUser(existingData, user);
   const isVendorMatch = matchVendorUser(existingData, user);
 

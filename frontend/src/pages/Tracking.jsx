@@ -13,29 +13,51 @@ import "../index.css";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
+const parseDateSecurely = (dateVal) => {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) return dateVal;
+  const dateStr = String(dateVal).trim();
+  if (!dateStr) return null;
+
+  // Match DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1; // 0-indexed
+    const year = parseInt(dmyMatch[3], 10);
+    
+    const timeMatch = dateStr.match(/\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      return new Date(year, month, day, hours, minutes, seconds);
+    }
+    
+    return new Date(year, month, day);
+  }
+
+  const parsedDate = new Date(dateStr);
+  if (!isNaN(parsedDate.getTime())) {
+    return parsedDate;
+  }
+  return null;
+};
+
 const formatCleanDate = (dateStr) => {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
+  const d = parseDateSecurely(dateStr);
+  if (d) {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
     return `${day}-${month}-${year}`;
   }
-  const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-  if (dmyMatch) {
-    const day = String(dmyMatch[1]).padStart(2, '0');
-    const month = String(dmyMatch[2]).padStart(2, '0');
-    const year = dmyMatch[3];
-    return `${day}-${month}-${year}`;
-  }
-  return dateStr;
+  return "-";
 };
 
 const formatCleanDateTime = (dateStr) => {
-  if (!dateStr) return "N/A";
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
+  const d = parseDateSecurely(dateStr);
+  if (d) {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
@@ -43,7 +65,7 @@ const formatCleanDateTime = (dateStr) => {
     const mins = String(d.getMinutes()).padStart(2, '0');
     return `${day}-${month}-${year} ${hours}:${mins}`;
   }
-  return formatCleanDate(dateStr);
+  return "N/A";
 };
 
 const Tracking = () => {
@@ -213,7 +235,11 @@ const Tracking = () => {
               const res2 = await axios.get(`${API}/public/tracking/${fullId}`);
               if (res2.data.success) {
                   const merged = [...data, ...res2.data.data];
-                  merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+                  merged.sort((a, b) => {
+                      const dateA = parseDateSecurely(a.date || a.updatedAt);
+                      const dateB = parseDateSecurely(b.date || b.updatedAt);
+                      return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+                  });
                   const unique = [];
                   const ids = new Set();
                   for(let item of merged) {
@@ -886,8 +912,10 @@ const Tracking = () => {
                   <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
                   <option value="Picked Up" style={{ color: "#000" }}>Picked Up</option>
                   <option value="In Transit" style={{ color: "#000" }}>In Transit</option>
+                  <option value="Reached Hub" style={{ color: "#000" }}>Arrived</option>
                   <option value="Out for Delivery" style={{ color: "#000" }}>Out for Delivery</option>
                   <option value="Delivered" style={{ color: "#000" }}>Delivered</option>
+                  <option value="Delayed" style={{ color: "#000" }}>Delayed</option>
                   <option value="Returned" style={{ color: "#000" }}>Returned</option>
                 </select>
               </div>
@@ -979,7 +1007,11 @@ const Tracking = () => {
               {(() => {
                 const recent = displayUpdates
                   .filter(u => String(u.awb).toLowerCase() === formData.awb.trim().toLowerCase())
-                  .sort((a,b) => new Date(b.date) - new Date(a.date));
+                  .sort((a,b) => {
+                    const dateA = parseDateSecurely(a.date || a.updatedAt);
+                    const dateB = parseDateSecurely(b.date || b.updatedAt);
+                    return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+                  });
                 
                 if (recent.length === 0) {
                   return <div style={{ fontSize: "0.85rem", color: "#9ca3af", fontStyle: "italic" }}>No tracking history found.</div>;

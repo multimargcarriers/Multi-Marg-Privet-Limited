@@ -51,19 +51,36 @@ exports.postRoot_3 = async (req, res) => {
     const cleanAwb = String(entry.awb || '').trim();
     if (cleanAwb && db.mongoDb) {
       const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-      const bookingUpdate = {
-        transitStatus: entry.status,
-        trackingStatus: entry.status,
-        currentLocation: entry.location,
-        lastTrackingUpdate: new Date().toISOString()
-      };
-      if (entry.status === 'Delivered') {
-        bookingUpdate.status = 'Delivered';
-        bookingUpdate.deliveryDate = entry.date || new Date().toISOString();
-      }
-      await db.mongoDb.collection("bookings").updateMany({
+      
+      const existingBooking = await db.mongoDb.collection("bookings").findOne({
         $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
-      }, { $set: bookingUpdate });
+      });
+
+      if (existingBooking) {
+        const currentStatus = String(existingBooking.status || '').toLowerCase();
+        const currentTransit = String(existingBooking.transitStatus || '').toLowerCase();
+        
+        const isFinal = currentStatus === 'delivered' || currentStatus === 'billed' || currentTransit === 'delivered';
+        
+        const bookingUpdate = {
+          lastTrackingUpdate: new Date().toISOString()
+        };
+
+        if (!isFinal) {
+          bookingUpdate.transitStatus = entry.status;
+          bookingUpdate.trackingStatus = entry.status;
+          bookingUpdate.currentLocation = entry.location;
+          if (entry.status === 'Delivered') {
+            bookingUpdate.status = 'Delivered';
+            bookingUpdate.deliveryDate = entry.date || new Date().toISOString();
+          }
+        } else {
+          // If it is final, only update current location if provided, but don't touch status
+          bookingUpdate.currentLocation = entry.location || existingBooking.currentLocation;
+        }
+
+        await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
+      }
     }
   } catch (bkErr) {
     console.error("[Tracking Sync to Booking Error]:", bkErr);
@@ -137,14 +154,14 @@ exports.postBulk_6 = async (req, res) => {
 
   const getSensibleRemark = (st, loc) => {
     const l = loc || "facility";
-    if (st === "Delivered") return `Shipment successfully delivered at destination in ${l}`;
-    if (st === "In Transit") return `Shipment in transit en route via ${l}`;
-    if (st === "Reached Hub") return `Shipment arrived at transshipment facility in ${l}`;
-    if (st === "Out for Delivery") return `Shipment out for delivery in ${l}`;
-    if (st === "Picked Up") return `Shipment picked up and booked at ${l}`;
-    if (st === "Delayed") return `Shipment in transit - experiencing operational delay at ${l}`;
-    if (st === "Returned") return `Shipment returned to origin facility at ${l}`;
-    return `Shipment status updated to ${st} at ${l}`;
+    if (st === "Delivered") return `Shipment delivers to client in ${l}`;
+    if (st === "In Transit") return `Shipment leaves ${l}`;
+    if (st === "Reached Hub") return `Shipment arrives at ${l}`;
+    if (st === "Out for Delivery") return `Shipment goes for delivery in ${l}`;
+    if (st === "Picked Up") return `We pick up shipment at ${l}`;
+    if (st === "Delayed") return `Shipment delays at ${l}`;
+    if (st === "Returned") return `Shipment returns to ${l}`;
+    return `Shipment is at ${l}`;
   };
 
   for (const awb of awbs) {
@@ -168,19 +185,36 @@ exports.postBulk_6 = async (req, res) => {
     try {
       if (cleanAwb && db.mongoDb) {
         const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-        const bookingUpdate = {
-          transitStatus: status,
-          trackingStatus: status,
-          currentLocation: location,
-          lastTrackingUpdate: now
-        };
-        if (status === 'Delivered') {
-          bookingUpdate.status = 'Delivered';
-          bookingUpdate.deliveryDate = trackingDate;
-        }
-        await db.mongoDb.collection("bookings").updateMany({
+        
+        const existingBooking = await db.mongoDb.collection("bookings").findOne({
           $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
-        }, { $set: bookingUpdate });
+        });
+
+        if (existingBooking) {
+          const currentStatus = String(existingBooking.status || '').toLowerCase();
+          const currentTransit = String(existingBooking.transitStatus || '').toLowerCase();
+          
+          const isFinal = currentStatus === 'delivered' || currentStatus === 'billed' || currentTransit === 'delivered';
+          
+          const bookingUpdate = {
+            lastTrackingUpdate: now
+          };
+
+          if (!isFinal) {
+            bookingUpdate.transitStatus = status;
+            bookingUpdate.trackingStatus = status;
+            bookingUpdate.currentLocation = location;
+            if (status === 'Delivered') {
+              bookingUpdate.status = 'Delivered';
+              bookingUpdate.deliveryDate = trackingDate;
+            }
+          } else {
+            // If it is final, only update current location if provided, but don't touch status
+            bookingUpdate.currentLocation = location || existingBooking.currentLocation;
+          }
+
+          await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
+        }
       }
     } catch (bkErr) {}
   }

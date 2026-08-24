@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, Zap } from "lucide-react";
+import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, Zap, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import RupeeIcon from '../../components/RupeeIcon';
 import { formatAllCaps,  formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
@@ -18,11 +19,12 @@ import { recordSuggestion } from "../../utils/smartSuggestions";
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const VendorMIS = () => {
-  const { addToast } = useToast();
+  const { token, user, hasPermission } = useContext(AuthContext);
   const { confirm } = useDialog();
-  const { token, user } = useContext(AuthContext);
+  const { addToast } = useToast();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
-  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const navigate = useNavigate();
+  const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || (user?.role === 'Employee' && hasPermission('vendormis'));
   const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
 
   const initialVendorMisRow = { handoverTo: "", date: "", from: "", vehicleNo: "", to: "", particular: "", mode: "", others: "0", amount: "0", status: "Pending" };
@@ -647,7 +649,10 @@ const VendorMIS = () => {
         <div className="vendor-mis-header-card">
           <div className="mis-top-bar">
             <div className="mis-title-wrap">
-              <h3 className="mis-main-heading">Vendor Vehicle MIS</h3>
+              <button onClick={() => navigate(-1)} style={{ background: "transparent", border: "none", cursor: "pointer", marginRight: "8px" }} title="Back">
+            <ArrowLeft size={16} color="#111827" />
+          </button>
+          <h3 className="mis-main-heading">Vendor Vehicle MIS</h3>
               {isVendorUser && (
                 <span className="mis-portal-badge">
                   <Truck size={12} /> {user?.vendorName || user?.vendor || 'Vendor Portal'}
