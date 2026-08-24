@@ -208,6 +208,8 @@ export const getSuggestions = (rawCategory = 'general', query = '', limit = 8) =
  * Preload and merge suggestions from the backend API into category storage.
  */
 export const preloadSuggestionsFromBackend = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
   try {
     const res = await axios.get(`${API}/suggestions/recent`);
     if (res.data && res.data.success && res.data.data) {

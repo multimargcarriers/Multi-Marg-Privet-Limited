@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useToast } from './ToastContext';
 import appDB from '../utils/appDB';
 import DeviceLockModal from '../components/DeviceLockModal';
+import { preloadSuggestionsFromBackend } from '../utils/smartSuggestions';
 
 export const AuthContext = createContext();
 
@@ -188,6 +189,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('mm_last_active', now.toString());
     appDB.set('user', cleanUser);
     localStorage.setItem('token', userToken);
+
+    // Preload suggestions in background now that token is saved
+    try {
+      preloadSuggestionsFromBackend();
+    } catch (_err) {}
 
     const isSuperAdmin = userData.role === 'SuperAdmin' || userData.email === 'admin@multimarg.com';
     const hasDashboard = isSuperAdmin || (userData.permissions && (userData.permissions.includes('all') || userData.permissions.includes('dashboard')));
