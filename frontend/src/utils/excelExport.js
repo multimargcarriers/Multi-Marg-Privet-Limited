@@ -1421,6 +1421,8 @@ export async function exportPartyDetailedLedger({
       ref: party.openingDoc?.financialYear ? `OPENING-${party.openingDoc.financialYear}` : "FY-OPENING-BAL",
       particulars: `Prior financial year closing balance carried forward (Billed: ₹${(party.priorBilled || 0).toFixed(2)}, Paid: ₹${(party.priorPaid || 0).toFixed(2)})`,
       mode: "OPENING ENTRY",
+      taxable: 0,
+      gst: 0,
       debit: Number((party.openingDue || 0).toFixed(2)),
       credit: 0,
       status: (party.openingDue || 0) > 0 ? "UNPAID" : "SETTLED",
@@ -1469,6 +1471,9 @@ export async function exportPartyDetailedLedger({
     if (b.vehicles || b.vehicleNo) particulars += ` (Veh: ${b.vehicles || b.vehicleNo})`;
     if (b.tripsCount) particulars += ` [${b.tripsCount} Trips]`;
 
+    const bTaxable = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTotal - Number(b.gstAmount || b.gst) : bTotal / 1.18);
+    const bGst = Number(b.gstAmount || b.gst) || (bTotal - bTaxable);
+
     ledgerEntries.push({
       date: formatDate(bDate),
       rawDate: bDate ? new Date(bDate) : new Date(),
@@ -1476,6 +1481,8 @@ export async function exportPartyDetailedLedger({
       ref: bNo,
       particulars: particulars,
       mode: b.paymentMode && String(b.paymentMode).toUpperCase() !== "TBB" ? b.paymentMode : "BILL / INVOICE",
+      taxable: Number(bTaxable.toFixed(2)),
+      gst: Number(bGst.toFixed(2)),
       debit: Number(bTotal.toFixed(2)),
       credit: 0,
       status: status,
@@ -1523,6 +1530,8 @@ export async function exportPartyDetailedLedger({
       ref: cRef,
       particulars: narration,
       mode: mode,
+      taxable: 0,
+      gst: 0,
       debit: Number(debit.toFixed(2)),
       credit: Number(credit.toFixed(2)),
       status: "SETTLED",
@@ -1560,6 +1569,8 @@ export async function exportPartyDetailedLedger({
       ref: adjRef,
       particulars: narration,
       mode: mode,
+      taxable: 0,
+      gst: 0,
       debit: 0,
       credit: 0,
       tds: isTds ? Number(amt.toFixed(2)) : 0,
@@ -1583,10 +1594,14 @@ export async function exportPartyDetailedLedger({
   let totalLedgerDebit = 0;
   let totalLedgerCredit = 0;
   let totalLedgerTds = 0;
+  let totalLedgerTaxable = 0;
+  let totalLedgerGst = 0;
   ledgerEntries.forEach((entry) => {
     totalLedgerDebit += entry.debit || 0;
     totalLedgerCredit += entry.credit || 0;
     totalLedgerTds += entry.tds || 0;
+    totalLedgerTaxable += entry.taxable || 0;
+    totalLedgerGst += entry.gst || 0;
 
     if (isClient) {
       runningBal = runningBal + (entry.debit || 0) - (entry.credit || 0) - (entry.tds || 0) - (entry.debt || 0);
@@ -1639,6 +1654,8 @@ export async function exportPartyDetailedLedger({
       "Reference / Bill No",
       "Particulars / Narration",
       "Payment Mode",
+      "Taxable (₹)",
+      "GST 18% (₹)",
       "Debit / Billed (₹)",
       "Credit / Paid (₹)",
       "TDS Deducted (₹)",
@@ -1654,6 +1671,8 @@ export async function exportPartyDetailedLedger({
         entry.ref,
         entry.particulars,
         entry.mode,
+        entry.taxable > 0 ? entry.taxable : "-",
+        entry.gst > 0 ? entry.gst : "-",
         entry.debit > 0 ? entry.debit : "-",
         entry.credit > 0 ? entry.credit : "-",
         entry.tds > 0 ? entry.tds : entry.debt > 0 ? entry.debt : "-",
@@ -1669,10 +1688,13 @@ export async function exportPartyDetailedLedger({
       "",
       "",
       "",
+      Number(totalLedgerTaxable.toFixed(2)),
+      Number(totalLedgerGst.toFixed(2)),
       Number(totalLedgerDebit.toFixed(2)),
       Number(totalLedgerCredit.toFixed(2)),
+      Number(totalLedgerTds.toFixed(2)),
       Number((party.netOutstandingDue || 0).toFixed(2)),
-      party.status === "paid" ? "SETTLED" : "PENDING"
+      party.status === "paid" ? "SETTLED" : "DUE"
     ]);
 
     // Bills schedule section in CSV
@@ -1821,6 +1843,8 @@ export async function exportPartyDetailedLedger({
     { header: "REFERENCE / BILL NO", key: "ref", width: 22 },
     { header: "PARTICULARS / NARRATION", key: "particulars", width: 38 },
     { header: "PAYMENT MODE", key: "mode", width: 18, align: "center" },
+    { header: "TAXABLE (₹)", key: "taxable", width: 16, align: "right", numFmt: "#,##0.00" },
+    { header: "GST 18% (₹)", key: "gst", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "DEBIT / BILLED (₹)", key: "debit", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "CREDIT / PAID (₹)", key: "credit", width: 16, align: "right", numFmt: "#,##0.00" },
     { header: "TDS DEDUCTION (₹)", key: "tds", width: 16, align: "right", numFmt: "#,##0.00" },
@@ -2052,6 +2076,8 @@ export async function exportPartyDetailedLedger({
       entry.ref,
       entry.particulars,
       entry.mode,
+      entry.taxable > 0 ? entry.taxable : "-",
+      entry.gst > 0 ? entry.gst : "-",
       entry.debit > 0 ? entry.debit : "-",
       entry.credit > 0 ? entry.credit : "-",
       entry.tds > 0 ? entry.tds : entry.debt > 0 ? entry.debt : "-",
@@ -2117,31 +2143,43 @@ export async function exportPartyDetailedLedger({
   grandLabelCell1.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: primaryColorHex } };
   grandLabelCell1.alignment = { horizontal: "right", vertical: "middle" };
 
-  const debitTotCell = ws1.getCell(`G${totalRowNumber1}`);
+  const taxableTotCell = ws1.getCell(`G${totalRowNumber1}`);
+  taxableTotCell.value = Number(totalLedgerTaxable.toFixed(2));
+  taxableTotCell.numFmt = "#,##0.00";
+  taxableTotCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: "FF475569" } };
+  taxableTotCell.alignment = { horizontal: "right", vertical: "middle" };
+
+  const gstTotCell = ws1.getCell(`H${totalRowNumber1}`);
+  gstTotCell.value = Number(totalLedgerGst.toFixed(2));
+  gstTotCell.numFmt = "#,##0.00";
+  gstTotCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: "FF4F46E5" } };
+  gstTotCell.alignment = { horizontal: "right", vertical: "middle" };
+
+  const debitTotCell = ws1.getCell(`I${totalRowNumber1}`);
   debitTotCell.value = Number(totalLedgerDebit.toFixed(2));
   debitTotCell.numFmt = "#,##0.00";
   debitTotCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: primaryColorHex } };
   debitTotCell.alignment = { horizontal: "right", vertical: "middle" };
 
-  const creditTotCell = ws1.getCell(`H${totalRowNumber1}`);
+  const creditTotCell = ws1.getCell(`J${totalRowNumber1}`);
   creditTotCell.value = Number(totalLedgerCredit.toFixed(2));
   creditTotCell.numFmt = "#,##0.00";
   creditTotCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: "FF166534" } };
   creditTotCell.alignment = { horizontal: "right", vertical: "middle" };
 
-  const tdsTotCell = ws1.getCell(`I${totalRowNumber1}`);
+  const tdsTotCell = ws1.getCell(`K${totalRowNumber1}`);
   tdsTotCell.value = Number(totalLedgerTds.toFixed(2));
   tdsTotCell.numFmt = "#,##0.00";
   tdsTotCell.font = { name: "Calibri", size: 9.5, bold: true, color: { argb: "FF92400E" } };
   tdsTotCell.alignment = { horizontal: "right", vertical: "middle" };
 
-  const finalBalCell = ws1.getCell(`J${totalRowNumber1}`);
+  const finalBalCell = ws1.getCell(`L${totalRowNumber1}`);
   finalBalCell.value = Number((party.netOutstandingDue || 0).toFixed(2));
   finalBalCell.numFmt = "#,##0.00";
   finalBalCell.font = { name: "Calibri", size: 10, bold: true, color: { argb: (party.netOutstandingDue || 0) > 0 ? accentRedHex : accentGreenHex } };
   finalBalCell.alignment = { horizontal: "right", vertical: "middle" };
 
-  const finalStatusCell = ws1.getCell(`K${totalRowNumber1}`);
+  const finalStatusCell = ws1.getCell(`M${totalRowNumber1}`);
   finalStatusCell.value = party.status === "paid" ? "SETTLED" : "DUE";
   finalStatusCell.font = { name: "Calibri", size: 9, bold: true, color: { argb: party.status === "paid" ? greenTextHex : redTextHex } };
   finalStatusCell.alignment = { horizontal: "center", vertical: "middle" };
