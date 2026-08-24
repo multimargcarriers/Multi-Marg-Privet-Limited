@@ -233,15 +233,16 @@ const CashSheet = () => {
   async function fetchData() {
     setLoading(true);
     try {
-      const [cashRes, clientRes, vendorRes] = await Promise.all([
+      const [cashRes, clientRes, vendorRes, userRes] = await Promise.all([
         axios.get(`${API}/cash`),
         axios.get(`${API}/clients`).catch(() => ({ data: { data: [] } })),
-        axios.get(`${API}/vendors`).catch(() => ({ data: { data: [] } }))
+        axios.get(`${API}/vendors`).catch(() => ({ data: { data: [] } })),
+        axios.get(`${API}/users`).catch(() => ({ data: { data: [] } }))
       ]);
       if (cashRes.data.success) setEntries(cashRes.data.data || []);
       setClients(clientRes.data.data || []);
       setVendors(vendorRes.data.data || []);
-      setEmployees([]); // Employee route doesn't exist yet, avoiding 404 error
+      setEmployees(userRes.data?.data || []);
     } catch (err) { 
       console.error("Fetch cash error", err); 
     } finally {

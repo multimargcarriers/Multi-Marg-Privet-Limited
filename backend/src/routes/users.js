@@ -18,25 +18,26 @@ const requireSuperAdmin = (req, res, next) => {
   }
 };
 
-// Protect all user routes
+const requireSuperAdminOrAccounts = (req, res, next) => {
+  if (req.user && (req.user.role === "SuperAdmin" || req.user.email === "admin@multimarg.com")) {
+    return next();
+  }
+  const userPermissions = req.user.permissions || [];
+  if (userPermissions.includes('all') || userPermissions.includes('accounts') || userPermissions.includes('cash_sheet')) {
+    return next();
+  }
+  return error(res, { message: "Forbidden: SuperAdmin or Accounts access required", statusCode: 403 });
+};
 
-router.use(requireSuperAdmin);
-
-// GET all users
+// Protect GET all users route for SuperAdmin or Accounts
 router.get(
   "/",
-  asyncHandler(getRoot_1
-
-
-
-
-
-
-
-
-
-  )
+  requireSuperAdminOrAccounts,
+  asyncHandler(getRoot_1)
 );
+
+// Protect all subsequent user routes strictly for SuperAdmin
+router.use(requireSuperAdmin);
 
 // GET all user activities
 router.get("/activity", asyncHandler(getAllUserActivities));

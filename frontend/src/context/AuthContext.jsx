@@ -249,13 +249,70 @@ export const AuthProvider = ({ children }) => {
     if (userToken) localStorage.setItem('token', userToken);
   };
 
+  const PERMISSION_PARENTS = {
+    // Masters
+    'clients': 'masters',
+    'clients_data': 'masters',
+    'branches': 'masters',
+    'branches_data': 'masters',
+    'cities': 'masters',
+    'cities_data': 'masters',
+    'vendors': 'masters',
+    'vendors_data': 'masters',
+    
+    // Rates
+    'client_rates': 'rates',
+    'client_rates_data': 'rates',
+    
+    // Operations
+    'bookings': 'operations',
+    'create_booking': 'operations',
+    'trips': 'operations',
+    'tripmis': 'operations',
+    'vendormis': 'operations',
+    'track_shipment': 'operations',
+    'update_tracking': 'operations',
+    'pod': 'operations',
+    
+    // Billing
+    'all_bills': 'billing',
+    'generate_bills': 'billing',
+    'misc_bill': 'billing',
+    'update_bill': 'billing',
+    
+    // Accounts
+    'cash_sheet': 'accounts',
+    'purchases': 'accounts',
+    
+    // Reports
+    'analytics': 'reports',
+    'gst_reports': 'reports',
+    'mis_reports': 'reports',
+    'unbilled_reports': 'reports',
+    'sales_reports': 'reports',
+    'purchase_reports': 'reports',
+    'cashsheet_reports': 'reports',
+    'client_trip_reports': 'reports',
+    
+    // Uploads
+    'upload_box': 'uploads',
+    'upload_vouchers': 'uploads'
+  };
+
   const hasPermission = (moduleName) => {
     if (!user) return false;
     if (user.role === 'SuperAdmin' || user.email === 'admin@multimarg.com') return true;
     
-    if (user.permissions && (user.permissions.includes('all') || user.permissions.includes(moduleName))) {
+    const userPerms = user.permissions || [];
+    if (userPerms.includes('all') || userPerms.includes(moduleName)) {
       return true;
     }
+
+    const parent = PERMISSION_PARENTS[moduleName];
+    if (parent && userPerms.includes(parent)) {
+      return true;
+    }
+
     return false;
   };
 
