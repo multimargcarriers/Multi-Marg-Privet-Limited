@@ -127,8 +127,8 @@ const formatValue = (key, val) => {
   const k = String(key || "").toLowerCase().trim();
   const v = val.trim();
 
-  // 1. Skip system config, permissions, roles, URLs, signatures, credentials, and user account names
-  const keysToSkip = ["permission", "permissions", "role", "roles", "scope", "scopes", "password", "token", "secret", "hash", "photo", "avatar", "banner", "signature", "stamp", "url", "username", "createdBy", "creatorName", "name"];
+  // 1. Skip system config, permissions, roles, URLs, signatures, credentials, user names, and login IDs
+  const keysToSkip = ["permission", "permissions", "role", "roles", "scope", "scopes", "password", "token", "secret", "hash", "photo", "avatar", "banner", "signature", "stamp", "url", "username", "createdBy", "creatorName", "name", "user", "login"];
   if (keysToSkip.some(skipKey => k.includes(skipKey)) || v.startsWith("data:image") || v.startsWith("data:application") || (v.startsWith("http") && v.includes("res.cloudinary.com")) || v.includes("/uploads/")) {
     return val;
   }

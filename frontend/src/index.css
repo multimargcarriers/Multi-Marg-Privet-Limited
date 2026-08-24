@@ -4445,7 +4445,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .details-grid span:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
 .stats-panel span,
 .lr-row span,
-input[type="text"]:not([name*="email"]):not([name*="website"]):not([name*="address"]):not([id*="email"]):not([id*="website"]):not([id*="address"]),
+input[type="text"]:not([name*="email"]):not([name*="website"]):not([name*="address"]):not([id*="email"]):not([id*="website"]):not([id*="address"]):not([name*="password"]):not([id*="password"]):not([name*="username"]):not([id*="username"]):not([name*="name"]):not([id*="name"]),
 input[type="search"],
 textarea:not([name*="address"]):not([id*="address"]) {
   text-transform: uppercase;
@@ -4484,4 +4484,15 @@ input[id*="address"],
 textarea[name*="address"], 
 textarea[id*="address"] {
   text-transform: capitalize !important;
+}
+
+/* 4. No Casing override for Passwords, User Names, and Credentials */
+input[type="password"],
+input[name*="password"],
+input[id*="password"],
+input[name*="username"],
+input[id*="username"],
+input[name="name"],
+input[id="name"] {
+  text-transform: none !important;
 }
