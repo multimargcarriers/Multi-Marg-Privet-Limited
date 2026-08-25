@@ -54,7 +54,7 @@ const TripMIS = () => {
   const isClientUser = user?.role === 'Client' || user?.role?.toLowerCase() === 'client';
 
   const initialParcel = { lrNo: "", consignor: "", consignee: "", origin: "", destination: "", mode: "", box: "", weight: "", rate: "0", freight: "0", pickup: "0", delivery: "0", special: "0", other: "0", parking: "0", labor: "0", remarks: "" };
-  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", freight: "", tripRemarks: "", parcels: [ { ...initialParcel } ] };
+  const initialTripListForm = { tripNo: "", origin: "", destination: "", clientName: "", date: "", vehicleType: "", vehicleNo: "", mode: "", payment: "", freight: "", gstEnabled: true, gstRate: 18, tripRemarks: "", parcels: [ { ...initialParcel } ] };
   
   const [tripListEntries, setTripListEntries] = useState([]);
   const [activeRemarksModal, setActiveRemarksModal] = useState(null);
@@ -79,7 +79,9 @@ const TripMIS = () => {
 
     const totalBox = item.box || item.parcels?.reduce((s, p) => s + (parseInt(p.box) || 0), 0) || 0;
     const totalWeight = item.weight || item.parcels?.reduce((s, p) => s + (parseFloat(p.weight) || 0), 0) || 0;
-    const totalFreight = ((parseFloat(item.freight) || 0) * 1.18).toFixed(2);
+    const gstEnabled = item.gstEnabled !== false;
+    const gstRate = gstEnabled ? (item.gstRate !== undefined ? parseFloat(item.gstRate) : 18) : 0;
+    const totalFreight = ((parseFloat(item.freight) || 0) * (1 + gstRate / 100)).toFixed(2);
     const dateStr = item.date ? formatDate(item.date) : (item.createdAt ? formatDate(item.createdAt) : '');
 
     const message = `🚚 *TRIP MIS SUMMARY*\n\n`
@@ -89,7 +91,7 @@ const TripMIS = () => {
       + `*Date:* ${dateStr}\n`
       + `*Vehicle:* ${item.vehicleNo || ''} (${item.vehicleType || ''})\n`
       + `*Parcels:* ${totalBox} Boxes | ${totalWeight} kg\n`
-      + `*Total Freight:* ₹ ${totalFreight} (Inc 18% GST)\n\n`
+      + `*Total Freight:* ₹ ${totalFreight} ${gstRate > 0 ? `(Inc ${gstRate}% GST)` : '(No GST)'}\n\n`
       + `📄 *Please find attached the PDF report for this Trip MIS entry.*`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
@@ -137,7 +139,9 @@ const TripMIS = () => {
     if (item.approvalStatus === 'Pending' || item.approvalStatus === 'Rejected') {
       return sum;
     }
-    return sum + ((parseFloat(item.freight) || 0) * 1.18);
+    const gstEnabled = item.gstEnabled !== false;
+    const gstRate = gstEnabled ? (item.gstRate !== undefined ? parseFloat(item.gstRate) : 18) : 0;
+    return sum + ((parseFloat(item.freight) || 0) * (1 + gstRate / 100));
   }, 0);
 
   // Selection State
@@ -618,6 +622,29 @@ const TripMIS = () => {
                   <option value="Credit">Credit</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Calculate GST?<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+                <select className="form-control" value={tripListForm.gstEnabled !== undefined ? String(tripListForm.gstEnabled) : "true"} onChange={e => setTripListForm({...tripListForm, gstEnabled: e.target.value === "true"})} required>
+                  <option value="true">Yes</option>
+                  <option value="false">No (0%)</option>
+                </select>
+              </div>
+              {tripListForm.gstEnabled !== false && (
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>GST Rate (%)<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="form-control"
+                    placeholder="e.g. 18"
+                    value={tripListForm.gstRate !== undefined ? tripListForm.gstRate : 18}
+                    onChange={e => setTripListForm({...tripListForm, gstRate: parseFloat(e.target.value) || 0})}
+                    required
+                  />
+                </div>
+              )}
 
               {tripListForm.mode === "Special" && (
                 <div className="form-group">
@@ -922,28 +949,39 @@ const TripMIS = () => {
               <td>{item.box || item.parcels?.reduce((s, p) => s + (parseInt(p.box)||0), 0) || "0"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{item.weight || item.parcels?.reduce((s, p) => s + (parseFloat(p.weight)||0), 0) || "0"} kg</td>
               <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
-                  <RupeeIcon size={14} />{((parseFloat(item.freight) || 0) * 1.18).toFixed(2)}
-                  <span style={{ fontSize: "0.6rem", color: "#6b7280" }}>(Inc 18% GST)</span>
-                </div>
-                {user?.role === 'SuperAdmin' && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                    {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (
-                      <div style={{ fontSize: "0.75rem", color: "#f59e0b", marginBottom: "6px", fontWeight: "600" }}>
-                        Paid: {item.paidAmount} | Rem: {(((parseFloat(item.freight) || 0) * 1.18) - parseFloat(item.paidAmount)).toFixed(2)}
+                {(() => {
+                  const gstEnabled = item.gstEnabled !== false;
+                  const gstRate = gstEnabled ? (item.gstRate !== undefined ? parseFloat(item.gstRate) : 18) : 0;
+                  const totalWithGst = (parseFloat(item.freight) || 0) * (1 + gstRate / 100);
+                  return (
+                    <>
+                      <div style={{ fontWeight: "600", color: "#10b981", marginBottom: "4px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                        <RupeeIcon size={14} />{totalWithGst.toFixed(2)}
+                        <span style={{ fontSize: "0.6rem", color: "#6b7280" }}>
+                          {gstRate > 0 ? `(Inc ${gstRate}% GST)` : '(No GST)'}
+                        </span>
                       </div>
-                    )}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
-                      <span style={{
-                        padding: "2px 8px", borderRadius: "12px", fontSize: "0.65rem", fontWeight: "600",
-                        background: item.payment === 'Paid' ? '#dcfce7' : item.payment === 'To Pay' ? '#fee2e2' : '#e0e7ff',
-                        color: item.payment === 'Paid' ? '#15803d' : item.payment === 'To Pay' ? '#b91c1c' : '#4338ca'
-                      }}>
-                        {item.payment}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                      {user?.role === 'SuperAdmin' && (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                          {(parseFloat(item.paidAmount) > 0 && item.payment !== 'Paid') && (
+                            <div style={{ fontSize: "0.75rem", color: "#f59e0b", marginBottom: "6px", fontWeight: "600" }}>
+                              Paid: {item.paidAmount} | Rem: {(totalWithGst - parseFloat(item.paidAmount)).toFixed(2)}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
+                            <span style={{
+                              padding: "2px 8px", borderRadius: "12px", fontSize: "0.65rem", fontWeight: "600",
+                              background: item.payment === 'Paid' ? '#dcfce7' : item.payment === 'To Pay' ? '#fee2e2' : '#e0e7ff',
+                              color: item.payment === 'Paid' ? '#15803d' : item.payment === 'To Pay' ? '#b91c1c' : '#4338ca'
+                            }}>
+                              {item.payment}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </td>
               <td>
                 <span style={{
@@ -1093,7 +1131,13 @@ const TripMIS = () => {
                         ...initialParcel,
                         ...p
                       }));
-                      setTripListForm({ ...item, freight: item.freight !== undefined ? item.freight : "0", parcels: safeParcels });
+                      setTripListForm({
+                        ...item,
+                        freight: item.freight !== undefined ? item.freight : "0",
+                        gstEnabled: item.gstEnabled !== undefined ? item.gstEnabled : true,
+                        gstRate: item.gstRate !== undefined ? item.gstRate : 18,
+                        parcels: safeParcels
+                      });
                       setEditingId(item.id);
                       setEditingStatus(item.approvalStatus || 'Pending');
                       setShowTripListForm(true);

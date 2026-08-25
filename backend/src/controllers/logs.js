@@ -1,6 +1,25 @@
 const { db } = require("../config/database");
 const { logger } = require("../config/logger");
 
+// Helper to format date string to local "YYYY-MM-DD HH:mm:ss" format for systemLogs
+const formatToLocalLogDate = (dateInput, isEnd = false) => {
+  if (!dateInput) return "";
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    return isEnd ? `${dateInput} 23:59:59` : `${dateInput} 00:00:00`;
+  }
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "";
+    const pad = (num) => String(num).padStart(2, '0');
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    return isEnd ? `${year}-${month}-${day} 23:59:59` : `${year}-${month}-${day} 00:00:00`;
+  } catch (e) {
+    return "";
+  }
+};
+
 /**
  * @desc    Get system logs
  * @route   GET /api/logs
@@ -53,7 +72,7 @@ exports.deleteLog = async (req, res, next) => {
 exports.deleteLogsByDate = async (req, res, next) => {
   try {
     const { date } = req.params;
-    const targetDate = new Date(date).toISOString();
+    const targetDate = formatToLocalLogDate(date, false);
     
     const snapshot = await db.collection("systemLogs").where("timestamp", "<", targetDate).get();
     
@@ -91,12 +110,10 @@ exports.bulkDeleteLogs = async (req, res, next) => {
       if (startDate || endDate) {
         mongoFilter.timestamp = {};
         if (startDate) {
-          mongoFilter.timestamp.$gte = new Date(startDate).toISOString();
+          mongoFilter.timestamp.$gte = formatToLocalLogDate(startDate, false);
         }
         if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          mongoFilter.timestamp.$lte = end.toISOString();
+          mongoFilter.timestamp.$lte = formatToLocalLogDate(endDate, true);
         }
       }
     }

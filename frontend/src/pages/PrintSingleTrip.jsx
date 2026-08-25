@@ -5,19 +5,68 @@ import { AuthContext } from "../context/AuthContext";
 import { formatDate } from "../utils/formatters";
 import appDB from "../utils/appDB";
 import { downloadViaPuppeteer } from "../utils/puppeteerPdf";
+import axios from "axios";
+import { useToast } from "../context/ToastContext";
+
+const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const PrintSingleTrip = () => {
   const { index } = useParams();
   const navigate = useNavigate();
   const _location = useLocation();
-  const { user } = useContext(AuthContext);
+  const { user, token } = useContext(AuthContext);
+  const { addToast } = useToast();
   const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const [signName, setSignName] = useState(user?.name || "Admin");
   const [scale, setScale] = useState(1);
   const [trip, setTrip] = useState(null);
   const [printHeader, setPrintHeader] = useState("MULTIMARG");
   const [showPrintAmounts, setShowPrintAmounts] = useState(false);
+  const [gstPercent, setGstPercent] = useState(18);
+  const [isSavingGst, setIsSavingGst] = useState(false);
   const containerRef = React.useRef(null);
+
+  const handleSaveGst = async () => {
+    if (!trip || !trip.id) {
+      addToast("Cannot save: Trip ID not found.", "error");
+      return;
+    }
+    
+    setIsSavingGst(true);
+    try {
+      const parsedRate = parseFloat(gstPercent);
+      const rate = isNaN(parsedRate) ? 0 : parsedRate;
+      const enabled = rate > 0;
+      
+      const response = await axios.put(
+        `${API}/trip-mis/${trip.id}`,
+        { gstRate: rate, gstEnabled: enabled },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data?.success) {
+        addToast("GST rate saved successfully!", "success");
+        const updatedTrip = { ...trip, gstRate: rate, gstEnabled: enabled };
+        setTrip(updatedTrip);
+        
+        const savedEntries = appDB.memGet("tripListEntries");
+        if (savedEntries && Array.isArray(savedEntries)) {
+          const idx = savedEntries.findIndex(item => item.id === trip.id);
+          if (idx !== -1) {
+            savedEntries[idx] = { ...savedEntries[idx], gstRate: rate, gstEnabled: enabled };
+            appDB.set("tripListEntries", savedEntries);
+          }
+        }
+      } else {
+        throw new Error(response.data?.message || "Response unsuccessful");
+      }
+    } catch (err) {
+      console.error("Failed to save GST rate:", err);
+      addToast(err.response?.data?.message || "Failed to save GST rate. Please try again.", "error");
+    } finally {
+      setIsSavingGst(false);
+    }
+  };
 
   useEffect(() => {
     if (index === 'mis-print') {
@@ -33,6 +82,14 @@ const PrintSingleTrip = () => {
       }
     }
   }, [index]);
+
+  useEffect(() => {
+    if (trip) {
+      const enabled = trip.gstEnabled !== false;
+      const rate = enabled ? (trip.gstRate !== undefined ? parseFloat(trip.gstRate) : 18) : 0;
+      setGstPercent(rate);
+    }
+  }, [trip]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -107,7 +164,8 @@ const PrintSingleTrip = () => {
     )
   ) || 0;
 
-  const gstAmount = baseFreight * 0.18;
+  const gstRate = parseFloat(gstPercent) || 0;
+  const gstAmount = baseFreight * (gstRate / 100);
   const grandTotal = baseFreight + gstAmount;
   const amountPaid = parseFloat(trip?.paidAmount || 0);
   const remaining = grandTotal - amountPaid;
@@ -277,6 +335,52 @@ const PrintSingleTrip = () => {
             <option value="SHOW">Show Amounts</option>
             <option value="HIDE">Hide (0 / XXXX)</option>
           </select>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "white", border: "1.5px solid #cbd5e1", borderRadius: "6px", height: "35px", padding: "0 8px" }}>
+            <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#475569" }}>GST:</span>
+            <input 
+              type="number" 
+              value={gstPercent} 
+              onChange={(e) => setGstPercent(e.target.value === "" ? "" : (parseFloat(e.target.value) || 0))} 
+              placeholder="GST %" 
+              min="0"
+              max="100"
+              step="0.1"
+              style={{ 
+                border: "none",
+                fontSize: "0.85rem", 
+                width: "45px", 
+                outline: "none",
+                background: "transparent",
+                fontWeight: "600",
+                color: "#1e3a8a",
+                textAlign: "center"
+              }} 
+            />
+            <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#475569", marginRight: "4px" }}>%</span>
+            {trip?.id && (
+              <button 
+                onClick={handleSaveGst}
+                disabled={isSavingGst}
+                style={{
+                  background: "#10b981",
+                  border: "none",
+                  borderRadius: "4px",
+                  color: "white",
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 8px",
+                  cursor: isSavingGst ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "23px",
+                  lineHeight: "1"
+                }}
+              >
+                {isSavingGst ? "..." : "Save"}
+              </button>
+            )}
+          </div>
           <input 
             type="text" 
             value={signName} 
@@ -568,15 +672,15 @@ const PrintSingleTrip = () => {
                               </td>
                               <td className="gray-cell" style={{ width: "25%", textAlign: "left" }}>GST RATE</td>
                               <td className="data-cell num-cell" style={{ width: "25%", fontWeight: "700", textAlign: "right" }}>
-                                18%
+                                {gstRate}%
                               </td>
                             </tr>
                             <tr>
-                              <td className="gray-cell" style={{ textAlign: "left" }}>GST AMOUNT (18%)</td>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>GST AMOUNT ({gstRate}%)</td>
                               <td className="data-cell num-cell" style={{ fontWeight: "700", color: "#4f46e5", textAlign: "right" }}>
                                 Rs. {showPrintAmounts ? gstAmount.toFixed(2) : "0"}
                               </td>
-                              <td className="gray-cell" style={{ textAlign: "left" }}>TOTAL AMOUNT (INCL. GST)</td>
+                              <td className="gray-cell" style={{ textAlign: "left" }}>{gstRate > 0 ? "TOTAL AMOUNT (INCL. GST)" : "TOTAL AMOUNT"}</td>
                               <td className="data-cell num-cell" style={{ color: "#059669", fontSize: "0.85rem", fontWeight: "800", textAlign: "right" }}>
                                 Rs. {showPrintAmounts ? grandTotal.toFixed(2) : "0"}
                               </td>
