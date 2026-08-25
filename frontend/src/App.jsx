@@ -59,6 +59,7 @@ import ManageCareers from "./pages/CMS/ManageCareers";
 import ManageServices from "./pages/CMS/ManageServices";
 import JobApplications from "./pages/CMS/JobApplications";
 import Webmail from "./pages/Mail/Webmail";
+import SqlSyncStudio from "./pages/SqlSyncStudio";
 import { AuthProvider } from "./context/AuthContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -96,6 +97,7 @@ function App() {
             <Route element={<MaintenanceGuard><ProtectedRoute /></MaintenanceGuard>}>
               <Route path="/profile" element={<Profile />} />
               <Route path="/trash" element={<Trash />} />
+              <Route path="/sql-sync" element={<SqlSyncStudio />} />
             </Route>
             <Route element={<MaintenanceGuard><ProtectedRoute requiredPermission="dashboard" /></MaintenanceGuard>}>
               <Route path="/dashboard" element={<Dashboard />} />

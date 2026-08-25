@@ -4496,3 +4496,224 @@ input[name="name"],
 input[id="name"] {
   text-transform: none !important;
 }
+
+/* ==========================================================================
+   POD (Proof of Delivery) Comprehensive Mobile & Device Responsive Styles
+   ========================================================================== */
+
+.pod-page-container {
+  background-color: #f8fafc;
+  min-height: 100%;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.pod-header-bar {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pod-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pod-grid-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pod-filter-toolbar-container {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pod-filter-bar {
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pod-filter-bar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+}
+
+.pod-filter-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1 1 260px;
+  justify-content: flex-end;
+}
+
+.pod-category-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pod-dual-date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 1rem;
+}
+
+.pod-entities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+}
+
+.pod-active-filter-pills {
+  padding: 0.65rem 1.25rem;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Tablet & Mobile Breakpoints */
+@media (max-width: 1024px) {
+  .pod-grid-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pod-page-container {
+    padding: 0.65rem;
+  }
+
+  .pod-header-bar {
+    padding: 0.85rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .pod-header-actions {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .pod-header-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .pod-grid-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .pod-filter-bar {
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .pod-filter-bar-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .pod-filter-bar-right {
+    width: 100%;
+    justify-content: stretch;
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pod-category-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+  }
+
+  .pod-category-tabs button {
+    justify-content: center;
+    padding: 0.45rem 0.25rem !important;
+    font-size: 0.75rem !important;
+    text-align: center;
+  }
+
+  .pod-dual-date-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .pod-entities-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .pod-workflow-grid {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .pod-page-container {
+    padding: 0.4rem;
+  }
+
+  .pod-category-tabs {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .pod-entities-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .pod-active-filter-pills {
+    padding: 0.5rem 0.75rem;
+    gap: 0.35rem;
+  }
+}

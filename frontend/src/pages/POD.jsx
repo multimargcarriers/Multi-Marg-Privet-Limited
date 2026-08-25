@@ -11,22 +11,26 @@ import {
   Search, 
   Eye, 
   X, 
-
-
-
-
   Calendar, 
   RefreshCw, 
   ExternalLink,
   Clock,
-
-
   FileCheck,
   Camera,
   Image as ImageIcon,
-
-
-
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  MapPin,
+  Building,
+  User,
+  FileType,
+  Check,
+  SlidersHorizontal,
+  ArrowRight,
+  Tag,
+  Layers
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
@@ -65,6 +69,23 @@ const POD = () => {
   const [tableSearch, setTableSearch] = useState("");
   const [activeTab, setActiveTab] = useState("ALL"); // 'ALL' | 'VERIFIED' | 'UNKNOWN'
   const [_previewImage, _setPreviewImage] = useState(null); // URL for modal preview
+
+  // Advanced Filters State - Dual Date Filters (POD Upload Date & AWB Booking Date)
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [activeDateMode, setActiveDateMode] = useState("POD_UPLOAD"); // 'POD_UPLOAD' | 'AWB_BOOKING'
+  const [uploadDatePreset, setUploadDatePreset] = useState("ALL"); // 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7_DAYS' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'
+  const [uploadStartDate, setUploadStartDate] = useState("");
+  const [uploadEndDate, setUploadEndDate] = useState("");
+  const [bookingDatePreset, setBookingDatePreset] = useState("ALL"); // 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7_DAYS' | 'THIS_MONTH' | 'LAST_MONTH' | 'CUSTOM'
+  const [bookingStartDate, setBookingStartDate] = useState("");
+  const [bookingEndDate, setBookingEndDate] = useState("");
+  const [selectedClient, setSelectedClient] = useState("");
+  const [selectedOrigin, setSelectedOrigin] = useState("");
+  const [selectedDestination, setSelectedDestination] = useState("");
+  const [selectedConsignor, setSelectedConsignor] = useState("");
+  const [selectedConsignee, setSelectedConsignee] = useState("");
+  const [selectedDocType, setSelectedDocType] = useState("ALL"); // 'ALL' | 'IMAGE' | 'PDF'
+  const [remarksFilter, setRemarksFilter] = useState("ALL"); // 'ALL' | 'WITH_REMARKS' | 'WITHOUT_REMARKS'
 
   // POD Image Studio Modal state
   const [studioOpen, setStudioOpen] = useState(false);
@@ -329,29 +350,441 @@ const POD = () => {
     return { total, verifiedCount, unknownCount, todayCount };
   }, [displayPODs]);
 
-  // Table filtering
+  // Fast Booking Lookup Map for AWB linking & Booking Date detection
+  const bookingByLrMap = useMemo(() => {
+    const map = new Map();
+    bookingsList.forEach(b => {
+      const awb = getBookingAwb(b);
+      if (awb) {
+        const raw = String(awb).trim();
+        const lower = raw.toLowerCase();
+        const stripped = lower.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+        map.set(raw, b);
+        map.set(lower, b);
+        if (stripped) map.set(stripped, b);
+      }
+      if (b.id) map.set(String(b.id), b);
+      if (b._id) map.set(String(b._id), b);
+    });
+    return map;
+  }, [bookingsList]);
+
+  // Helper to retrieve matched booking for a POD item
+  const getBookingByLr = (item) => {
+    if (!item) return null;
+    if (item.bookingId && bookingByLrMap.has(String(item.bookingId))) {
+      return bookingByLrMap.get(String(item.bookingId));
+    }
+    const cleanLr = String(item.lrNo || '').toLowerCase().trim();
+    if (cleanLr && bookingByLrMap.has(cleanLr)) {
+      return bookingByLrMap.get(cleanLr);
+    }
+    const stripped = cleanLr.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+    if (stripped && bookingByLrMap.has(stripped)) {
+      return bookingByLrMap.get(stripped);
+    }
+    return null;
+  };
+
+  // Helper to extract booking / consignment creation date (YYYY-MM-DD)
+  const getBookingDateStr = (item) => {
+    const b = getBookingByLr(item);
+    if (!b) return "";
+    const raw = b.date || b.dispatch_date || b.bookingDate || b.booking_date || b.createdAt || b.created_at;
+    if (!raw) return "";
+    try {
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return "";
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return "";
+    }
+  };
+
+  // Date helper utilities
+  const getItemDateStr = (item) => {
+    const dt = item.uploadedAt || item.createdAt;
+    if (!dt) return "";
+    try {
+      const d = new Date(dt);
+      if (isNaN(d.getTime())) return "";
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return "";
+    }
+  };
+
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getSevenDaysAgoStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getThisMonthStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const getLastMonthStr = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  // Generic Date matcher for presets & custom date ranges
+  const matchesDateFilter = (dateStr, preset, start, end) => {
+    if (preset === "ALL") return true;
+    if (!dateStr) return false;
+    const today = getTodayStr();
+
+    if (preset === "TODAY") return dateStr === today;
+    if (preset === "YESTERDAY") return dateStr === getYesterdayStr();
+    if (preset === "LAST_7_DAYS") return dateStr >= getSevenDaysAgoStr() && dateStr <= today;
+    if (preset === "THIS_MONTH") return dateStr.startsWith(getThisMonthStr());
+    if (preset === "LAST_MONTH") return dateStr.startsWith(getLastMonthStr());
+    if (preset === "CUSTOM") {
+      if (start && dateStr < start) return false;
+      if (end && dateStr > end) return false;
+      return true;
+    }
+    return true;
+  };
+
+  // Dynamic filter option lists derived from data
+  const filterOptions = useMemo(() => {
+    const clients = new Set();
+    const origins = new Set();
+    const destinations = new Set();
+    const consignors = new Set();
+    const consignees = new Set();
+
+    displayPODs.forEach(p => {
+      if (p.client && p.client !== "-") clients.add(String(p.client).trim());
+      if (p.origin && p.origin !== "-") origins.add(String(p.origin).trim());
+      if (p.destination && p.destination !== "-") destinations.add(String(p.destination).trim());
+      if (p.consignor && p.consignor !== "-") consignors.add(String(p.consignor).trim());
+      if (p.consignee && p.consignee !== "-") consignees.add(String(p.consignee).trim());
+    });
+
+    bookingsList.forEach(b => {
+      const client = b.client || b.billedTo || b.billing_party;
+      if (client && client !== "-") clients.add(String(client).trim());
+      if (b.origin && b.origin !== "-") origins.add(String(b.origin).trim());
+      if (b.destination && b.destination !== "-") destinations.add(String(b.destination).trim());
+      if (b.consignor && b.consignor !== "-") consignors.add(String(b.consignor).trim());
+      if (b.consignee && b.consignee !== "-") consignees.add(String(b.consignee).trim());
+    });
+
+    return {
+      clients: Array.from(clients).sort((a, b) => a.localeCompare(b)),
+      origins: Array.from(origins).sort((a, b) => a.localeCompare(b)),
+      destinations: Array.from(destinations).sort((a, b) => a.localeCompare(b)),
+      consignors: Array.from(consignors).sort((a, b) => a.localeCompare(b)),
+      consignees: Array.from(consignees).sort((a, b) => a.localeCompare(b)),
+    };
+  }, [displayPODs, bookingsList]);
+
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (activeTab !== "ALL") count++;
+    if (uploadDatePreset !== "ALL") count++;
+    if (uploadDatePreset === "CUSTOM" && (uploadStartDate || uploadEndDate)) count++;
+    if (bookingDatePreset !== "ALL") count++;
+    if (bookingDatePreset === "CUSTOM" && (bookingStartDate || bookingEndDate)) count++;
+    if (selectedClient) count++;
+    if (selectedOrigin) count++;
+    if (selectedDestination) count++;
+    if (selectedConsignor) count++;
+    if (selectedConsignee) count++;
+    if (selectedDocType !== "ALL") count++;
+    if (remarksFilter !== "ALL") count++;
+    if (tableSearch.trim()) count++;
+    return count;
+  }, [
+    activeTab, 
+    uploadDatePreset, 
+    uploadStartDate, 
+    uploadEndDate, 
+    bookingDatePreset, 
+    bookingStartDate, 
+    bookingEndDate, 
+    selectedClient, 
+    selectedOrigin, 
+    selectedDestination, 
+    selectedConsignor, 
+    selectedConsignee, 
+    selectedDocType, 
+    remarksFilter, 
+    tableSearch
+  ]);
+
+  const resetAllFilters = () => {
+    setActiveTab("ALL");
+    setUploadDatePreset("ALL");
+    setUploadStartDate("");
+    setUploadEndDate("");
+    setBookingDatePreset("ALL");
+    setBookingStartDate("");
+    setBookingEndDate("");
+    setSelectedClient("");
+    setSelectedOrigin("");
+    setSelectedDestination("");
+    setSelectedConsignor("");
+    setSelectedConsignee("");
+    setSelectedDocType("ALL");
+    setRemarksFilter("ALL");
+    setTableSearch("");
+  };
+
+  // Active filter chips for button pill display
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    if (activeTab !== "ALL") {
+      chips.push({
+        id: "tab",
+        label: "Status",
+        value: activeTab === "VERIFIED" ? "Verified LRs" : "Unknown LR",
+        onRemove: () => setActiveTab("ALL")
+      });
+    }
+    // POD Upload Date Chip
+    if (uploadDatePreset !== "ALL") {
+      let dateLabel = uploadDatePreset;
+      if (uploadDatePreset === "TODAY") dateLabel = "Today";
+      else if (uploadDatePreset === "YESTERDAY") dateLabel = "Yesterday";
+      else if (uploadDatePreset === "LAST_7_DAYS") dateLabel = "Last 7 Days";
+      else if (uploadDatePreset === "THIS_MONTH") dateLabel = "This Month";
+      else if (uploadDatePreset === "LAST_MONTH") dateLabel = "Last Month";
+      else if (uploadDatePreset === "CUSTOM") dateLabel = `${uploadStartDate || "Start"} → ${uploadEndDate || "End"}`;
+      chips.push({
+        id: "uploadDate",
+        label: "📸 POD Upload Date",
+        value: dateLabel,
+        onRemove: () => { setUploadDatePreset("ALL"); setUploadStartDate(""); setUploadEndDate(""); }
+      });
+    }
+    // AWB Booking Date Chip
+    if (bookingDatePreset !== "ALL") {
+      let dateLabel = bookingDatePreset;
+      if (bookingDatePreset === "TODAY") dateLabel = "Today";
+      else if (bookingDatePreset === "YESTERDAY") dateLabel = "Yesterday";
+      else if (bookingDatePreset === "LAST_7_DAYS") dateLabel = "Last 7 Days";
+      else if (bookingDatePreset === "THIS_MONTH") dateLabel = "This Month";
+      else if (bookingDatePreset === "LAST_MONTH") dateLabel = "Last Month";
+      else if (bookingDatePreset === "CUSTOM") dateLabel = `${bookingStartDate || "Start"} → ${bookingEndDate || "End"}`;
+      chips.push({
+        id: "bookingDate",
+        label: "📦 AWB Booking Date",
+        value: dateLabel,
+        onRemove: () => { setBookingDatePreset("ALL"); setBookingStartDate(""); setBookingEndDate(""); }
+      });
+    }
+    if (selectedClient) {
+      chips.push({
+        id: "client",
+        label: "Client",
+        value: selectedClient,
+        onRemove: () => setSelectedClient("")
+      });
+    }
+    if (selectedOrigin) {
+      chips.push({
+        id: "origin",
+        label: "From",
+        value: selectedOrigin,
+        onRemove: () => setSelectedOrigin("")
+      });
+    }
+    if (selectedDestination) {
+      chips.push({
+        id: "destination",
+        label: "To",
+        value: selectedDestination,
+        onRemove: () => setSelectedDestination("")
+      });
+    }
+    if (selectedConsignor) {
+      chips.push({
+        id: "consignor",
+        label: "Consignor",
+        value: selectedConsignor,
+        onRemove: () => setSelectedConsignor("")
+      });
+    }
+    if (selectedConsignee) {
+      chips.push({
+        id: "consignee",
+        label: "Consignee",
+        value: selectedConsignee,
+        onRemove: () => setSelectedConsignee("")
+      });
+    }
+    if (selectedDocType !== "ALL") {
+      chips.push({
+        id: "doctype",
+        label: "Doc Type",
+        value: selectedDocType === "PDF" ? "PDF Only" : "Images Only",
+        onRemove: () => setSelectedDocType("ALL")
+      });
+    }
+    if (remarksFilter !== "ALL") {
+      chips.push({
+        id: "remarks",
+        label: "Remarks",
+        value: remarksFilter === "WITH_REMARKS" ? "Has Remarks" : "No Remarks",
+        onRemove: () => setRemarksFilter("ALL")
+      });
+    }
+    if (tableSearch.trim()) {
+      chips.push({
+        id: "search",
+        label: "Search",
+        value: `"${tableSearch.trim()}"`,
+        onRemove: () => setTableSearch("")
+      });
+    }
+    return chips;
+  }, [
+    activeTab, 
+    uploadDatePreset, 
+    uploadStartDate, 
+    uploadEndDate, 
+    bookingDatePreset, 
+    bookingStartDate, 
+    bookingEndDate, 
+    selectedClient, 
+    selectedOrigin, 
+    selectedDestination, 
+    selectedConsignor, 
+    selectedConsignee, 
+    selectedDocType, 
+    remarksFilter, 
+    tableSearch
+  ]);
+
+  // Multi-criteria Table filtering (including POD Upload Date & AWB Booking Date)
   const filteredPODs = useMemo(() => {
     return displayPODs.filter(item => {
-      // Tab filter
+      // 1. Tab / Verification Status filter
       const isVerified = (item.podType === "VERIFIED" || item.bookingId || (item.origin && item.origin !== "-"));
       if (activeTab === "VERIFIED" && !isVerified) return false;
       if (activeTab === "UNKNOWN" && isVerified) return false;
 
-      // Search query filter
-      if (!tableSearch || tableSearch.trim().length === 0) return true;
-      const q = tableSearch.toLowerCase().trim();
-      return (
-        (item.lrNo && String(item.lrNo).toLowerCase().includes(q)) ||
-        (item.client && String(item.client).toLowerCase().includes(q)) ||
-        (item.consignor && String(item.consignor).toLowerCase().includes(q)) ||
-        (item.consignee && String(item.consignee).toLowerCase().includes(q)) ||
-        (item.origin && String(item.origin).toLowerCase().includes(q)) ||
-        (item.destination && String(item.destination).toLowerCase().includes(q)) ||
-        (item.fileName && String(item.fileName).toLowerCase().includes(q)) ||
-        (item.remarks && String(item.remarks).toLowerCase().includes(q))
-      );
+      // 2. POD Upload Date filter
+      if (uploadDatePreset !== "ALL") {
+        const uploadDtStr = getItemDateStr(item);
+        if (!matchesDateFilter(uploadDtStr, uploadDatePreset, uploadStartDate, uploadEndDate)) {
+          return false;
+        }
+      }
+
+      // 3. AWB / Booking Date filter
+      if (bookingDatePreset !== "ALL") {
+        const bookingDtStr = getBookingDateStr(item);
+        if (!matchesDateFilter(bookingDtStr, bookingDatePreset, bookingStartDate, bookingEndDate)) {
+          return false;
+        }
+      }
+
+      // 4. Client filter
+      if (selectedClient && String(item.client || "").trim() !== selectedClient) {
+        return false;
+      }
+
+      // 5. Origin filter
+      if (selectedOrigin && String(item.origin || "").trim() !== selectedOrigin) {
+        return false;
+      }
+
+      // 6. Destination filter
+      if (selectedDestination && String(item.destination || "").trim() !== selectedDestination) {
+        return false;
+      }
+
+      // 7. Consignor filter
+      if (selectedConsignor && String(item.consignor || "").trim() !== selectedConsignor) {
+        return false;
+      }
+
+      // 8. Consignee filter
+      if (selectedConsignee && String(item.consignee || "").trim() !== selectedConsignee) {
+        return false;
+      }
+
+      // 9. Document format filter
+      if (selectedDocType !== "ALL") {
+        const isPdf = 
+          (item.fileName && item.fileName.toLowerCase().endsWith(".pdf")) ||
+          (item.podUrl && item.podUrl.toLowerCase().includes(".pdf")) ||
+          (item.cloudinaryUrl && item.cloudinaryUrl.toLowerCase().includes(".pdf")) ||
+          item.type === "pdf" || item.fileType === "pdf";
+        if (selectedDocType === "PDF" && !isPdf) return false;
+        if (selectedDocType === "IMAGE" && isPdf) return false;
+      }
+
+      // 10. Remarks filter
+      if (remarksFilter === "WITH_REMARKS" && (!item.remarks || !item.remarks.trim() || item.remarks === "-")) {
+        return false;
+      }
+      if (remarksFilter === "WITHOUT_REMARKS" && item.remarks && item.remarks.trim() && item.remarks !== "-") {
+        return false;
+      }
+
+      // 11. Search query filter
+      if (tableSearch && tableSearch.trim().length > 0) {
+        const q = tableSearch.toLowerCase().trim();
+        const matches = (
+          (item.lrNo && String(item.lrNo).toLowerCase().includes(q)) ||
+          (item.client && String(item.client).toLowerCase().includes(q)) ||
+          (item.consignor && String(item.consignor).toLowerCase().includes(q)) ||
+          (item.consignee && String(item.consignee).toLowerCase().includes(q)) ||
+          (item.origin && String(item.origin).toLowerCase().includes(q)) ||
+          (item.destination && String(item.destination).toLowerCase().includes(q)) ||
+          (item.fileName && String(item.fileName).toLowerCase().includes(q)) ||
+          (item.remarks && String(item.remarks).toLowerCase().includes(q))
+        );
+        if (!matches) return false;
+      }
+
+      return true;
     });
-  }, [displayPODs, activeTab, tableSearch]);
+  }, [
+    displayPODs, 
+    activeTab, 
+    uploadDatePreset, 
+    uploadStartDate, 
+    uploadEndDate, 
+    bookingDatePreset, 
+    bookingStartDate, 
+    bookingEndDate, 
+    selectedClient, 
+    selectedOrigin, 
+    selectedDestination, 
+    selectedConsignor, 
+    selectedConsignee, 
+    selectedDocType, 
+    remarksFilter, 
+    tableSearch,
+    bookingByLrMap
+  ]);
 
   const getFileUrl = (item) => {
     if (item.podUrl) return getSafeCloudinaryPdfUrl(item.podUrl);
@@ -360,23 +793,13 @@ const POD = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100%", padding: "20px" }}>
+    <div className="pod-page-container">
       {/* COMPACT SLEEK HEADER BAR */}
       <div 
         className="pod-header-bar"
         style={{
-          background: "white",
-          borderRadius: "12px",
-          padding: "1rem 1.5rem",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
           marginBottom: isAdding ? "0.35rem" : "1.25rem",
-          transition: "margin-bottom 0.2s ease",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem"
+          transition: "margin-bottom 0.2s ease"
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -393,7 +816,7 @@ const POD = () => {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div className="pod-header-actions">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -958,95 +1381,854 @@ const POD = () => {
         </div>
       </div>
 
-      {/* FILTER BAR & CATEGORY TABS */}
+      {/* COMPREHENSIVE FILTER TOOLBAR WITH DROPDOWN & ACTIVE FILTER BUTTONS */}
       <div 
-        className="pod-filter-bar"
+        className="pod-filter-toolbar-container"
         style={{
           background: "white",
-          borderRadius: "12px",
-          padding: "1rem 1.25rem",
+          borderRadius: "14px",
           border: "1px solid #e2e8f0",
-          marginBottom: "1rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem"
+          boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+          marginBottom: "1.25rem",
+          overflow: "hidden"
         }}
       >
-        {/* Category Tabs */}
-        <div className="pod-category-tabs" style={{ display: "flex", gap: "0.5rem" }}>
-          {[
-            { key: "ALL", label: "All POD Documents", count: stats.total },
-            { key: "VERIFIED", label: "Verified LRs", count: stats.verifiedCount },
-            { key: "UNKNOWN", label: "Unknown LR Type", count: stats.unknownCount }
-          ].map((t) => (
+        {/* TOP FILTER BAR */}
+        <div 
+          className="pod-filter-bar"
+          style={{
+            padding: "1rem 1.25rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "0.85rem",
+            background: "#ffffff"
+          }}
+        >
+          {/* LEFT: Category Tabs & "All Filters" Dropdown Toggle */}
+          <div className="pod-filter-bar-left">
+            {/* Category Tabs */}
+            <div className="pod-category-tabs" style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              {[
+                { key: "ALL", label: "All PODs", count: stats.total },
+                { key: "VERIFIED", label: "Verified LRs", count: stats.verifiedCount },
+                { key: "UNKNOWN", label: "Unknown / Standalone", count: stats.unknownCount }
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  style={{
+                    background: activeTab === t.key ? "#0284c7" : "#f8fafc",
+                    color: activeTab === t.key ? "white" : "#475569",
+                    border: activeTab === t.key ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                    padding: "0.45rem 0.85rem",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    fontSize: "0.825rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  {t.label}
+                  <span 
+                    style={{
+                      background: activeTab === t.key ? "rgba(255,255,255,0.25)" : "#e2e8f0",
+                      color: activeTab === t.key ? "white" : "#334155",
+                      padding: "1px 6px",
+                      borderRadius: "10px",
+                      fontSize: "0.725rem",
+                      fontWeight: 700
+                    }}
+                  >
+                    {t.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* DIVIDER */}
+            <div style={{ width: "1px", height: "24px", background: "#e2e8f0", margin: "0 4px" }} />
+
+            {/* "ALL FILTERS" DROPDOWN TRIGGER BUTTON */}
             <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+              onClick={() => setShowFilterDropdown(prev => !prev)}
               style={{
-                background: activeTab === t.key ? "#0284c7" : "#f1f5f9",
-                color: activeTab === t.key ? "white" : "#475569",
-                border: "none",
-                padding: "0.5rem 1rem",
+                background: showFilterDropdown ? "#0369a1" : (activeFiltersCount > 0 ? "#f0f9ff" : "#f8fafc"),
+                color: showFilterDropdown ? "white" : (activeFiltersCount > 0 ? "#0284c7" : "#334155"),
+                border: showFilterDropdown ? "1px solid #0369a1" : (activeFiltersCount > 0 ? "1.5px solid #38bdf8" : "1px solid #cbd5e1"),
+                padding: "0.45rem 0.95rem",
                 borderRadius: "8px",
-                fontWeight: 600,
-                fontSize: "0.85rem",
+                fontWeight: 700,
+                fontSize: "0.825rem",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                transition: "all 0.2s"
+                gap: "7px",
+                transition: "all 0.15s ease",
+                boxShadow: showFilterDropdown ? "0 2px 6px rgba(3, 105, 161, 0.25)" : "none"
               }}
             >
-              {t.label}
-              <span 
-                style={{
-                  background: activeTab === t.key ? "rgba(255,255,255,0.25)" : "#cbd5e1",
-                  color: activeTab === t.key ? "white" : "#334155",
-                  padding: "1px 7px",
-                  borderRadius: "10px",
-                  fontSize: "0.75rem",
-                  fontWeight: 700
-                }}
-              >
-                {t.count}
-              </span>
+              <SlidersHorizontal size={15} color={showFilterDropdown ? "white" : (activeFiltersCount > 0 ? "#0284c7" : "#475569")} />
+              <span>{showFilterDropdown ? "Hide Filters" : "All Filters"}</span>
+              {activeFiltersCount > 0 && (
+                <span 
+                  style={{
+                    background: showFilterDropdown ? "white" : "#0284c7",
+                    color: showFilterDropdown ? "#0369a1" : "white",
+                    padding: "1px 7px",
+                    borderRadius: "12px",
+                    fontSize: "0.725rem",
+                    fontWeight: 800
+                  }}
+                >
+                  {activeFiltersCount}
+                </span>
+              )}
+              {showFilterDropdown ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
-          ))}
+
+            {/* QUICK DATE PILLS (WITH DUAL-DATE MODE TOGGLE) */}
+            <div style={{ display: "flex", gap: "6px", alignItems: "center", background: "#f1f5f9", padding: "3px 6px", borderRadius: "8px" }}>
+              {/* Date Mode Switcher */}
+              <div style={{ display: "flex", background: "white", borderRadius: "6px", padding: "2px", border: "1px solid #e2e8f0" }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveDateMode("POD_UPLOAD")}
+                  style={{
+                    background: activeDateMode === "POD_UPLOAD" ? "#0284c7" : "transparent",
+                    color: activeDateMode === "POD_UPLOAD" ? "white" : "#64748b",
+                    border: "none",
+                    padding: "0.25rem 0.55rem",
+                    borderRadius: "4px",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                  title="Filter by POD document upload date"
+                >
+                  📸 POD Date
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDateMode("AWB_BOOKING")}
+                  style={{
+                    background: activeDateMode === "AWB_BOOKING" ? "#0284c7" : "transparent",
+                    color: activeDateMode === "AWB_BOOKING" ? "white" : "#64748b",
+                    border: "none",
+                    padding: "0.25rem 0.55rem",
+                    borderRadius: "4px",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                  title="Filter on behalf of consignment / AWB booking date"
+                >
+                  📦 AWB Date
+                </button>
+              </div>
+
+              {/* Quick Preset Pills for Active Date Mode */}
+              <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
+                {[
+                  { key: "TODAY", label: "Today" },
+                  { key: "YESTERDAY", label: "Yesterday" },
+                  { key: "THIS_MONTH", label: "This Month" },
+                ].map(dp => {
+                  const currentPreset = activeDateMode === "POD_UPLOAD" ? uploadDatePreset : bookingDatePreset;
+                  const isSelected = currentPreset === dp.key;
+                  return (
+                    <button
+                      key={dp.key}
+                      onClick={() => {
+                        if (activeDateMode === "POD_UPLOAD") {
+                          if (isSelected) {
+                            setUploadDatePreset("ALL");
+                          } else {
+                            setUploadDatePreset(dp.key);
+                            setUploadStartDate("");
+                            setUploadEndDate("");
+                          }
+                        } else {
+                          if (isSelected) {
+                            setBookingDatePreset("ALL");
+                          } else {
+                            setBookingDatePreset(dp.key);
+                            setBookingStartDate("");
+                            setBookingEndDate("");
+                          }
+                        }
+                      }}
+                      style={{
+                        background: isSelected ? "#0284c7" : "white",
+                        color: isSelected ? "white" : "#475569",
+                        border: isSelected ? "1px solid #0284c7" : "1px solid #cbd5e1",
+                        padding: "0.25rem 0.55rem",
+                        borderRadius: "5px",
+                        fontSize: "0.72rem",
+                        fontWeight: isSelected ? 700 : 500,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "3px"
+                      }}
+                    >
+                      <Calendar size={11} />
+                      {dp.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: Search & Reset */}
+          <div className="pod-filter-bar-right">
+            {/* Live Search Input */}
+            <div style={{ position: "relative", width: "100%", maxWidth: "340px" }}>
+              <input
+                type="text"
+                placeholder="Search LR, Client, Party, City..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "0.5rem 1rem",
+                  paddingLeft: "2.3rem",
+                  paddingRight: tableSearch ? "2rem" : "1rem",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.85rem",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  background: "#f8fafc"
+                }}
+              />
+              <Search size={15} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+              {tableSearch && (
+                <button
+                  onClick={() => setTableSearch("")}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    padding: "2px",
+                    display: "flex"
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Clear all / Reset Filters */}
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={resetAllFilters}
+                style={{
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  border: "1px solid #fca5a5",
+                  padding: "0.45rem 0.75rem",
+                  borderRadius: "8px",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  whiteSpace: "nowrap"
+                }}
+                title="Reset all filters"
+              >
+                <RotateCcw size={13} />
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Live Search Table Filter */}
-        <div style={{ position: "relative", minWidth: "280px" }}>
-          <input
-            type="text"
-            placeholder="Search PODs by LR, Client, Route, Remarks..."
-            value={tableSearch}
-            onChange={(e) => setTableSearch(e.target.value)}
+        {/* EXPANDABLE ALL-FILTERS DROPDOWN PANEL (ANIMATED) */}
+        <AnimatePresence>
+          {showFilterDropdown && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeInOut" }}
+              style={{ overflow: "hidden" }}
+            >
+              <div 
+                style={{
+                  background: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0",
+                  padding: "1.25rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem"
+                }}
+              >
+                {/* DUAL-DATE FILTERING SUITE (POD UPLOAD DATE & AWB BOOKING DATE) */}
+                <div className="pod-dual-date-grid">
+                  {/* CARD 1: POD UPLOAD DATE */}
+                  <div style={{ background: "white", padding: "1rem 1.15rem", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 700, fontSize: "0.85rem" }}>
+                        <Calendar size={15} color="#0284c7" />
+                        <span>1. 📸 POD Upload Date Filter</span>
+                      </div>
+                      {uploadDatePreset !== "ALL" && (
+                        <button
+                          onClick={() => { setUploadDatePreset("ALL"); setUploadStartDate(""); setUploadEndDate(""); }}
+                          style={{ background: "none", border: "none", color: "#dc2626", fontSize: "0.72rem", cursor: "pointer", fontWeight: 600 }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Presets */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.75rem" }}>
+                      {[
+                        { key: "ALL", label: "All Time" },
+                        { key: "TODAY", label: "Today" },
+                        { key: "YESTERDAY", label: "Yesterday" },
+                        { key: "LAST_7_DAYS", label: "7 Days" },
+                        { key: "THIS_MONTH", label: "This Month" },
+                        { key: "LAST_MONTH", label: "Last Month" },
+                        { key: "CUSTOM", label: "Custom Range" },
+                      ].map(p => {
+                        const active = uploadDatePreset === p.key;
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => {
+                              setUploadDatePreset(p.key);
+                              if (p.key !== "CUSTOM") {
+                                setUploadStartDate("");
+                                setUploadEndDate("");
+                              }
+                            }}
+                            style={{
+                              background: active ? "#0284c7" : "#f1f5f9",
+                              color: active ? "white" : "#475569",
+                              border: active ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                              padding: "0.3rem 0.65rem",
+                              borderRadius: "5px",
+                              fontSize: "0.75rem",
+                              fontWeight: active ? 700 : 500,
+                              cursor: "pointer",
+                              transition: "all 0.15s"
+                            }}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Range Inputs */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f8fafc", padding: "6px 8px", borderRadius: "8px", border: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600 }}>From:</span>
+                      <input
+                        type="date"
+                        value={uploadStartDate}
+                        onChange={(e) => {
+                          setUploadStartDate(e.target.value);
+                          setUploadDatePreset("CUSTOM");
+                        }}
+                        style={{
+                          padding: "0.25rem 0.45rem",
+                          borderRadius: "5px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "0.75rem",
+                          outline: "none",
+                          background: "white",
+                          flex: "1",
+                          minWidth: "120px"
+                        }}
+                      />
+                      <span style={{ color: "#94a3b8", fontSize: "0.75rem" }}>→</span>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600 }}>To:</span>
+                      <input
+                        type="date"
+                        value={uploadEndDate}
+                        onChange={(e) => {
+                          setUploadEndDate(e.target.value);
+                          setUploadDatePreset("CUSTOM");
+                        }}
+                        style={{
+                          padding: "0.25rem 0.45rem",
+                          borderRadius: "5px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "0.75rem",
+                          outline: "none",
+                          background: "white",
+                          flex: "1",
+                          minWidth: "120px"
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* CARD 2: AWB BOOKING DATE */}
+                  <div style={{ background: "white", padding: "1rem 1.15rem", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 700, fontSize: "0.85rem" }}>
+                        <Calendar size={15} color="#16a34a" />
+                        <span>2. 📦 AWB Booking Date Filter</span>
+                      </div>
+                      {bookingDatePreset !== "ALL" && (
+                        <button
+                          onClick={() => { setBookingDatePreset("ALL"); setBookingStartDate(""); setBookingEndDate(""); }}
+                          style={{ background: "none", border: "none", color: "#dc2626", fontSize: "0.72rem", cursor: "pointer", fontWeight: 600 }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Presets */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "0.75rem" }}>
+                      {[
+                        { key: "ALL", label: "All Time" },
+                        { key: "TODAY", label: "Today" },
+                        { key: "YESTERDAY", label: "Yesterday" },
+                        { key: "LAST_7_DAYS", label: "7 Days" },
+                        { key: "THIS_MONTH", label: "This Month" },
+                        { key: "LAST_MONTH", label: "Last Month" },
+                        { key: "CUSTOM", label: "Custom Range" },
+                      ].map(p => {
+                        const active = bookingDatePreset === p.key;
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => {
+                              setBookingDatePreset(p.key);
+                              if (p.key !== "CUSTOM") {
+                                setBookingStartDate("");
+                                setBookingEndDate("");
+                              }
+                            }}
+                            style={{
+                              background: active ? "#16a34a" : "#f1f5f9",
+                              color: active ? "white" : "#475569",
+                              border: active ? "1px solid #16a34a" : "1px solid #e2e8f0",
+                              padding: "0.3rem 0.65rem",
+                              borderRadius: "5px",
+                              fontSize: "0.75rem",
+                              fontWeight: active ? 700 : 500,
+                              cursor: "pointer",
+                              transition: "all 0.15s"
+                            }}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Range Inputs */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f8fafc", padding: "6px 8px", borderRadius: "8px", border: "1px solid #e2e8f0", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600 }}>From:</span>
+                      <input
+                        type="date"
+                        value={bookingStartDate}
+                        onChange={(e) => {
+                          setBookingStartDate(e.target.value);
+                          setBookingDatePreset("CUSTOM");
+                        }}
+                        style={{
+                          padding: "0.25rem 0.45rem",
+                          borderRadius: "5px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "0.75rem",
+                          outline: "none",
+                          background: "white",
+                          flex: "1",
+                          minWidth: "120px"
+                        }}
+                      />
+                      <span style={{ color: "#94a3b8", fontSize: "0.75rem" }}>→</span>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600 }}>To:</span>
+                      <input
+                        type="date"
+                        value={bookingEndDate}
+                        onChange={(e) => {
+                          setBookingEndDate(e.target.value);
+                          setBookingDatePreset("CUSTOM");
+                        }}
+                        style={{
+                          padding: "0.25rem 0.45rem",
+                          borderRadius: "5px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "0.75rem",
+                          outline: "none",
+                          background: "white",
+                          flex: "1",
+                          minWidth: "120px"
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 2: GRID OF MULTI-FILTERS (PARTY, ROUTE, CLIENT, DOC TYPE, REMARKS) */}
+                <div className="pod-entities-grid">
+                  {/* Client / Billed To */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <Building size={14} color="#0284c7" /> Client / Billed To
+                    </label>
+                    <select
+                      value={selectedClient}
+                      onChange={(e) => setSelectedClient(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedClient ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="">All Clients</option>
+                      {filterOptions.clients.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Origin City */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <MapPin size={14} color="#0284c7" /> Origin (From)
+                    </label>
+                    <select
+                      value={selectedOrigin}
+                      onChange={(e) => setSelectedOrigin(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedOrigin ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="">All Origin Cities</option>
+                      {filterOptions.origins.map(o => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Destination City */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <MapPin size={14} color="#0284c7" /> Destination (To)
+                    </label>
+                    <select
+                      value={selectedDestination}
+                      onChange={(e) => setSelectedDestination(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedDestination ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="">All Destination Cities</option>
+                      {filterOptions.destinations.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Consignor */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <User size={14} color="#0284c7" /> Consignor (Sender)
+                    </label>
+                    <select
+                      value={selectedConsignor}
+                      onChange={(e) => setSelectedConsignor(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedConsignor ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="">All Consignors</option>
+                      {filterOptions.consignors.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Consignee */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <User size={14} color="#0284c7" /> Consignee (Receiver)
+                    </label>
+                    <select
+                      value={selectedConsignee}
+                      onChange={(e) => setSelectedConsignee(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedConsignee ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="">All Consignees</option>
+                      {filterOptions.consignees.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Document Format */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <FileType size={14} color="#0284c7" /> Document Format
+                    </label>
+                    <select
+                      value={selectedDocType}
+                      onChange={(e) => setSelectedDocType(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: selectedDocType !== "ALL" ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="ALL">All File Types</option>
+                      <option value="IMAGE">Image Files (JPG, PNG, WEBP)</option>
+                      <option value="PDF">PDF Documents</option>
+                    </select>
+                  </div>
+
+                  {/* Remarks Filter */}
+                  <div>
+                    <label style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      <FileText size={14} color="#0284c7" /> Notes & Remarks
+                    </label>
+                    <select
+                      value={remarksFilter}
+                      onChange={(e) => setRemarksFilter(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.82rem",
+                        background: "white",
+                        outline: "none",
+                        color: remarksFilter !== "ALL" ? "#0f172a" : "#64748b"
+                      }}
+                    >
+                      <option value="ALL">All Records</option>
+                      <option value="WITH_REMARKS">With Remarks Only</option>
+                      <option value="WITHOUT_REMARKS">Without Remarks</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* BOTTOM ACTION & SUMMARY BAR */}
+                <div 
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderTop: "1px solid #e2e8f0",
+                    paddingTop: "0.85rem",
+                    flexWrap: "wrap",
+                    gap: "0.75rem"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", color: "#334155" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "#f0fdf4", color: "#16a34a", padding: "3px 8px", borderRadius: "6px", fontWeight: 700, fontSize: "0.75rem", border: "1px solid #bbf7d0" }}>
+                      ⚡ Auto-Filtering Live
+                    </span>
+                    <span>
+                      Showing <b>{filteredPODs.length}</b> of <b>{displayPODs.length}</b> records
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "0.6rem" }}>
+                    <button
+                      type="button"
+                      onClick={resetAllFilters}
+                      disabled={activeFiltersCount === 0}
+                      style={{
+                        background: "white",
+                        border: "1px solid #cbd5e1",
+                        color: activeFiltersCount > 0 ? "#dc2626" : "#94a3b8",
+                        padding: "0.45rem 0.9rem",
+                        borderRadius: "8px",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        cursor: activeFiltersCount > 0 ? "pointer" : "not-allowed",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px"
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      Reset All Filters
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowFilterDropdown(false)}
+                      style={{
+                        background: "#0284c7",
+                        color: "white",
+                        border: "none",
+                        padding: "0.45rem 1.1rem",
+                        borderRadius: "8px",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 2px 6px rgba(2, 132, 199, 0.2)"
+                      }}
+                    >
+                      <ChevronUp size={14} />
+                      Close Filter Panel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ACTIVE FILTER PILLS / BUTTONS (SHOWN WHEN DROPDOWN IS COLLAPSED OR EXPANDED WITH ACTIVE FILTERS) */}
+        {!showFilterDropdown && activeFilterChips.length > 0 && (
+          <div 
+            className="pod-active-filter-pills"
             style={{
-              width: "100%",
-              padding: "0.5rem 1rem",
-              paddingLeft: "2.5rem",
-              borderRadius: "8px",
-              border: "1px solid #cbd5e1",
-              fontSize: "0.85rem",
-              outline: "none"
+              padding: "0.65rem 1.25rem",
+              background: "#f8fafc",
+              borderTop: "1px solid #f1f5f9",
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem"
             }}
-          />
-          <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
-        </div>
+          >
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "4px" }}>
+              <Tag size={13} color="#0284c7" /> Active Filters:
+            </span>
+
+            {activeFilterChips.map(chip => (
+              <div
+                key={chip.id}
+                style={{
+                  background: "white",
+                  border: "1px solid #bae6fd",
+                  borderRadius: "20px",
+                  padding: "3px 10px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "0.775rem",
+                  color: "#0369a1",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                }}
+              >
+                <span style={{ color: "#64748b", fontWeight: 500 }}>{chip.label}:</span>
+                <span style={{ fontWeight: 700 }}>{chip.value}</span>
+                <button
+                  onClick={chip.onRemove}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#94a3b8",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "0 1px",
+                    marginLeft: "2px"
+                  }}
+                  title={`Remove ${chip.label} filter`}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+
+            <button
+              onClick={resetAllFilters}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#dc2626",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: "2px 6px",
+                textDecoration: "underline"
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* POD LIST TABLE */}
       <div className="glass-panel" style={{ background: "white", borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
         <Table
-          headers={["LR / AWB No", "POD Type", "Route", "Consignor → Consignee", "Client / Billed To", "Proof Document", "Remarks", "Upload Date", "Actions"]}
+          headers={["LR / AWB No", "POD Type", "Route", "Consignor → Consignee", "Client / Billed To", "Proof Document", "Remarks", "Dates (Booking & Upload)", "Actions"]}
           data={filteredPODs}
           loading={loading}
           pagination={true}
           renderRow={(item, index) => {
             const isVerified = (item.podType === "VERIFIED" || item.bookingId || (item.origin && item.origin !== "-"));
             const fileUrl = getFileUrl(item);
+            const bookingDate = getBookingDateStr(item);
 
             return (
               <tr key={item.id || index} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem", opacity: item.isOfflinePending ? 0.7 : 1 }}>
@@ -1160,9 +2342,18 @@ const POD = () => {
                   )}
                 </td>
 
-                {/* Upload Date */}
-                <td style={{ padding: "1rem", whiteSpace: "nowrap", color: "#64748b" }}>
-                  {formatDate(item.uploadedAt || item.createdAt)}
+                {/* Dates (Booking Date & POD Upload Date) */}
+                <td style={{ padding: "1rem", whiteSpace: "nowrap", fontSize: "0.8rem" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#334155", fontWeight: 600 }}>
+                      <span style={{ color: "#64748b", fontSize: "0.72rem" }}>📦 AWB:</span>
+                      <span>{bookingDate ? formatDate(bookingDate) : "—"}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#0284c7", fontSize: "0.75rem", marginTop: "3px" }}>
+                      <span style={{ color: "#64748b", fontSize: "0.72rem" }}>📸 POD:</span>
+                      <span>{formatDate(item.uploadedAt || item.createdAt)}</span>
+                    </div>
+                  </div>
                 </td>
 
                 {/* Actions */}
@@ -1209,6 +2400,7 @@ const POD = () => {
           }}
         />
       </div>
+
 
 
       {/* PREMIUM POD IMAGE STUDIO MODAL (CAMERA & SCANNER EDITOR) */}

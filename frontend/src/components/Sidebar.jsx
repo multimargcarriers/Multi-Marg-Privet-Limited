@@ -35,7 +35,8 @@ import {
   Calendar,
   Globe,
   Scale,
-  Mail
+  Mail,
+  Database
 } from "lucide-react";
 
 export const menuItems = [

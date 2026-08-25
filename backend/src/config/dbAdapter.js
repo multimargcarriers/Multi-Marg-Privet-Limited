@@ -1,16 +1,36 @@
 const { v4: uuidv4 } = require("uuid");
 
 class CollectionReference {
-  constructor(mongoDb, colName) {
-    this.mongoDb = mongoDb;
+  constructor(adapterOrDb, colName) {
+    if (adapterOrDb && typeof adapterOrDb.collection === "function" && adapterOrDb.mongoDb !== undefined) {
+      this.adapter = adapterOrDb;
+      this.mongoDb = adapterOrDb.mongoDb;
+    } else {
+      this.mongoDb = adapterOrDb;
+    }
     this.colName = colName;
     this.query = {};
     this.sort = null;
     this.limitVal = 0;
   }
 
+  async _getDb() {
+    if (this.adapter && this.adapter.mongoDb) return this.adapter.mongoDb;
+    if (this.mongoDb) return this.mongoDb;
+    if (this.adapter && this.adapter.readyPromise) {
+      try {
+        const db = await Promise.race([
+          this.adapter.readyPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("MongoDB connection timeout")), 6000))
+        ]);
+        if (db) return db;
+      } catch(e) {}
+    }
+    throw new Error("MongoDB not connected");
+  }
+
   doc(id) {
-    return new DocumentReference(this.mongoDb, this.colName, id);
+    return new DocumentReference(this.adapter || this.mongoDb, this.colName, id);
   }
 
   where(field, op, val) {
@@ -25,14 +45,14 @@ class CollectionReference {
       "!=": "$ne",
     };
 
-    const newRef = new CollectionReference(this.mongoDb, this.colName);
+    const newRef = new CollectionReference(this.adapter || this.mongoDb, this.colName);
     // clone existing query state
     newRef.query = { ...this.query };
     newRef.sort = this.sort;
     newRef.limitVal = this.limitVal;
 
     if (op === "array-contains") {
-      newRef.query[field] = val; // In Mongo, querying an array for an element is just { field: val }
+      newRef.query[field] = val;
     } else if (op === "array-contains-any") {
       newRef.query[field] = { $in: val };
     } else {
@@ -46,7 +66,7 @@ class CollectionReference {
   }
 
   orderBy(field, dir = "asc") {
-    const newRef = new CollectionReference(this.mongoDb, this.colName);
+    const newRef = new CollectionReference(this.adapter || this.mongoDb, this.colName);
     newRef.query = { ...this.query };
     newRef.sort = { [field]: dir === "desc" ? -1 : 1 };
     newRef.limitVal = this.limitVal;
@@ -54,7 +74,7 @@ class CollectionReference {
   }
 
   limit(num) {
-    const newRef = new CollectionReference(this.mongoDb, this.colName);
+    const newRef = new CollectionReference(this.adapter || this.mongoDb, this.colName);
     newRef.query = { ...this.query };
     newRef.sort = this.sort;
     newRef.limitVal = num;
@@ -65,8 +85,8 @@ class CollectionReference {
     return {
       get: async () => {
         try {
-          if (!this.mongoDb) throw new Error("MongoDB not connected");
-          const count = await this.mongoDb.collection(this.colName).countDocuments(this.query);
+          const db = await this._getDb();
+          const count = await db.collection(this.colName).countDocuments(this.query);
           return { data: () => ({ count }) };
         } catch (error) {
           console.error(`[MongoDB] Error on count for ${this.colName}:`, error.message);
@@ -78,23 +98,23 @@ class CollectionReference {
 
   async get() {
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
-      let cursor = this.mongoDb.collection(this.colName).find(this.query);
+      const db = await this._getDb();
+      let cursor = db.collection(this.colName).find(this.query);
       if (this.sort) cursor = cursor.sort(this.sort);
       if (this.limitVal) cursor = cursor.limit(this.limitVal);
 
       const docs = await cursor.toArray();
       
       const firestoreDocs = docs.map(doc => {
-        const id = doc._id || doc.id; // in case _id is somehow not standard
+        const id = doc._id || doc.id;
         const data = { ...doc };
         data.id = id;
-        delete data._id; // Ensure consistent mapping
+        delete data._id;
         return {
           id: id,
           data: () => data,
           exists: true,
-          ref: new DocumentReference(this.mongoDb, this.colName, id)
+          ref: new DocumentReference(this.adapter || db, this.colName, id)
         };
       });
 
@@ -115,22 +135,42 @@ class CollectionReference {
     const docData = { ...data, _id: id, id: id };
     
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
-      await this.mongoDb.collection(this.colName).insertOne(docData);
+      const db = await this._getDb();
+      await db.collection(this.colName).insertOne(docData);
     } catch (error) {
       console.error(`[MongoDB] Error on add to ${this.colName}:`, error.message);
       throw error;
     }
 
-    return new DocumentReference(this.mongoDb, this.colName, id);
+    return new DocumentReference(this.adapter || this.mongoDb, this.colName, id);
   }
 }
 
 class DocumentReference {
-  constructor(mongoDb, colName, id) {
-    this.mongoDb = mongoDb;
+  constructor(adapterOrDb, colName, id) {
+    if (adapterOrDb && typeof adapterOrDb.collection === "function" && adapterOrDb.mongoDb !== undefined) {
+      this.adapter = adapterOrDb;
+      this.mongoDb = adapterOrDb.mongoDb;
+    } else {
+      this.mongoDb = adapterOrDb;
+    }
     this.colName = colName;
     this.id = id;
+  }
+
+  async _getDb() {
+    if (this.adapter && this.adapter.mongoDb) return this.adapter.mongoDb;
+    if (this.mongoDb) return this.mongoDb;
+    if (this.adapter && this.adapter.readyPromise) {
+      try {
+        const db = await Promise.race([
+          this.adapter.readyPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("MongoDB connection timeout")), 6000))
+        ]);
+        if (db) return db;
+      } catch(e) {}
+    }
+    throw new Error("MongoDB not connected");
   }
 
   _buildIdQuery() {
@@ -140,15 +180,15 @@ class DocumentReference {
     if (this.id && typeof this.id === 'string' && this.id.length === 24 && ObjectId.isValid(this.id)) {
       queries.push({ _id: new ObjectId(this.id) });
     }
-    queries.push({ _id: this.id }); // Fallback for string _id
+    queries.push({ _id: this.id });
     
     return { $or: queries };
   }
 
   async get() {
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
-      const doc = await this.mongoDb.collection(this.colName).findOne(this._buildIdQuery());
+      const db = await this._getDb();
+      const doc = await db.collection(this.colName).findOne(this._buildIdQuery());
       if (doc) {
         const data = { ...doc };
         data.id = this.id;
@@ -173,19 +213,19 @@ class DocumentReference {
 
   async set(data, options = {}) {
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
+      const db = await this._getDb();
       const updateData = { ...data };
       if (!updateData.id) updateData.id = this.id;
       
       if (options.merge) {
-        await this.mongoDb.collection(this.colName).updateOne(
+        await db.collection(this.colName).updateOne(
           this._buildIdQuery(),
           { $set: updateData },
           { upsert: true }
         );
       } else {
-        // replace
-        await this.mongoDb.collection(this.colName).replaceOne(
+        updateData._id = this.id;
+        await db.collection(this.colName).replaceOne(
           this._buildIdQuery(),
           updateData,
           { upsert: true }
@@ -199,34 +239,24 @@ class DocumentReference {
 
   async update(data) {
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
-      await this.mongoDb.collection(this.colName).updateOne(
+      const db = await this._getDb();
+      const res = await db.collection(this.colName).updateOne(
         this._buildIdQuery(),
         { $set: data }
       );
+      if (res.matchedCount === 0) {
+        throw new Error(`No document found with ID ${this.id} to update in ${this.colName}`);
+      }
     } catch (error) {
       console.error(`[MongoDB] Error on doc update for ${this.colName}/${this.id}:`, error.message);
       throw error;
     }
   }
 
-  async delete(user = null) {
+  async delete() {
     try {
-      if (!this.mongoDb) throw new Error("MongoDB not connected");
-
-      // Backup to trash before deleting
-      const doc = await this.mongoDb.collection(this.colName).findOne(this._buildIdQuery());
-      if (doc && this.colName !== 'trash' && this.colName !== 'systemLogs') {
-        await this.mongoDb.collection('trash').insertOne({
-          originalCollection: this.colName,
-          document: doc,
-          deletedAt: new Date(),
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days TTL
-          deletedBy: user ? { id: user.id, name: user.name, role: user.role } : null
-        });
-      }
-
-      await this.mongoDb.collection(this.colName).deleteOne(this._buildIdQuery());
+      const db = await this._getDb();
+      await db.collection(this.colName).deleteOne(this._buildIdQuery());
     } catch (error) {
       console.error(`[MongoDB] Error on doc delete for ${this.colName}/${this.id}:`, error.message);
       throw error;
@@ -237,27 +267,27 @@ class DocumentReference {
 class FirestoreToMongoAdapter {
   constructor(mongoDb) {
     this.mongoDb = mongoDb;
+    this.readyPromise = null;
   }
 
-  collection(colName) {
-    return new CollectionReference(this.mongoDb, colName);
+  collection(name) {
+    return new CollectionReference(this, name);
   }
 
   async runTransaction(fn) {
-    const mongoDb = this.mongoDb;
+    let mongoDb = this.mongoDb;
+    if (!mongoDb && this.readyPromise) {
+      mongoDb = await this.readyPromise;
+    }
+    if (!mongoDb) throw new Error("MongoDB not connected");
+
     const writes = [];
     const transaction = {
       get: async (docRef) => {
-        const doc = await mongoDb.collection(docRef.colName).findOne({
-          $or: [{ _id: docRef.id }, { id: docRef.id }]
-        });
-        if (doc) {
-          const data = { ...doc };
-          delete data._id;
-          return { exists: true, data: () => data };
-        } else {
-          return { exists: false, data: () => null };
-        }
+        return await docRef.get();
+      },
+      delete: (docRef) => {
+        writes.push({ type: 'delete', docRef });
       },
       update: (docRef, data) => {
         writes.push({ type: 'update', docRef, data });
@@ -296,7 +326,7 @@ class FirestoreToMongoAdapter {
   }
 
   batch() {
-    const mongoDb = this.mongoDb;
+    const adapter = this;
     return {
       operations: [],
       set(docRef, data, options = {}) {
@@ -310,6 +340,11 @@ class FirestoreToMongoAdapter {
       },
       async commit() {
         if (this.operations.length === 0) return;
+        let mongoDb = adapter.mongoDb;
+        if (!mongoDb && adapter.readyPromise) {
+          mongoDb = await adapter.readyPromise;
+        }
+        if (!mongoDb) throw new Error("MongoDB not connected");
 
         // Group operations by collection
         const byCollection = {};
@@ -355,7 +390,7 @@ class FirestoreToMongoAdapter {
         // Execute bulkWrite per collection
         for (const colName of Object.keys(byCollection)) {
           const ops = byCollection[colName];
-          const chunkSize = 20000; // Safe chunk size for MongoDB
+          const chunkSize = 20000;
           for (let i = 0; i < ops.length; i += chunkSize) {
             const chunk = ops.slice(i, i + chunkSize);
             await mongoDb.collection(colName).bulkWrite(chunk, { ordered: false });

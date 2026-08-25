@@ -458,6 +458,11 @@ app.use("/api/webmail", webmailRoutes);
 const suggestionsRoutes = require("./src/routes/suggestions");
 app.use("/api/suggestions", suggestionsRoutes);
 
+// Local SQL to MongoDB AWB Sync Studio Route
+const sqlSyncRoutes = require("./src/routes/sqlSync");
+app.use("/api/sql-sync", sqlSyncRoutes);
+
+
 const quotesRoutes = require("./src/routes/quotes");
 app.use("/api/quotes", quotesRoutes);
 

@@ -978,6 +978,50 @@ const Settings = () => {
           </div>
         )}
 
+        {/* MySQL Database AWB Synchronization */}
+        <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #bae6fd', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{ backgroundColor: '#e0f2fe', padding: '0.65rem', borderRadius: '10px', color: '#0284c7' }}>
+                <Database size={24} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 700 }}>MySQL Database AWB Synchronization</h4>
+                  <span style={{ background: '#f0fdf4', color: '#16a34a', fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                    ADMIN TOOL
+                  </span>
+                </div>
+                <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.875rem' }}>
+                  Tally trips & invoice rows from remote MySQL Workbench against MongoDB bookings, inspect discrepancies, and run 1-click sync.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/sql-sync')}
+              style={{
+                backgroundColor: '#0284c7',
+                color: 'white',
+                border: 'none',
+                padding: '0.7rem 1.4rem',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Database size={16} /> Open SQL AWB Sync Studio →
+            </button>
+          </div>
+        </div>
+
         {/* Live Infrastructure Metrics */}
         <div>
           <h4 style={{ margin: '1rem 0 1.5rem 0', fontSize: '1.2rem', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>Live Infrastructure Metrics</h4>
