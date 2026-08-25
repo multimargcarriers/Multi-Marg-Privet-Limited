@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Shield,  Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight, History } from 'lucide-react';
+import { Shield, Edit2, Trash2, Users, Lock, ChevronDown, ChevronRight, History, KeyRound, Eye, EyeOff, X, ShieldCheck } from 'lucide-react';
 import { } from '../components/SkeletonLoader';
 import Table from '../components/Table';
 import { useDialog } from '../context/DialogContext';
@@ -115,6 +116,42 @@ const IAM = () => {
     permissions: [],
     employeeId: ''
   });
+
+  // Direct Super Admin Change Password Modal
+  const [passModal, setPassModal] = useState({
+    isOpen: false,
+    user: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPass: false,
+    loading: false
+  });
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    if (!passModal.newPassword || passModal.newPassword.trim().length < 4) {
+      addToast('Password must be at least 4 characters long', 'error');
+      return;
+    }
+    if (passModal.newPassword !== passModal.confirmPassword) {
+      addToast('Passwords do not match', 'error');
+      return;
+    }
+
+    setPassModal(prev => ({ ...prev, loading: true }));
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${passModal.user.id}/change-password`,
+        { newPassword: passModal.newPassword.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast(res.data?.message || 'Password changed successfully', 'success');
+      setPassModal({ isOpen: false, user: null, newPassword: '', confirmPassword: '', showPass: false, loading: false });
+    } catch (err) {
+      addToast(err.response?.data?.message || err.message || 'Failed to change password', 'error');
+      setPassModal(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -948,6 +985,14 @@ const IAM = () => {
               <td style={{ whiteSpace: 'nowrap' }}>
                 <button className="iam-action-btn" onClick={() => openModal(u)} title="Edit"><Edit2 size={14} /></button>
                 {' '}
+                {isSuperAdmin && (
+                  <>
+                    <button className="iam-action-btn" style={{ color: '#0284c7' }} onClick={() => setPassModal({ isOpen: true, user: u, newPassword: '', confirmPassword: '', showPass: false, loading: false })} title="Change Password Directly">
+                      <KeyRound size={14} />
+                    </button>
+                    {' '}
+                  </>
+                )}
                 {isSuperAdmin && u.id !== currentUser.id && (
                   <>
                     <button className="iam-action-btn" style={{ color: '#0078D4' }} onClick={() => handleClearHistory(u.id)} title="Clear Login History"><History size={14} /></button>
@@ -960,6 +1005,181 @@ const IAM = () => {
           )}
         />
       </div>
+
+      {/* SUPER ADMIN DIRECT PASSWORD CHANGE MODAL */}
+      {passModal.isOpen && passModal.user && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            boxSizing: 'border-box',
+            zIndex: 99999999
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', padding: '1.25rem 1.5rem', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '10px' }}>
+                  <KeyRound size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Change Password</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', opacity: 0.9 }}>Super Admin Direct Password Override</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPassModal({ isOpen: false, user: null, newPassword: '', confirmPassword: '', showPass: false, loading: false })}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form onSubmit={handleSavePassword} style={{ padding: '1.5rem' }}>
+              {/* User Summary Card */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
+                  {passModal.user.name}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '3px' }}>
+                  <span>Role: <b style={{ color: '#0284c7' }}>{passModal.user.role}</b></span>
+                  <span>•</span>
+                  <span>ID: <b style={{ color: '#475569' }}>{passModal.user.employeeId || 'N/A'}</b></span>
+                  <span>•</span>
+                  <span>{passModal.user.email}</span>
+                </div>
+              </div>
+
+              {/* Notice */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '1.25rem', fontSize: '0.78rem', color: '#166534', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                <ShieldCheck size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>No OTP or old password required. You can directly set and save a new password.</span>
+              </div>
+
+              {/* New Password Input */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  New Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={passModal.showPass ? 'text' : 'password'}
+                    value={passModal.newPassword}
+                    onChange={(e) => setPassModal(prev => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Enter new password (min 4 characters)"
+                    required
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '0.65rem 2.5rem 0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      background: '#f8fafc'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPassModal(prev => ({ ...prev, showPass: !prev.showPass }))}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                  >
+                    {passModal.showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password Input */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Confirm New Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type={passModal.showPass ? 'text' : 'password'}
+                  value={passModal.confirmPassword}
+                  onChange={(e) => setPassModal(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Re-enter new password"
+                  required
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    background: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setPassModal({ isOpen: false, user: null, newPassword: '', confirmPassword: '', showPass: false, loading: false })}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '0.55rem 1.2rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passModal.loading}
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '0.55rem 1.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: passModal.loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {passModal.loading ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 };

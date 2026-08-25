@@ -18,6 +18,7 @@ const {
   getOrSet,
   delCache
 } = require("../config/redis");
+const { logUserActivity } = require("../utils/activityLogger");
 const {
   body,
   validationResult
@@ -224,6 +225,13 @@ exports.postRoot_1 = async (req, res) => {
   
   await delCache(CACHE_KEY);
   emitDataUpdated("bookings", "create");
+
+  logUserActivity(req, {
+    type: 'booking_create',
+    title: `Created Booking AWB #${booking.consignment || docRefId} (${booking.consignor || 'Client'} -> ${booking.consignee || 'Consignee'})`,
+    details: { bookingId: docRefId, consignment: booking.consignment, client: booking.consignor }
+  });
+
   return created(res, "Booking created successfully", {
     id: docRefId,
     ...booking
@@ -360,6 +368,13 @@ exports.put_id_4 = async (req, res) => {
   
   await delCache(CACHE_KEY);
   emitDataUpdated("bookings", "update");
+
+  logUserActivity(req, {
+    type: 'booking_update',
+    title: `Updated Booking #${updatedBooking.consignment || id}`,
+    details: { bookingId: id }
+  });
+
   return success(res, "Booking updated successfully", {
     id,
     ...req.body

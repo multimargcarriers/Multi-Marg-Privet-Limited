@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDialog } from '../context/DialogContext';
 import axios from 'axios';
-import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, MapPin, Server, Smartphone, Network, Fingerprint,  X } from 'lucide-react';
+import { Users, Activity, Search, ShieldCheck, LogOut, CheckCircle, Clock, Globe, Monitor, Shield, Mail, Hash, AlertTriangle, XCircle, Eye, EyeOff, KeyRound, Lock, MapPin, Server, Smartphone, Network, Fingerprint, Trash2, X } from 'lucide-react';
 import { formatDate } from '../utils/formatters';
 import { getInitialsAvatar } from '../utils/avatar';
 
@@ -12,6 +12,7 @@ const EmployeeActivity = () => {
   const { token, user } = useContext(AuthContext);
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   
   const [activeTab, setActiveTab] = useState('activities');
   const [users, setUsers] = useState([]);
@@ -23,6 +24,154 @@ const EmployeeActivity = () => {
   const [failedSearchTerm, setFailedSearchTerm] = useState('');
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Super Admin Direct Password Change Modal State
+  const [passModal, setPassModal] = useState({
+    isOpen: false,
+    employee: null,
+    newPassword: '',
+    confirmPassword: '',
+    showPass: false,
+    loading: false
+  });
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    if (!passModal.newPassword || passModal.newPassword.trim().length < 4) {
+      addToast('Password must be at least 4 characters long', 'error');
+      return;
+    }
+    if (passModal.newPassword !== passModal.confirmPassword) {
+      addToast('Passwords do not match', 'error');
+      return;
+    }
+
+    setPassModal(prev => ({ ...prev, loading: true }));
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${passModal.employee.id}/change-password`,
+        { newPassword: passModal.newPassword.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      addToast(res.data?.message || 'Password changed successfully', 'success');
+      setPassModal({ isOpen: false, employee: null, newPassword: '', confirmPassword: '', showPass: false, loading: false });
+    } catch (err) {
+      addToast(err.response?.data?.message || err.message || 'Failed to change password', 'error');
+      setPassModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Activity Deletion & Session Management States
+  const [selectedActivities, setSelectedActivities] = useState([]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedActivities(filteredActivities.map(a => a.id));
+    } else {
+      setSelectedActivities([]);
+    }
+  };
+
+  const handleSelectActivity = (id) => {
+    setSelectedActivities(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteActivity = async (id) => {
+    const confirmed = await confirm({
+      title: "Delete Activity Log",
+      message: "Are you sure you want to delete this activity log? This cannot be undone.",
+      confirmText: "Delete Log",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/activity/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast("Activity log deleted", "success");
+        setActivities(prev => prev.filter(a => a.id !== id));
+        setSelectedActivities(prev => prev.filter(item => item !== id));
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to delete log", "error");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedActivities.length === 0) return;
+    const confirmed = await confirm({
+      title: `Delete ${selectedActivities.length} Activity Logs`,
+      message: `Are you sure you want to permanently delete the ${selectedActivities.length} selected activity log(s)?`,
+      confirmText: "Delete Selected",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/activity/bulk-delete`, {
+        ids: selectedActivities
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast(res.data.message || "Selected activities deleted", "success");
+        const idsToRemove = new Set(selectedActivities);
+        setActivities(prev => prev.filter(a => !idsToRemove.has(a.id)));
+        setSelectedActivities([]);
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to delete activities", "error");
+    }
+  };
+
+  const handleClearAll = async () => {
+    const confirmed = await confirm({
+      title: "Clear All Activity Logs",
+      message: "WARNING: This will permanently delete ALL user activity logs. Are you absolutely sure?",
+      confirmText: "Clear All Logs",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/activity/clear-all`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast(res.data.message || "All activity logs cleared", "success");
+        setActivities([]);
+        setSelectedActivities([]);
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to clear activity logs", "error");
+    }
+  };
+
+  const handleClearSessionHistory = async (userId, userName) => {
+    const confirmed = await confirm({
+      title: `Clear Session History`,
+      message: `Are you sure you want to clear all session details and login history for ${userName}?`,
+      confirmText: "Clear History",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return;
+
+    try {
+      const res = await axios.delete(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/${userId}/sessions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast(res.data.message || "Session history cleared", "success");
+        setActivities(prev => prev.filter(a => a.userId !== userId));
+      }
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to clear session history", "error");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,6 +283,29 @@ const EmployeeActivity = () => {
     }
   };
 
+  const handleClearAllFailedLogins = async () => {
+    const isConfirmed = await confirm({
+      title: "Clear All Threat Reports",
+      message: "Are you sure you want to permanently clear all failed login reports? This action cannot be undone.",
+      confirmText: "Clear All",
+      cancelText: "Cancel"
+    });
+    if (!isConfirmed) return;
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/failed-google-logins/clear-all`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data?.success) {
+        addToast(res.data.message || "All failed login reports cleared.", "success");
+        setFailedLogins([]);
+        setIsModalOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+      addToast(err.response?.data?.message || "Failed to clear reports.", "error");
+    }
+  };
+
   const handleForceLogout = async (userId, userName) => {
     const isConfirmed = await confirm({
       title: "Force Logout & Ban",
@@ -224,7 +396,58 @@ const EmployeeActivity = () => {
         <>
           {activeTab === 'activities' && (
             <div className="fade-in">
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                {/* Bulk Controls */}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  {isSuperAdmin && selectedActivities.length > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      style={{
+                        background: '#fef2f2',
+                        color: '#ef4444',
+                        border: '1px solid #fecaca',
+                        padding: '0.55rem 1.1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                      onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                    >
+                      <Trash2 size={15} /> Delete Selected ({selectedActivities.length})
+                    </button>
+                  )}
+                  {isSuperAdmin && filteredActivities.length > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      style={{
+                        background: '#fff',
+                        color: '#64748b',
+                        border: '1px solid #e2e8f0',
+                        padding: '0.55rem 1.1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                      onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                    >
+                      🧹 Clear All Logs
+                    </button>
+                  )}
+                </div>
+
                 <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
                   <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
@@ -238,31 +461,64 @@ const EmployeeActivity = () => {
               </div>
 
               <div style={{ background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)', overflowX: 'auto', boxShadow: 'var(--shadow-sm)' }}>
-                <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead style={{ background: 'var(--bg-color)' }}>
                     <tr>
-                      <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Event</th>
+                      {isSuperAdmin && (
+                        <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', width: '40px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            onChange={handleSelectAll}
+                            checked={filteredActivities.length > 0 && selectedActivities.length === filteredActivities.length}
+                            style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)', cursor: 'pointer' }}
+                          />
+                        </th>
+                      )}
+                      <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Event Details</th>
                       <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Employee</th>
                       <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Timestamp</th>
                       <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Location & IP</th>
+                      <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase' }}>Device / Browser</th>
+                      {isSuperAdmin && (
+                        <th style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredActivities.length === 0 ? (
                       <tr>
-                        <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No activities found.</td>
+                        <td colSpan={isSuperAdmin ? 7 : 5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>No activities found.</td>
                       </tr>
                     ) : (
                       filteredActivities.map((log) => {
                         const employee = getUserDetails(log.userId);
+                        const isSelected = selectedActivities.includes(log.id);
+                        
+                        // Parse badging colors based on action type
+                        let badgeColor = { text: '#10b981', bg: '#ecfdf5' }; // default green
+                        if (log.type?.includes('delete')) badgeColor = { text: '#ef4444', bg: '#fef2f2' };
+                        else if (log.type?.includes('update')) badgeColor = { text: '#f59e0b', bg: '#fffbeb' };
+                        else if (log.type?.includes('create')) badgeColor = { text: '#3b82f6', bg: '#eff6ff' };
+                        else if (log.type === 'logout') badgeColor = { text: '#64748b', bg: '#f1f5f9' };
+                        
                         return (
-                          <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                          <tr key={log.id} style={{ borderBottom: '1px solid var(--border-color)', background: isSelected ? 'rgba(0, 120, 212, 0.04)' : 'transparent', transition: 'background 0.2s' }} onMouseOver={e => { if(!isSelected) e.currentTarget.style.background = 'var(--bg-color)'; }} onMouseOut={e => { if(!isSelected) e.currentTarget.style.background = 'transparent'; }}>
+                            {isSuperAdmin && (
+                              <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleSelectActivity(log.id)}
+                                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)', cursor: 'pointer' }}
+                                />
+                              </td>
+                            )}
                             <td style={{ padding: '1rem 1.5rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ color: log.type === 'logout' ? '#ef4444' : log.type === 'security' ? '#3b82f6' : '#10b981', background: log.type === 'logout' ? '#fef2f2' : log.type === 'security' ? '#eff6ff' : '#ecfdf5', padding: '0.5rem', borderRadius: '6px' }}>
-                                  {log.type === 'logout' ? <LogOut size={16} /> : log.type === 'security' ? <ShieldCheck size={16} /> : <CheckCircle size={16} />}
+                                <div style={{ color: badgeColor.text, background: badgeColor.bg, padding: '0.5rem', borderRadius: '6px' }}>
+                                  {log.type === 'logout' ? <LogOut size={16} /> : log.type?.includes('security') ? <ShieldCheck size={16} /> : <CheckCircle size={16} />}
                                 </div>
-                                <span style={{ fontWeight: 500, color: 'var(--text-dark)', fontSize: '0.95rem' }}>{log.title}</span>
+                                <span style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: '0.92rem' }}>{log.title}</span>
                               </div>
                             </td>
                             <td style={{ padding: '1rem 1.5rem' }}>
@@ -272,9 +528,9 @@ const EmployeeActivity = () => {
                               </div>
                             </td>
                             <td style={{ padding: '1rem 1.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                 <Clock size={14} />
-                                {new Date(log.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {new Date(log.date).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </td>
                             <td style={{ padding: '1rem 1.5rem' }}>
@@ -283,6 +539,22 @@ const EmployeeActivity = () => {
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem', fontFamily: 'monospace' }}><Monitor size={12} /> {log.ip || 'Unknown'}</span>
                               </div>
                             </td>
+                            <td style={{ padding: '1rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                              {log.device || 'Web Browser'}
+                            </td>
+                            {isSuperAdmin && (
+                              <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                                <button
+                                  onClick={() => handleDeleteActivity(log.id)}
+                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', opacity: 0.75, transition: 'all 0.15s' }}
+                                  onMouseOver={e => e.currentTarget.style.opacity = '1'}
+                                  onMouseOut={e => e.currentTarget.style.opacity = '0.75'}
+                                  title="Delete log permanently"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })
@@ -361,6 +633,37 @@ const EmployeeActivity = () => {
                               )}
                             </div>
                           </div>
+
+                          {/* Super Admin Direct Change Password Button */}
+                          {isSuperAdmin && (
+                            <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => setPassModal({ isOpen: true, employee: emp, newPassword: '', confirmPassword: '', showPass: false, loading: false })}
+                                style={{
+                                  width: '100%',
+                                  background: '#f0f9ff',
+                                  color: '#0284c7',
+                                  border: '1px solid #bae6fd',
+                                  borderRadius: '8px',
+                                  padding: '0.45rem 0.85rem',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseOver={e => { e.currentTarget.style.background = '#e0f2fe'; }}
+                                onMouseOut={e => { e.currentTarget.style.background = '#f0f9ff'; }}
+                              >
+                                <KeyRound size={14} /> Change Password
+                              </button>
+                            </div>
+                          )}
+
                         </div>
 
                       </div>
@@ -423,8 +726,34 @@ const EmployeeActivity = () => {
                 </div>
               </div>
 
-              {/* Search */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+              {/* Search & Clear */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  {isSuperAdmin && failedLogins.length > 0 && (
+                    <button
+                      onClick={handleClearAllFailedLogins}
+                      style={{
+                        background: '#fef2f2',
+                        color: '#ef4444',
+                        border: '1px solid #fecaca',
+                        padding: '0.55rem 1.1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                      onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                    >
+                      🧹 Clear All Threats
+                    </button>
+                  )}
+                </div>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '350px' }}>
                   <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
@@ -688,21 +1017,36 @@ const EmployeeActivity = () => {
                           {session.lastIp} <br/>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'sans-serif' }}>{session.lastLocation}</span>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
-                          {session.isOnline && (
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            {session.isOnline && (
+                              <button 
+                                onClick={() => handleForceLogout(session.user.id, session.user.name)}
+                                style={{
+                                  background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.4rem 0.75rem',
+                                  borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s',
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
+                                }}
+                                onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                                onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                              >
+                                <LogOut size={14} /> Force Logout
+                              </button>
+                            )}
                             <button 
-                              onClick={() => handleForceLogout(session.user.id, session.user.name)}
+                              onClick={() => handleClearSessionHistory(session.user.id, session.user.name)}
                               style={{
-                                background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '0.4rem 0.75rem',
+                                background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', padding: '0.4rem 0.75rem',
                                 borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s',
                                 display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                               }}
-                              onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
-                              onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                              onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'}
+                              onMouseOut={e => e.currentTarget.style.background = '#f8fafc'}
+                              title="Delete all sessions & activity history for this user"
                             >
-                              <LogOut size={14} /> Force Logout
+                              <Trash2 size={14} /> Clear History
                             </button>
-                          )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -894,6 +1238,186 @@ const EmployeeActivity = () => {
         </div>,
         document.body
       )}
+
+      {/* SUPER ADMIN CHANGE PASSWORD PORTAL MODAL */}
+      {passModal.isOpen && passModal.employee && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            boxSizing: 'border-box',
+            zIndex: 99999999
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', padding: '1.25rem 1.5rem', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '10px' }}>
+                  <KeyRound size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Change Employee Password</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', opacity: 0.9 }}>Super Admin Direct Password Override</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPassModal({ isOpen: false, employee: null, newPassword: '', confirmPassword: '', showPass: false, loading: false })}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form onSubmit={handleSavePassword} style={{ padding: '1.5rem' }}>
+              {/* Employee Summary Card */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <img
+                  src={passModal.employee.photo && !passModal.employee.photo.startsWith('/api') ? passModal.employee.photo : (passModal.employee.photo ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || ''}${passModal.employee.photo}` : getInitialsAvatar(passModal.employee.name, '#0284c7', '#ffffff'))}
+                  alt={passModal.employee.name}
+                  style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #e2e8f0' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {passModal.employee.name}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span>ID: <b style={{ color: '#0284c7' }}>{passModal.employee.employeeId || 'N/A'}</b></span>
+                    <span>•</span>
+                    <span>{passModal.employee.email}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notice */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '1.25rem', fontSize: '0.78rem', color: '#166534', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                <ShieldCheck size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>As Super Admin, you can set a new password directly without requiring OTP or current password.</span>
+              </div>
+
+              {/* New Password Input */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  New Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={passModal.showPass ? 'text' : 'password'}
+                    value={passModal.newPassword}
+                    onChange={(e) => setPassModal(prev => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Enter new password (min 4 characters)"
+                    required
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '0.65rem 2.5rem 0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      background: '#f8fafc'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPassModal(prev => ({ ...prev, showPass: !prev.showPass }))}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                  >
+                    {passModal.showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password Input */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Confirm New Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type={passModal.showPass ? 'text' : 'password'}
+                  value={passModal.confirmPassword}
+                  onChange={(e) => setPassModal(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Re-enter new password"
+                  required
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    background: '#f8fafc'
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setPassModal({ isOpen: false, employee: null, newPassword: '', confirmPassword: '', showPass: false, loading: false })}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '0.55rem 1.2rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passModal.loading}
+                  style={{
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '0.55rem 1.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: passModal.loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {passModal.loading ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 };

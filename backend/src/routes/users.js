@@ -4,14 +4,28 @@ const { db } = require("../config/database");
 const { success, error, created } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 
-const { v4: uuidv4 } = require("uuid");
+const {
+  getRoot_1,
+  postRoot_2,
+  put_id_3,
+  delete_id_4,
+  getAllUserActivities,
+  deleteSingleUserActivity,
+  bulkDeleteUserActivities,
+  clearAllUserActivities,
+  clearUserSessions,
+  clearUserActivity,
+  changeEmployeePassword
+} = require('../controllers/usersController');
 
-// Initialize mock users if needed
+const isSuperAdminUser = (u) => {
+  if (!u) return false;
+  const role = String(u.role || '').toLowerCase();
+  return role === 'superadmin' || role === 'admin' || u.email === 'admin@multimarg.com';
+};
 
-// Middleware to ensure user is SuperAdmin
-const { getRoot_1, postRoot_2, put_id_3, delete_id_4, getAllUserActivities, clearUserActivity } = require('../controllers/usersController');
 const requireSuperAdmin = (req, res, next) => {
-  if (req.user && (req.user.role === "SuperAdmin" || req.user.email === "admin@multimarg.com")) {
+  if (isSuperAdminUser(req.user)) {
     next();
   } else {
     return error(res, { message: "Forbidden: SuperAdmin access required", statusCode: 403 });
@@ -19,10 +33,10 @@ const requireSuperAdmin = (req, res, next) => {
 };
 
 const requireSuperAdminOrAccounts = (req, res, next) => {
-  if (req.user && (req.user.role === "SuperAdmin" || req.user.email === "admin@multimarg.com")) {
+  if (isSuperAdminUser(req.user)) {
     return next();
   }
-  const userPermissions = req.user.permissions || [];
+  const userPermissions = req.user?.permissions || [];
   if (userPermissions.includes('all') || userPermissions.includes('accounts') || userPermissions.includes('cash_sheet')) {
     return next();
   }
@@ -39,79 +53,35 @@ router.get(
 // Protect all subsequent user routes strictly for SuperAdmin
 router.use(requireSuperAdmin);
 
-// GET all user activities
+// Activity Logs routes
 router.get("/activity", asyncHandler(getAllUserActivities));
+router.post("/activity/bulk-delete", asyncHandler(bulkDeleteUserActivities));
+router.post("/activity/clear-all", asyncHandler(clearAllUserActivities));
+router.delete("/activity/:id", asyncHandler(deleteSingleUserActivity));
 
-// DELETE user activity
-router.delete("/activity/:id", asyncHandler(clearUserActivity));
+// Employee Session clearing
+router.delete("/:id/sessions", asyncHandler(clearUserSessions));
+router.delete("/:id/activity", asyncHandler(clearUserSessions));
+
+// POST direct change password for employee by Super Admin (No OTP, no old pass)
+router.post("/:id/change-password", asyncHandler(changeEmployeePassword));
 
 // POST create new user (Admin)
 router.post(
   "/",
-  asyncHandler(postRoot_2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  )
+  asyncHandler(postRoot_2)
 );
 
 // PUT update user permissions/role
 router.put(
   "/:id",
-  asyncHandler(put_id_3
-
-
-
-
-
-
-
-
-
-
-
-
-
-  )
+  asyncHandler(put_id_3)
 );
 
 // DELETE user
 router.delete(
   "/:id",
-  asyncHandler(delete_id_4
-
-
-
-
-
-
-
-
-
-
-
-
-  )
+  asyncHandler(delete_id_4)
 );
 
 module.exports = router;

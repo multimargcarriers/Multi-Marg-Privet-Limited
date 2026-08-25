@@ -5,6 +5,7 @@ const fs = require("fs");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
+const { logUserActivity } = require("../utils/activityLogger");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");
 
@@ -137,6 +138,12 @@ exports.postRoot_2 = async (req, res) => {
     emitDataUpdated("bookings", "update");
   } catch (sockErr) {}
 
+  logUserActivity(req, {
+    type: 'pod_upload',
+    title: `Uploaded Proof of Delivery (POD) for LR/AWB #${entry.lrNo || 'UNKNOWN'}`,
+    details: { lrNo: entry.lrNo, bookingId: entry.bookingId }
+  });
+
   return created(res, "POD entry created successfully", {
     id: docRef.id,
     ...entry
@@ -258,6 +265,12 @@ exports.deleteRoot_3 = async (req, res) => {
     emitDataUpdated("bookings", "update");
     emitDataUpdated("tracking", "delete");
   } catch (sockErr) {}
+
+  logUserActivity(req, {
+    type: 'pod_delete',
+    title: `Deleted Proof of Delivery (POD) for LR/AWB #${data.lrNo || 'UNKNOWN'}`,
+    details: { lrNo: data.lrNo, bookingId: data.bookingId }
+  });
 
   return success(res, "POD entry deleted and shipment status reversed successfully");
 };

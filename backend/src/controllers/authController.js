@@ -1009,6 +1009,26 @@ exports.delete_failed_google_login = async (req, res) => {
   }
 };
 
+// Clear all failed Google logins
+exports.clear_all_failed_google_logins = async (req, res) => {
+  try {
+    const dbInstance = db.mongoDb;
+    if (dbInstance) {
+      await dbInstance.collection("failedGoogleLogins").deleteMany({});
+    } else {
+      // Fallback for Firestore compatibility if mongoDb isn't wired yet
+      const snapshot = await db.collection("failedGoogleLogins").get();
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    }
+    return success(res, { message: "All failed login attempts cleared successfully." });
+  } catch (err) {
+    console.error("[FailedGoogleLogins] Clear error:", err);
+    return res.status(500).json({ success: false, message: "Failed to clear failed login reports" });
+  }
+};
+
 // Force Logout (Ban 3m)
 exports.post_force_logout = async (req, res) => {
   try {

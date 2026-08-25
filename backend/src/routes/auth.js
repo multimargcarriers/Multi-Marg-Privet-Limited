@@ -17,6 +17,7 @@ const {
   get_activity,
   get_failed_google_logins,
   delete_failed_google_login,
+  clear_all_failed_google_logins,
   post_force_logout,
   toggle_two_factor,
   verify_face,
@@ -100,6 +101,12 @@ router.delete(
   "/failed-google-logins/:id",
   authenticateToken,
   asyncHandler(delete_failed_google_login)
+);
+
+router.post(
+  "/failed-google-logins/clear-all",
+  authenticateToken,
+  asyncHandler(clear_all_failed_google_logins)
 );
 
 router.post(

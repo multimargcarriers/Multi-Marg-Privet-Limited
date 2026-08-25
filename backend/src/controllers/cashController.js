@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
+const { logUserActivity } = require("../utils/activityLogger");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");
 const { runAnalyticsAggregation } = require("../jobs/analyticsJob");
@@ -69,7 +70,14 @@ exports.postRoot_2 = async (req, res) => {
   emitDataUpdated("bills", "update");
   emitDataUpdated("purchases", "update");
   emitDataUpdated("outstanding", "update");
+  emitDataUpdated("outstanding", "update");
   emitDataUpdated("openingBalances", "update");
+
+  logUserActivity(req, {
+    type: 'cash_create',
+    title: `Recorded Cash ${entry.type === 'out' ? 'Out (Disbursement)' : 'In (Receipt)'} of ₹${Number(entry.amount).toLocaleString('en-IN')} for ${entry.partyName || 'General'} (${entry.partyType || 'General'})`,
+    details: { cashId: docRef.id, amount: entry.amount, party: entry.partyName }
+  });
 
   return created(res, "Cash entry created successfully", {
     id: docRef.id,
@@ -107,6 +115,13 @@ exports.delete_id_3 = async (req, res) => {
   emitDataUpdated("outstanding", "update");
   emitDataUpdated("openingBalances", "update");
   await recalculatePartyPayments(data.partyType, data.partyName);
+
+  logUserActivity(req, {
+    type: 'cash_delete',
+    title: `Deleted Cash entry for ${data.partyName || 'General'} of ₹${Number(data.amount).toLocaleString('en-IN')}`,
+    details: { cashId: id, amount: data.amount, party: data.partyName }
+  });
+
   return success(res, "Cash entry deleted successfully");
 };
 

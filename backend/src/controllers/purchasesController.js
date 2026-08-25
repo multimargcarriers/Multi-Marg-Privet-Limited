@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
+const { logUserActivity } = require("../utils/activityLogger");
 const { body, validationResult } = require("express-validator");
 const { uploadFile } = require("../config/cloudinary");
 const { recalculatePartyPayments } = require("../utils/paymentUtils");
@@ -60,6 +61,13 @@ exports.postRoot_2 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   emitDataUpdated("purchases", "create");
+
+  logUserActivity(req, {
+    type: 'purchase_create',
+    title: `Recorded Purchase Bill #${purchase.billNo || docRef.id} from Vendor ${purchase.vendor || 'Vendor'} (₹${Number(purchase.total).toLocaleString('en-IN')})`,
+    details: { purchaseId: docRef.id, billNo: purchase.billNo, vendor: purchase.vendor }
+  });
+
   return created(res, "Purchase created successfully", {
     id: docRef.id,
     ...purchase
@@ -121,6 +129,12 @@ exports.put_id_4 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   
+  logUserActivity(req, {
+    type: 'purchase_update',
+    title: `Updated Purchase Bill #${updateData.billNo || doc.data().billNo || id} for Vendor ${updateData.vendor || doc.data().vendor}`,
+    details: { purchaseId: id }
+  });
+
   return success(res, "Purchase entry updated successfully");
 };
 
@@ -146,7 +160,14 @@ exports.delete_id_3 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   emitDataUpdated("purchases", "update");
-    return success(res, "Purchase deleted successfully");
+
+  logUserActivity(req, {
+    type: 'purchase_delete',
+    title: `Deleted Purchase Bill #${data.billNo || id} for Vendor ${data.vendor}`,
+    details: { purchaseId: id, billNo: data.billNo, vendor: data.vendor }
+  });
+
+  return success(res, "Purchase deleted successfully");
 };
 
 exports.postImport = async (req, res) => {

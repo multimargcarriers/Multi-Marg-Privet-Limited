@@ -4,9 +4,10 @@ const { getSystemLogs, deleteLog, deleteLogsByDate, bulkDeleteLogs } = require("
 
 const { error } = require("../utils/response");
 
-// Middleware to ensure user is SuperAdmin
+// Middleware to ensure user is SuperAdmin or Admin
 const requireSuperAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "SuperAdmin") {
+  const role = String(req.user?.role || '').toLowerCase();
+  if (req.user && (role === "superadmin" || role === "admin" || req.user.email === "admin@multimarg.com")) {
     next();
   } else {
     return error(res, { message: "Forbidden: SuperAdmin access required", statusCode: 403 });

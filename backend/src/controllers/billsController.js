@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const { success, created, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { getOrSet, delCache } = require("../config/redis");
+const { logUserActivity } = require("../utils/activityLogger");
 const { body, param, validationResult } = require("express-validator");
 const { generatePDF } = require("../utils/pdfGenerator");
 const { uploadBase64 } = require("../config/cloudinary");
@@ -306,7 +307,14 @@ exports.post_generate_5 = async (req, res) => {
   await delCache("bookings");
   
   emitDataUpdated("bills", "update");
-    return success(res, "Bills generated successfully", {
+
+  logUserActivity(req, {
+    type: 'bill_generate',
+    title: `Generated Invoice #${bill.billNo || bill.id} for ${bill.client || 'Client'} (₹${bill.total || 0})`,
+    details: { billId: bill.id, billNo: bill.billNo, client: bill.client }
+  });
+
+  return success(res, "Bills generated successfully", {
     billNo: bill.billNo,
     bills: [bill],
     count: 1
@@ -361,6 +369,13 @@ exports.post_misc_6 = async (req, res) => {
   await delCache(CACHE_KEY);
   emitDataUpdated("bills", "update");
   emitDataUpdated("bills", "update");
+
+  logUserActivity(req, {
+    type: 'bill_misc_create',
+    title: `Created Misc Bill #${bill.billNo || bill.id} for ${bill.client || 'Client'} (₹${bill.total || 0})`,
+    details: { billId: bill.id, billNo: bill.billNo, client: bill.client }
+  });
+
   return created(res, "Miscellaneous bill created successfully", bill);
 };
 
@@ -420,7 +435,14 @@ exports.put_id_7 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   emitDataUpdated("bills", "update");
-    return success(res, "Bill updated successfully", {
+
+  logUserActivity(req, {
+    type: 'bill_update',
+    title: `Updated Bill #${updatedData.billNo || doc.data().billNo || id} for ${updatedData.client || doc.data().client || 'Client'}`,
+    details: { billId: id }
+  });
+
+  return success(res, "Bill updated successfully", {
     id,
     ...updatedData
   });
@@ -472,7 +494,14 @@ exports.delete_id_8 = async (req, res) => {
   await delCache(CACHE_KEY);
   await delCache("bookings");
   emitDataUpdated("bills", "delete");
-    return success(res, "Bill deleted successfully");
+
+  logUserActivity(req, {
+    type: 'bill_delete',
+    title: `Deleted Bill #${billData.billNo || id} for ${billData.client || 'Client'}`,
+    details: { billId: id, billNo: billData.billNo, client: billData.client }
+  });
+
+  return success(res, "Bill deleted successfully");
 };
 
 exports.post_import_9 = async (req, res) => {

@@ -247,23 +247,128 @@ exports.getAllUserActivities = async (req, res) => {
   });
 };
 
-exports.clearUserActivity = async (req, res) => {
-  const { id } = req.params; // The ID of the employee
-  
+/**
+ * Delete a single activity log entry by its Document ID
+ */
+exports.deleteSingleUserActivity = async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return error(res, { message: "Activity ID is required", statusCode: 400 });
+  }
+
+  const docRef = db.collection("userActivities").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    return error(res, { message: "Activity log not found", statusCode: 404 });
+  }
+
+  await docRef.delete();
+  return success(res, { message: "Activity log deleted successfully" });
+};
+
+/**
+ * Bulk delete user activities by list of IDs or filter
+ */
+exports.bulkDeleteUserActivities = async (req, res) => {
+  const { ids, all, userId, type, startDate, endDate } = req.body;
+
+  if (all === true) {
+    const result = await db.mongoDb.collection("userActivities").deleteMany({});
+    return success(res, {
+      message: `Successfully cleared all ${result.deletedCount || 0} activity logs`
+    });
+  }
+
+  if (Array.isArray(ids) && ids.length > 0) {
+    const result = await db.mongoDb.collection("userActivities").deleteMany({
+      $or: [
+        { _id: { $in: ids } },
+        { id: { $in: ids } }
+      ]
+    });
+    return success(res, {
+      message: `Successfully deleted ${result.deletedCount || ids.length} selected activity log(s)`
+    });
+  }
+
+  const filter = {};
+  if (userId) filter.userId = userId;
+  if (type && type !== 'ALL') filter.type = type.toLowerCase();
+  if (startDate || endDate) {
+    filter.date = {};
+    if (startDate) filter.date.$gte = new Date(startDate).toISOString();
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.date.$lte = end.toISOString();
+    }
+  }
+
+  const result = await db.mongoDb.collection("userActivities").deleteMany(filter);
+  return success(res, {
+    message: `Successfully deleted ${result.deletedCount || 0} activity log(s)`
+  });
+};
+
+/**
+ * Clear all user activity logs completely
+ */
+exports.clearAllUserActivities = async (req, res) => {
+  const result = await db.mongoDb.collection("userActivities").deleteMany({});
+  return success(res, {
+    message: `All ${result.deletedCount || 0} user activity logs cleared successfully`
+  });
+};
+
+/**
+ * Clear all sessions and login history for a specific employee
+ */
+exports.clearUserSessions = async (req, res) => {
+  const { id } = req.params;
   if (!id) {
     return error(res, { message: "User ID is required", statusCode: 400 });
   }
 
-  const snapshot = await db.collection("userActivities").where("userId", "==", id).get();
-  
-  const batch = db.batch();
-  snapshot.forEach(doc => {
-    batch.delete(doc.ref);
-  });
-  
-  await batch.commit();
-
+  const result = await db.mongoDb.collection("userActivities").deleteMany({ userId: id });
   return success(res, {
-    message: "Login history cleared successfully for the employee"
+    message: `Session details and login history cleared successfully (${result.deletedCount || 0} records removed)`
   });
 };
+
+exports.clearUserActivity = exports.clearUserSessions;
+
+/**
+ * Directly change an employee/user password by Super Admin
+ * No OTP or old password required
+ */
+exports.changeEmployeePassword = async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+
+  if (!newPassword || String(newPassword).trim().length < 4) {
+    return error(res, { message: "Password must be at least 4 characters long", statusCode: 400 });
+  }
+
+  const docRef = db.collection("users").doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    return error(res, { message: "Employee / User not found", statusCode: 404 });
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(String(newPassword).trim(), salt);
+
+  await docRef.update({
+    password: hashedPassword,
+    updatedAt: new Date().toISOString(),
+    passwordChangedByAdmin: true,
+    passwordChangedAt: new Date().toISOString()
+  });
+
+  const userData = doc.data() || {};
+  return success(res, {
+    message: `Password for ${userData.name || 'employee'} has been updated successfully`,
+    data: { id, name: userData.name, employeeId: userData.employeeId, email: userData.email }
+  });
+};
+
