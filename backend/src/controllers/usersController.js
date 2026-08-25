@@ -30,8 +30,8 @@ exports.getRoot_1 = async (req, res) => {
     const data = doc.data();
     delete data.password;
     users.push({
-      id: doc.id,
-      ...data
+      ...data,
+      id: doc.id
     });
   });
   return success(res, {

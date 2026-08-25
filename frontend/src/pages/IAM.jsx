@@ -837,6 +837,7 @@ const IAM = () => {
                     <label>Username <span>(Optional)</span></label>
                     <input 
                       type="text" 
+                      name="username"
                       value={formData.username || ''} 
                       onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '')})} 
                       className="iam-input"
@@ -858,6 +859,7 @@ const IAM = () => {
                       <label>Password<span>*</span></label>
                       <input 
                         type="password" 
+                        name="password"
                         value={formData.password} 
                         onChange={e => setFormData({...formData, password: e.target.value})} 
                         required={!formData.id} 
@@ -967,7 +969,7 @@ const IAM = () => {
                   <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{u.designation}</div>
                 )}
               </td>
-              <td style={{ color: '#64748b' }}>{u.username ? `@${u.username.toLowerCase()}` : <span style={{opacity: 0.5}}>-</span>}</td>
+              <td className="username-cell" style={{ color: '#64748b' }}>{u.username ? `@${u.username.toLowerCase()}` : <span style={{opacity: 0.5}}>-</span>}</td>
               <td style={{ whiteSpace: 'nowrap', fontWeight: 600, color: '#4F46E5' }}>{u.employeeId || 'N/A'}</td>
               <td style={{ whiteSpace: 'nowrap', color: '#0f172a', fontWeight: 500 }}>
                 {u.phone || u.phoneNumber || <span style={{ opacity: 0.4 }}>Not set</span>}
@@ -1086,6 +1088,7 @@ const IAM = () => {
                 <div style={{ position: 'relative' }}>
                   <input
                     type={passModal.showPass ? 'text' : 'password'}
+                    name="password"
                     value={passModal.newPassword}
                     onChange={(e) => setPassModal(prev => ({ ...prev, newPassword: e.target.value }))}
                     placeholder="Enter new password (min 4 characters)"
@@ -1118,6 +1121,7 @@ const IAM = () => {
                 </label>
                 <input
                   type={passModal.showPass ? 'text' : 'password'}
+                  name="password"
                   value={passModal.confirmPassword}
                   onChange={(e) => setPassModal(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Re-enter new password"

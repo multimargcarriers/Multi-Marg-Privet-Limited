@@ -223,7 +223,7 @@ exports.post_google_login = async (req, res) => {
     });
   }
   const userDoc = snapshot.docs[0];
-  const user = { id: userDoc.id, ...userDoc.data() };
+  const user = { ...userDoc.data(), id: userDoc.id };
 
   // Verify client ID (optional warning)
   const expectedClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
@@ -303,7 +303,7 @@ exports.get_me = async (req, res) => {
     message: `Account does not exist. Please contact the administrator at ${process.env.ENQUIRY_EMAIL || 'info@multimarg.com'}.`,
     statusCode: 404
   });
-  const userData = { id: doc.id, ...doc.data() };
+  const userData = { ...doc.data(), id: doc.id };
   delete userData.password;
   
   // Issue a fresh token because permissions/role might have changed
@@ -378,7 +378,7 @@ exports.post_login_1 = async (req, res) => {
   let userData = null;
   snapshot.forEach(doc => {
     userDoc = doc;
-    userData = { id: doc.id, ...doc.data() };
+    userData = { ...doc.data(), id: doc.id };
   });
 
   // Check if account is blocked
@@ -649,7 +649,7 @@ exports.put_profile_2 = async (req, res) => {
   }
 
   if (Object.keys(updates).length === 0 && (!newId || newId === userId)) {
-    const currentData = { id: doc.id, ...doc.data() };
+    const currentData = { ...doc.data(), id: doc.id };
     delete currentData.password;
     return success(res, {
       message: "Profile is up to date",
@@ -949,7 +949,7 @@ exports.get_activity = async (req, res) => {
 
     let activities = [];
     snapshot.forEach(doc => {
-      activities.push({ id: doc.id, ...doc.data() });
+      activities.push({ ...doc.data(), id: doc.id });
     });
 
     // Sort by date descending
@@ -977,7 +977,7 @@ exports.get_failed_google_logins = async (req, res) => {
 
     const attempts = [];
     snapshot.forEach(doc => {
-      attempts.push({ id: doc.id, ...doc.data() });
+      attempts.push({ ...doc.data(), id: doc.id });
     });
 
     return success(res, { data: attempts });

@@ -4717,3 +4717,18 @@ input[id="name"] {
     gap: 0.35rem;
   }
 }
+
+/* Mailbox inputs, textareas, and content display should preserve original casing */
+.gmail-workspace,
+.gmail-workspace *,
+.gmail-workspace input,
+.gmail-workspace textarea,
+.gmail-workspace div,
+.gmail-workspace span,
+.gmail-workspace p {
+  text-transform: none !important;
+}
+
+.username-cell {
+  text-transform: none !important;
+}
