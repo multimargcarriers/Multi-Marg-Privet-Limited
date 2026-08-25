@@ -225,6 +225,8 @@ const TripMIS = () => {
               destination: row['Destination'] || '',
               tripRemarks: row['Remarks'] || row['Trip Remarks'] || '',
               paidAmount: 0,
+              gstEnabled: true,
+              gstRate: 18,
               parcels: []
             };
           }
@@ -430,7 +432,9 @@ const TripMIS = () => {
                 box: totalBox,
                 weight: totalWeight,
                 tripRemarks: tripListForm.tripRemarks || "",
-                paidAmount: 0
+                paidAmount: editingId ? (parseFloat(tripListForm.paidAmount) || 0) : 0,
+                gstEnabled: tripListForm.gstEnabled !== undefined ? tripListForm.gstEnabled : true,
+                gstRate: tripListForm.gstEnabled !== false ? (tripListForm.gstRate !== undefined ? parseFloat(tripListForm.gstRate) : 18) : 0
               };
               
               try {
