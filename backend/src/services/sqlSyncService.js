@@ -6,9 +6,15 @@
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const { MongoClient } = require("mongodb");
-const mysql = require("mysql2/promise");
 const { v4: uuidv4 } = require("uuid");
 const { db } = require("../config/database");
+
+let mysql = null;
+try {
+  mysql = require("mysql2/promise");
+} catch (e) {
+  // lazy loaded
+}
 
 let fallbackMongoClient = null;
 
@@ -44,6 +50,13 @@ const MYSQL_CONFIG = {
  * Creates a dedicated MySQL connection
  */
 async function getSqlConnection() {
+  if (!mysql) {
+    try {
+      mysql = require("mysql2/promise");
+    } catch (e) {
+      throw new Error("mysql2 driver is not installed. Please install mysql2 in backend dependencies.");
+    }
+  }
   if (!MYSQL_CONFIG.host || !MYSQL_CONFIG.user || !MYSQL_CONFIG.password || !MYSQL_CONFIG.database) {
     throw new Error("Missing MySQL credentials in environment variables (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE).");
   }
