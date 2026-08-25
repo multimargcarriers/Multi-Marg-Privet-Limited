@@ -36,6 +36,7 @@ exports.postRoot_2 = async (req, res) => {
     partyType: req.body.partyType || "",
     partyName: req.body.partyName || "",
     remarks: req.body.remarks || "",
+    billNo: req.body.billNo || "",
     createdAt: new Date().toISOString()
   };
   

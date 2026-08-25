@@ -179,9 +179,6 @@ exports.post_generate_5 = async (req, res) => {
       if (booking.invoiceDetails && booking.invoiceDetails.length > 0) {
         aggregatedInvoiceDetails = aggregatedInvoiceDetails.concat(booking.invoiceDetails);
       }
-      
-      // Update booking status to Billed immediately
-      await db.collection("bookings").doc(booking.id).update({ status: "Billed" });
     }
   }
 
@@ -276,6 +273,20 @@ exports.post_generate_5 = async (req, res) => {
   };
 
   await db.collection("bills").doc(bill.id).set(bill);
+
+  // Update booking status and billing fields in MongoDB
+  for (let i = 0; i < bookingIds.length; i++) {
+    try {
+      await db.collection("bookings").doc(bookingIds[i]).update({
+        status: "Billed",
+        billed: true,
+        billNo: billNo
+      });
+    } catch (e) {
+      console.error(`Failed to update booking ${bookingIds[i]}:`, e.message);
+    }
+  }
+
   if (bill.client) {
     await recalculatePartyPayments('Client', bill.client);
   }
@@ -461,17 +472,17 @@ exports.delete_id_8 = async (req, res) => {
       if (lrNo) {
         // Query by awb
         const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
-        byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
+        byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
 
         // Query by id field just in case
         const byIdField = await db.collection("bookings").where("id", "==", lrNo).get();
-        byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
+        byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
 
         // Check if lrNo is the document ID directly
         try {
           const directDoc = await db.collection("bookings").doc(lrNo).get();
           if (directDoc.exists) {
-            await db.collection("bookings").doc(lrNo).update({ status: "Booked" });
+            await db.collection("bookings").doc(lrNo).update({ status: "Booked", billed: false, billNo: "" });
           }
         } catch(e) {}
       }

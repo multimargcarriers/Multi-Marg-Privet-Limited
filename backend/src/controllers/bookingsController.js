@@ -165,6 +165,8 @@ exports.postRoot_1 = async (req, res) => {
 
   booking.date = new Date().toISOString();
   booking.status = "Booked";
+  booking.billed = false;
+  booking.billNo = "";
   booking.lrNumber = generateLRNumber();
   
   const role = req.user?.role || "";

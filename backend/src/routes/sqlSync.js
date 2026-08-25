@@ -163,4 +163,54 @@ router.post("/sync-vendor-payments", async (req, res) => {
   }
 });
 
+/**
+ * Tally Client Payments between SQL and MongoDB
+ * POST /api/sql-sync/tally-client-payments
+ * Body: { fromDate?: 'YYYY-MM-DD', toDate?: 'YYYY-MM-DD' }
+ */
+router.post("/tally-client-payments", async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.body;
+    const tallyResult = await sqlSyncService.tallyClientPayments({ fromDate, toDate });
+    res.json(tallyResult);
+  } catch (err) {
+    console.error("[SQL Sync Error /tally-client-payments]:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Synchronize Client Payments from SQL to MongoDB
+ * POST /api/sql-sync/sync-client-payments
+ * Body: { fromDate, toDate, selectedPayments }
+ */
+router.post("/sync-client-payments", async (req, res) => {
+  try {
+    const { fromDate, toDate, selectedPayments } = req.body;
+    const syncResult = await sqlSyncService.syncClientPayments({
+      fromDate,
+      toDate,
+      selectedPayments
+    });
+    res.json(syncResult);
+  } catch (err) {
+    console.error("[SQL Sync Error /sync-client-payments]:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Synchronize unbilled status globally across all bookings
+ * POST /api/sql-sync/sync-unbilled
+ */
+router.post("/sync-unbilled", async (req, res) => {
+  try {
+    const syncResult = await sqlSyncService.syncAllBookingsBillingStatusFromSql();
+    res.json(syncResult);
+  } catch (err) {
+    console.error("[SQL Sync Error /sync-unbilled]:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

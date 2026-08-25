@@ -48,7 +48,7 @@ const SqlSyncStudio = () => {
     }
   };
 
-  // Sync Entity Switcher: "AWB" | "BILLS" | "PURCHASES" | "VENDOR_PAYMENTS"
+  // Sync Entity Switcher: "AWB" | "BILLS" | "PURCHASES" | "VENDOR_PAYMENTS" | "CLIENT_PAYMENTS"
   const [syncEntity, setSyncEntity] = useState("AWB");
 
   // Date filters
@@ -134,6 +134,23 @@ const SqlSyncStudio = () => {
     }
   };
 
+  const [syncingBillingStatus, setSyncingBillingStatus] = useState(false);
+
+  const handleSyncBillingStatus = async () => {
+    setSyncingBillingStatus(true);
+    try {
+      const res = await axios.post(`${API_BASE}/api/sql-sync/sync-unbilled`);
+      showToast(
+        `Successfully synced billing status: ${res.data.updatedBookings} of ${res.data.totalBookings} bookings corrected!`,
+        "success"
+      );
+    } catch (err) {
+      showToast("Sync failed: " + (err.response?.data?.error || err.message), "error");
+    } finally {
+      setSyncingBillingStatus(false);
+    }
+  };
+
   useEffect(() => {
     checkConnections();
   }, []);
@@ -144,6 +161,7 @@ const SqlSyncStudio = () => {
     if (ent === "BILLS") return "Sales Bills";
     if (ent === "PURCHASES") return "Vendor Purchases";
     if (ent === "VENDOR_PAYMENTS") return "Vendor Payments";
+    if (ent === "CLIENT_PAYMENTS") return "Client Payments";
     return "Records";
   };
 
@@ -157,6 +175,7 @@ const SqlSyncStudio = () => {
       if (targetEntity === "BILLS") endpoint = "/api/sql-sync/tally-bills";
       else if (targetEntity === "PURCHASES") endpoint = "/api/sql-sync/tally-purchases";
       else if (targetEntity === "VENDOR_PAYMENTS") endpoint = "/api/sql-sync/tally-vendor-payments";
+      else if (targetEntity === "CLIENT_PAYMENTS") endpoint = "/api/sql-sync/tally-client-payments";
 
       const res = await axios.post(`${API_BASE}${endpoint}`, {
         fromDate: fromDate || undefined,
@@ -192,7 +211,7 @@ const SqlSyncStudio = () => {
 
   // Selection handlers
   const getItemKey = (item) => {
-    if (syncEntity === "VENDOR_PAYMENTS") return item.pid || item.sqlRecord?.pid;
+    if (syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") return item.pid || item.sqlRecord?.pid;
     if (syncEntity === "PURCHASES") return item.billNo || item.bill || item.sqlRecord?.billNo;
     if (syncEntity === "BILLS") return item.invoice || item.billNo || item.sqlBill?.invoice;
     return item.awb || item.sqlRecord?.awb;
@@ -266,6 +285,9 @@ const SqlSyncStudio = () => {
         payloadKey = "selectedPurchases";
       } else if (syncEntity === "VENDOR_PAYMENTS") {
         endpoint = "/api/sql-sync/sync-vendor-payments";
+        payloadKey = "selectedPayments";
+      } else if (syncEntity === "CLIENT_PAYMENTS") {
+        endpoint = "/api/sql-sync/sync-client-payments";
         payloadKey = "selectedPayments";
       }
 
@@ -549,13 +571,14 @@ const SqlSyncStudio = () => {
           </div>
         </div>
 
-        {/* 4-WAY ENTITY TOGGLE BUTTONS */}
+        {/* 5-WAY ENTITY TOGGLE BUTTONS */}
         <div className="sync-entity-switcher" style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px", border: "1px solid #e2e8f0", flexWrap: "wrap", gap: "2px" }}>
           {[
             { key: "AWB", label: "1. AWBs & Trips", icon: <Package size={14} /> },
             { key: "BILLS", label: "2. Sales Invoices", icon: <Receipt size={14} /> },
             { key: "PURCHASES", label: "3. Vendor Purchases", icon: <ShoppingCart size={14} /> },
-            { key: "VENDOR_PAYMENTS", label: "4. Vendor Vouchers", icon: <CreditCard size={14} /> }
+            { key: "VENDOR_PAYMENTS", label: "4. Vendor Vouchers", icon: <CreditCard size={14} /> },
+            { key: "CLIENT_PAYMENTS", label: "5. Client Vouchers", icon: <CreditCard size={14} /> }
           ].map(tab => {
             const isSelected = syncEntity === tab.key;
             return (
@@ -642,6 +665,29 @@ const SqlSyncStudio = () => {
             title="Re-check connections"
           >
             <RefreshCw size={13} className={testingConn ? "spin-animation" : ""} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSyncBillingStatus}
+            disabled={syncingBillingStatus}
+            style={{
+              background: "#0284c7",
+              border: "1px solid #0284c7",
+              borderRadius: "8px",
+              padding: "5px 12px",
+              cursor: "pointer",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "0.75rem",
+              fontWeight: 600
+            }}
+            title="Sync all unbilled bookings status from SQL"
+          >
+            <RefreshCw size={13} className={syncingBillingStatus ? "spin-animation" : ""} />
+            <span>{syncingBillingStatus ? "Syncing..." : "Sync Billing Status"}</span>
           </button>
         </div>
       </div>
@@ -1190,7 +1236,7 @@ const SqlSyncStudio = () => {
                         </>
                       )}
 
-                      {syncEntity === "VENDOR_PAYMENTS" && (
+                      {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") && (
                         <>
                           <th style={{ padding: "10px 12px", textAlign: "left" }}>Payment Mode / Remarks</th>
                           <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount Paid</th>
@@ -1226,8 +1272,8 @@ const SqlSyncStudio = () => {
                                   style={{ cursor: "pointer" }}
                                 />
                               </td>
-                              <td style={{ padding: "10px 12px", fontWeight: 800, color: syncEntity === "VENDOR_PAYMENTS" ? "#64748b" : "#ea580c" }}>
-                                {syncEntity === "VENDOR_PAYMENTS" ? `#${idx + 1}` : itemKey}
+                              <td style={{ padding: "10px 12px", fontWeight: 800, color: (syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") ? "#64748b" : "#ea580c" }}>
+                                {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") ? `#${idx + 1}` : itemKey}
                               </td>
                               <td style={{ padding: "10px 12px", color: "#475569" }}>
                                 {item.date || item.invoice_date || "—"}
@@ -1303,11 +1349,11 @@ const SqlSyncStudio = () => {
                                 </>
                               )}
 
-                              {syncEntity === "VENDOR_PAYMENTS" && (
+                              {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") && (
                                 <>
                                   <td style={{ padding: "10px 12px", color: "#475569" }}>
                                     <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontSize: "0.75rem" }}>
-                                      {item.remarks || "Bank"}
+                                      {item.remarks || item.particulars || "Bank"}
                                     </span>
                                   </td>
                                   <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 800, color: "#16a34a" }}>
@@ -1749,7 +1795,7 @@ const SqlSyncStudio = () => {
                         </>
                       )}
 
-                      {syncEntity === "VENDOR_PAYMENTS" && (
+                      {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") && (
                         <>
                           <th style={{ padding: "10px 12px", textAlign: "left" }}>Remarks</th>
                           <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount</th>
@@ -1771,8 +1817,8 @@ const SqlSyncStudio = () => {
                         const itemKey = getItemKey(item);
                         return (
                           <tr key={itemKey || idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                            <td style={{ padding: "10px 12px", fontWeight: 700, color: syncEntity === "VENDOR_PAYMENTS" ? "#64748b" : "#0f172a" }}>
-                              {syncEntity === "VENDOR_PAYMENTS" ? `#${idx + 1}` : itemKey}
+                            <td style={{ padding: "10px 12px", fontWeight: 700, color: (syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") ? "#64748b" : "#0f172a" }}>
+                              {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") ? `#${idx + 1}` : itemKey}
                             </td>
                             <td style={{ padding: "10px 12px", color: "#475569" }}>
                               {item.date || item.invoice_date || "—"}
@@ -1823,10 +1869,10 @@ const SqlSyncStudio = () => {
                               </>
                             )}
 
-                            {syncEntity === "VENDOR_PAYMENTS" && (
+                            {(syncEntity === "VENDOR_PAYMENTS" || syncEntity === "CLIENT_PAYMENTS") && (
                               <>
                                 <td style={{ padding: "10px 12px", color: "#64748b" }}>
-                                  {item.remarks || "Bank"}
+                                  {item.remarks || item.particulars || "Bank"}
                                 </td>
                                 <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 800, color: "#16a34a" }}>
                                   ₹{Number(item.amount || 0).toLocaleString()}

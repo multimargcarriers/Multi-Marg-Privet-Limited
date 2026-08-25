@@ -798,10 +798,9 @@ async function syncAwbs({ fromDate, toDate, selectedAwbs = [], syncMode = "missi
           syncedAt: new Date().toISOString()
         };
 
-        if (billNo && !existing.billNo) {
-          updateDoc.billNo = billNo;
-          updateDoc.billed = true;
-        }
+        updateDoc.billNo = billNo || "";
+        updateDoc.billed = Boolean(billNo);
+        updateDoc.status = billNo ? "Billed" : "Booked";
 
         await mongoDb.collection("bookings").updateOne(
           { _id: existing._id },
@@ -2066,6 +2065,402 @@ async function syncVendorPayments({ fromDate, toDate, selectedPayments } = {}) {
   }
 }
 
+/**
+ * Tallies Client Payments between MySQL `outstanding` and MongoDB collections
+ */
+async function tallyClientPayments({ fromDate, toDate } = {}) {
+  let conn;
+  try {
+    conn = await getSqlConnection();
+    const mongoDb = await getMongoDbInstance();
+
+    let sqlQuery = "SELECT * FROM outstanding WHERE 1=1";
+    const sqlParams = [];
+
+    if (fromDate) {
+      sqlQuery += " AND date >= ?";
+      sqlParams.push(fromDate);
+    }
+    if (toDate) {
+      sqlQuery += " AND date <= ?";
+      sqlParams.push(toDate);
+    }
+    sqlQuery += " ORDER BY pid DESC";
+
+    const [sqlPayments] = await conn.query(sqlQuery, sqlParams);
+    
+    // Client payments are in Mongo either as:
+    // 1. cashEntries with type "in", partyType "client" (for bank/cash payments)
+    // 2. outstanding with partyType "client" (for TDS/debit adjustments)
+    const mongoCash = await mongoDb.collection("cashEntries").find({ type: "in", partyType: { $regex: /^client$/i } }).toArray();
+    const mongoAdjs = await mongoDb.collection("outstanding").find({ partyType: { $regex: /^client$/i } }).toArray();
+
+    const cleanNum = (val) => {
+      const n = parseFloat(String(val || "0").replace(/,/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
+
+    const normalizeName = (str) => {
+      if (!str) return "";
+      return String(str).toLowerCase().replace(/[.\-_,/#&()]/g, " ").replace(/\bpvt\b|\bprivate\b/gi, "").replace(/\bltd\b|\blimited\b/gi, "").replace(/\s+/g, " ").trim();
+    };
+
+    const areDatesEqual = (d1, d2) => {
+      if (!d1 && !d2) return true;
+      if (!d1 || !d2) return false;
+      const toYMD = (str) => {
+        if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+          const parts = str.split("-");
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.split("T")[0];
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? str : d.toISOString().split("T")[0];
+      };
+      return toYMD(d1) === toYMD(d2);
+    };
+
+    const missingInMongo = [];
+    const matched = [];
+
+    for (const sp of sqlPayments) {
+      const pDateObj = sp.date ? new Date(sp.date) : null;
+      const dateFormatted = pDateObj ? formatDateDDMMYYYY(pDateObj) : "";
+      const dateYMD = pDateObj ? pDateObj.toISOString().split("T")[0] : "";
+      const sqlClient = String(sp.client || "").trim();
+      const sqlAmt = cleanNum(sp.amount);
+      const isTds = String(sp.particulars || "").toLowerCase().trim() === "tds";
+
+      let found = false;
+      if (isTds) {
+        found = mongoAdjs.some(ma => 
+          areDatesEqual(ma.date, dateYMD) &&
+          normalizeName(ma.client || ma.partyName) === normalizeName(sqlClient) &&
+          Math.abs(cleanNum(ma.amount) - sqlAmt) < 1 &&
+          String(ma.particulars || "").toLowerCase().trim() === "tds"
+        );
+      } else {
+        found = mongoCash.some(mc => 
+          areDatesEqual(mc.date, dateYMD) &&
+          normalizeName(mc.partyName) === normalizeName(sqlClient) &&
+          Math.abs(cleanNum(mc.amount) - sqlAmt) < 1
+        );
+      }
+
+      const itemRecord = {
+        pid: sp.pid,
+        date: dateFormatted,
+        date_ymd: dateYMD,
+        client: sqlClient,
+        amount: sqlAmt,
+        particulars: String(sp.particulars || "").trim(),
+        remarks: String(sp.bankname || "").trim()
+      };
+
+      if (!found) {
+        missingInMongo.push(itemRecord);
+      } else {
+        matched.push(itemRecord);
+      }
+    }
+
+    let currentMongoTotal = 0;
+    let targetSqlTotal = 0;
+    for (const mc of mongoCash) currentMongoTotal += cleanNum(mc.amount || 0);
+    for (const ma of mongoAdjs) currentMongoTotal += cleanNum(ma.amount || 0);
+    for (const sp of sqlPayments) targetSqlTotal += cleanNum(sp.amount || 0);
+
+    return {
+      success: true,
+      summary: {
+        totalInSql: sqlPayments.length,
+        totalInMongo: mongoCash.length + mongoAdjs.length,
+        missingInMongoCount: missingInMongo.length,
+        differentCount: 0,
+        matchedCount: matched.length,
+        currentMongoTotal: Number(currentMongoTotal.toFixed(2)),
+        targetSqlTotal: Number(targetSqlTotal.toFixed(2))
+      },
+      missingInMongo,
+      different: [],
+      matched
+    };
+  } finally {
+    if (conn) await conn.end();
+  }
+}
+
+/**
+ * Synchronizes MySQL `outstanding` payments into MongoDB collections
+ */
+async function syncClientPayments({ fromDate, toDate, selectedPayments } = {}) {
+  let conn;
+  try {
+    conn = await getSqlConnection();
+    const mongoDb = await getMongoDbInstance();
+
+    let sqlQuery = "SELECT * FROM outstanding WHERE 1=1";
+    const sqlParams = [];
+
+    if (fromDate) {
+      sqlQuery += " AND date >= ?";
+      sqlParams.push(fromDate);
+    }
+    if (toDate) {
+      sqlQuery += " AND date <= ?";
+      sqlParams.push(toDate);
+    }
+    sqlQuery += " ORDER BY pid DESC";
+
+    const [sqlPayments] = await conn.query(sqlQuery, sqlParams);
+    let paymentsToProcess = sqlPayments;
+
+    if (selectedPayments && Array.isArray(selectedPayments) && selectedPayments.length > 0) {
+      const selectedPids = new Set(selectedPayments.map(p => String(p)));
+      paymentsToProcess = paymentsToProcess.filter(p => selectedPids.has(String(p.pid)));
+    }
+
+    let insertedCount = 0;
+    const syncLog = [];
+    const affectedClients = new Set();
+
+    const cleanNum = (val) => {
+      const n = parseFloat(String(val || "0").replace(/,/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
+
+    const normalizeName = (str) => {
+      if (!str) return "";
+      return String(str).toLowerCase().replace(/[.\-_,/#&()]/g, " ").replace(/\bpvt\b|\bprivate\b/gi, "").replace(/\bltd\b|\blimited\b/gi, "").replace(/\s+/g, " ").trim();
+    };
+
+    const areDatesEqual = (d1, d2) => {
+      if (!d1 && !d2) return true;
+      if (!d1 || !d2) return false;
+      const toYMD = (str) => {
+        if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+          const parts = str.split("-");
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.split("T")[0];
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? str : d.toISOString().split("T")[0];
+      };
+      return toYMD(d1) === toYMD(d2);
+    };
+
+    for (const sp of paymentsToProcess) {
+      const pDateObj = sp.date ? new Date(sp.date) : null;
+      const dateYMD = pDateObj ? pDateObj.toISOString().split("T")[0] : "";
+      const clientName = String(sp.client || "").trim().toLowerCase();
+      const amount = parseFloat(sp.amount || 0) || 0;
+      const isTds = String(sp.particulars || "").toLowerCase().trim() === "tds";
+
+      if (!clientName || amount <= 0) continue;
+
+      if (isTds) {
+        // Sync into outstanding (TDS adjustment)
+        const existingVo = await mongoDb.collection("outstanding").findOne({
+          date: dateYMD,
+          partyType: "Client",
+          client: clientName,
+          amount: amount,
+          particulars: "tds"
+        });
+
+        if (!existingVo) {
+          const voDoc = {
+            id: uuidv4(),
+            pid: sp.pid,
+            date: dateYMD,
+            partyType: "Client",
+            client: clientName,
+            partyName: clientName,
+            particulars: "tds",
+            amount: amount,
+            bankname: String(sp.bankname || "").trim(),
+            remarks: String(sp.bankname || "").trim(),
+            createdAt: new Date().toISOString(),
+            syncedFromSql: true,
+            syncedAt: new Date().toISOString()
+          };
+          await mongoDb.collection("outstanding").insertOne(voDoc);
+          insertedCount++;
+          syncLog.push({ pid: sp.pid, client: clientName, amount, action: "INSERTED" });
+        }
+      } else {
+        // Sync into cashEntries collection (Cash Book / Cash Sheet)
+        const existingCash = await mongoDb.collection("cashEntries").findOne({
+          date: dateYMD,
+          partyType: "client",
+          partyName: clientName,
+          amount: amount
+        });
+
+        if (!existingCash) {
+          const cashDoc = {
+            id: uuidv4(),
+            pid: sp.pid,
+            amount: amount,
+            date: dateYMD,
+            type: "in",
+            partyType: "client",
+            partyName: clientName,
+            remarks: String(sp.bankname || sp.particulars || "Client Payment").trim(),
+            paymentMode: String(sp.particulars || "Bank").trim(),
+            createdAt: new Date().toISOString(),
+            syncedFromSql: true,
+            syncedAt: new Date().toISOString()
+          };
+          await mongoDb.collection("cashEntries").insertOne(cashDoc);
+          insertedCount++;
+          syncLog.push({ pid: sp.pid, client: clientName, amount, action: "INSERTED" });
+        }
+      }
+
+      affectedClients.add(clientName);
+    }
+
+    // Recalculate settlements and outstanding balances for all affected clients
+    try {
+      const { db: adapter, initMongo } = require("../config/database");
+      if (!adapter.mongoDb) {
+        await initMongo();
+      }
+      const { recalculatePartyPayments } = require("../utils/paymentUtils");
+      for (const cName of affectedClients) {
+        await recalculatePartyPayments("Client", cName, true);
+      }
+    } catch (recalcErr) {
+      console.error("[SQL Sync] Recalculate client payments warning:", recalcErr.message);
+    }
+
+    // Invalidate Redis Caches
+    try {
+      const { delCache } = require("../config/redis");
+      await Promise.all([
+        delCache("cashEntries"),
+        delCache("outstanding"),
+        delCache("bills"),
+        delCache("analytics")
+      ]);
+    } catch (cErr) {
+      console.error("[SQL Sync] Redis invalidation error:", cErr.message);
+    }
+
+    return {
+      success: true,
+      total: paymentsToProcess.length,
+      inserted: insertedCount,
+      log: syncLog
+    };
+  } finally {
+    if (conn) await conn.end();
+  }
+}
+
+/**
+ * Synchronizes the billing status (unbilled vs billed) of ALL bookings in MongoDB with MySQL SQL database.
+ */
+async function syncAllBookingsBillingStatusFromSql() {
+  let conn;
+  try {
+    conn = await getSqlConnection();
+    const mongoDb = await getMongoDbInstance();
+
+    console.log("[Billing Status Sync] Fetching billed AWBs from MySQL...");
+    const [sqlBills] = await conn.query("SELECT awb, invoice FROM bills");
+    
+    const sqlBillsMap = new Map();
+    for (const b of sqlBills) {
+      if (b.awb && b.invoice) {
+        sqlBillsMap.set(String(b.awb).trim().toLowerCase(), String(b.invoice).trim());
+      }
+    }
+    console.log(`[Billing Status Sync] Found ${sqlBillsMap.size} unique billed AWBs in SQL.`);
+
+    console.log("[Billing Status Sync] Fetching bookings from MongoDB...");
+    const bookings = await mongoDb.collection("bookings").find({}).toArray();
+    console.log(`[Billing Status Sync] Found ${bookings.length} bookings in MongoDB.`);
+
+    let updatedCount = 0;
+    const bulkOps = [];
+
+    for (const b of bookings) {
+      const awbKey = String(b.awb || b.consignment || "").trim().toLowerCase();
+      if (!awbKey) continue;
+
+      const sqlBillNo = sqlBillsMap.get(awbKey);
+      const isBilledInSql = Boolean(sqlBillNo);
+
+      const isBilledInMongo = b.billed === true || b.status === "Billed";
+      const currentBillNo = b.billNo || "";
+
+      if (isBilledInSql) {
+        if (!isBilledInMongo || currentBillNo !== sqlBillNo) {
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: b._id },
+              update: {
+                $set: {
+                  status: "Billed",
+                  billed: true,
+                  billNo: sqlBillNo,
+                  updatedAt: new Date().toISOString()
+                }
+              }
+            }
+          });
+          updatedCount++;
+        }
+      } else {
+        if (isBilledInMongo || currentBillNo !== "") {
+          bulkOps.push({
+            updateOne: {
+              filter: { _id: b._id },
+              update: {
+                $set: {
+                  status: "Booked",
+                  billed: false,
+                  billNo: "",
+                  updatedAt: new Date().toISOString()
+                }
+              }
+            }
+          });
+          updatedCount++;
+        }
+      }
+    }
+
+    if (bulkOps.length > 0) {
+      console.log(`[Billing Status Sync] Executing bulkWrite for ${bulkOps.length} bookings...`);
+      const chunkSize = 1000;
+      for (let i = 0; i < bulkOps.length; i += chunkSize) {
+        const chunk = bulkOps.slice(i, i + chunkSize);
+        await mongoDb.collection("bookings").bulkWrite(chunk, { ordered: false });
+      }
+    }
+
+    try {
+      const { delCache } = require("../config/redis");
+      await Promise.all([
+        delCache("bookings"),
+        delCache("unbilled"),
+        delCache("bills")
+      ]);
+    } catch (e) {}
+
+    return {
+      success: true,
+      totalBookings: bookings.length,
+      updatedBookings: updatedCount
+    };
+  } finally {
+    if (conn) await conn.end();
+  }
+}
+
 module.exports = {
   testConnections,
   tallyAwbs,
@@ -2075,7 +2470,10 @@ module.exports = {
   tallyPurchases,
   syncPurchases,
   tallyVendorPayments,
-  syncVendorPayments
+  syncVendorPayments,
+  tallyClientPayments,
+  syncClientPayments,
+  syncAllBookingsBillingStatusFromSql
 };
 
 

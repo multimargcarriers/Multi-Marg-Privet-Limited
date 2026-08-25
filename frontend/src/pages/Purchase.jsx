@@ -401,6 +401,7 @@ const Purchase = () => {
         type: "out",
         partyType: "Vendor",
         partyName: payBillData.vendor,
+        billNo: payBillData.billNo || "",
         remarks: payBillData.remarks
       };
       

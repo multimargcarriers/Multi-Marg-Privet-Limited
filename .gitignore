@@ -12,3 +12,5 @@ npm-debug.log
 logs/
 backend/logs/
 soft.multimargcarriers.co.in/
+scratch/
+backend/scratch/

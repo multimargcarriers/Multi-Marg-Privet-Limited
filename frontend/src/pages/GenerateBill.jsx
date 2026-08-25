@@ -63,7 +63,7 @@ const GenerateBill = () => {
   const fetchData = async () => {
     try {
       const [bookingsRes, clientsRes, billsRes, ratesRes] = await Promise.all([
-        axios.get(`${API}/bookings`),
+        axios.get(`${API}/unbilled`),
         axios.get(`${API}/clients`),
         axios.get(`${API}/bills`),
         axios.get(`${API}/rates`)

@@ -54,9 +54,20 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const netAmt = (doc.type === "in") ? amt : -amt;
             let bNo = String(doc.billNo || '').trim().toLowerCase();
             if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
-                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i) || String(doc.remarks || '').match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
-                if (match) {
-                    bNo = match[0].toLowerCase();
+                const remarksStr = String(doc.remarks || '');
+                const matchMcpl = remarksStr.match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (matchMcpl) {
+                    bNo = matchMcpl[0].toLowerCase();
+                } else {
+                    const matchBillNo = remarksStr.match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                    if (matchBillNo) {
+                        bNo = matchBillNo[1].toLowerCase();
+                    } else {
+                        const matchBillDirect = remarksStr.match(/bill\s*(?:#|:)?\s*([^\s,;]+)/i) || remarksStr.match(/invoice\s*(?:#|:)?\s*([^\s,;]+)/i);
+                        if (matchBillDirect) {
+                            bNo = matchBillDirect[1].toLowerCase();
+                        }
+                    }
                 }
             }
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
@@ -84,8 +95,21 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const amt = Number(doc.amount) || 0;
             let bNo = String(doc.billNo || doc.linkedBillNo || '').trim().toLowerCase();
             if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
-                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
-                if (match) bNo = match[0].toLowerCase();
+                const remarksStr = String(doc.remarks || '');
+                const matchMcpl = remarksStr.match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (matchMcpl) {
+                    bNo = matchMcpl[0].toLowerCase();
+                } else {
+                    const matchBillNo = remarksStr.match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                    if (matchBillNo) {
+                        bNo = matchBillNo[1].toLowerCase();
+                    } else {
+                        const matchBillDirect = remarksStr.match(/bill\s*(?:#|:)?\s*([^\s,;]+)/i) || remarksStr.match(/invoice\s*(?:#|:)?\s*([^\s,;]+)/i);
+                        if (matchBillDirect) {
+                            bNo = matchBillDirect[1].toLowerCase();
+                        }
+                    }
+                }
             }
             const part = String(doc.particulars || 'tds').trim().toLowerCase();
 
@@ -104,6 +128,25 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             }
         });
 
+        // D. Fetch Bills first so we can check if prior year bills exist
+        const billsDocs = await db.mongoDb.collection("bills").find({
+            client: { $regex: regex }
+        }).toArray();
+        
+        billsDocs.sort((a, b) => {
+            const parseDate = (d) => {
+                if (!d) return 9999999999999;
+                const dt = new Date(d);
+                return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
+            };
+            const timeA = parseDate(a.billDate || a.date || a.invoice_date || a.createdAt);
+            const timeB = parseDate(b.billDate || b.date || b.invoice_date || b.createdAt);
+            if (timeA !== timeB) {
+                return timeA - timeB; // Oldest dates first (Strict FIFO)
+            }
+            return String(a.invoice || a.billNo || '').localeCompare(String(b.invoice || b.billNo || ''));
+        });
+
         // C. Settle Prior Opening Outstanding FIRST with General Payments and General TDS/Debt
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
             partyType: { $regex: /^client$/i },
@@ -114,7 +157,17 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         let remainingGeneralTds = generalTds;
         let remainingGeneralDebt = generalDebt;
 
-        if (openDoc) {
+        const cutoffDate = openDoc && openDoc.asOfDate ? openDoc.asOfDate : "2026-03-31";
+        const cutoffISO = new Date(cutoffDate + "T23:59:59.999Z");
+        const isPriorOrEqual = (dateStr) => {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            return d <= cutoffISO;
+        };
+
+        const hasPriorBills = billsDocs.some(b => isPriorOrEqual(b.billDate || b.date || b.invoice_date || b.createdAt));
+
+        if (openDoc && !hasPriorBills) {
             let initialBaseline = 0;
             if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
                 initialBaseline = Number(openDoc.initialOpeningDue);
@@ -172,23 +225,10 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         }
 
         // D. Cascade Direct Payments & Remaining General Payments/TDS/Debt to Bills
-        const billsDocs = await db.mongoDb.collection("bills").find({
-            client: { $regex: regex }
-        }).toArray();
-        
-        billsDocs.sort((a, b) => {
-            const parseDate = (d) => {
-                if (!d) return 9999999999999;
-                const dt = new Date(d);
-                return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
-            };
-            const timeA = parseDate(a.billDate || a.date || a.invoice_date || a.createdAt);
-            const timeB = parseDate(b.billDate || b.date || b.invoice_date || b.createdAt);
-            if (timeA !== timeB) {
-                return timeA - timeB; // Oldest dates first (Strict FIFO)
-            }
-            return String(a.invoice || a.billNo || '').localeCompare(String(b.invoice || b.billNo || ''));
-        });
+        let totalCashAppliedToPrior = 0;
+        let totalTdsAppliedToPrior = 0;
+        let totalDebtAppliedToPrior = 0;
+        let totalUnpaidPrior = 0;
 
         for (const bill of billsDocs) {
             const billTotal = Number(bill.total || bill.amount) || 0;
@@ -246,6 +286,15 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const updatedTds = Number(billTds.toFixed(2));
             const updatedDebt = Number(billDebt.toFixed(2));
 
+            if (isPriorOrEqual(bill.billDate || bill.date || bill.invoice_date || bill.createdAt)) {
+                totalCashAppliedToPrior += updatedCash;
+                totalTdsAppliedToPrior += updatedTds;
+                totalDebtAppliedToPrior += updatedDebt;
+                if (!isCancelled) {
+                    totalUnpaidPrior += unapplied;
+                }
+            }
+
             if (bill.paidAmount !== updatedCash || bill.tdsAmount !== updatedTds || bill.debtAmount !== updatedDebt || bill.status !== newStatus) {
                 await db.collection("bills").doc(bill.id || bill._id.toString()).update({
                     paidAmount: updatedCash,
@@ -254,6 +303,28 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
                     status: newStatus
                 });
             }
+        }
+
+        if (openDoc && hasPriorBills) {
+            let initialBaseline = 0;
+            if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
+                initialBaseline = Number(openDoc.initialOpeningDue);
+            } else if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) > 0) {
+                initialBaseline = Number(openDoc.totalBilledPrior);
+            } else if (openDoc.openingOutstanding !== undefined && Number(openDoc.openingOutstanding) > 0) {
+                initialBaseline = Number(openDoc.openingOutstanding);
+            } else {
+                initialBaseline = 0;
+            }
+            await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                initialOpeningDue: openDoc.initialOpeningDue || initialBaseline,
+                totalBilledPrior: initialBaseline,
+                totalPaidPrior: Number(totalCashAppliedToPrior.toFixed(2)),
+                totalTdsPrior: Number(totalTdsAppliedToPrior.toFixed(2)),
+                totalDebtPrior: Number(totalDebtAppliedToPrior.toFixed(2)),
+                openingOutstanding: Number(totalUnpaidPrior.toFixed(2)),
+                updatedAt: new Date().toISOString()
+            });
         }
     }
     else if (normType === 'vendor') {
@@ -273,9 +344,20 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const netAmt = (doc.type === "out") ? amt : -amt;
             let bNo = String(doc.billNo || '').trim().toLowerCase();
             if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
-                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i) || String(doc.remarks || '').match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
-                if (match) {
-                    bNo = match[0].toLowerCase();
+                const remarksStr = String(doc.remarks || '');
+                const matchMcpl = remarksStr.match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (matchMcpl) {
+                    bNo = matchMcpl[0].toLowerCase();
+                } else {
+                    const matchBillNo = remarksStr.match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                    if (matchBillNo) {
+                        bNo = matchBillNo[1].toLowerCase();
+                    } else {
+                        const matchBillDirect = remarksStr.match(/bill\s*(?:#|:)?\s*([^\s,;]+)/i) || remarksStr.match(/invoice\s*(?:#|:)?\s*([^\s,;]+)/i);
+                        if (matchBillDirect) {
+                            bNo = matchBillDirect[1].toLowerCase();
+                        }
+                    }
                 }
             }
             if (bNo && bNo !== 'none' && bNo !== 'general' && bNo !== 'undefined' && bNo !== 'null') {
@@ -302,8 +384,21 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const amt = Number(doc.amount) || 0;
             let bNo = String(doc.billNo || doc.linkedBillNo || '').trim().toLowerCase();
             if (!bNo || bNo === 'none' || bNo === 'general' || bNo === 'undefined' || bNo === 'null') {
-                const match = String(doc.remarks || '').match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
-                if (match) bNo = match[0].toLowerCase();
+                const remarksStr = String(doc.remarks || '');
+                const matchMcpl = remarksStr.match(/mcpl\/[0-9]{2}-[0-9]{2}\/[0-9]{4}/i);
+                if (matchMcpl) {
+                    bNo = matchMcpl[0].toLowerCase();
+                } else {
+                    const matchBillNo = remarksStr.match(/bill\s*no\.?\s*:?\s*([^\s,;]+)/i);
+                    if (matchBillNo) {
+                        bNo = matchBillNo[1].toLowerCase();
+                    } else {
+                        const matchBillDirect = remarksStr.match(/bill\s*(?:#|:)?\s*([^\s,;]+)/i) || remarksStr.match(/invoice\s*(?:#|:)?\s*([^\s,;]+)/i);
+                        if (matchBillDirect) {
+                            bNo = matchBillDirect[1].toLowerCase();
+                        }
+                    }
+                }
             }
             const part = String(doc.particulars || 'tds').trim().toLowerCase();
 
@@ -322,6 +417,25 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             }
         });
 
+        // D. Fetch Purchases first so we can check if prior year purchases exist
+        const purchasesDocs = await db.mongoDb.collection("purchases").find({
+            vendor: { $regex: regex }
+        }).toArray();
+        
+        purchasesDocs.sort((a, b) => {
+            const parseDate = (d) => {
+                if (!d) return 9999999999999;
+                const dt = new Date(d);
+                return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
+            };
+            const timeA = parseDate(a.date || a.createdAt);
+            const timeB = parseDate(b.date || b.createdAt);
+            if (timeA !== timeB) {
+                return timeA - timeB; // Oldest dates first (Strict FIFO)
+            }
+            return String(a.billNo || a.id || '').localeCompare(String(b.billNo || b.id || ''));
+        });
+
         // C. Settle Prior Opening Outstanding FIRST with General Payments
         const openDoc = await db.mongoDb.collection("openingBalances").findOne({
             partyType: { $regex: /^vendor$/i },
@@ -332,7 +446,17 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         let remainingGeneralTds = generalTds;
         let remainingGeneralDebt = generalDebt;
 
-        if (openDoc) {
+        const cutoffDate = openDoc && openDoc.asOfDate ? openDoc.asOfDate : "2026-03-31";
+        const cutoffISO = new Date(cutoffDate + "T23:59:59.999Z");
+        const isPriorOrEqual = (dateStr) => {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            return d <= cutoffISO;
+        };
+
+        const hasPriorPurchases = purchasesDocs.some(p => isPriorOrEqual(p.date || p.createdAt));
+
+        if (openDoc && !hasPriorPurchases) {
             let initialBaseline = 0;
             if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
                 initialBaseline = Number(openDoc.initialOpeningDue);
@@ -390,23 +514,10 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
         }
 
         // D. Cascade Remaining General Payments + Direct Payments to Purchases
-        const purchasesDocs = await db.mongoDb.collection("purchases").find({
-            vendor: { $regex: regex }
-        }).toArray();
-        
-        purchasesDocs.sort((a, b) => {
-            const parseDate = (d) => {
-                if (!d) return 9999999999999;
-                const dt = new Date(d);
-                return isNaN(dt.getTime()) ? 9999999999999 : dt.getTime();
-            };
-            const timeA = parseDate(a.date || a.createdAt);
-            const timeB = parseDate(b.date || b.createdAt);
-            if (timeA !== timeB) {
-                return timeA - timeB; // Oldest dates first (Strict FIFO)
-            }
-            return String(a.billNo || a.id || '').localeCompare(String(b.billNo || b.id || ''));
-        });
+        let totalCashAppliedToPrior = 0;
+        let totalTdsAppliedToPrior = 0;
+        let totalDebtAppliedToPrior = 0;
+        let totalUnpaidPrior = 0;
 
         for (const purchase of purchasesDocs) {
             const purchaseTotal = Number(purchase.total || purchase.amount) || 0;
@@ -455,6 +566,13 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
             const updatedTds = Number(purchaseTds.toFixed(2));
             const updatedDebt = Number(purchaseDebt.toFixed(2));
 
+            if (isPriorOrEqual(purchase.date || purchase.createdAt)) {
+                totalCashAppliedToPrior += updatedCash;
+                totalTdsAppliedToPrior += updatedTds;
+                totalDebtAppliedToPrior += updatedDebt;
+                totalUnpaidPrior += unapplied;
+            }
+
             if (purchase.paidAmount !== updatedCash || purchase.tdsAmount !== updatedTds || purchase.debtAmount !== updatedDebt || purchase.status !== newStatus) {
                 await db.collection("purchases").doc(purchase.id || purchase._id.toString()).update({
                     paidAmount: updatedCash,
@@ -463,6 +581,28 @@ const recalculatePartyPayments = async (partyType, partyName, skipAnalytics = fa
                     status: newStatus
                 });
             }
+        }
+
+        if (openDoc && hasPriorPurchases) {
+            let initialBaseline = 0;
+            if (openDoc.initialOpeningDue !== undefined && Number(openDoc.initialOpeningDue) > 0) {
+                initialBaseline = Number(openDoc.initialOpeningDue);
+            } else if (openDoc.totalBilledPrior !== undefined && Number(openDoc.totalBilledPrior) > 0) {
+                initialBaseline = Number(openDoc.totalBilledPrior);
+            } else if (openDoc.openingOutstanding !== undefined && Number(openDoc.openingOutstanding) > 0) {
+                initialBaseline = Number(openDoc.openingOutstanding);
+            } else {
+                initialBaseline = 0;
+            }
+            await db.collection("openingBalances").doc(openDoc.id || openDoc._id.toString()).update({
+                initialOpeningDue: openDoc.initialOpeningDue || initialBaseline,
+                totalBilledPrior: initialBaseline,
+                totalPaidPrior: Number(totalCashAppliedToPrior.toFixed(2)),
+                totalTdsPrior: Number(totalTdsAppliedToPrior.toFixed(2)),
+                totalDebtPrior: Number(totalDebtAppliedToPrior.toFixed(2)),
+                openingOutstanding: Number(totalUnpaidPrior.toFixed(2)),
+                updatedAt: new Date().toISOString()
+            });
         }
     }
     

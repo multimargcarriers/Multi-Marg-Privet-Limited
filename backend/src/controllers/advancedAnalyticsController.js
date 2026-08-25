@@ -45,29 +45,143 @@ exports.getAdvancedAnalytics = async (req, res) => {
     const { startDate, endDate, groupBy = "month", client } = req.query;
     const mongoDb = db.mongoDb;
 
-    const cacheKey = `analytics:advanced:${startDate || ''}:${endDate || ''}:${groupBy}:${client || ''}`;
-    try {
-      const cached = await getCache(cacheKey);
-      if (cached) {
-        return success(res, "Advanced Analytics fetched successfully (cached)", cached);
-      }
-    } catch (err) {
-      console.warn("[Redis] Failed to fetch cache for advanced analytics:", err.message);
-    }
 
     const fromMillis = startDate ? new Date(startDate).getTime() : null;
     const toMillis = endDate ? new Date(endDate).getTime() : null;
     const clientRegex = client && client.trim() ? new RegExp(escapeRegExp(client.trim()), "i") : null;
 
-    // Fetch collections in parallel
-    const [bills, purchases, bookings, cashEntries] = await Promise.all([
-      mongoDb ? mongoDb.collection("bills").find({}).toArray() : db.collection("bills").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
-      mongoDb ? mongoDb.collection("purchases").find({}).toArray() : db.collection("purchases").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
-      mongoDb ? mongoDb.collection("bookings").find({}).toArray() : db.collection("bookings").get().then(s => { const r=[]; s.forEach(d=>r.push(d.data())); return r; }),
-      mongoDb ? mongoDb.collection("cash").find({}).toArray().catch(() => mongoDb.collection("cashEntries").find({}).toArray().catch(() => [])) : []
+    // Fetch all collections in parallel
+    const [clients, vendors, bills, purchases, bookings, trips, cashEntries, openingBalances] = await Promise.all([
+      mongoDb ? mongoDb.collection("clients").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("vendors").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("bills").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("purchases").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("bookings").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("trips").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("cashEntries").find({}).toArray() : [],
+      mongoDb ? mongoDb.collection("openingBalances").find({}).toArray() : []
     ]);
 
-    // 1. Filter Bills
+    const normalizeKey = (s) => String(s || '').toLowerCase().trim().replace(/[\s\-_.,/()]+/g, " ");
+
+    // Initialize all clients and vendors
+    const clientMap = new Map();
+    clients.forEach(c => {
+      const k = normalizeKey(c.name);
+      if (!k) return;
+      clientMap.set(k, {
+        id: c._id || c.id,
+        name: c.name,
+        city: c.city || c.branch || '',
+        phone: c.phone || c.contact || '',
+        gst: c.gst || c.gstin || '',
+        totalBookings: 0,
+        unbilledBookings: 0,
+        unbilledAmount: 0,
+        revenue: 0,
+        paid: 0,
+        outstanding: 0
+      });
+    });
+
+    const vendorMap = new Map();
+    vendors.forEach(v => {
+      const k = normalizeKey(v.name);
+      if (!k) return;
+      vendorMap.set(k, {
+        id: v._id || v.id,
+        name: v.name,
+        city: v.city || v.branch || '',
+        phone: v.phone || v.phno || '',
+        gst: v.gst || v.gstin || '',
+        totalTrips: 0,
+        revenue: 0,
+        paid: 0,
+        outstanding: 0
+      });
+    });
+
+    // 1. Calculate opening balances totals
+    let clientOpeningOutstanding = 0;
+    let priorClientBilled = 0;
+    let priorClientPaid = 0;
+
+    let vendorOpeningOutstanding = 0;
+    let priorVendorBilled = 0;
+    let priorVendorPaid = 0;
+
+    openingBalances.forEach(op => {
+      const pType = String(op.partyType || (op.vendor ? "vendor" : "client")).toLowerCase();
+      const priorB = Number(
+        op.totalBilledPrior !== undefined && Number(op.totalBilledPrior) > 0
+          ? op.totalBilledPrior
+          : (Number(op.openingOutstanding) || Number(op.initialOpeningDue) || Number(op.amount) || 0)
+      ) || 0;
+      const priorP = Number(op.totalPaidPrior) || 0;
+      const priorT = Number(op.totalTdsPrior) || 0;
+      const priorD = Number(op.totalDebtPrior) || 0;
+      const openDue = Number(
+        op.openingOutstanding !== undefined && op.openingOutstanding !== null
+          ? op.openingOutstanding
+          : Math.max(0, priorB - priorP - priorT - priorD)
+      ) || 0;
+
+      const effectivePriorBilled = Math.max(priorB, openDue + priorP + priorT + priorD);
+      const partyName = op.partyName || op.client || op.vendor;
+
+      if (partyName) {
+        const k = normalizeKey(partyName);
+        if (pType === "vendor") {
+          if (!vendorMap.has(k)) {
+            vendorMap.set(k, {
+              id: op._id || op.id,
+              name: partyName,
+              city: '',
+              phone: '',
+              gst: '',
+              totalTrips: 0,
+              revenue: 0,
+              paid: 0,
+              outstanding: 0
+            });
+          }
+          const v = vendorMap.get(k);
+          v.revenue += effectivePriorBilled;
+          v.paid += priorP + priorT + priorD;
+        } else {
+          if (!clientMap.has(k)) {
+            clientMap.set(k, {
+              id: op._id || op.id,
+              name: partyName,
+              city: '',
+              phone: '',
+              gst: '',
+              totalBookings: 0,
+              unbilledBookings: 0,
+              unbilledAmount: 0,
+              revenue: 0,
+              paid: 0,
+              outstanding: 0
+            });
+          }
+          const c = clientMap.get(k);
+          c.revenue += effectivePriorBilled;
+          c.paid += priorP + priorT + priorD;
+        }
+      }
+
+      if (pType === "vendor") {
+        priorVendorBilled += effectivePriorBilled;
+        priorVendorPaid += priorP + priorT + priorD;
+        vendorOpeningOutstanding += openDue;
+      } else {
+        priorClientBilled += effectivePriorBilled;
+        priorClientPaid += priorP + priorT + priorD;
+        clientOpeningOutstanding += openDue;
+      }
+    });
+
+    // 2. Filter Bills
     const filteredBills = bills.filter(b => {
       const d = parseAnyDate(b.date || b.createdAt);
       if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
@@ -79,7 +193,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
       return true;
     });
 
-    // 2. Filter Purchases
+    // 3. Filter Purchases
     const filteredPurchases = purchases.filter(p => {
       const d = parseAnyDate(p.date || p.createdAt);
       if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
@@ -87,7 +201,7 @@ exports.getAdvancedAnalytics = async (req, res) => {
       return true;
     });
 
-    // 3. Filter Bookings
+    // 4. Filter Bookings
     const filteredBookings = bookings.filter(bk => {
       const d = parseAnyDate(bk.date || bk.createdAt);
       if (fromMillis && (!d || d.getTime() < fromMillis)) return false;
@@ -99,58 +213,134 @@ exports.getAdvancedAnalytics = async (req, res) => {
       return true;
     });
 
-    // 4. Financial Calculations
-    let totalRevenue = 0;
-    let paidAmount = 0;
+    // 5. Financial Calculations
+    let currentBillsTotal = 0;
+    let currentBillsPaid = 0;
+    let currentBillsDue = 0;
     let taxLiability = 0;
     const financeTrendMap = {};
-    const clientSalesMap = {};
 
     filteredBills.forEach(b => {
       const rev = parseFloat(b.total || b.amount || b.grand_total || 0) || 0;
       const paid = parseFloat(b.paidAmount || b.paid || 0) || 0;
       const tax = parseFloat(b.taxLiability || ((parseFloat(b.cgst || 0) + parseFloat(b.sgst || 0) + parseFloat(b.igst || 0)))) || 0;
-      
-      totalRevenue += rev;
-      paidAmount += paid;
-      taxLiability += tax;
+      const isCancelled = String(b.status || "").toLowerCase() === "cancelled";
 
-      const d = parseAnyDate(b.date || b.createdAt);
-      const groupKey = getGroupKey(d, groupBy);
-      if (!financeTrendMap[groupKey]) {
-        financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
-      }
-      financeTrendMap[groupKey].revenue += rev;
+      if (!isCancelled) {
+        currentBillsTotal += rev;
+        currentBillsPaid += paid;
+        currentBillsDue += Math.max(0, rev - paid - parseFloat(b.tdsAmount || 0) - parseFloat(b.debtAmount || 0));
+        taxLiability += tax;
 
-      const cName = b.client || b.clientName || "Unknown";
-      if (!clientSalesMap[cName]) {
-        clientSalesMap[cName] = { name: cName, revenue: 0, paid: 0 };
+        const d = parseAnyDate(b.date || b.createdAt);
+        const groupKey = getGroupKey(d, groupBy);
+        if (!financeTrendMap[groupKey]) {
+          financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
+        }
+        financeTrendMap[groupKey].revenue += rev;
+
+        const cName = b.client || b.clientName || "Unknown";
+        const k = normalizeKey(cName);
+        if (!clientMap.has(k)) {
+          clientMap.set(k, {
+            id: b._id || b.id,
+            name: cName,
+            city: '',
+            phone: '',
+            gst: '',
+            totalBookings: 0,
+            unbilledBookings: 0,
+            unbilledAmount: 0,
+            revenue: 0,
+            paid: 0,
+            outstanding: 0
+          });
+        }
+        const c = clientMap.get(k);
+        c.revenue += rev;
+        c.paid += paid;
       }
-      clientSalesMap[cName].revenue += rev;
-      clientSalesMap[cName].paid += paid;
     });
+
+    const totalRevenue = priorClientBilled + currentBillsTotal;
+    const paidAmount = priorClientPaid + currentBillsPaid;
+    const outstandingReceivables = clientOpeningOutstanding + currentBillsDue;
 
     // Expense calculations
-    let totalExpenses = 0;
+    let currentPurchasesTotal = 0;
+    let currentPurchasesPaid = 0;
+    let currentPurchasesDue = 0;
+
     filteredPurchases.forEach(p => {
       const exp = parseFloat(p.total || p.amount || 0) || 0;
-      totalExpenses += exp;
+      const paid = parseFloat(p.paidAmount || 0) || 0;
+      const isCancelled = String(p.status || "").toLowerCase() === "cancelled";
 
-      const d = parseAnyDate(p.date || p.createdAt);
-      const groupKey = getGroupKey(d, groupBy);
-      if (!financeTrendMap[groupKey]) {
-        financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
+      if (!isCancelled) {
+        currentPurchasesTotal += exp;
+        currentPurchasesPaid += paid;
+        currentPurchasesDue += Math.max(0, exp - paid - parseFloat(p.tdsAmount || 0) - parseFloat(p.debtAmount || 0));
+
+        const d = parseAnyDate(p.date || p.createdAt);
+        const groupKey = getGroupKey(d, groupBy);
+        if (!financeTrendMap[groupKey]) {
+          financeTrendMap[groupKey] = { name: groupKey, revenue: 0, expense: 0 };
+        }
+        financeTrendMap[groupKey].expense += exp;
+
+        const vName = p.vendor || p.vendorName || "Unknown";
+        const k = normalizeKey(vName);
+        if (!vendorMap.has(k)) {
+          vendorMap.set(k, {
+            id: p._id || p.id,
+            name: vName,
+            city: '',
+            phone: '',
+            gst: '',
+            totalTrips: 0,
+            revenue: 0,
+            paid: 0,
+            outstanding: 0
+          });
+        }
+        const v = vendorMap.get(k);
+        v.revenue += exp;
+        v.paid += paid;
       }
-      financeTrendMap[groupKey].expense += exp;
     });
 
+    const totalExpenses = priorVendorBilled + currentPurchasesTotal;
+    const totalExpensesPaid = priorVendorPaid + currentPurchasesPaid;
+    const outstandingPayables = vendorOpeningOutstanding + currentPurchasesDue;
+    const profitOrLoss = totalRevenue - totalExpenses;
+    const netCashFlow = paidAmount - totalExpensesPaid;
+
     const financialTrendData = Object.values(financeTrendMap).sort((a, b) => a.name.localeCompare(b.name));
+
+    // Construct set of all billed AWBs from bills
+    const billedAwbSet = new Set();
+    bills.forEach(b => {
+      if (Array.isArray(b.bookings)) {
+        b.bookings.forEach(bk => {
+          const awb = typeof bk === 'string' ? bk : (bk.awb || bk.consignment || bk.lrNo || bk.lrNumber);
+          if (awb) billedAwbSet.add(normalizeKey(awb));
+        });
+      }
+      if (Array.isArray(b.items)) {
+        b.items.forEach(it => {
+          const awb = it.awb || it.consignment || it.lrNo || it.lrNumber;
+          if (awb) billedAwbSet.add(normalizeKey(awb));
+        });
+      }
+    });
 
     // Bookings & Route Insights
     const bookingTrendMap = {};
     const routeMap = {};
     const modeMap = {};
     let unbilledRevenueTotal = 0;
+    let billedBookingsCount = 0;
+    let unbilledBookingsCount = 0;
 
     filteredBookings.forEach(bk => {
       const d = parseAnyDate(bk.date || bk.createdAt);
@@ -160,10 +350,29 @@ exports.getAdvancedAnalytics = async (req, res) => {
       }
       bookingTrendMap[groupKey].trips += 1;
 
-      const status = String(bk.status || '').toLowerCase();
-      if (status !== 'billed') {
-        const amt = parseFloat(bk.totalAmount || bk.freight_charge || bk.total || 0) || 0;
+      const rawAwb = normalizeKey(bk.awb || bk.consignment || bk.lrNo || bk.lrNumber || '');
+      const status = String(bk.status || bk.billingStatus || '').toLowerCase();
+      const isBilled = bk.billed === true || status === 'billed' || (bk.billNo && String(bk.billNo).trim() !== '') || billedAwbSet.has(rawAwb);
+      const amt = parseFloat(bk.totalAmount || bk.freight_charge || bk.total || 0) || 0;
+
+      if (isBilled) {
+        billedBookingsCount++;
+      } else {
+        unbilledBookingsCount++;
         unbilledRevenueTotal += amt;
+      }
+
+      const clientParty = bk.clientName || bk.company_name || bk.consignor || '';
+      if (clientParty) {
+        const k = normalizeKey(clientParty);
+        if (clientMap.has(k)) {
+          const c = clientMap.get(k);
+          c.totalBookings++;
+          if (!isBilled) {
+            c.unbilledBookings++;
+            c.unbilledAmount += amt;
+          }
+        }
       }
 
       const org = (bk.origin || bk.from || 'Unknown').toUpperCase();
@@ -175,30 +384,94 @@ exports.getAdvancedAnalytics = async (req, res) => {
       modeMap[mKey] = (modeMap[mKey] || 0) + 1;
     });
 
+    // Process Trips to count trips per vendor
+    trips.forEach(tp => {
+      const vName = tp.vendor || tp.vendorName || '';
+      if (vName) {
+        const k = normalizeKey(vName);
+        if (vendorMap.has(k)) {
+          vendorMap.get(k).totalTrips++;
+        }
+      }
+    });
+
     const bookingsData = Object.values(bookingTrendMap).sort((a, b) => a.name.localeCompare(b.name));
     const routeData = Object.entries(routeMap)
       .map(([name, trips]) => ({ name, trips }))
       .sort((a, b) => b.trips - a.trips)
       .slice(0, 10);
 
-    const modeDistribution = Object.entries(modeMap).map(([k, count]) => {
+    // Aggregate and deduplicate modes by name
+    const aggregatedModes = {};
+    Object.entries(modeMap).forEach(([k, count]) => {
       let name = "Road";
-      if (k.includes("air") || k.includes("flight")) name = "Air";
-      else if (k.includes("train") || k.includes("rail")) name = "Train";
-      else if (k.includes("road")) name = "Road";
-      else name = k.charAt(0).toUpperCase() + k.slice(1);
-      return { name, value: count };
+      const keyLower = String(k || '').toLowerCase();
+      if (keyLower.includes("air") || keyLower.includes("flight") || keyLower.includes("express") && !keyLower.includes("road")) name = "Air";
+      else if (keyLower.includes("train") || keyLower.includes("rail")) name = "Train";
+      else if (keyLower.includes("road") || keyLower.includes("truck") || keyLower.includes("lorry")) name = "Road";
+      else name = "Road"; // Default fallback
+
+      aggregatedModes[name] = (aggregatedModes[name] || 0) + count;
     });
 
-    const salesByClient = Object.values(clientSalesMap)
+    const modeDistribution = Object.entries(aggregatedModes).map(([name, value]) => ({
+      name,
+      value
+    }));
+
+    const salesByClient = Array.from(clientMap.values())
       .map(c => ({
-        name: c.name,
-        revenue: c.revenue,
-        paid: c.paid,
-        outstanding: c.revenue - c.paid
+        ...c,
+        outstanding: Math.max(0, c.revenue - c.paid)
       }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 15);
+      .sort((a, b) => {
+        if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+        return b.totalBookings - a.totalBookings;
+      });
+
+    const salesByVendor = Array.from(vendorMap.values())
+      .map(v => ({
+        ...v,
+        outstanding: Math.max(0, v.revenue - v.paid)
+      }))
+      .sort((a, b) => {
+        if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+        return b.totalTrips - a.totalTrips;
+      });
+
+    const bookingsList = filteredBookings.map(bk => ({
+      id: bk._id || bk.id,
+      awb: bk.awb || bk.consignment || bk.lrNo || bk.lrNumber || '',
+      date: bk.date || bk.createdAt || '',
+      clientName: bk.clientName || bk.company_name || bk.consignor || '',
+      origin: bk.origin || '',
+      destination: bk.destination || '',
+      totalAmount: parseFloat(bk.totalAmount || bk.freight_charge || bk.total || 0) || 0,
+      status: bk.billed === true || String(bk.status || '').toLowerCase() === 'billed' ? 'Billed' : (bk.status || 'Unbilled'),
+      billNo: bk.billNo || ''
+    }));
+
+    const billsList = filteredBills.map(b => ({
+      id: b._id || b.id,
+      billNo: b.billNo || b.invoiceNo || '',
+      date: b.date || b.createdAt || '',
+      client: b.client || b.clientName || '',
+      total: parseFloat(b.total || b.amount || 0) || 0,
+      paid: parseFloat(b.paidAmount || b.paid || 0) || 0,
+      balance: Math.max(0, parseFloat(b.total || 0) - parseFloat(b.paidAmount || 0) - parseFloat(b.tdsAmount || 0) - parseFloat(b.debtAmount || 0)),
+      status: b.status || 'Unpaid'
+    }));
+
+    const purchasesList = filteredPurchases.map(p => ({
+      id: p._id || p.id,
+      billNo: p.billNo || p.invoiceNo || '',
+      date: p.date || p.createdAt || '',
+      vendor: p.vendor || p.vendorName || '',
+      total: parseFloat(p.total || p.amount || 0) || 0,
+      paid: parseFloat(p.paidAmount || p.paid || 0) || 0,
+      balance: Math.max(0, parseFloat(p.total || 0) - parseFloat(p.paidAmount || 0) - parseFloat(p.tdsAmount || 0) - parseFloat(p.debtAmount || 0)),
+      status: p.status || 'Unpaid'
+    }));
 
     // Cash flow
     const cashFlowMap = {};
@@ -228,24 +501,32 @@ exports.getAdvancedAnalytics = async (req, res) => {
         paidAmount,
         taxLiability,
         totalBills: filteredBills.length,
-        outstandingReceivables: totalRevenue - paidAmount,
-        totalExpenses
+        outstandingReceivables,
+        totalExpenses,
+        totalExpensesPaid,
+        outstandingPayables,
+        profitOrLoss,
+        netCashFlow
       },
       totalBookings: filteredBookings.length,
+      billedBookingsCount,
+      unbilledBookingsCount,
       unbilledRevenue: unbilledRevenueTotal,
+      totalTrips: trips.length,
+      totalClients: clients.length,
+      totalVendors: vendors.length,
       financialTrendData,
       bookingsData,
       routeData,
       modeDistribution,
       salesByClient,
+      salesByVendor,
+      bookingsList,
+      billsList,
+      purchasesList,
       cashFlowData
     };
 
-    try {
-      await setCache(cacheKey, responseData, 300); // cache for 5 minutes
-    } catch (err) {
-      console.warn("[Redis] Failed to set cache for advanced analytics:", err.message);
-    }
 
     return success(res, "Advanced Analytics fetched successfully", responseData);
 

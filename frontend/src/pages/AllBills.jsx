@@ -202,6 +202,7 @@ const AllBills = () => {
         type: "in",
         partyType: "Client",
         partyName: payBillData.client,
+        billNo: payBillData.billNo || "",
         remarks: payBillData.remarks || `Payment for ${payBillData.client}`
       };
 
