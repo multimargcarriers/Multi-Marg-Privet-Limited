@@ -856,18 +856,18 @@ const BookingsList = () => {
                 )}
 
                 {/* ── Card Footer: Actions ── */}
-                {/* ── Card Footer: Actions ── */}
-                <div className="booking-card-footer">
-                  {(() => {
-                    const awbLower = String(awb).trim().toLowerCase();
-                    const trackObj = trackingMap[awbLower];
-                    const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
-                    const isAllowedUser = canModifyBooking(item, user);
-                    const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
+                {(() => {
+                  const awbLower = String(awb).trim().toLowerCase();
+                  const trackObj = trackingMap[awbLower];
+                  const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
+                  const isAllowedUser = canModifyBooking(item, user);
+                  const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
 
+                  if (canModify) {
+                    // 2-Row layout for Admin & SuperAdmin
                     return (
-                      <>
-                        {canModify && (
+                      <div className="booking-card-footer booking-card-footer-multiline">
+                        <div className="booking-footer-row booking-footer-row-admin">
                           <button
                             onClick={() => navigate(`/bookings/edit/${item.id}`)}
                             className="booking-action-btn booking-btn-edit"
@@ -876,28 +876,26 @@ const BookingsList = () => {
                             <Edit size={13} />
                             <span className="booking-action-btn-text">Edit</span>
                           </button>
-                        )}
-                        {!item.isOfflinePending && (
-                          <>
-                            <button
-                              onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
-                              className="booking-action-btn booking-btn-print"
-                              title="View / Print LR"
-                            >
-                              <Printer size={13} />
-                              <span className="booking-action-btn-text">Print</span>
-                            </button>
-                            <button
-                              onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
-                              className="booking-action-btn booking-btn-download"
-                              title="Direct Download PDF"
-                            >
-                              <Download size={13} />
-                              <span className="booking-action-btn-text">PDF</span>
-                            </button>
-                          </>
-                        )}
-                        {canModify && (
+                          {!item.isOfflinePending && (
+                            <>
+                              <button
+                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                                className="booking-action-btn booking-btn-print"
+                                title="View / Print LR"
+                              >
+                                <Printer size={13} />
+                                <span className="booking-action-btn-text">Print</span>
+                              </button>
+                              <button
+                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                                className="booking-action-btn booking-btn-download"
+                                title="Direct Download PDF"
+                              >
+                                <Download size={13} />
+                                <span className="booking-action-btn-text">PDF</span>
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => handleDelete(item.id || item._id)}
                             className="booking-action-btn booking-btn-delete"
@@ -906,80 +904,175 @@ const BookingsList = () => {
                             <Trash2 size={13} />
                             <span className="booking-action-btn-text">Delete</span>
                           </button>
+                        </div>
+
+                        {canAccessPod && (
+                          <div className="booking-footer-row booking-footer-row-ops">
+                            <button
+                              disabled={item.isOfflinePending}
+                              onClick={() => {
+                                if (hasBox) {
+                                  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                  const boxObj = activeBox || {};
+                                  let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
+                                  fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                  navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
+                                } else {
+                                  setSelectedBookingForBox(item);
+                                  setBoxModalOpen(true);
+                                }
+                              }}
+                              className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
+                              style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                              title={hasBox ? "View Box Document" : "Upload Box Document"}
+                            >
+                              {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
+                              <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedBookingForTracking(item);
+                                setTrackingModalOpen(true);
+                              }}
+                              className="booking-action-btn booking-btn-track"
+                              title="Update Shipment Tracking"
+                            >
+                              <Truck size={13} />
+                              <span className="booking-action-btn-text">TRACK</span>
+                            </button>
+
+                            <button
+                              disabled={item.isOfflinePending}
+                              onClick={() => {
+                                if (hasPodEntry) {
+                                  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                  const podObj = activePod || {};
+                                  let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
+                                  if (fileUrl && fileUrl.startsWith('data:')) {
+                                    try {
+                                      sessionStorage.setItem('tempPodData', fileUrl);
+                                      navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
+                                    } catch (e) {
+                                      navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                    }
+                                  } else if (fileUrl) {
+                                    fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                    navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                  }
+                                } else {
+                                  setSelectedBookingForPod(item);
+                                  setPodModalOpen(true);
+                                }
+                              }}
+                              className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
+                              style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                              title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
+                            >
+                              {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
+                              <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
+                            </button>
+                          </div>
                         )}
-                      </>
+                      </div>
                     );
-                  })()}
+                  }
 
-                  {canAccessPod && (
-                    <>
-                      <button
-                        disabled={item.isOfflinePending}
-                        onClick={() => {
-                          if (hasBox) {
-                            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            const boxObj = activeBox || {};
-                            let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
-                            fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
-                            navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
-                          } else {
-                            setSelectedBookingForBox(item);
-                            setBoxModalOpen(true);
-                          }
-                        }}
-                        className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
-                        style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                        title={hasBox ? "View Box Document" : "Upload Box Document"}
-                      >
-                        {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
-                        <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
-                      </button>
+                  // 1-Row 5-button layout for Employee, Client, Vendor
+                  return (
+                    <div className="booking-card-footer booking-card-footer-singleline">
+                      {!item.isOfflinePending && (
+                        <>
+                          <button
+                            onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                            className="booking-action-btn booking-btn-print"
+                            title="View / Print LR"
+                          >
+                            <Printer size={13} />
+                            <span className="booking-action-btn-text">Print</span>
+                          </button>
+                          <button
+                            onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                            className="booking-action-btn booking-btn-download"
+                            title="Direct Download PDF"
+                          >
+                            <Download size={13} />
+                            <span className="booking-action-btn-text">PDF</span>
+                          </button>
+                        </>
+                      )}
 
-                      <button
-                        onClick={() => {
-                          setSelectedBookingForTracking(item);
-                          setTrackingModalOpen(true);
-                        }}
-                        className="booking-action-btn booking-btn-track"
-                        title="Update Shipment Tracking"
-                      >
-                        <Truck size={13} />
-                        <span className="booking-action-btn-text">TRACK</span>
-                      </button>
-
-                      <button
-                        disabled={item.isOfflinePending}
-                        onClick={() => {
-                          if (hasPodEntry) {
-                            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                            const podObj = activePod || {};
-                            let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
-                            if (fileUrl && fileUrl.startsWith('data:')) {
-                              try {
-                                sessionStorage.setItem('tempPodData', fileUrl);
-                                navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
-                              } catch (e) {
-                                navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                      {canAccessPod && (
+                        <>
+                          <button
+                            disabled={item.isOfflinePending}
+                            onClick={() => {
+                              if (hasBox) {
+                                const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                const boxObj = activeBox || {};
+                                let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
+                                fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
+                              } else {
+                                setSelectedBookingForBox(item);
+                                setBoxModalOpen(true);
                               }
-                            } else if (fileUrl) {
-                              fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
-                              navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
-                            }
-                          } else {
-                            setSelectedBookingForPod(item);
-                            setPodModalOpen(true);
-                          }
-                        }}
-                        className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
-                        style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                        title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
-                      >
-                        {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
-                        <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
-                      </button>
-                    </>
-                  )}
-                </div>
+                            }}
+                            className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
+                            style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                            title={hasBox ? "View Box Document" : "Upload Box Document"}
+                          >
+                            {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
+                            <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedBookingForTracking(item);
+                              setTrackingModalOpen(true);
+                            }}
+                            className="booking-action-btn booking-btn-track"
+                            title="Update Shipment Tracking"
+                          >
+                            <Truck size={13} />
+                            <span className="booking-action-btn-text">TRACK</span>
+                          </button>
+
+                          <button
+                            disabled={item.isOfflinePending}
+                            onClick={() => {
+                              if (hasPodEntry) {
+                                const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                const podObj = activePod || {};
+                                let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
+                                if (fileUrl && fileUrl.startsWith('data:')) {
+                                  try {
+                                    sessionStorage.setItem('tempPodData', fileUrl);
+                                    navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
+                                  } catch (e) {
+                                    navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                  }
+                                } else if (fileUrl) {
+                                  fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                  navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                }
+                              } else {
+                                setSelectedBookingForPod(item);
+                                setPodModalOpen(true);
+                              }
+                            }}
+                            className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
+                            style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                            title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
+                          >
+                            {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
+                            <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
               </div>
             );
