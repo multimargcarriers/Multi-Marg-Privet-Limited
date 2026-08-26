@@ -24,6 +24,7 @@ import { useSync } from "../context/SyncContext";
 import { useToast } from "../context/ToastContext";
 import ExportModal from "../components/ExportModal";
 import { exportBookingsList } from "../utils/excelExport";
+import { canModifyBooking } from "../utils/bookingPermissions";
 
 const parseDateSecurely = (dateVal) => {
   if (!dateVal) return null;
@@ -861,7 +862,8 @@ const BookingsList = () => {
                       const awbLower = String(awb).trim().toLowerCase();
                       const trackObj = trackingMap[awbLower];
                       const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
-                      const canModify = (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
+                      const isAllowedUser = canModifyBooking(item, user);
+                      const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
 
                       return (
                         <>

@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import PodEntryModal from "../components/pod/PodEntryModal";
 import { AnimatePresence } from "framer-motion";
 import appDB from "../utils/appDB";
+import { canModifyBooking } from "../utils/bookingPermissions";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -114,7 +115,15 @@ const CreateBooking = () => {
           const bookingRes = await axios.get(`${API}/bookings/${id}`);
           if (bookingRes.data.success) {
             const b = bookingRes.data.data;
-            const fixDate = (raw) => {
+
+            // Enforce edit permission check
+            if (!canModifyBooking(b, user)) {
+              addToast("Forbidden: You can only edit bookings created by you.", "error");
+              navigate("/bookings");
+              return;
+            }
+
+              const fixDate = (raw) => {
               if (!raw) return "";
               if (typeof raw === 'string') {
                 const parts = raw.split(/[-/ T]/);
@@ -430,7 +439,8 @@ const CreateBooking = () => {
         navigate("/bookings");
       }
     } catch (error) {
-      console.error("Error creating booking", error);
+      console.error("Error creating/updating booking", error);
+      addToast(error.response?.data?.message || "Failed to save booking", "error");
     } finally {
       setIsSubmitting(false);
     }

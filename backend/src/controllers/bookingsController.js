@@ -1,5 +1,5 @@
 const { emitDataUpdated } = require("../utils/socket");
-const { filterByAccess } = require("../utils/security");
+const { filterByAccess, canModifyBooking, isBookingCreator } = require("../utils/security");
 const {
   db
 } = require("../config/database");
@@ -212,6 +212,8 @@ exports.postRoot_1 = async (req, res) => {
     booking.clerk_name = req.user?.name || "Admin";
   }
   booking.createdBy_id = req.user?.id || null;
+  booking.createdBy_email = req.user?.email || null;
+  booking.createdBy = req.user?.name || "Admin";
   
   let docRefId;
   if (providedId && providedId.startsWith("offline_")) {
@@ -358,6 +360,9 @@ exports.put_id_4 = async (req, res) => {
   }, 3600);
 
   const bookingData = { id, ...doc.data() };
+  if (!canModifyBooking(bookingData, req.user)) {
+    return error(res, "Forbidden: You can only edit bookings created by you.", 403);
+  }
   const filtered = filterByAccess([bookingData], req.user, "bookings", settings);
   if (filtered.length === 0) {
     return error(res, "Forbidden: Access denied to edit this booking", 403);
@@ -387,7 +392,11 @@ exports.delete_id_5 = async (req, res) => {
   const { id } = req.params;
   const doc = await db.collection("bookings").doc(id).get();
   if (!doc.exists) return error(res, "Booking not found", 404);
-  const bookingData = doc.data(); // capture before deletion
+  const bookingData = { id, ...doc.data() }; // capture before deletion
+
+  if (!canModifyBooking(bookingData, req.user)) {
+    return error(res, "Forbidden: You can only delete bookings created by you.", 403);
+  }
 
   const settings = await getOrSet("global_config", async () => {
     if (db && db.mongoDb) {
@@ -396,7 +405,7 @@ exports.delete_id_5 = async (req, res) => {
     return null;
   }, 3600);
 
-  const filtered = filterByAccess([{ id, ...bookingData }], req.user, "bookings", settings);
+  const filtered = filterByAccess([bookingData], req.user, "bookings", settings);
   if (filtered.length === 0) {
     return error(res, "Forbidden: Access denied to delete this booking", 403);
   }

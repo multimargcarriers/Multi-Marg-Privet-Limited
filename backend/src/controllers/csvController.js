@@ -282,7 +282,11 @@ function extractBookingRow(b) {
 // ──────────────────────────────────────────────
 // HELPER: Map CSV row to booking DB document
 // ──────────────────────────────────────────────
-function csvRowToBookingDoc(row, clerkName) {
+function csvRowToBookingDoc(row, user) {
+  const clerkName = typeof user === 'string' ? user : (user?.name || 'Admin');
+  const userId = typeof user === 'object' ? (user?.id || null) : null;
+  const userEmail = typeof user === 'object' ? (user?.email || null) : null;
+
   return {
     id: uuidv4(),
     createdAt: new Date().toISOString(),
@@ -312,7 +316,10 @@ function csvRowToBookingDoc(row, clerkName) {
     description: row.description || '',
     remarks: row.remarks || '',
     paymentMode: row.payment_mode || '',
-    clerk_name: row.clerk_name || clerkName || 'Admin',
+    clerk_name: row.clerk_name || clerkName,
+    createdBy: clerkName,
+    createdBy_id: userId,
+    createdBy_email: userEmail,
     status: row.status || 'Booked',
     freight_charge: row.frieght_charge || '0',
     frieght: row.frieght_charge || '0',
@@ -682,7 +689,7 @@ exports.importCSV = async (req, res) => {
         const awb = row.awb;
         if (!awb) continue;
 
-        const booking = csvRowToBookingDoc(row, req.user?.name);
+        const booking = csvRowToBookingDoc(row, req.user);
         const docRef = db.collection("bookings").doc(booking.id);
         batch.set(docRef, booking);
         importedCount++;
@@ -703,7 +710,7 @@ exports.importCSV = async (req, res) => {
         if (!awb) continue;
 
         if (!bookingsByAwb[awb]) {
-          bookingsByAwb[awb] = csvRowToBookingDoc(row, req.user?.name);
+          bookingsByAwb[awb] = csvRowToBookingDoc(row, req.user);
         }
 
         // Add invoice/parcel data if any invoice column has data
