@@ -22,6 +22,9 @@ const PrintLR = () => {
   const [scale, setScale] = useState(1);
   const containerRef = React.useRef(null);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDirectDownload = urlParams.get('download') === 'true';
+
   const [recipientEmail, setRecipientEmail] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState("idle"); // 'idle', 'sending', 'success', 'error'
@@ -422,16 +425,16 @@ const PrintLR = () => {
           }
           .gray-cell {
             background-color: #f8fafc;
-            color: #0f172a;
+            color: #475569;
             font-weight: 700;
             text-transform: uppercase;
             font-size: 0.7rem;
             letter-spacing: 0.5px;
           }
           .data-cell {
-            font-weight: 600;
+            font-weight: 700;
             color: #0f172a;
-            font-size: 0.8rem;
+            font-size: 0.65rem;
           }
           .section-header {
             background-color: #1e293b;
@@ -725,25 +728,25 @@ const PrintLR = () => {
                 }
                 .gray-cell {
                   background-color: #f8fafc !important;
-                  color: #0f172a !important;
+                  color: #475569 !important;
                   font-weight: 700 !important;
                   text-transform: uppercase !important;
                   font-size: 0.65rem !important;
                   letter-spacing: 0.5px !important;
                 }
                 .data-cell {
-                  font-weight: 400 !important;
+                  font-weight: 700 !important;
                   color: #0f172a !important;
-                  font-size: 0.58rem !important;
+                  font-size: 0.62rem !important;
                 }
                 .awb-value {
                   color: #ef4444 !important;
                   font-size: 1rem !important;
-                  font-weight: 700 !important;
+                  font-weight: 800 !important;
                 }
                 .date-mode-value {
-                  font-size: 0.8rem !important;
-                  font-weight: 600 !important;
+                  font-size: 0.78rem !important;
+                  font-weight: 700 !important;
                   color: #0f172a !important;
                 }
 
@@ -941,7 +944,7 @@ const PrintLR = () => {
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px", borderLeft: "none" }}>{d.length || "0"}</td>
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px" }}>{d.breadth || "0"}</td>
                                 <td className="data-cell" style={{ textAlign: "center", padding: "3px" }}>{d.height || "0"}</td>
-                                <td className="data-cell" style={{ textAlign: "center", padding: "3px", fontWeight: "400", borderRight: "none" }}>{d.boxCount || "0"}</td>
+                                <td className="data-cell" style={{ textAlign: "center", padding: "3px", borderRight: "none" }}>{d.boxCount || "0"}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -955,8 +958,8 @@ const PrintLR = () => {
                       <table className="bilty-table" style={{ border: "none", width: "100%", borderCollapse: "collapse" }}>
                         <tbody>
                           <tr>
-                            <td style={{ borderLeft: "none", borderTop: "none", borderBottom: "none", width: "12%", fontSize: "0.54rem", textTransform: "none", fontWeight: "400", padding: "2px 4px", color: "#475569" }}>Note</td>
-                            <td style={{ borderRight: "none", borderTop: "none", borderBottom: "none", fontSize: "0.64rem", fontWeight: "400", padding: "2px 4px", textTransform: "none", color: "#0f172a" }}>Quantity and quality not checked. We are not responsible for leakage and damage.</td>
+                            <td style={{ borderLeft: "none", borderTop: "none", borderBottom: "none", width: "45px", whiteSpace: "nowrap", fontSize: "0.50rem", textTransform: "uppercase", fontWeight: "700", padding: "2px 4px", color: "#475569", textAlign: "center", verticalAlign: "middle" }}>Note</td>
+                            <td style={{ borderRight: "none", borderTop: "none", borderBottom: "none", fontSize: "0.48rem", fontWeight: "500", padding: "2px 4px", textTransform: "none", color: "#0f172a", lineHeight: "1.2", verticalAlign: "middle" }}>Quantity and quality not checked. We are not responsible for leakage and damage.</td>
                           </tr>
                         </tbody>
                       </table>
@@ -964,7 +967,7 @@ const PrintLR = () => {
                       {/* Dedicated full-width spacious Remarks block */}
                       <div style={{ borderTop: "1px solid #cbd5e1", padding: "6px 8px", fontSize: "0.65rem", flex: 1, background: "#f8fafc" }}>
                         <div style={{ fontWeight: "700", color: "#475569", textTransform: "uppercase", fontSize: "0.73rem", marginBottom: "3px" }}>Special Remarks / Instructions</div>
-                        <div style={{ color: "#0f172a", fontWeight: "600", fontSize: "0.73rem", minHeight: "45px", lineHeight: "1.3", wordBreak: "break-word" }}>
+                        <div style={{ color: "#0f172a", fontWeight: "700", fontSize: "0.73rem", minHeight: "45px", lineHeight: "1.3", wordBreak: "break-word" }}>
                           {booking.remarks || "NA"}
                         </div>
                       </div>
@@ -1025,14 +1028,14 @@ const PrintLR = () => {
                 <div style={{ flex: 1 }}></div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "4px 1.5rem", height: "50px" }}>
                   <div style={{ textAlign: "center", width: "230px" }}>
-                    {(user?.role === 'Admin' || user?.role === 'SuperAdmin') ? (
+                    {!isDirectDownload && (user?.role === 'Admin' || user?.role === 'SuperAdmin') && signName ? (
                       <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "1.6rem", color: "#0f172a", height: "30px", display: "flex", alignItems: "flex-end", justifyContent: "center", marginBottom: "3px" }}>
                         {signName}
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.8rem", color: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "30px", marginBottom: "3px", fontWeight: "600" }}>
-                        <span>Digitally signed by</span>
-                        <span>Multimarg Private Limited</span>
+                      <div style={{ fontSize: "0.72rem", color: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "30px", marginBottom: "3px", fontWeight: "600", lineHeight: "1.2" }}>
+                        <span style={{ fontSize: "0.62rem", color: "#475569" }}>Digitally signed by</span>
+                        <span style={{ fontWeight: "700" }}>Multimarg Carriers Private Limited</span>
                       </div>
                     )}
                     <div style={{ borderTop: "1px solid #94a3b8", paddingTop: "3px", fontSize: "0.7rem", fontWeight: "600", color: "#475569" }}>

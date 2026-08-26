@@ -58,7 +58,7 @@ export const downloadViaPuppeteer = async ({
   try {
     const html2pdf = (await import("html2pdf.js")).default;
     const opt = {
-      margin: [14, 6, 14, 6],
+      margin: 0,
       filename: finalFilename,
       image: { type: "jpeg", quality: 0.98 },
       // Force windowWidth to 1200px to ensure mobile responsive media queries do not trigger!
@@ -67,48 +67,8 @@ export const downloadViaPuppeteer = async ({
       pagebreak: { mode: ['css', 'legacy'], before: '.pdf-page-break' }
     };
 
-    // Generate PDF and add page decorations
     const worker = html2pdf().set(opt).from(clone);
-    const pdf = await worker.outputPdf('datauristring');
-
-    // Re-generate with jsPDF access for decorations
     const pdfDoc = await worker.toPdf().get('pdf');
-    const totalPages = pdfDoc.internal.getNumberOfPages();
-    const pageWidth = pdfDoc.internal.pageSize.getWidth();
-    const pageHeight = pdfDoc.internal.pageSize.getHeight();
-
-    for (let i = 1; i <= totalPages; i++) {
-      pdfDoc.setPage(i);
-
-      // Draw page border (elegant double-line effect)
-      pdfDoc.setDrawColor(30, 58, 138); // #1e3a8a
-      pdfDoc.setLineWidth(0.5);
-      pdfDoc.rect(4, 4, pageWidth - 8, pageHeight - 8);
-      pdfDoc.setDrawColor(148, 163, 184); // #94a3b8
-      pdfDoc.setLineWidth(0.2);
-      pdfDoc.rect(5.5, 5.5, pageWidth - 11, pageHeight - 11);
-
-      // Top header bar on every page
-      pdfDoc.setFillColor(30, 58, 138);
-      pdfDoc.rect(5.5, 5.5, pageWidth - 11, 8, 'F');
-      pdfDoc.setFont("helvetica", "bold");
-      pdfDoc.setFontSize(7.5);
-      pdfDoc.setTextColor(255, 255, 255);
-      pdfDoc.text("MULTIMARG CARRIERS PVT. LTD.  |  STATEMENT OF ACCOUNT", 9, 10.5);
-      pdfDoc.setFontSize(6.5);
-      pdfDoc.text(`Page ${i} of ${totalPages}`, pageWidth - 9, 10.5, { align: "right" });
-
-      // Bottom footer bar
-      pdfDoc.setFillColor(241, 245, 249);
-      pdfDoc.rect(5.5, pageHeight - 11.5, pageWidth - 11, 6, 'F');
-      pdfDoc.setFontSize(5.5);
-      pdfDoc.setTextColor(100, 116, 139);
-      pdfDoc.setFont("helvetica", "normal");
-      pdfDoc.text("Computer Generated Statement  |  Multimarg ERP System", 9, pageHeight - 7.5);
-      pdfDoc.setFont("helvetica", "bold");
-      pdfDoc.setTextColor(30, 58, 138);
-      pdfDoc.text(`Page ${i} / ${totalPages}`, pageWidth - 9, pageHeight - 7.5, { align: "right" });
-    }
 
     if (isAutoPrint) {
       const pdfBlob = pdfDoc.output('blob');
@@ -175,7 +135,7 @@ export const getPdfBase64ViaPuppeteer = async ({
 
   const html2pdf = (await import("html2pdf.js")).default;
   const opt = {
-    margin: [14, 6, 14, 6],
+    margin: 0,
     image: { type: "jpeg", quality: 0.98 },
     // Force windowWidth to 1200px to bypass mobile responsive media queries completely!
     html2canvas: { scale: 2, useCORS: true, logging: false, width: canvasWidth, windowWidth: 1200 },
@@ -185,40 +145,6 @@ export const getPdfBase64ViaPuppeteer = async ({
   
   const worker = html2pdf().set(opt).from(clone);
   const pdfDoc = await worker.toPdf().get('pdf');
-  const totalPages = pdfDoc.internal.getNumberOfPages();
-  const pageWidth = pdfDoc.internal.pageSize.getWidth();
-  const pageHeight = pdfDoc.internal.pageSize.getHeight();
-
-  for (let i = 1; i <= totalPages; i++) {
-    pdfDoc.setPage(i);
-    // Page border
-    pdfDoc.setDrawColor(30, 58, 138);
-    pdfDoc.setLineWidth(0.5);
-    pdfDoc.rect(4, 4, pageWidth - 8, pageHeight - 8);
-    pdfDoc.setDrawColor(148, 163, 184);
-    pdfDoc.setLineWidth(0.2);
-    pdfDoc.rect(5.5, 5.5, pageWidth - 11, pageHeight - 11);
-    // Top header
-    pdfDoc.setFillColor(30, 58, 138);
-    pdfDoc.rect(5.5, 5.5, pageWidth - 11, 8, 'F');
-    pdfDoc.setFont("helvetica", "bold");
-    pdfDoc.setFontSize(7.5);
-    pdfDoc.setTextColor(255, 255, 255);
-    pdfDoc.text("MULTIMARG CARRIERS PVT. LTD.  |  STATEMENT OF ACCOUNT", 9, 10.5);
-    pdfDoc.setFontSize(6.5);
-    pdfDoc.text(`Page ${i} of ${totalPages}`, pageWidth - 9, 10.5, { align: "right" });
-    // Bottom footer
-    pdfDoc.setFillColor(241, 245, 249);
-    pdfDoc.rect(5.5, pageHeight - 11.5, pageWidth - 11, 6, 'F');
-    pdfDoc.setFontSize(5.5);
-    pdfDoc.setTextColor(100, 116, 139);
-    pdfDoc.setFont("helvetica", "normal");
-    pdfDoc.text("Computer Generated Statement  |  Multimarg ERP System", 9, pageHeight - 7.5);
-    pdfDoc.setFont("helvetica", "bold");
-    pdfDoc.setTextColor(30, 58, 138);
-    pdfDoc.text(`Page ${i} / ${totalPages}`, pageWidth - 9, pageHeight - 7.5, { align: "right" });
-  }
-
   const pdfOutput = pdfDoc.output('datauristring');
   return pdfOutput.split(';base64,')[1];
 };
