@@ -856,64 +856,63 @@ const BookingsList = () => {
                 )}
 
                 {/* ── Card Footer: Actions ── */}
+                {/* ── Card Footer: Actions ── */}
                 <div className="booking-card-footer">
-                  <div className="booking-actions-left">
-                    {(() => {
-                      const awbLower = String(awb).trim().toLowerCase();
-                      const trackObj = trackingMap[awbLower];
-                      const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
-                      const isAllowedUser = canModifyBooking(item, user);
-                      const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
+                  {(() => {
+                    const awbLower = String(awb).trim().toLowerCase();
+                    const trackObj = trackingMap[awbLower];
+                    const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
+                    const isAllowedUser = canModifyBooking(item, user);
+                    const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
 
-                      return (
-                        <>
-                          {canModify && (
+                    return (
+                      <>
+                        {canModify && (
+                          <button
+                            onClick={() => navigate(`/bookings/edit/${item.id}`)}
+                            className="booking-action-btn booking-btn-edit"
+                            title="Edit Booking"
+                          >
+                            <Edit size={13} />
+                            <span className="booking-action-btn-text">Edit</span>
+                          </button>
+                        )}
+                        {!item.isOfflinePending && (
+                          <>
                             <button
-                              onClick={() => navigate(`/bookings/edit/${item.id}`)}
-                              className="booking-action-btn booking-btn-edit"
-                              title="Edit Booking"
+                              onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                              className="booking-action-btn booking-btn-print"
+                              title="View / Print LR"
                             >
-                              <Edit size={14} />
-                              <span className="booking-action-btn-text">Edit</span>
+                              <Printer size={13} />
+                              <span className="booking-action-btn-text">Print</span>
                             </button>
-                          )}
-                          {!item.isOfflinePending && (
-                            <>
-                              <button
-                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
-                                className="booking-action-btn booking-btn-print"
-                                title="View / Print LR"
-                              >
-                                <Printer size={14} />
-                                <span className="booking-action-btn-text">Print</span>
-                              </button>
-                              <button
-                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
-                                className="booking-action-btn booking-btn-download"
-                                title="Direct Download PDF"
-                              >
-                                <Download size={14} />
-                                <span className="booking-action-btn-text">PDF</span>
-                              </button>
-                            </>
-                          )}
-                          {canModify && (
                             <button
-                              onClick={() => handleDelete(item.id || item._id)}
-                              className="booking-action-btn booking-btn-delete"
-                              title="Delete Booking"
+                              onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                              className="booking-action-btn booking-btn-download"
+                              title="Direct Download PDF"
                             >
-                              <Trash2 size={14} />
-                              <span className="booking-action-btn-text">Delete</span>
+                              <Download size={13} />
+                              <span className="booking-action-btn-text">PDF</span>
                             </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
+                          </>
+                        )}
+                        {canModify && (
+                          <button
+                            onClick={() => handleDelete(item.id || item._id)}
+                            className="booking-action-btn booking-btn-delete"
+                            title="Delete Booking"
+                          >
+                            <Trash2 size={13} />
+                            <span className="booking-action-btn-text">Delete</span>
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
 
                   {canAccessPod && (
-                    <div className="booking-actions-right">
+                    <>
                       <button
                         disabled={item.isOfflinePending}
                         onClick={() => {
@@ -928,12 +927,12 @@ const BookingsList = () => {
                             setBoxModalOpen(true);
                           }
                         }}
-                        className={`booking-pod-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
+                        className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
                         style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasBox ? "View Box Document" : "Upload Box Document"}
                       >
-                        {hasBox ? <Eye size={14} /> : <PackageOpen size={14} />}
-                        <span>{hasBox ? "BOX" : "+ BOX"}</span>
+                        {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
+                        <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
                       </button>
 
                       <button
@@ -941,11 +940,11 @@ const BookingsList = () => {
                           setSelectedBookingForTracking(item);
                           setTrackingModalOpen(true);
                         }}
-                        className="booking-pod-btn booking-btn-track"
+                        className="booking-action-btn booking-btn-track"
                         title="Update Shipment Tracking"
                       >
-                        <Truck size={14} />
-                        <span>TRACK</span>
+                        <Truck size={13} />
+                        <span className="booking-action-btn-text">TRACK</span>
                       </button>
 
                       <button
@@ -971,14 +970,14 @@ const BookingsList = () => {
                             setPodModalOpen(true);
                           }
                         }}
-                        className={`booking-pod-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
+                        className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
                         style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
                         title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
                       >
-                        {hasPodEntry ? <Eye size={14} /> : <FileCheck size={14} />}
-                        <span>{hasPodEntry ? "POD" : "+ POD"}</span>
+                        {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
+                        <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
                       </button>
-                    </div>
+                    </>
                   )}
                 </div>
 

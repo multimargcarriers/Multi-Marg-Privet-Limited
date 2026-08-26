@@ -1785,39 +1785,41 @@ table td .btn-action {
 /* ── Card Footer Actions ── */
 .booking-card-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.65rem 1.15rem;
-  gap: 0.75rem;
+  justify-content: stretch;
+  padding: 0.65rem 0.85rem;
+  gap: 0.4rem;
   background: #f8fafc;
   border-radius: 0 0 14px 14px;
   box-sizing: border-box;
+  width: 100%;
 }
 
-.booking-actions-left {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.booking-action-btn {
+.booking-action-btn,
+.booking-pod-btn {
+  flex: 1 1 0px;
+  min-width: 0;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 7px;
+  padding: 6px 4px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-height: 32px;
-  font-size: 0.74rem;
+  gap: 4px;
+  min-height: 36px;
+  font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
 }
 
-.booking-action-btn:hover {
+.booking-action-btn:hover,
+.booking-pod-btn:hover {
   transform: translateY(-1px);
   filter: brightness(0.97);
 }
@@ -1974,41 +1976,23 @@ table td .btn-action {
   }
 
   .booking-card-footer {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 0.75rem 0.85rem;
-    gap: 0.55rem;
-  }
-
-  .booking-actions-left {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.4rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 0.65rem 0.75rem;
+    gap: 0.35rem;
     width: 100%;
   }
 
-  .booking-action-btn {
-    width: 100%;
+  .booking-action-btn,
+  .booking-pod-btn {
+    flex: 1 1 0px;
+    min-width: 0;
     min-height: 36px;
     padding: 6px 2px;
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     border-radius: 8px;
     gap: 3px;
-  }
-
-  .booking-actions-right {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.4rem;
-    width: 100%;
-  }
-
-  .booking-pod-btn {
-    min-height: 36px;
-    padding: 6px 4px;
-    font-size: 0.72rem;
-    border-radius: 8px;
-    width: 100%;
   }
 }
 
@@ -2027,24 +2011,18 @@ table td .btn-action {
     gap: 0.4rem 0.6rem;
   }
 
-  .booking-actions-left {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.3rem;
+  .booking-card-footer {
+    padding: 0.55rem 0.65rem;
+    gap: 0.25rem;
   }
 
-  .booking-action-btn {
-    min-height: 34px;
-    font-size: 0.68rem;
-  }
-
-  .booking-actions-right {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.3rem;
-  }
-
+  .booking-action-btn,
   .booking-pod-btn {
+    flex: 1 1 0px;
     min-height: 34px;
-    font-size: 0.70rem;
+    font-size: 0.67rem;
+    padding: 5px 2px;
+    gap: 2px;
   }
 }
 
