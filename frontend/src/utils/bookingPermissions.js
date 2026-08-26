@@ -49,8 +49,21 @@ export const isBookingCreator = (doc, user) => {
   return false;
 };
 
-export const canModifyBooking = (doc, user) => {
+export const canModifyBooking = (doc, user, customIsDelivered = null) => {
   if (!user) return false;
   if (isSuperAdminOrAdmin(user)) return true;
+
+  if (customIsDelivered === true) return false;
+  if (doc) {
+    const isDocDelivered = 
+      Boolean(doc.podUploaded) || 
+      Boolean(doc.podUrl) || 
+      String(doc.status || '').toLowerCase() === 'delivered' || 
+      String(doc.transitStatus || '').toLowerCase() === 'delivered' ||
+      String(doc.trackingStatus || '').toLowerCase() === 'delivered';
+    if (isDocDelivered) return false;
+  }
+
   return isBookingCreator(doc, user);
 };
+

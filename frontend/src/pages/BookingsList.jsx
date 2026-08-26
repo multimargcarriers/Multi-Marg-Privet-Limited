@@ -857,11 +857,14 @@ const BookingsList = () => {
 
                 {/* ── Card Footer: Actions ── */}
                 {(() => {
-                  const awbLower = String(awb).trim().toLowerCase();
-                  const trackObj = trackingMap[awbLower];
-                  const isDelivered = (typeof trackObj === 'object' ? trackObj?.status : trackObj) === 'Delivered';
-                  const isAllowedUser = canModifyBooking(item, user);
-                  const canModify = isAllowedUser && (isSuperAdmin || !isDelivered) && !item.isOfflinePending;
+                  const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
+                  const isDelivered = 
+                    Boolean(hasPodEntry) || 
+                    (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
+                    (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
+                    (String(item.status || '').toLowerCase() === 'delivered');
+
+                  const canModify = !item.isOfflinePending && canModifyBooking(item, user, isDelivered);
 
                   if (canModify) {
                     // 2-Row layout for Admin & SuperAdmin
