@@ -57,6 +57,19 @@ const parseDateSecurely = (dateVal) => {
   return null;
 };
 
+const formatRealDateTimeSec = (dateVal) => {
+  if (!dateVal) return "-";
+  const d = parseDateSecurely(dateVal);
+  if (!d || isNaN(d.getTime())) return String(dateVal);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const mins = String(d.getMinutes()).padStart(2, '0');
+  const secs = String(d.getSeconds()).padStart(2, '0');
+  return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
+};
+
 const BookingsList = () => {
   const { syncQueue } = useSync();
   const { user, hasPermission } = useContext(AuthContext);
@@ -592,6 +605,7 @@ const BookingsList = () => {
               (item.podUrl ? { podUrl: item.podUrl } : null)
             );
             const hasPodEntry = Boolean(activePod || item.podUploaded || item.podUrl);
+            const itemWithAwb = { ...item, awb: awb || item.awb || item.awbNo || item.consignment || item.lrNo };
 
             return (
               <div key={itemId || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: isSelected ? "2px solid #2563eb" : (item.isOfflinePending ? "2px dashed #f59e0b" : undefined), background: isSelected ? "#f8faff" : undefined }}>
@@ -607,7 +621,7 @@ const BookingsList = () => {
                         style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#2563eb", flexShrink: 0 }}
                       />
                       <h4 className="booking-client-name">
-                        {item.client || item.consignor || "UNKNOWN CLIENT"}
+                        {String(item.client || item.consignor || "UNKNOWN CLIENT").toUpperCase()}
                         {item.isOfflinePending && (
                           <Clock size={16} color="#f59e0b" title="Pending Sync (Offline)" />
                         )}
@@ -622,71 +636,84 @@ const BookingsList = () => {
                         (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
                         (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered');
 
-                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed"
+                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial "booked" as "Picked Up"
                       const trackStatus = typeof track === 'object' ? track?.status : track;
-                      const rawTransit = trackStatus || item.transitStatus || item.trackingStatus || (!['unbilled', 'billed', 'delivered'].includes(String(item.status || '').toLowerCase()) ? item.status : null);
+                      const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus;
 
-                      const resolvedStatus = isDelivered 
-                        ? 'Delivered' 
-                        : (rawTransit || 'Picked Up');
+                      let resolvedStatus = 'Picked Up';
+                      if (isDelivered) {
+                        resolvedStatus = 'Delivered';
+                      } else if (explicitStatus && !['booked', 'unbilled', 'billed'].includes(String(explicitStatus).toLowerCase())) {
+                        resolvedStatus = explicitStatus;
+                      } else if (item.status && !['booked', 'unbilled', 'billed', 'delivered'].includes(String(item.status).toLowerCase())) {
+                        resolvedStatus = item.status;
+                      } else {
+                        resolvedStatus = 'Picked Up';
+                      }
 
                       const normStatus = String(resolvedStatus || '').trim().toLowerCase();
 
-                      let bg = '#f0fdf4';
-                      let color = '#16a34a';
-                      let border = '#bbf7d0';
+                      let bg = '#f0f9ff';
+                      let color = '#0284c7';
+                      let border = '#bae6fd';
                       let icon = <Package size={13} />;
-                      let displayStatus = 'Picked Up';
+                      let displayStatus = 'PICKED UP';
 
-                      if (normStatus === 'delivered') {
+                      if (normStatus.includes('deliver')) {
                         bg = '#ecfdf5';
                         color = '#059669';
                         border = '#a7f3d0';
                         icon = <CheckCircle2 size={13} />;
-                        displayStatus = 'Delivered';
-                      } else if (normStatus === 'out for delivery') {
+                        displayStatus = 'DELIVERED';
+                      } else if (normStatus.includes('out for delivery') || normStatus.includes('out_for_delivery')) {
+                        bg = '#f5f3ff';
+                        color = '#7c3aed';
+                        border = '#ddd6fe';
+                        icon = <Truck size={13} />;
+                        displayStatus = 'OUT FOR DELIVERY';
+                      } else if (normStatus.includes('reach') || normStatus.includes('hub') || normStatus.includes('arrive')) {
+                        bg = '#f0fdfa';
+                        color = '#0d9488';
+                        border = '#99f6e4';
+                        icon = <MapPin size={13} />;
+                        displayStatus = 'REACHED HUB';
+                      } else if (normStatus.includes('transit')) {
                         bg = '#fffbeb';
                         color = '#d97706';
                         border = '#fde68a';
                         icon = <Truck size={13} />;
-                        displayStatus = 'Out for Delivery';
-                      } else if (normStatus === 'reached hub' || normStatus === 'arrived at hub' || normStatus === 'at hub') {
-                        bg = '#f5f3ff';
-                        color = '#7c3aed';
-                        border = '#ddd6fe';
-                        icon = <MapPin size={13} />;
-                        displayStatus = 'Reached Hub';
-                      } else if (normStatus === 'picked up' || normStatus === 'booked' || normStatus === 'shipment picked up') {
-                        bg = '#f0fdf4';
-                        color = '#16a34a';
-                        border = '#bbf7d0';
+                        displayStatus = 'IN TRANSIT';
+                      } else if (normStatus.includes('pickup') || normStatus.includes('picked')) {
+                        bg = '#f0f9ff';
+                        color = '#0284c7';
+                        border = '#bae6fd';
                         icon = <Package size={13} />;
-                        displayStatus = 'Picked Up';
-                      } else if (normStatus === 'in transit' || normStatus === 'transit') {
+                        displayStatus = 'PICKED UP';
+                      } else if (normStatus.includes('book')) {
                         bg = '#eff6ff';
                         color = '#2563eb';
                         border = '#bfdbfe';
-                        icon = <Truck size={13} />;
-                        displayStatus = 'In Transit';
-                      } else if (normStatus === 'delayed') {
+                        icon = <Package size={13} />;
+                        displayStatus = 'SHIPMENT BOOKED';
+                      } else if (normStatus.includes('delay')) {
                         bg = '#fff7ed';
                         color = '#ea580c';
                         border = '#fed7aa';
                         icon = <Clock size={13} />;
-                        displayStatus = 'Delayed';
-                      } else if (normStatus === 'returned' || normStatus === 'rto') {
+                        displayStatus = 'DELAYED';
+                      } else if (normStatus.includes('return') || normStatus.includes('rto')) {
                         bg = '#fef2f2';
                         color = '#dc2626';
                         border = '#fecaca';
                         icon = <Clock size={13} />;
-                        displayStatus = 'Returned';
+                        displayStatus = 'RETURNED';
                       } else {
                         // Custom status
-                        bg = '#eff6ff';
-                        color = '#2563eb';
-                        border = '#bfdbfe';
+                        bg = '#f8fafc';
+                        color = '#475569';
+                        border = '#e2e8f0';
                         icon = <Truck size={13} />;
-                        displayStatus = resolvedStatus;
+                        displayStatus = String(resolvedStatus || '').toUpperCase();
                       }
 
                       return (
@@ -694,7 +721,7 @@ const BookingsList = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedBookingForTracking(item);
+                              setSelectedBookingForTracking(itemWithAwb);
                               setBulkBookingsForTracking([]);
                               setTrackingModalOpen(true);
                             }}
@@ -702,7 +729,10 @@ const BookingsList = () => {
                             style={{
                               background: bg,
                               color: color,
-                              border: `1px solid ${border}`
+                              border: `1.5px solid ${border}`,
+                              fontWeight: 800,
+                              fontSize: "0.78rem",
+                              letterSpacing: "0.03em"
                             }}
                             title="Click to update tracking checkpoint"
                           >
@@ -754,24 +784,6 @@ const BookingsList = () => {
                     <span className="booking-meta-badge" title="Entered Booking Date">
                       📅 {formatDate(item.dispatch_date || item.date || item.createdAt)}
                     </span>
-                    {isSuperAdmin && (
-                      <span 
-                        className="booking-meta-badge" 
-                        style={{ 
-                          background: "#fef3c7", 
-                          color: "#92400e", 
-                          border: "1px solid #fde68a",
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px"
-                        }} 
-                        title={`System Creation Date: ${item.createdAt || item.realBookingDate || item.created_at || item.date}`}
-                      >
-                        🕒 Real: {formatDate(item.createdAt || item.realBookingDate || item.created_at || item.date)}
-                      </span>
-                    )}
                     <span className="booking-meta-badge booking-badge-route">
                       {(item.origin || "-")} → {(item.destination || "-")}
                     </span>
@@ -789,6 +801,30 @@ const BookingsList = () => {
                     {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
                       <span className="booking-meta-badge booking-badge-dims">
                         Dims: {item.dimensions.filter(d => d.length || d.breadth || d.height).map((d) => `${d.length || 0}x${d.breadth || 0}x${d.height || 0}cm (${d.boxCount || 0} Pcs)`).join(', ')}
+                      </span>
+                    )}
+
+                    {/* Super Admin Audit Real Timestamp (Subtle small font at the end) */}
+                    {isSuperAdmin && (
+                      <span 
+                        className="booking-meta-badge" 
+                        style={{ 
+                          background: "#f8fafc", 
+                          color: "#64748b", 
+                          border: "1px solid #e2e8f0",
+                          fontWeight: 500,
+                          fontSize: "0.68rem",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          letterSpacing: "0.02em",
+                          marginLeft: "auto"
+                        }} 
+                        title={`Database Real Creation Timestamp (Super Admin Tracking): ${item.createdAt || item.realBookingDate || item.created_at || item.date}`}
+                      >
+                        🕒 Real: {formatRealDateTimeSec(item.createdAt || item.realBookingDate || item.created_at || item.date)}
                       </span>
                     )}
                   </div>
@@ -883,19 +919,9 @@ const BookingsList = () => {
                   </div>
                 )}
 
-                {/* ── Card Footer: Actions ── */}
+                {/* ── Action Buttons Footer ── */}
                 {(() => {
-                  const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
-                  const isDelivered = 
-                    Boolean(hasPodEntry) || 
-                    (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
-                    (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
-                    (String(item.status || '').toLowerCase() === 'delivered');
-
-                  const canModify = !item.isOfflinePending && canModifyBooking(item, user, isDelivered);
-
-                  if (canModify) {
-                    // 2-Row layout for Admin & SuperAdmin
+                  if (isSuperAdmin) {
                     return (
                       <div className="booking-card-footer booking-card-footer-multiline">
                         <div className="booking-footer-row booking-footer-row-admin">
@@ -905,7 +931,7 @@ const BookingsList = () => {
                             title="Edit Booking"
                           >
                             <Edit size={13} />
-                            <span className="booking-action-btn-text">Edit</span>
+                            <span className="booking-action-btn-text">EDIT</span>
                           </button>
                           {!item.isOfflinePending && (
                             <>
@@ -915,7 +941,7 @@ const BookingsList = () => {
                                 title="View / Print LR"
                               >
                                 <Printer size={13} />
-                                <span className="booking-action-btn-text">Print</span>
+                                <span className="booking-action-btn-text">PRINT</span>
                               </button>
                               <button
                                 onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
@@ -933,108 +959,10 @@ const BookingsList = () => {
                             title="Delete Booking"
                           >
                             <Trash2 size={13} />
-                            <span className="booking-action-btn-text">Delete</span>
+                            <span className="booking-action-btn-text">DELETE</span>
                           </button>
                         </div>
-
-                        {canAccessPod && (
-                          <div className="booking-footer-row booking-footer-row-ops">
-                            <button
-                              disabled={item.isOfflinePending}
-                              onClick={() => {
-                                if (hasBox) {
-                                  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                                  const boxObj = activeBox || {};
-                                  let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
-                                  fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
-                                  navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
-                                } else {
-                                  setSelectedBookingForBox(item);
-                                  setBoxModalOpen(true);
-                                }
-                              }}
-                              className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
-                              style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                              title={hasBox ? "View Box Document" : "Upload Box Document"}
-                            >
-                              {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
-                              <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setSelectedBookingForTracking(item);
-                                setTrackingModalOpen(true);
-                              }}
-                              className="booking-action-btn booking-btn-track"
-                              title="Update Shipment Tracking"
-                            >
-                              <Truck size={13} />
-                              <span className="booking-action-btn-text">TRACK</span>
-                            </button>
-
-                            <button
-                              disabled={item.isOfflinePending}
-                              onClick={() => {
-                                if (hasPodEntry) {
-                                  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-                                  const podObj = activePod || {};
-                                  let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
-                                  if (fileUrl && fileUrl.startsWith('data:')) {
-                                    try {
-                                      sessionStorage.setItem('tempPodData', fileUrl);
-                                      navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
-                                    } catch (e) {
-                                      navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
-                                    }
-                                  } else if (fileUrl) {
-                                    fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
-                                    navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
-                                  }
-                                } else {
-                                  setSelectedBookingForPod(item);
-                                  setPodModalOpen(true);
-                                }
-                              }}
-                              className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
-                              style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
-                              title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
-                            >
-                              {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
-                              <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // 1-Row 5-button layout for Employee, Client, Vendor
-                  return (
-                    <div className="booking-card-footer booking-card-footer-singleline">
-                      {!item.isOfflinePending && (
-                        <>
-                          <button
-                            onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
-                            className="booking-action-btn booking-btn-print"
-                            title="View / Print LR"
-                          >
-                            <Printer size={13} />
-                            <span className="booking-action-btn-text">Print</span>
-                          </button>
-                          <button
-                            onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
-                            className="booking-action-btn booking-btn-download"
-                            title="Direct Download PDF"
-                          >
-                            <Download size={13} />
-                            <span className="booking-action-btn-text">PDF</span>
-                          </button>
-                        </>
-                      )}
-
-                      {canAccessPod && (
-                        <>
+                        <div className="booking-footer-row booking-footer-row-ops">
                           <button
                             disabled={item.isOfflinePending}
                             onClick={() => {
@@ -1045,7 +973,7 @@ const BookingsList = () => {
                                 fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
                                 navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
                               } else {
-                                setSelectedBookingForBox(item);
+                                setSelectedBookingForBox(itemWithAwb);
                                 setBoxModalOpen(true);
                               }
                             }}
@@ -1056,10 +984,9 @@ const BookingsList = () => {
                             {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
                             <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
                           </button>
-
                           <button
                             onClick={() => {
-                              setSelectedBookingForTracking(item);
+                              setSelectedBookingForTracking(itemWithAwb);
                               setTrackingModalOpen(true);
                             }}
                             className="booking-action-btn booking-btn-track"
@@ -1068,7 +995,6 @@ const BookingsList = () => {
                             <Truck size={13} />
                             <span className="booking-action-btn-text">TRACK</span>
                           </button>
-
                           <button
                             disabled={item.isOfflinePending}
                             onClick={() => {
@@ -1088,7 +1014,98 @@ const BookingsList = () => {
                                   navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
                                 }
                               } else {
-                                setSelectedBookingForPod(item);
+                                setSelectedBookingForPod(itemWithAwb);
+                                setPodModalOpen(true);
+                              }
+                            }}
+                            className={`booking-action-btn ${hasPodEntry ? 'booking-btn-pod-has' : 'booking-btn-pod-add'}`}
+                            style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                            title={hasPodEntry ? "View Proof of Delivery" : "Upload Proof of Delivery"}
+                          >
+                            {hasPodEntry ? <Eye size={13} /> : <FileCheck size={13} />}
+                            <span className="booking-action-btn-text">{hasPodEntry ? "POD" : "+ POD"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="booking-card-footer booking-card-footer-singleline">
+                      {!item.isOfflinePending && (
+                        <>
+                          <button
+                            onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                            className="booking-action-btn booking-btn-print"
+                            title="View / Print LR"
+                          >
+                            <Printer size={13} />
+                            <span className="booking-action-btn-text">PRINT</span>
+                          </button>
+                          <button
+                            onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                            className="booking-action-btn booking-btn-download"
+                            title="Direct Download PDF"
+                          >
+                            <Download size={13} />
+                            <span className="booking-action-btn-text">PDF</span>
+                          </button>
+                        </>
+                      )}
+                      {canAccessPod && (
+                        <>
+                          <button
+                            disabled={item.isOfflinePending}
+                            onClick={() => {
+                              if (hasBox) {
+                                const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                const boxObj = activeBox || {};
+                                let fileUrl = boxObj.boxUrl || boxObj.cloudinaryUrl || `${apiUrl}/uploads/box/${boxObj.fileName || boxObj.filename || ""}`;
+                                fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}&title=Box%20Document%20Viewer`);
+                              } else {
+                                setSelectedBookingForBox(itemWithAwb);
+                                setBoxModalOpen(true);
+                              }
+                            }}
+                            className={`booking-action-btn ${hasBox ? 'booking-btn-box-has' : 'booking-btn-box-add'}`}
+                            style={{ opacity: item.isOfflinePending ? 0.5 : 1, cursor: item.isOfflinePending ? "not-allowed" : "pointer" }}
+                            title={hasBox ? "View Box Document" : "Upload Box Document"}
+                          >
+                            {hasBox ? <Eye size={13} /> : <PackageOpen size={13} />}
+                            <span className="booking-action-btn-text">{hasBox ? "BOX" : "+ BOX"}</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedBookingForTracking(itemWithAwb);
+                              setTrackingModalOpen(true);
+                            }}
+                            className="booking-action-btn booking-btn-track"
+                            title="Update Shipment Tracking"
+                          >
+                            <Truck size={13} />
+                            <span className="booking-action-btn-text">TRACK</span>
+                          </button>
+                          <button
+                            disabled={item.isOfflinePending}
+                            onClick={() => {
+                              if (hasPodEntry) {
+                                const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+                                const podObj = activePod || {};
+                                let fileUrl = podObj.podUrl || podObj.cloudinaryUrl || podObj.fileData || `${apiUrl}/uploads/pod/${podObj.fileName || podObj.filename || ""}`;
+                                if (fileUrl && fileUrl.startsWith('data:')) {
+                                  try {
+                                    sessionStorage.setItem('tempPodData', fileUrl);
+                                    navigate(`/pod/view?source=session&title=Proof%20of%20Delivery`);
+                                  } catch (e) {
+                                    navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                  }
+                                } else if (fileUrl) {
+                                  fileUrl = getSafeCloudinaryPdfUrl(fileUrl);
+                                  navigate(`/pod/view?url=${encodeURIComponent(fileUrl)}`);
+                                }
+                              } else {
+                                setSelectedBookingForPod(itemWithAwb);
                                 setPodModalOpen(true);
                               }
                             }}
@@ -1104,7 +1121,6 @@ const BookingsList = () => {
                     </div>
                   );
                 })()}
-
               </div>
             );
           })}

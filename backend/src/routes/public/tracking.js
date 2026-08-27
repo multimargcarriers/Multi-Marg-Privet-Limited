@@ -105,31 +105,31 @@ router.get('/:awb', async (req, res) => {
       const bookingDateISO = bookingDateObj.toISOString();
 
       // 1. Shipment Booked milestone
-      const hasBookedStatus = entries.some(e => e.status === "Booked" || e.status === "Shipment Booked");
+      const hasBookedStatus = entries.some(e => String(e.status || '').toLowerCase().includes("book"));
       if (!hasBookedStatus) {
         entries.push({
           id: `booked-${booking.id || baseAwb}`,
           awb: baseAwb,
           status: "Shipment Booked",
-          location: booking.origin || "Origin",
+          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB",
           date: bookingDateISO,
           remarks: "Shipment details received and Lorry Receipt (LR) generated.",
           updatedAt: bookingDateISO
         });
       }
 
-      // 2. Picked Up milestone
-      const hasPickedUpStatus = entries.some(e => e.status === "Picked Up" || e.status === "Shipment Picked Up");
+      // 2. Picked Up milestone (automatically after booked at Origin)
+      const hasPickedUpStatus = entries.some(e => String(e.status || '').toLowerCase().includes("pickup") || String(e.status || '').toLowerCase().includes("picked"));
       if (!hasPickedUpStatus) {
-        const pickupDateObj = new Date(bookingDateObj.getTime() + 5 * 60 * 1000);
+        const pickupDateObj = new Date(bookingDateObj.getTime() + 60 * 60 * 1000);
         const pickupDateISO = pickupDateObj.toISOString();
         entries.push({
           id: `picked-${booking.id || baseAwb}`,
           awb: baseAwb,
           status: "Picked Up",
-          location: booking.origin || "Origin",
+          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB",
           date: pickupDateISO,
-          remarks: "Shipment packages received and loaded into transport vehicle.",
+          remarks: `Shipment packages received and picked up from ${booking.origin ? String(booking.origin).toUpperCase() : 'origin'} facility.`,
           updatedAt: pickupDateISO
         });
       }

@@ -42,7 +42,7 @@ const BoxEntryModal = ({
 
   if (!isOpen || !booking) return null;
 
-  const awbNo = booking.awb || booking.lrNo || booking.id || "UNKNOWN";
+  const awbNo = booking.awb || booking.awbNo || booking.awb_no || booking.consignment || booking.consignmentNo || booking.lrNo || booking.lr_no || booking.lrNumber || booking.docketNo || booking.docket_no || (booking.id && String(booking.id).length <= 10 ? booking.id : (booking.id ? String(booking.id).slice(-6).toUpperCase() : "UNKNOWN"));
 
   const fileToDataURL = (file) => {
     return new Promise((resolve, reject) => {
@@ -255,7 +255,7 @@ const BoxEntryModal = ({
           >
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                LR / AWB Number
+                LR / AWB NUMBER
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: 800, marginTop: "2px" }}>
                 #{awbNo}
@@ -263,18 +263,18 @@ const BoxEntryModal = ({
             </div>
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                Client / Consignor
+                CLIENT / CONSIGNOR
               </div>
               <div style={{ fontSize: "1rem", fontWeight: 700, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {booking.client || booking.consignor || "Standard Client"}
+                {String(booking.client || booking.consignor || "STANDARD CLIENT").toUpperCase()}
               </div>
             </div>
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                Route
+                ROUTE
               </div>
               <div style={{ fontSize: "0.95rem", fontWeight: 600, marginTop: "2px" }}>
-                {booking.origin || "-"} &rarr; {booking.destination || "-"}
+                {String(booking.origin || "-").toUpperCase()} &rarr; {String(booking.destination || "-").toUpperCase()}
               </div>
             </div>
           </div>
@@ -509,12 +509,12 @@ const BoxEntryModal = ({
               border: "1px solid #cbd5e1",
               background: "white",
               color: "#475569",
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: "pointer",
               fontSize: "0.9rem"
             }}
           >
-            Cancel
+            CANCEL
           </button>
           <button
             type="button"
@@ -526,22 +526,23 @@ const BoxEntryModal = ({
               border: "none",
               background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
               color: "white",
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: isSaving ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               gap: "8px",
               fontSize: "0.9rem",
-              boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)"
+              boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+              letterSpacing: "0.02em"
             }}
           >
             {isSaving ? (
               <>
-                <Loader2 size={16} className="spinner" /> Saving Document...
+                <Loader2 size={16} className="spinner" /> SAVING DOCUMENT...
               </>
             ) : (
               <>
-                <Check size={18} /> Save Box Upload Document
+                <Check size={18} /> SAVE BOX UPLOAD DOCUMENT
               </>
             )}
           </button>

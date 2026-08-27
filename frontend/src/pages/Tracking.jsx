@@ -336,29 +336,76 @@ const Tracking = () => {
     }
   };
 
+  const normalizeStatus = (status) => {
+    const s = String(status || '').trim().toLowerCase();
+    if (s.includes('deliver')) return 'DELIVERED';
+    if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 'OUT FOR DELIVERY';
+    if (s.includes('transit')) return 'IN TRANSIT';
+    if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
+    if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
+    if (s.includes('book')) return 'SHIPMENT BOOKED';
+    if (s.includes('delay')) return 'DELAYED';
+    if (s.includes('return') || s.includes('rto')) return 'RETURNED';
+    return String(status || 'IN TRANSIT').toUpperCase();
+  };
+
   const getStatusIcon = (status) => {
-    switch (status) {
-      case "Shipment Booked":
-      case "Booked": return <Package size={20} />;
-      case "Picked Up": return <Package size={20} />;
-      case "In Transit": return <Truck size={20} />;
-      case "Out for Delivery": return <MapPin size={20} />;
-      case "Delivered": return <CheckCircle size={20} />;
-      case "Returned": return <XCircle size={20} />;
-      default: return <Clock size={20} />;
+    const norm = normalizeStatus(status);
+    switch (norm) {
+      case "DELIVERED": return <CheckCircle size={22} />;
+      case "OUT FOR DELIVERY": return <Truck size={22} />;
+      case "IN TRANSIT": return <Truck size={22} />;
+      case "REACHED HUB": return <MapPin size={22} />;
+      case "PICKED UP": return <Package size={22} />;
+      case "SHIPMENT BOOKED": return <Package size={22} />;
+      case "DELAYED": return <Clock size={22} />;
+      case "RETURNED": return <XCircle size={22} />;
+      default: return <Clock size={22} />;
     }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Shipment Booked":
-      case "Booked": return "#2563eb"; 
-      case "Picked Up": return "#3b82f6"; 
-      case "In Transit": return "#f59e0b"; 
-      case "Out for Delivery": return "#8b5cf6"; 
-      case "Delivered": return "#10b981"; 
-      case "Returned": return "#ef4444"; 
-      default: return "#6b7280"; 
+    const norm = normalizeStatus(status);
+    switch (norm) {
+      case "DELIVERED": return "#059669"; // Emerald Green
+      case "OUT FOR DELIVERY": return "#7c3aed"; // Vibrant Purple
+      case "IN TRANSIT": return "#d97706"; // Amber / Gold
+      case "REACHED HUB": return "#0d9488"; // Teal
+      case "PICKED UP": return "#0284c7"; // Sky Blue
+      case "SHIPMENT BOOKED": return "#2563eb"; // Primary Royal Blue
+      case "DELAYED": return "#ea580c"; // Coral Orange
+      case "RETURNED": return "#dc2626"; // Red
+      default: return "#475569";
+    }
+  };
+
+  const getStatusBg = (status) => {
+    const norm = normalizeStatus(status);
+    switch (norm) {
+      case "DELIVERED": return "#ecfdf5";
+      case "OUT FOR DELIVERY": return "#f5f3ff";
+      case "IN TRANSIT": return "#fffbeb";
+      case "REACHED HUB": return "#f0fdfa";
+      case "PICKED UP": return "#f0f9ff";
+      case "SHIPMENT BOOKED": return "#eff6ff";
+      case "DELAYED": return "#fff7ed";
+      case "RETURNED": return "#fef2f2";
+      default: return "#f8fafc";
+    }
+  };
+
+  const getStatusBorder = (status) => {
+    const norm = normalizeStatus(status);
+    switch (norm) {
+      case "DELIVERED": return "#a7f3d0";
+      case "OUT FOR DELIVERY": return "#ddd6fe";
+      case "IN TRANSIT": return "#fde68a";
+      case "REACHED HUB": return "#99f6e4";
+      case "PICKED UP": return "#bae6fd";
+      case "SHIPMENT BOOKED": return "#bfdbfe";
+      case "DELAYED": return "#fed7aa";
+      case "RETURNED": return "#fecaca";
+      default: return "#e2e8f0";
     }
   };
 
@@ -719,53 +766,54 @@ const Tracking = () => {
 
                 <div className="tracking-timeline-container">
                   {/* Vertical Line */}
-                  <div className="tracking-timeline-line"></div>
-
-                {trackingHistory.map((entry, index) => {
+                  <div className="tracking-timeline-line"></div>                {trackingHistory.map((entry, index) => {
                   const isLatest = index === 0; 
                   const color = getStatusColor(entry.status);
+                  const bg = getStatusBg(entry.status);
+                  const border = getStatusBorder(entry.status);
+                  const statusCaps = normalizeStatus(entry.status);
 
                   return (
                     <div key={entry.id || index} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem" }}>
                       
                       <div style={{ 
-                        width: "44px", 
-                        height: "44px", 
+                        width: "46px", 
+                        height: "46px", 
                         borderRadius: "50%", 
-                        background: "white", 
-                        border: `2px solid ${color}`,
-                        display: "flex",
-                        alignItems: "center",
+                        background: isLatest ? color : bg, 
+                        border: `2.5px solid ${color}`,
+                        display: "flex", 
+                        alignItems: "center", 
                         justifyContent: "center",
-                        color: color,
+                        color: isLatest ? "white" : color,
                         flexShrink: 0,
                         marginLeft: "-11px",
-                        boxShadow: isLatest ? `0 0 0 4px ${color}20` : "none"
+                        boxShadow: isLatest ? `0 0 0 5px ${color}25, 0 6px 14px ${color}35` : "0 0 0 4px white"
                       }}>
                         {getStatusIcon(entry.status)}
                       </div>
 
-                      <div style={{ flex: 1, padding: "1rem 1.2rem", background: isLatest ? "#f8fafc" : "#ffffff", border: isLatest ? "1px solid #e2e8f0" : "1px solid transparent", borderRadius: "12px", boxShadow: isLatest ? "0 4px 6px rgba(0,0,0,0.02)" : "none" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                          <span style={{ fontWeight: "700", color: color, fontSize: "1.05rem" }}>{entry.status}</span>
+                      <div style={{ flex: 1, padding: "1.1rem 1.3rem", background: isLatest ? bg : "#ffffff", border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, borderRadius: "14px", boxShadow: isLatest ? `0 6px 16px -2px ${color}15` : "none" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                          <span style={{ fontWeight: 800, color: color, fontSize: "1.05rem", letterSpacing: "0.04em" }}>{statusCaps}</span>
                           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                            <span style={{ fontSize: "0.85rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "20px", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                              <Clock size={12} />
+                            <span style={{ fontSize: "0.825rem", color: "#475569", background: isLatest ? "#ffffff" : "#f1f5f9", padding: "0.25rem 0.75rem", borderRadius: "20px", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.35rem", border: "1px solid #e2e8f0" }}>
+                              <Clock size={13} color="#64748b" />
                               {formatCleanDateTime(entry.date || entry.updatedAt)}
                             </span>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#4b5563", fontSize: "0.95rem" }}>
-                          <MapPin size={15} color="#9ca3af" />
-                          <span style={{ fontWeight: "500", textTransform: "uppercase" }}>{entry.location || "Location not provided"}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#334155", fontSize: "0.95rem", fontWeight: 600 }}>
+                          <MapPin size={15} color={color} />
+                          <span style={{ textTransform: "uppercase", letterSpacing: "0.03em" }}>{entry.location ? String(entry.location).toUpperCase() : "LOCATION NOT PROVIDED"}</span>
                           {isAdmin && (
-                            <span style={{ marginLeft: "auto", background: "#f1f5f9", padding: "2px 8px", borderRadius: "12px", fontSize: "0.8rem", color: "#475569" }}>
-                              By: {entry.enteredBy || "Admin"}
+                            <span style={{ marginLeft: "auto", background: isLatest ? "#ffffff" : "#f1f5f9", border: "1px solid #e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
+                              BY: {(entry.enteredBy || "Admin").toUpperCase()}
                             </span>
                           )}
                         </div>
                         {entry.remarks && (
-                          <div style={{ fontSize: "0.9rem", color: "#6b7280", background: "#f9fafb", padding: "0.75rem", borderRadius: "8px", borderLeft: "3px solid #d1d5db", fontStyle: "italic" }}>
+                          <div style={{ fontSize: "0.9rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.8)" : "#f8fafc", padding: "0.65rem 0.9rem", borderRadius: "8px", borderLeft: `3.5px solid ${color}`, fontStyle: "italic", fontWeight: 500 }}>
                             "{entry.remarks}"
                           </div>
                         )}

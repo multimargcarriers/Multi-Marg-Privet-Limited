@@ -7,25 +7,25 @@ import { useToast } from "../context/ToastContext";
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const STATUS_OPTIONS = [
-  { value: "Picked Up", label: "📦 Picked Up" },
-  { value: "In Transit", label: "🔄 In Transit" },
-  { value: "Reached Hub", label: "🏢 Arrived" },
-  { value: "Out for Delivery", label: "🚚 Out for Delivery" },
-  { value: "Delivered", label: "✅ Delivered" },
-  { value: "Delayed", label: "⚠️ Delayed" },
-  { value: "Returned", label: "↩️ Return to Origin" }
+  { value: "Picked Up", label: "📦 PICKED UP" },
+  { value: "In Transit", label: "🔄 IN TRANSIT" },
+  { value: "Reached Hub", label: "🏢 REACHED HUB" },
+  { value: "Out for Delivery", label: "🚚 OUT FOR DELIVERY" },
+  { value: "Delivered", label: "✅ DELIVERED" },
+  { value: "Delayed", label: "⚠️ DELAYED" },
+  { value: "Returned", label: "↩️ RETURN TO ORIGIN (RTO)" }
 ];
 
 const getStatusColor = (status) => {
   switch (status) {
-    case "Picked Up": return "#16a34a";
-    case "In Transit": return "#2563eb";
-    case "Reached Hub": return "#7c3aed";
-    case "Out for Delivery": return "#f59e0b";
-    case "Delivered": return "#10b981";
+    case "Picked Up": return "#0284c7";
+    case "In Transit": return "#d97706";
+    case "Reached Hub": return "#0d9488";
+    case "Out for Delivery": return "#7c3aed";
+    case "Delivered": return "#059669";
     case "Delayed": return "#ea580c";
-    case "Returned": return "#ef4444";
-    default: return "#64748b";
+    case "Returned": return "#dc2626";
+    default: return "#475569";
   }
 };
 
@@ -247,8 +247,8 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 </div>
                 {booking && (
                   <div style={{ padding: "0.6rem 0.75rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "0.80rem", color: "#334155", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
-                    <div><strong style={{ color: '#64748b' }}>Route:</strong> {booking.origin || "-"} &rarr; {booking.destination || "-"}</div>
-                    <div><strong style={{ color: '#64748b' }}>Client:</strong> {booking.client || booking.clientName || "-"}</div>
+                    <div><strong style={{ color: '#64748b' }}>ROUTE:</strong> {String(booking.origin || "-").toUpperCase()} &rarr; {String(booking.destination || "-").toUpperCase()}</div>
+                    <div><strong style={{ color: '#64748b' }}>CLIENT:</strong> {String(booking.client || booking.clientName || "-").toUpperCase()}</div>
                   </div>
                 )}
               </div>
@@ -258,7 +258,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           {/* Status Selection */}
           <div>
             <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Current Status <span style={{ color: "#ef4444" }}>*</span>
+              CURRENT STATUS <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <select 
               name="status" 
@@ -268,7 +268,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               style={{ 
                 width: "100%", padding: "0.65rem 0.85rem", borderRadius: "8px", 
                 border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box",
-                fontWeight: "700",
+                fontWeight: "800",
                 fontSize: "0.88rem",
                 color: getStatusColor(formData.status),
                 background: "#ffffff",
@@ -276,7 +276,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               }}
             >
               {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value} style={{ color: getStatusColor(opt.value), fontWeight: "600" }}>
+                <option key={opt.value} value={opt.value} style={{ color: getStatusColor(opt.value), fontWeight: "700" }}>
                   {opt.label}
                 </option>
               ))}
@@ -287,7 +287,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
               <label style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700", color: "#334155", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Current Location / Facility <span style={{ color: "#ef4444" }}>*</span>
+                CURRENT LOCATION / FACILITY <span style={{ color: "#ef4444" }}>*</span>
               </label>
               <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Select from database or type custom</span>
             </div>
@@ -298,7 +298,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 type="text"
                 list="db-cities-list"
                 name="location"
-                placeholder="Type location or select from list..."
+                placeholder="TYPE LOCATION OR SELECT FROM LIST..."
                 value={formData.location}
                 onChange={(e) => handleLocationChange(e.target.value)}
                 required
@@ -308,13 +308,14 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                   borderRadius: "8px",
                   border: "1px solid #cbd5e1",
                   fontSize: "0.88rem",
-                  fontWeight: 600,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
                   outline: "none"
                 }}
               />
               <datalist id="db-cities-list">
                 {locations.map((c, i) => (
-                  <option key={i} value={c.city || c.name || c.cityName} />
+                  <option key={i} value={String(c.city || c.name || c.cityName).toUpperCase()} />
                 ))}
               </datalist>
 
@@ -329,19 +330,19 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                     padding: "0.65rem",
                     borderRadius: "8px",
                     border: "1px solid #cbd5e1",
-                    fontSize: "0.82rem",
+                    fontSize: "0.85rem",
+                    fontWeight: "600",
                     background: "#f8fafc",
                     color: "#334155",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    maxWidth: "140px"
+                    cursor: "pointer"
                   }}
                 >
-                  <option value="">Database Cities</option>
-                  {locations.map((c, i) => {
-                    const cityName = c.city || c.name || c.cityName;
-                    return <option key={i} value={cityName}>{cityName}</option>;
-                  })}
+                  <option value="">SELECT HUB...</option>
+                  {locations.map((c, i) => (
+                    <option key={i} value={String(c.city || c.name || c.cityName).toUpperCase()}>
+                      {String(c.city || c.name || c.cityName).toUpperCase()}
+                    </option>
+                  ))}
                 </select>
               )}
             </div>
@@ -350,7 +351,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           {/* Date & Time */}
           <div>
             <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Checkpoint Date <span style={{ color: "#ef4444" }}>*</span>
+              CHECKPOINT DATE & TIME <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <input
               type="date"
@@ -374,7 +375,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <label style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700", color: "#334155", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Status Remark / Milestone Note
+                TRACKING REMARKS / ACTIVITY NOTE
               </label>
               <button
                 type="button"
@@ -394,13 +395,13 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 title="Auto-Generate Description"
               >
                 <Sparkles size={13} />
-                <span>AI Generate</span>
+                <span>AI GENERATE</span>
               </button>
             </div>
             <input
               type="text"
               name="remarks"
-              placeholder="e.g. Shipment in transit en route via Pune"
+              placeholder="E.G. SHIPMENT IN TRANSIT EN ROUTE VIA PUNE"
               value={formData.remarks}
               onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
               style={{
@@ -432,7 +433,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 cursor: "pointer"
               }}
             >
-              Cancel
+              CANCEL
             </button>
             <button
               type="submit"
@@ -451,11 +452,12 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
-                boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.25)"
+                boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.25)",
+                letterSpacing: "0.02em"
               }}
             >
               {isSubmitting ? <Loader2 size={16} className="spin-animation" /> : <CheckCircle2 size={16} />}
-              {isSubmitting ? "Saving Checkpoint..." : (isBulk ? `Update Tracking for ${formData.awbs.length} AWBs` : "Save Tracking Checkpoint")}
+              {isSubmitting ? "SAVING CHECKPOINT..." : (isBulk ? `UPDATE TRACKING FOR ${formData.awbs.length} AWBS` : "SAVE TRACKING CHECKPOINT")}
             </button>
           </div>
 

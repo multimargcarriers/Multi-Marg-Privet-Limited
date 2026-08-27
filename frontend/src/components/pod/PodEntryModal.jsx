@@ -45,7 +45,7 @@ const PodEntryModal = ({
 
   if (!isOpen || !booking) return null;
 
-  const awbNo = booking.awb || booking.lrNo || booking.id || "UNKNOWN";
+  const awbNo = booking.awb || booking.awbNo || booking.awb_no || booking.consignment || booking.consignmentNo || booking.lrNo || booking.lr_no || booking.lrNumber || booking.docketNo || booking.docket_no || (booking.id && String(booking.id).length <= 10 ? booking.id : (booking.id ? String(booking.id).slice(-6).toUpperCase() : "UNKNOWN"));
 
   const fileToDataURL = (file) => {
     return new Promise((resolve, reject) => {
@@ -250,7 +250,7 @@ const PodEntryModal = ({
           >
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                LR / AWB Number
+                LR / AWB NUMBER
               </div>
               <div style={{ fontSize: "1.3rem", fontWeight: 800, marginTop: "2px" }}>
                 #{awbNo}
@@ -258,18 +258,18 @@ const PodEntryModal = ({
             </div>
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                Client / Consignor
+                CLIENT / CONSIGNOR
               </div>
               <div style={{ fontSize: "1rem", fontWeight: 700, marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {booking.client || booking.consignor || "Standard Client"}
+                {String(booking.client || booking.consignor || "STANDARD CLIENT").toUpperCase()}
               </div>
             </div>
             <div>
               <div style={{ fontSize: "0.725rem", textTransform: "uppercase", opacity: 0.85, fontWeight: 600 }}>
-                Route
+                ROUTE
               </div>
               <div style={{ fontSize: "0.95rem", fontWeight: 600, marginTop: "2px" }}>
-                {booking.origin || "-"} &rarr; {booking.destination || "-"}
+                {String(booking.origin || "-").toUpperCase()} &rarr; {String(booking.destination || "-").toUpperCase()}
               </div>
             </div>
           </div>
@@ -349,7 +349,7 @@ const PodEntryModal = ({
                   }}
                 >
                   <Camera size={26} color="#0284c7" />
-                  <div>Camera Scanner</div>
+                  <div style={{ fontWeight: 800 }}>CAMERA SCANNER</div>
                   <span style={{ fontSize: "0.725rem", fontWeight: 500, color: "#64748b" }}>
                     Live Capture & Image Studio
                   </span>
@@ -374,7 +374,7 @@ const PodEntryModal = ({
                   }}
                 >
                   <ImageIcon size={26} color="#475569" />
-                  <div>Gallery / Device File</div>
+                  <div style={{ fontWeight: 800 }}>GALLERY / DEVICE FILE</div>
                   <span style={{ fontSize: "0.725rem", fontWeight: 500, color: "#64748b" }}>
                     Browse Image
                   </span>
@@ -490,12 +490,12 @@ const PodEntryModal = ({
               border: "1px solid #cbd5e1",
               background: "white",
               color: "#475569",
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: "pointer",
               fontSize: "0.9rem"
             }}
           >
-            Cancel
+            CANCEL
           </button>
           <button
             type="button"
@@ -507,22 +507,23 @@ const PodEntryModal = ({
               border: "none",
               background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
               color: "white",
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: isSaving ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               gap: "8px",
               fontSize: "0.9rem",
-              boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)"
+              boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+              letterSpacing: "0.02em"
             }}
           >
             {isSaving ? (
               <>
-                <Loader2 size={16} className="spinner" /> Saving Proof...
+                <Loader2 size={16} className="spinner" /> SAVING PROOF...
               </>
             ) : (
               <>
-                <Check size={18} /> Save Proof of Delivery
+                <Check size={18} /> SAVE PROOF OF DELIVERY
               </>
             )}
           </button>
