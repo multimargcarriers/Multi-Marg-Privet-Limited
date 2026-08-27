@@ -4,6 +4,7 @@ import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, Alert
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEOHead from '../components/SEOHead';
+import CopyButton from '../components/CopyButton';
 
 const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
@@ -353,7 +354,10 @@ const TrackShipment = () => {
                   }}>
                     <div>
                       <p style={{ color: 'var(--text-light)', fontSize: '0.85rem', marginBottom: '0.2rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Tracking Number</p>
-                      <h2 style={{ color: 'var(--primary-blue)', margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)' }}>{trackingResult.tracking[0]?.awb}</h2>
+                      <h2 style={{ color: 'var(--primary-blue)', margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {trackingResult.tracking[0]?.awb}
+                        <CopyButton text={trackingResult.tracking[0]?.awb} size={16} />
+                      </h2>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                       {mainPodUrl && (

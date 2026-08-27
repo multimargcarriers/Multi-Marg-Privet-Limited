@@ -3,6 +3,7 @@ import axios from "axios";
 import Table from "../../components/Table";
 import { Search, Download, TrendingUp, IndianRupee, PieChart, FileText } from "lucide-react";
 import RupeeIcon from '../../components/RupeeIcon';
+import CopyButton, { AwbBadge } from "../../components/CopyButton";
 import { formatDate } from "../../utils/formatters";
 import ExportModal from "../../components/ExportModal";
 import { exportSalesBillsList } from "../../utils/excelExport";
@@ -287,7 +288,7 @@ const SalesReports = () => {
               <td style={{ padding: "1rem", fontWeight: 600, color: "#3b82f6" }}>{item.billNo || "-"}</td>
               <td style={{ padding: "1rem", color: "#475569" }}>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
               <td style={{ padding: "1rem", fontWeight: 600, color: "#334155" }}>{item.client || "-"}</td>
-              <td style={{ padding: "1rem", color: "#475569" }}>{item.lrNo || "-"}</td>
+              <td style={{ padding: "1rem", color: "#475569" }}><AwbBadge awb={item.lrNo} /></td>
               <td style={{ padding: "1rem" }}>
                 {(() => {
                   const total = parseFloat(item.total || item.amount || 0);

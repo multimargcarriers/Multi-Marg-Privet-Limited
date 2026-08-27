@@ -27,6 +27,7 @@ import {
 
 
 } from "lucide-react";
+import CopyButton, { AwbBadge } from "../components/CopyButton";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1046,6 +1047,7 @@ const UploadBox = () => {
                 <td style={{ padding: "1rem", fontWeight: 700, color: "#0284c7", whiteSpace: "nowrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     {item.lrNo}
+                    <CopyButton text={item.lrNo} />
                     {item.isOfflinePending && (
                       <Clock size={14} color="#f59e0b" title="Pending Sync (Offline)" />
                     )}

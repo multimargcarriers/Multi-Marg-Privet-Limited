@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Search, Save,   Edit3, Trash2 } from "lucide-react";
+import CopyButton, { AwbBadge } from "../components/CopyButton";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import CreatableDropdown from "../components/CreatableDropdown";
 
@@ -488,7 +489,10 @@ const UpdateBill = () => {
                         <tr key={idx} style={{ borderBottom: "1px solid #E2E8F0" }}>
                           <td style={{ padding: "0.3rem", textAlign: "center", fontWeight: "700" }}>{idx + 1}</td>
                           <td style={{ padding: "0.3rem" }}>
-                            <input className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.lrNo} onChange={(e) => handleItemChange(idx, "lrNo", e.target.value)} />
+                            <div style={{ display: "flex", alignItems: "center" }}>
+                              <input className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.lrNo} onChange={(e) => handleItemChange(idx, "lrNo", e.target.value)} />
+                              <CopyButton text={item.lrNo} size={11} />
+                            </div>
                           </td>
                           <td style={{ padding: "0.3rem" }}>
                             <input className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.lrDt} onChange={(e) => handleItemChange(idx, "lrDt", e.target.value)} />

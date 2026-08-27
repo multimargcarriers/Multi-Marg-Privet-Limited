@@ -5,6 +5,7 @@ import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, P
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
+import CopyButton, { AwbBadge } from "../components/CopyButton";
 import { AuthContext } from "../context/AuthContext";
 import { useDialog } from "../context/DialogContext";
 import { useToast } from "../context/ToastContext";
@@ -687,7 +688,8 @@ const Tracking = () => {
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
                         <h5 style={{ margin: 0, color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <Package size={18} color="#0284c7" /> Shipment Overview
+                          <Package size={18} color="#0284c7" /> Shipment Overview: <span style={{ color: "#0284c7" }}>{getBookingAwb(selectedSearchBooking) || searchAwb}</span>
+                          <CopyButton text={getBookingAwb(selectedSearchBooking) || searchAwb} />
                         </h5>
                         {mainPodUrl && (
                           <button

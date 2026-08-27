@@ -21,6 +21,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { formatDate } from "../../utils/formatters";
+import CopyButton, { AwbBadge } from "../CopyButton";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -1988,7 +1989,12 @@ addToast(`Attached ${generatedFiles.length} official document(s) matching exact 
                         >
                           {activeTab === "outstanding" && item.partyName}
                           {activeTab === "bills" && `Bill #${item.billNo || item.billNumber}`}
-                          {activeTab === "bookings" && `LR #${item.awbNo || item.lrNo || item.consignment}`}
+                          {activeTab === "bookings" && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              {`LR #${item.awbNo || item.lrNo || item.consignment}`}
+                              <CopyButton text={item.awbNo || item.lrNo || item.consignment} size={10} />
+                            </span>
+                          )}
                           {activeTab === "trips" && `Trip #${item.tripNo || item.tripNumber}`}
                         </span>
                       </div>

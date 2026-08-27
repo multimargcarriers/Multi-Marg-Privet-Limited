@@ -12,6 +12,7 @@ import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
 
 import { formatAllCaps, formatDate } from "../utils/formatters";
+import CopyButton, { AwbBadge } from "../components/CopyButton";
 import { exportVendorShipMis } from "../utils/excelExport";
 import ExportModal from "../components/ExportModal";
 import { useNotification } from "../context/NotificationContext";
@@ -449,7 +450,7 @@ const Trips = () => {
        <td style={{ whiteSpace: 'nowrap' }}>{item.date ? formatDate(item.date) : "-"}</td>
        <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap', fontWeight: 600 }}>{item.vehicleNo || "-"}</td>
        <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.type || "-"}</td>
-       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.awbNo || "-"}</td>
+       <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}><AwbBadge awb={item.awbNo} /></td>
        <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.cdNo || "-"}</td>
        <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap', fontWeight: 600, color: "#1e3a8a" }}>{item.vendor || "-"}</td>
        <td style={{ textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.origin || "-"}</td>
@@ -470,7 +471,7 @@ const Trips = () => {
                 <tbody>
                   {item.materialDetails.map((m, idx) => (
                     <tr key={idx} style={{ borderBottom: idx < item.materialDetails.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
-                      <td style={{ padding: "6px 8px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap" }}>{m.lrNo || "-"}</td>
+                      <td style={{ padding: "6px 8px", fontWeight: "600", color: "#1e293b", whiteSpace: "nowrap" }}><AwbBadge awb={m.lrNo} /></td>
                       <td style={{ padding: "6px 8px", color: "#334155", whiteSpace: "nowrap" }} title={m.clientName}>{m.clientName || "-"}</td>
                       <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.box || "0"}</td>
                       <td style={{ padding: "6px 8px", color: "#475569", textAlign: "center" }}>{m.weight || "0"}</td>

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Truck, X, Package, ArrowRight } from "lucide-react";
+import CopyButton, { AwbBadge } from "./CopyButton";
 import { formatDate } from "../utils/formatters";
 
 const BulkTrackingConfirmModal = ({
@@ -73,8 +74,9 @@ const BulkTrackingConfirmModal = ({
                   <div key={bookingId || idx} className="bulk-confirm-item-row">
                     {/* Left: AWB & Date */}
                     <div className="bulk-confirm-item-left">
-                      <div className="bulk-confirm-awb-badge">
+                      <div className="bulk-confirm-awb-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         AWB: {awbNo}
+                        <CopyButton text={awbNo} size={11} />
                       </div>
                       <span className="bulk-confirm-date-tag">
                         📅 {dateStr}

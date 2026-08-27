@@ -4,6 +4,7 @@ import Table from "../../components/Table";
 import CreatableDropdown from "../../components/CreatableDropdown";
 import QuickAddModal from "../../components/QuickAddModal";
 import { Search, Download, FileSpreadsheet, Activity, Package, Layers } from "lucide-react";
+import CopyButton, { AwbBadge } from "../../components/CopyButton";
 import { formatDate } from "../../utils/formatters";
 import ExportModal from "../../components/ExportModal";
 import { exportBookingsList } from "../../utils/excelExport";
@@ -344,7 +345,7 @@ const MISReports = () => {
                     style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#d946ef" }}
                   />
                 </td>
-                <td style={{ padding: "12px 16px", whiteSpace: "nowrap", fontWeight: "600", color: "#c026d3" }}>{awb}</td>
+                <td style={{ padding: "12px 16px", whiteSpace: "nowrap", fontWeight: "600", color: "#c026d3" }}><AwbBadge awb={awb} /></td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{dateStr}</td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.consignor || "-"}</td>
                 <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>{item.consignee || "-"}</td>

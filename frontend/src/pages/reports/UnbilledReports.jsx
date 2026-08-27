@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Download
 } from "lucide-react";
+import CopyButton, { AwbBadge } from "../../components/CopyButton";
 import ExportModal from "../../components/ExportModal";
 import { exportUnbilledReport } from "../../utils/excelExport";
 
@@ -717,16 +718,19 @@ const UnbilledReports = () => {
                       background: "#eff6ff",
                       color: "#1d4ed8",
                       border: "1px solid #bfdbfe",
-                      padding: "0.3rem 0.75rem",
+                      padding: "0.3rem 0.6rem",
                       borderRadius: "6px",
                       fontWeight: 700,
                       fontSize: "0.85rem",
                       letterSpacing: "0.02em",
-                      display: "inline-block",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
                       textTransform: "uppercase"
                     }}
                   >
                     {awbNo}
+                    <CopyButton text={awbNo} size={13} />
                   </span>
                 </td>
 

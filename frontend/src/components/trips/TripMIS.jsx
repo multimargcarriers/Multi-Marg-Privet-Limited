@@ -14,6 +14,7 @@ import appDB from "../../utils/appDB";
 import ExportModal from "../ExportModal";
 import { exportVehicleTripMisList } from "../../utils/excelExport";
 import AutoSuggestInput from "../AutoSuggestInput";
+import CopyButton, { AwbBadge } from "../CopyButton";
 import { recordSuggestion } from "../../utils/smartSuggestions";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
@@ -929,7 +930,7 @@ const TripMIS = () => {
                         const amt = parseFloat(p.freight || item.freight || 0);
                         return (
                           <tr key={i} style={{ borderBottom: i < arr.length - 1 ? "1px solid #f1f5f9" : "none", transition: "background 0.2s" }} onMouseOver={e => e.currentTarget.style.background = "#f8fafc"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
-                            <td style={{ padding: "8px 12px", fontWeight: "600", color: "#1e3a8a", whiteSpace: "nowrap" }}>{p.lrNo || item.lrNo || "-"}</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "600", color: "#1e3a8a", whiteSpace: "nowrap" }}><AwbBadge awb={p.lrNo || item.lrNo} /></td>
                             <td style={{ padding: "8px 12px", color: "#334155", whiteSpace: "nowrap" }}>{p.origin || item.origin || "-"} <span style={{ color: "#94a3b8" }}>→</span> {p.destination || item.destination || "-"}</td>
                             <td style={{ padding: "8px 12px", color: "#475569" }}>{p.consignor || item.consignor || "-"} <span style={{ color: "#94a3b8" }}>→</span> {p.consignee || item.consignee || "-"}</td>
                             <td style={{ padding: "8px 12px", color: "#475569", whiteSpace: "nowrap" }}>{p.mode || item.mode || "Normal"}</td>
@@ -1567,7 +1568,7 @@ const TripMIS = () => {
                         )}
                       </td>
                       <td style={{ border: "1px solid #cbd5e1", padding: "8px" }}>
-                        <strong>{p.lrNo || "-"}</strong><br/>
+                        <strong><AwbBadge awb={p.lrNo} /></strong><br/>
                         <span style={{ fontSize: "8pt", color: "#475569" }}>From: {p.consignor || "-"}</span><br/>
                         <span style={{ fontSize: "8pt", color: "#475569" }}>To: {p.consignee || "-"}</span>
                       </td>
