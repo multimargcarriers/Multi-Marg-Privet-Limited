@@ -304,16 +304,58 @@ exports.post_generate_5 = async (req, res) => {
 
   await db.collection("bills").doc(bill.id).set(bill);
 
-  // Update booking status and billing fields in MongoDB
+  // Update booking status and sync all billing fields to booking in database
   for (let i = 0; i < bookingIds.length; i++) {
+    const bId = bookingIds[i];
+    const itemData = aggregatedItems[i] || {};
+
+    const bookingUpdate = {
+      status: "Billed",
+      billed: true,
+      billNo: billNo
+    };
+
+    if (itemData) {
+      if (itemData.pkg !== undefined) {
+        bookingUpdate.box = String(itemData.pkg);
+        bookingUpdate.pkg = String(itemData.pkg);
+        bookingUpdate.packages = parseInt(itemData.pkg || 0, 10);
+        bookingUpdate.package_count = parseInt(itemData.pkg || 0, 10);
+      }
+      if (itemData.wt !== undefined) {
+        bookingUpdate.charge_wt = String(itemData.wt);
+        bookingUpdate.weight_chargeable = parseFloat(itemData.wt || 0);
+      }
+      if (itemData.rate !== undefined) {
+        bookingUpdate.rate = parseFloat(itemData.rate || 0);
+      }
+      if (itemData.frieght !== undefined) {
+        bookingUpdate.freight_charge = parseFloat(itemData.frieght || 0);
+      }
+      if (itemData.awb_charge !== undefined) {
+        bookingUpdate.awb_charge = parseFloat(itemData.awb_charge || 0);
+      }
+      if (itemData.pickup !== undefined) {
+        bookingUpdate.pickup_charge = parseFloat(itemData.pickup || 0);
+      }
+      if (itemData.delivery !== undefined) {
+        bookingUpdate.delivery_charge = parseFloat(itemData.delivery || 0);
+      }
+      if (itemData.special_delivery !== undefined) {
+        bookingUpdate.packaging_charge = parseFloat(itemData.special_delivery || 0);
+      }
+      if (itemData.other_charge !== undefined) {
+        bookingUpdate.handling_charge = parseFloat(itemData.other_charge || 0);
+      }
+      if (itemData.total !== undefined) {
+        bookingUpdate.total_amount = parseFloat(itemData.total || 0);
+      }
+    }
+
     try {
-      await db.collection("bookings").doc(bookingIds[i]).update({
-        status: "Billed",
-        billed: true,
-        billNo: billNo
-      });
+      await db.collection("bookings").doc(bId).update(bookingUpdate);
     } catch (e) {
-      console.error(`Failed to update booking ${bookingIds[i]}:`, e.message);
+      console.error(`Failed to update booking ${bId}:`, e.message);
     }
   }
 
@@ -469,6 +511,45 @@ exports.put_id_7 = async (req, res) => {
   }
 
   await db.collection("bills").doc(id).update(updatedData);
+
+  // Sync updated billing values back to each booking
+  if (updatedData.items && Array.isArray(updatedData.items)) {
+    for (const it of updatedData.items) {
+      const lrNo = it.awb || it.lrNo;
+      if (lrNo) {
+        const bUpdate = {};
+        if (it.pkg !== undefined) {
+          bUpdate.box = String(it.pkg);
+          bUpdate.pkg = String(it.pkg);
+          bUpdate.packages = parseInt(it.pkg || 0, 10);
+          bUpdate.package_count = parseInt(it.pkg || 0, 10);
+        }
+        if (it.wt !== undefined) {
+          bUpdate.charge_wt = String(it.wt);
+          bUpdate.weight_chargeable = parseFloat(it.wt || 0);
+        }
+        if (it.rate !== undefined) bUpdate.rate = parseFloat(it.rate || 0);
+        if (it.frg !== undefined || it.frieght !== undefined) bUpdate.freight_charge = parseFloat(it.frg || it.frieght || 0);
+        if (it.lr !== undefined || it.awb_charge !== undefined) bUpdate.awb_charge = parseFloat(it.lr || it.awb_charge || 0);
+        if (it.pick !== undefined || it.pickup !== undefined) bUpdate.pickup_charge = parseFloat(it.pick || it.pickup || 0);
+        if (it.del !== undefined || it.delivery !== undefined) bUpdate.delivery_charge = parseFloat(it.del || it.delivery || 0);
+        if (it.spl !== undefined || it.special_delivery !== undefined) bUpdate.packaging_charge = parseFloat(it.spl || it.special_delivery || 0);
+        if (it.oth !== undefined || it.other_charge !== undefined) bUpdate.handling_charge = parseFloat(it.oth || it.other_charge || 0);
+        if (it.total !== undefined) bUpdate.total_amount = parseFloat(it.total || 0);
+
+        if (Object.keys(bUpdate).length > 0 && db.mongoDb) {
+          try {
+            await db.mongoDb.collection("bookings").updateMany(
+              { $or: [{ awb: lrNo }, { consignment: lrNo }, { lrNo: lrNo }, { lrNumber: lrNo }, { id: lrNo }] },
+              { $set: bUpdate }
+            );
+          } catch(err) {
+            console.error(`Error updating booking for LR ${lrNo}:`, err);
+          }
+        }
+      }
+    }
+  }
   const oldClient = doc.data().client;
   const newClient = updatedData.client || oldClient;
   if (oldClient && oldClient !== newClient) {

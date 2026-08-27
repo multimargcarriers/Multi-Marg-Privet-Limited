@@ -98,8 +98,9 @@ const GenerateBill = () => {
           const bDest = (b.destination || "").toString().trim().toLowerCase();
           const bMode = (b.mode || "Road").toString().trim();
           
+          const wt = parseFloat(b.charge_wt || b.chargeable_weight || b.chargeWeight || b.weight_chargeable || b.weight || b.actual_wt || 0);
           let rateValue = parseFloat(b.rate || 0);
-          let freight = parseFloat(b.freight_charge || b.freight || b.frieght || 0);
+          let freight = (wt > 0 && rateValue > 0) ? (rateValue * wt) : (wt > 0 && b.freight_charge ? parseFloat(b.freight_charge) : 0);
           let awb = parseFloat(b.awb_charge || 0);
           let pickup = parseFloat(b.pickup_charge || 0);
           let delivery = parseFloat(b.delivery_charge || 0);
@@ -127,8 +128,7 @@ const GenerateBill = () => {
 
             if (rateValue === 0 && foundRate > 0) rateValue = foundRate;
             
-            const wt = parseFloat(b.charge_wt || b.weight_chargeable || b.weight || 0);
-            if (freight === 0 && foundRate > 0 && wt > 0) freight = foundRate * wt;
+            if (foundRate > 0 && wt > 0) freight = foundRate * wt;
             if (awb === 0 && foundAwb > 0) awb = foundAwb;
             if (pickup === 0 && foundPickup > 0) pickup = foundPickup;
             if (delivery === 0 && foundDelivery > 0) delivery = foundDelivery;
@@ -137,7 +137,7 @@ const GenerateBill = () => {
           return {
             ...b,
             editable_pkg: parseInt(b.box || b.pkg || b.boxes || b.package_count || b.packages || b.pcs || (b.dimensions && Array.isArray(b.dimensions) && b.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1),
-            editable_wt: parseFloat(b.charge_wt || b.chargeable_weight || b.chargeWeight || b.weight_chargeable || b.weight || b.actual_wt || 0),
+            editable_wt: wt,
             editable_rate: rateValue,
             editable_freight: freight,
             editable_awb: awb,

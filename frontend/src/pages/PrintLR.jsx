@@ -149,6 +149,7 @@ const PrintLR = () => {
 
           b.type_of_delivery = b.type_of_delivery || b.deliveryType || "Door";
           b.clerk_name = b.clerk_name || b.clerkName || "Admin";
+          b.paymentMode = b.paymentMode || b.payment_mode || b.paymentTerms || b.payment_terms || b.paymentType || "Credit";
 
           b.description = b.description || b.desc || b.goods || "";
           b.remarks = b.remarks || b.remark || "";
@@ -821,12 +822,16 @@ const PrintLR = () => {
                   <table className="bilty-table" style={{ fontSize: "0.75rem" }}>
                     <tbody>
                       <tr>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center", fontSize: "0.7rem" }}>AWB NO.</td>
-                        <td className="awb-value" style={{ width: "25%", whiteSpace: "nowrap" }}>{booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
-                        <td className="gray-cell" style={{ width: "15%", textAlign: "center", fontSize: "0.7rem" }}>DATE</td>
-                        <td className="date-mode-value" style={{ width: "25%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
-                        <td className="gray-cell" style={{ width: "10%", textAlign: "center", fontSize: "0.7rem" }}>MODE</td>
-                        <td className="date-mode-value" style={{ width: "10%" }}>{(booking.mode && (booking.mode.toLowerCase() === 'rail' || booking.mode.toLowerCase() === 'train') ? 'TRAIN' : booking.mode?.toUpperCase())}</td>
+                        <td className="gray-cell" style={{ width: "12%", textAlign: "center", fontSize: "0.68rem" }}>AWB NO.</td>
+                        <td className="awb-value" style={{ width: "20%", whiteSpace: "nowrap" }}>{booking.consignment || booking.awb || booking.lrNumber || booking.id.slice(-6)}</td>
+                        <td className="gray-cell" style={{ width: "10%", textAlign: "center", fontSize: "0.68rem" }}>DATE</td>
+                        <td className="date-mode-value" style={{ width: "16%" }}>{booking.dispatch_date ? formatDate(booking.dispatch_date) : formatDate(booking.createdAt)}</td>
+                        <td className="gray-cell" style={{ width: "8%", textAlign: "center", fontSize: "0.68rem" }}>MODE</td>
+                        <td className="date-mode-value" style={{ width: "12%" }}>{(booking.mode && (booking.mode.toLowerCase() === 'rail' || booking.mode.toLowerCase() === 'train') ? 'TRAIN' : booking.mode?.toUpperCase())}</td>
+                        <td className="gray-cell" style={{ width: "11%", textAlign: "center", fontSize: "0.68rem" }}>PAYMENT</td>
+                        <td className="date-mode-value" style={{ width: "11%", textAlign: "center", color: "#1e3a8a", fontWeight: "800", textTransform: "uppercase" }}>
+                          {booking.paymentMode || "CREDIT"}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -976,7 +981,12 @@ const PrintLR = () => {
 
                   {/* Charges (Right Side) */}
                   <div style={{ width: "320px", borderBottom: "1px solid #cbd5e1" }}>
-                    <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1", borderLeft: "none" }}>5. Financials</div>
+                    <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1", borderLeft: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>5. Financials</span>
+                      <span style={{ fontSize: "0.62rem", fontWeight: "800", background: "#f8fafc", color: "#1e3a8a", padding: "1px 6px", borderRadius: "3px", textTransform: "uppercase", border: "1px solid #cbd5e1" }}>
+                        {(booking.paymentMode || "Credit").toUpperCase()}
+                      </span>
+                    </div>
                     <table className="bilty-table" style={{ border: "none" }}>
                       <tbody>
                         <tr>
