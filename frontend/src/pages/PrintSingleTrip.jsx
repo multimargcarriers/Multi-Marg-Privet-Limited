@@ -235,39 +235,46 @@ const PrintSingleTrip = () => {
           max-width: 100% !important;
           table-layout: fixed !important;
           border-collapse: collapse !important;
-          font-size: 0.65rem !important;
+          font-size: 0.60rem !important;
           background: transparent !important;
         }
         .manifest-table th, 
         .manifest-table td {
           border: 1px solid #94a3b8 !important;
-          padding: 3px 5px !important;
+          padding: 2.5px 3px !important;
           color: #0f172a !important;
           vertical-align: middle;
           box-sizing: border-box !important;
-          line-height: 1.25 !important;
+          line-height: 1.2 !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
         }
         .nowrap-cell {
           white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
+        }
+        .wrap-cell {
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
+          line-height: 1.15 !important;
         }
         .num-cell {
           white-space: nowrap !important;
           font-variant-numeric: tabular-nums;
+          font-size: 0.58rem !important;
         }
         .gray-cell {
           background-color: rgba(241, 245, 249, 0.85) !important;
           color: #1e293b !important;
           font-weight: 700 !important;
           text-transform: uppercase !important;
-          font-size: 0.62rem !important;
-          letter-spacing: 0.3px !important;
+          font-size: 0.58rem !important;
+          letter-spacing: 0.2px !important;
         }
         .data-cell {
           font-weight: 600 !important;
           color: #0f172a !important;
-          font-size: 0.67rem !important;
+          font-size: 0.60rem !important;
         }
         .section-header {
           background-color: #0f172a !important;
@@ -499,29 +506,29 @@ const PrintSingleTrip = () => {
                           <tbody>
                             <tr>
                               <td className="gray-cell" style={{ width: "12%", textAlign: "left" }}>TRIP NO.</td>
-                              <td className="data-cell nowrap-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700", textAlign: "left" }}>{(trip.tripNo || "-").toUpperCase()}</td>
-                              <td className="gray-cell" style={{ width: "12%", textAlign: "left" }}>DATE</td>
-                              <td className="data-cell nowrap-cell" style={{ width: "21%", textAlign: "left" }}>{trip.date ? formatDate(trip.date) : "-"}</td>
-                              <td className="gray-cell" style={{ width: "13%", textAlign: "left" }}>CLIENT NAME</td>
-                              <td className="data-cell nowrap-cell" style={{ width: "21%", color: "#1e3a8a", fontSize: "0.75rem", textAlign: "left" }}>{(trip.clientName || "-").toUpperCase()}</td>
+                              <td className="data-cell wrap-cell" style={{ width: "21%", color: "#e11d48", fontWeight: "700", textAlign: "left" }}>{(trip.tripNo || "-").toUpperCase()}</td>
+                              <td className="gray-cell" style={{ width: "10%", textAlign: "left" }}>DATE</td>
+                              <td className="data-cell wrap-cell" style={{ width: "18%", textAlign: "left" }}>{trip.date ? formatDate(trip.date) : "-"}</td>
+                              <td className="gray-cell" style={{ width: "15%", textAlign: "left" }}>CLIENT NAME</td>
+                              <td className="data-cell wrap-cell" style={{ width: "24%", color: "#1e3a8a", fontSize: "0.75rem", textAlign: "left" }}>{(trip.clientName || "-").toUpperCase()}</td>
                             </tr>
                             <tr>
                               <td className="gray-cell" style={{ textAlign: "left" }}>FROM</td>
-                              <td className="data-cell nowrap-cell" style={{ fontWeight: "700", textAlign: "left" }}>{(trip.origin || "-").toUpperCase()}</td>
+                              <td className="data-cell wrap-cell" style={{ fontWeight: "700", textAlign: "left" }}>{(trip.origin || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>TO</td>
-                              <td className="data-cell nowrap-cell" style={{ fontWeight: "700", textAlign: "left" }}>{(trip.destination || "-").toUpperCase()}</td>
+                              <td className="data-cell wrap-cell" style={{ fontWeight: "700", textAlign: "left" }}>{(trip.destination || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>MODE</td>
-                              <td className="data-cell nowrap-cell" style={{ fontWeight: isSpecialMode ? "700" : "600", color: isSpecialMode ? "#1e3a8a" : "inherit", textAlign: "left" }}>
+                              <td className="data-cell wrap-cell" style={{ fontWeight: isSpecialMode ? "700" : "600", color: isSpecialMode ? "#1e3a8a" : "inherit", textAlign: "left" }}>
                                 {(trip.mode || "-").toUpperCase()}
                               </td>
                             </tr>
                             <tr>
                               <td className="gray-cell" style={{ textAlign: "left" }}>VEHICLE NO.</td>
-                              <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleNo || "-").toUpperCase()}</td>
+                              <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleNo || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>VEHICLE TYPE</td>
-                              <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleType || "-").toUpperCase()}</td>
+                              <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleType || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>{isSpecialMode ? "TOTAL FREIGHT" : "PAYMENT"}</td>
-                              <td className="data-cell nowrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "right" }}>
+                              <td className="data-cell wrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "right" }}>
                                 {isSpecialMode ? (showPrintAmounts ? `Rs. ${baseFreight.toFixed(2)}` : "Rs. 0") : (trip.payment || "-").toUpperCase()}
                               </td>
                             </tr>
@@ -554,12 +561,12 @@ const PrintSingleTrip = () => {
                           {page.parcels.length > 0 ? (
                             page.parcels.map((p, i) => (
                               <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "rgba(241, 245, 249, 0.55)" : "transparent" }}>
-                                <td className="data-cell nowrap-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.origin || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.destination || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{(p.mode || "-").toUpperCase()}</td>
+                                <td className="data-cell num-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.origin || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.destination || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "center" }}>{(p.mode || "-").toUpperCase()}</td>
                                 <td className="data-cell num-cell" style={{ textAlign: "center" }}>{p.box || "-"}</td>
                                 <td className="data-cell num-cell" style={{ textAlign: "center" }}>{p.weight || "-"}</td>
                               </tr>
@@ -584,22 +591,22 @@ const PrintSingleTrip = () => {
                       /* Standard Mode: Balanced 16 Columns */
                       <table className="manifest-table" style={{ width: "100%", tableLayout: "fixed" }}>
                         <thead>
-                          <tr className="gray-cell" style={{ fontSize: "0.6rem" }}>
-                            <th style={{ width: "7.5%", textAlign: "center" }}>LR NO</th>
-                            <th style={{ width: "9.5%", textAlign: "left" }}>CONSIGNOR</th>
-                            <th style={{ width: "9.5%", textAlign: "left" }}>CONSIGNEE</th>
-                            <th style={{ width: "7%", textAlign: "left" }}>ORIGIN</th>
-                            <th style={{ width: "7%", textAlign: "left" }}>DEST</th>
+                          <tr className="gray-cell" style={{ fontSize: "0.58rem" }}>
+                            <th style={{ width: "8.5%", textAlign: "center" }}>LR NO</th>
+                            <th style={{ width: "10.5%", textAlign: "left" }}>CONSIGNOR</th>
+                            <th style={{ width: "10.5%", textAlign: "left" }}>CONSIGNEE</th>
+                            <th style={{ width: "7.5%", textAlign: "left" }}>ORIGIN</th>
+                            <th style={{ width: "7.5%", textAlign: "left" }}>DEST</th>
                             <th style={{ width: "4.5%", textAlign: "center" }}>MODE</th>
                             <th style={{ width: "3.5%", textAlign: "center" }}>BOX</th>
-                            <th style={{ width: "4%", textAlign: "center" }}>WT</th>
-                            <th style={{ width: "6.5%", textAlign: "right" }}>FREIGHT</th>
-                            <th style={{ width: "5%", textAlign: "right" }}>PICK</th>
-                            <th style={{ width: "5%", textAlign: "right" }}>DLY</th>
-                            <th style={{ width: "5%", textAlign: "right" }}>SPL</th>
-                            <th style={{ width: "5%", textAlign: "right" }}>PARK</th>
-                            <th style={{ width: "5%", textAlign: "right" }}>LABOUR</th>
-                            <th style={{ width: "5.5%", textAlign: "right" }}>OTH</th>
+                            <th style={{ width: "4.5%", textAlign: "center" }}>WT</th>
+                            <th style={{ width: "6.0%", textAlign: "right" }}>FREIGHT</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>PICK</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>DLY</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>SPL</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>PARK</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>LABOUR</th>
+                            <th style={{ width: "4.5%", textAlign: "right" }}>OTH</th>
                             <th style={{ width: "7.5%", textAlign: "right" }}>TOTAL</th>
                           </tr>
                         </thead>
@@ -607,12 +614,12 @@ const PrintSingleTrip = () => {
                           {page.parcels.length > 0 ? (
                             page.parcels.map((p, i) => (
                               <tr key={i} style={{ backgroundColor: i % 2 === 1 ? "rgba(241, 245, 249, 0.55)" : "transparent" }}>
-                                <td className="data-cell nowrap-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.origin || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "left" }}>{(p.destination || "-").toUpperCase()}</td>
-                                <td className="data-cell nowrap-cell" style={{ textAlign: "center" }}>{(p.mode || "-").toUpperCase()}</td>
+                                <td className="data-cell num-cell" style={{ color: "#ef4444", fontWeight: "700", textAlign: "center" }}>{p.lrNo || "-"}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.consignor || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.consignee || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.origin || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(p.destination || "-").toUpperCase()}</td>
+                                <td className="data-cell wrap-cell" style={{ textAlign: "center" }}>{(p.mode || "-").toUpperCase()}</td>
                                 <td className="data-cell num-cell" style={{ textAlign: "center" }}>{p.box || "-"}</td>
                                 <td className="data-cell num-cell" style={{ textAlign: "center" }}>{p.weight || "-"}</td>
                                 <td className="data-cell num-cell" style={{ textAlign: "right" }}>{showPrintAmounts ? parseFloat(p.freight || 0).toFixed(2) : "0"}</td>
@@ -635,7 +642,7 @@ const PrintSingleTrip = () => {
                         </tbody>
                         {page.isLast && (
                           <tfoot>
-                            <tr className="gray-cell" style={{ backgroundColor: "rgba(226, 232, 240, 0.85)", fontSize: "0.6rem" }}>
+                            <tr className="gray-cell" style={{ backgroundColor: "rgba(226, 232, 240, 0.85)", fontSize: "0.58rem" }}>
                               <td colSpan="6" style={{ textAlign: "right", fontWeight: "700", color: "#0f172a" }}>TOTAL:</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.box || (trip.parcels?.reduce((s,p)=>s+(parseInt(p.box)||0),0) || 0)}</td>
                               <td className="data-cell num-cell" style={{ textAlign: "center", fontWeight: "700" }}>{trip.weight || (trip.parcels?.reduce((s,p)=>s+(parseFloat(p.weight)||0),0) || 0)}</td>
@@ -687,7 +694,7 @@ const PrintSingleTrip = () => {
                             </tr>
                             <tr>
                               <td className="gray-cell" style={{ textAlign: "left" }}>PAYMENT MODE</td>
-                              <td className="data-cell nowrap-cell" style={{ textAlign: "right" }}>
+                              <td className="data-cell wrap-cell" style={{ textAlign: "right" }}>
                                 {(trip.payment || "-").toUpperCase()}
                               </td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>AMOUNT PAID</td>
