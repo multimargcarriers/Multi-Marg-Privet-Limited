@@ -35,9 +35,9 @@ const useTableSort = (data, defaultSort = "awb_desc", config = {}) => {
       if (a.isOfflinePending && !b.isOfflinePending) return -1;
       if (!a.isOfflinePending && b.isOfflinePending) return 1;
 
-      // Default dates fallback to 'createdAt' or 'date' if the configured key doesn't exist
-      const dateA = parseDateValue(a[dateKey] || a.date || a.createdAt || a.dispatch_date || a.bookingDate);
-      const dateB = parseDateValue(b[dateKey] || b.date || b.createdAt || b.dispatch_date || b.bookingDate);
+      // Default dates fallback to 'dispatch_date' or 'date' if the configured key doesn't exist
+      const dateA = parseDateValue(a[dateKey] || a.dispatch_date || a.date || a.bookingDate || a.createdAt);
+      const dateB = parseDateValue(b[dateKey] || b.dispatch_date || b.date || b.bookingDate || b.createdAt);
 
       const amountA = parseFloat(a[amountKey] || a.amount || a.taxable || 0);
       const amountB = parseFloat(b[amountKey] || b.amount || b.taxable || 0);

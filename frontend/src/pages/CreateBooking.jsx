@@ -68,7 +68,8 @@ const CreateBooking = () => {
   const { addToast } = useToast();
   const { user } = useAuth();
   
-  const canEditAwb = user?.role === 'Admin' || user?.role === 'SuperAdmin';
+  const isSuperAdmin = user?.role === 'SuperAdmin' || (user?.role || '').toLowerCase().replace(/\s+/g, '') === 'superadmin' || user?.email === 'admin@multimarg.com';
+  const canEditAwb = isEditMode && isSuperAdmin;
 
   const handleCreateNew = async (type, field, name) => {
     try {
@@ -562,8 +563,40 @@ const CreateBooking = () => {
         
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Awb No</label>
-            <input type="text" className="form-control" name="consignment" value={formData.consignment} onChange={(e) => setFormData({...formData, consignment: formatAllCaps(e.target.value)})} readOnly={!canEditAwb} style={{ backgroundColor: !canEditAwb ? '#f1f5f9' : 'white', height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+              <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", margin: 0 }}>Awb No</label>
+              {isEditMode ? (
+                isSuperAdmin ? (
+                  <span style={{ fontSize: "0.72rem", color: "#0284c7", fontWeight: "600" }}>Super Admin Edit</span>
+                ) : (
+                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Locked</span>
+                )
+              ) : (
+                <span style={{ fontSize: "0.72rem", color: "#10b981", fontWeight: "600" }}>Auto-Assigned</span>
+              )}
+            </div>
+            <input 
+              type="text" 
+              className="form-control" 
+              name="consignment" 
+              value={isEditMode ? formData.consignment : (formData.consignment ? `Auto: ${formData.consignment}` : "Auto (Sequential on Save)")} 
+              onChange={(e) => {
+                if (canEditAwb) {
+                  setFormData({...formData, consignment: formatAllCaps(e.target.value)});
+                }
+              }} 
+              readOnly={!canEditAwb} 
+              placeholder={isEditMode ? "Enter AWB No" : "Auto-generated in series on save"}
+              style={{ 
+                backgroundColor: !canEditAwb ? '#f1f5f9' : 'white', 
+                cursor: !canEditAwb ? 'not-allowed' : 'text',
+                height: "36px", 
+                fontSize: "0.85rem", 
+                padding: "6px 10px",
+                fontWeight: !canEditAwb ? "600" : "normal",
+                color: !canEditAwb ? "#475569" : "#111827"
+              }} 
+            />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
@@ -771,12 +804,12 @@ const CreateBooking = () => {
             <input type="number" className="form-control" name="box" placeholder="Qty" value={formData.box} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Actual Wt.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="actual_wt" placeholder="Kg" value={formData.actual_wt} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Actual Wt.</label>
+            <input type="number" step="0.01" className="form-control" name="actual_wt" placeholder="Kg (Optional)" value={formData.actual_wt} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Charge Wt.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="number" step="0.01" className="form-control" name="charge_wt" placeholder="Kg" value={formData.charge_wt} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Charge Wt.</label>
+            <input type="number" step="0.01" className="form-control" name="charge_wt" placeholder="Kg (Optional)" value={formData.charge_wt} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Description<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
@@ -896,8 +929,8 @@ const CreateBooking = () => {
         </div>
 
         <div className="form-group" style={{ margin: "1rem 0 1.5rem" }}>
-          <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Remarks<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-          <textarea className="form-control" name="remarks" placeholder="Enter remarks/instructions here..." value={formData.remarks} onChange={handleChange} required style={{ minHeight: "80px", resize: "vertical", fontSize: "0.85rem", padding: "8px 12px" }} />
+          <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Remarks</label>
+          <textarea className="form-control" name="remarks" placeholder="Enter remarks/instructions here (optional)..." value={formData.remarks} onChange={handleChange} style={{ minHeight: "80px", resize: "vertical", fontSize: "0.85rem", padding: "8px 12px" }} />
         </div>
 
         <div

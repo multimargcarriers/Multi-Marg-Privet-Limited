@@ -156,6 +156,65 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
 };
 
 
+const generateSequentialAwb = async () => {
+  if (!db.mongoDb) {
+    return `${Date.now().toString().slice(-6)}`;
+  }
+  
+  const countersCol = db.mongoDb.collection("counters");
+  const bookingsCol = db.mongoDb.collection("bookings");
+
+  // Step 1: Ensure counter document exists and syncs with existing max numeric AWB
+  const counterDoc = await countersCol.findOne({ _id: "awb_counter" });
+  if (!counterDoc || typeof counterDoc.seq !== "number") {
+    let maxNum = 0;
+    const allBookings = await bookingsCol.find({}, { projection: { consignment: 1, awb: 1, lrNo: 1 } }).toArray();
+    allBookings.forEach((b) => {
+      const awbStr = b.awb || b.consignment || b.lrNo || "";
+      const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
+      if (match) {
+        const num = parseInt(match[2], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    await countersCol.findOneAndUpdate(
+      { _id: "awb_counter" },
+      { $max: { seq: maxNum } },
+      { returnDocument: "after", upsert: true }
+    );
+  }
+
+  // Step 2: Atomic sequence increment with collision check
+  let finalAwb = null;
+  while (!finalAwb) {
+    const updatedCounter = await countersCol.findOneAndUpdate(
+      { _id: "awb_counter" },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    const seqVal = updatedCounter.seq ?? updatedCounter.value?.seq;
+    const candidateStr = `${seqVal}`;
+
+    // Verify candidate is not already used in DB
+    const existing = await bookingsCol.findOne({
+      $or: [
+        { consignment: candidateStr },
+        { awb: candidateStr },
+        { lrNo: candidateStr }
+      ]
+    });
+
+    if (!existing) {
+      finalAwb = candidateStr;
+    } else {
+      console.warn(`[AWB Sequence] Candidate AWB ${candidateStr} already exists in DB. Advancing to next sequence...`);
+    }
+  }
+
+  return finalAwb;
+};
+
 exports.postRoot_1 = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
@@ -163,49 +222,28 @@ exports.postRoot_1 = async (req, res) => {
   const providedId = booking.id;
   delete booking.id;
 
-  booking.date = new Date().toISOString();
+  const enteredDate = booking.dispatch_date || booking.date || new Date().toISOString().split('T')[0];
+  booking.dispatch_date = enteredDate;
+  booking.date = enteredDate;
+  booking.createdAt = new Date().toISOString();
+  booking.realBookingDate = booking.createdAt;
   booking.status = "Booked";
   booking.billed = false;
   booking.billNo = "";
   booking.lrNumber = generateLRNumber();
   
-  const role = req.user?.role || "";
-  const isAdmin = role === "Admin" || role === "SuperAdmin";
-  
-  if (!isAdmin || !booking.consignment) {
-    try {
-      // Fast counter check: only scan collection if counter doesn't exist in counters collection
-      let maxNum = 0;
-      const existingCounter = await db.mongoDb.collection("counters").findOne({ _id: "awb_counter" });
-      if (!existingCounter) {
-        // Find max AWB to ensure continuity with existing data (ran only once if counter is missing)
-        const allBookings = await db.mongoDb.collection("bookings").find({}, { projection: { consignment: 1, awb: 1, lrNo: 1 } }).toArray();
-        allBookings.forEach(b => {
-          const awbStr = b.awb || b.consignment || b.lrNo || "";
-          const match = String(awbStr).match(/^([^0-9]+)?(\d+)$/);
-          if (match) {
-            const num = parseInt(match[2], 10);
-            if (num > maxNum) maxNum = num;
-          }
-        });
-        await db.mongoDb.collection("counters").findOneAndUpdate(
-          { _id: "awb_counter" },
-          { $max: { seq: maxNum } },
-          { returnDocument: "after", upsert: true }
-        );
-      }
-      
-      const updatedCounter = await db.mongoDb.collection("counters").findOneAndUpdate(
-        { _id: "awb_counter" },
-        { $inc: { seq: 1 } },
-        { returnDocument: "after" }
-      );
-      
-      booking.consignment = `${updatedCounter.seq}`;
-    } catch (err) {
-      console.error("Error generating sequential AWB:", err);
-      booking.consignment = `MMC-${Date.now().toString().slice(-6)}`; // Fallback
-    }
+  try {
+    // Strictly auto-generate unique sequential AWB number for all new bookings
+    const sequentialAwb = await generateSequentialAwb();
+    booking.consignment = sequentialAwb;
+    booking.awb = sequentialAwb;
+    booking.lrNo = sequentialAwb;
+  } catch (err) {
+    console.error("Error generating sequential AWB:", err);
+    const fallback = `MMC-${Date.now().toString().slice(-6)}`;
+    booking.consignment = fallback;
+    booking.awb = fallback;
+    booking.lrNo = fallback;
   }
 
   if (!booking.clerk_name) {
@@ -366,6 +404,84 @@ exports.put_id_4 = async (req, res) => {
   const filtered = filterByAccess([bookingData], req.user, "bookings", settings);
   if (filtered.length === 0) {
     return error(res, "Forbidden: Access denied to edit this booking", 403);
+  }
+
+  const isSuperAdmin = (req.user?.role || "").toLowerCase().replace(/\s+/g, '') === 'superadmin' || req.user?.email === 'admin@multimarg.com';
+  const existingData = doc.data();
+  const oldAwb = String(existingData.consignment || existingData.awb || existingData.lrNo || '').trim();
+  const requestedAwb = req.body.consignment !== undefined 
+    ? String(req.body.consignment).trim() 
+    : (req.body.awb !== undefined ? String(req.body.awb).trim() : oldAwb);
+
+  // Check if AWB number is being changed
+  if (requestedAwb && oldAwb && requestedAwb !== oldAwb) {
+    if (!isSuperAdmin) {
+      return error(res, "Forbidden: Only Super Admin can edit the AWB Number after booking.", 403);
+    }
+    
+    // Super Admin edit: Check if requested AWB is already in use by another booking
+    if (db.mongoDb) {
+      const conflict = await db.mongoDb.collection("bookings").findOne({
+        _id: { $ne: id },
+        id: { $ne: id },
+        $or: [
+          { consignment: requestedAwb },
+          { awb: requestedAwb },
+          { lrNo: requestedAwb }
+        ]
+      });
+      if (conflict) {
+        return error(res, `AWB Number "${requestedAwb}" is already used by another booking.`, 400);
+      }
+
+      // Cascade update related collections referencing old AWB
+      if (oldAwb) {
+        await db.mongoDb.collection("tracking").updateMany(
+          { awb: oldAwb },
+          { $set: { awb: requestedAwb } }
+        );
+        await db.mongoDb.collection("pod").updateMany(
+          { lrNo: oldAwb },
+          { $set: { lrNo: requestedAwb } }
+        );
+        await db.mongoDb.collection("box").updateMany(
+          { lrNo: oldAwb },
+          { $set: { lrNo: requestedAwb } }
+        );
+        await db.mongoDb.collection("bills").updateMany(
+          { lrNo: oldAwb },
+          { $set: { lrNo: requestedAwb } }
+        );
+      }
+
+      // If requested AWB is numeric, ensure counter is >= requestedAwb
+      const match = requestedAwb.match(/^([^0-9]+)?(\d+)$/);
+      if (match) {
+        const num = parseInt(match[2], 10);
+        await db.mongoDb.collection("counters").findOneAndUpdate(
+          { _id: "awb_counter" },
+          { $max: { seq: num } },
+          { upsert: true }
+        );
+      }
+    }
+
+    req.body.consignment = requestedAwb;
+    req.body.awb = requestedAwb;
+    req.body.lrNo = requestedAwb;
+  } else if (!isSuperAdmin) {
+    // Prevent non-superadmin from changing or removing existing AWB
+    if (oldAwb) {
+      req.body.consignment = oldAwb;
+      req.body.awb = oldAwb;
+      req.body.lrNo = oldAwb;
+    }
+  }
+
+  if (req.body.dispatch_date || req.body.date) {
+    const updatedDate = req.body.dispatch_date || req.body.date;
+    req.body.dispatch_date = updatedDate;
+    req.body.date = updatedDate;
   }
 
   await db.collection("bookings").doc(id).update(req.body);

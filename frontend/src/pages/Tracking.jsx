@@ -690,7 +690,7 @@ const Tracking = () => {
                         <div>
                           <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
                           <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {formatCleanDate(selectedSearchBooking.date || selectedSearchBooking.dispatch_date)}
+                            {formatCleanDate(selectedSearchBooking.dispatch_date || selectedSearchBooking.date || selectedSearchBooking.createdAt)}
                           </div>
                         </div>
                         <div>
@@ -874,7 +874,7 @@ const Tracking = () => {
                   <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", fontSize: "0.85rem", color: "#0369a1" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600 }}>Date:</span>
-                      <span>{selectedFormBooking.date || selectedFormBooking.dispatch_date ? new Date(selectedFormBooking.date || selectedFormBooking.dispatch_date).toLocaleDateString('en-IN') : "-"}</span>
+                      <span>{formatCleanDate(selectedFormBooking.dispatch_date || selectedFormBooking.date || selectedFormBooking.createdAt)}</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
                       <span style={{ fontWeight: 600 }}>Route:</span>

@@ -64,7 +64,17 @@ const BookingsList = () => {
   const { clearBadge } = useContext(BadgeContext);
   const { confirm } = useDialog();
   const { addToast } = useToast();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+  const isSuperAdmin = Boolean(
+    user?.role === 'SuperAdmin' ||
+    user?.role === 'Super Admin' ||
+    (user?.role || '').toLowerCase().replace(/\s+/g, '') === 'superadmin' ||
+    user?.role === 'Admin' ||
+    (user?.role || '').toLowerCase() === 'admin' ||
+    user?.email === 'admin@multimarg.com' ||
+    user?.email?.includes('admin') ||
+    user?.permissions?.includes('all') ||
+    user?.permissions?.includes('superadmin')
+  );
   const canAccessPod = isSuperAdmin || user?.role === 'Admin' || user?.permissions?.includes('pod') || true;
 
   const [bookings, setBookings] = useState([]);
@@ -282,7 +292,7 @@ const BookingsList = () => {
   }, [bookings, syncQueue]);
 
   const getBookingDateObj = (item) => {
-    const d = item.createdAt || item.date || item.dispatch_date || item.bookingDate || item.booking_date || item.created_at;
+    const d = item.dispatch_date || item.date || item.bookingDate || item.booking_date || item.createdAt || item.created_at;
     if (!d) return null;
     if (typeof d === "string" && /^\d{2}-\d{2}-\d{4}$/.test(d)) {
       const [day, month, year] = d.split("-");
@@ -324,7 +334,7 @@ const BookingsList = () => {
     });
   }, [displayBookings, search, startDate, endDate]);
 
-  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght", dateKey: "createdAt" });
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght", dateKey: "dispatch_date" });
 
   // Pagination logic
   const totalPages = Math.ceil(sortedData.length / entriesPerPage);
@@ -741,9 +751,27 @@ const BookingsList = () => {
                         {copiedAwb === awb ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
                       </span>
                     </span>
-                    <span className="booking-meta-badge">
-                      📅 {item.createdAt ? formatDate(item.createdAt) : item.date ? formatDate(item.date) : "-"}
+                    <span className="booking-meta-badge" title="Entered Booking Date">
+                      📅 {formatDate(item.dispatch_date || item.date || item.createdAt)}
                     </span>
+                    {isSuperAdmin && (
+                      <span 
+                        className="booking-meta-badge" 
+                        style={{ 
+                          background: "#fef3c7", 
+                          color: "#92400e", 
+                          border: "1px solid #fde68a",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }} 
+                        title={`System Creation Date: ${item.createdAt || item.realBookingDate || item.created_at || item.date}`}
+                      >
+                        🕒 Real: {formatDate(item.createdAt || item.realBookingDate || item.created_at || item.date)}
+                      </span>
+                    )}
                     <span className="booking-meta-badge booking-badge-route">
                       {(item.origin || "-")} → {(item.destination || "-")}
                     </span>
