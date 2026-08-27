@@ -70,11 +70,20 @@ router.get('/:awb', async (req, res) => {
       if (bAwb === cleanSearch || bAwb.includes(cleanSearch) || lowercaseVariations.includes(bAwb) || docId.toLowerCase().includes(cleanSearch)) {
           booking = {
           id: docId,
+          awb: b.awb || b.consignment || b.awbNo || b.lrNumber || b.lrNo || docId,
           origin: b.origin || null,
           destination: b.destination || null,
+          originAddress: b.consignor_address || b.originAddress || b.from_address || null,
+          destinationAddress: b.consignee_address || b.destinationAddress || b.to_address || null,
+          originPincode: b.originPincode || b.consignorPincode || null,
+          destinationPincode: b.destinationPincode || b.consigneePincode || null,
           client: b.client || b.clientName || null,
           consignor: b.consignor || null,
+          consignorGstin: b.consignor_gstin || b.consignorGstin || null,
+          consignorPhone: b.consignor_phone || b.consignorPhone || null,
           consignee: b.consignee || null,
+          consigneeGstin: b.consignee_gstin || b.consigneeGstin || null,
+          consigneePhone: b.consignee_phone || b.consigneePhone || null,
           date: b.dispatch_date || b.date || b.createdAt || null,
           createdAt: b.createdAt || b.realBookingDate || b.created_at || null,
           status: b.status || null,
@@ -83,9 +92,28 @@ router.get('/:awb', async (req, res) => {
           trackingStatus: b.trackingStatus || null,
           deliveryDate: b.deliveryDate || null,
           mode: b.mode || null,
+          paymentMode: b.paymentMode || b.payment || b.payment_mode || null,
           box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount || null,
-          invoiceDetails: b.invoiceDetails || [],
-          parcels: b.parcels || [],
+          actual_wt: b.actual_wt || b.actualWeight || b.weight || null,
+          charge_wt: b.charge_wt || b.chargeWeight || b.chargeable_weight || null,
+          vehicleNo: b.vehicleNo || b.vehicle_no || b.truckNo || null,
+          eway_bill: b.eway_bill || b.eway || b.ewayBill || b.eway_bill_no || null,
+          invoice_no: b.invoice_no || b.refNo || b.reference_no || null,
+          declared_value: b.declared_value || b.declaredValue || b.goodsValue || b.goods_value || null,
+          goods_description: b.goods_description || b.goodsDescription || b.goods || b.commodity || b.description || null,
+          invoiceDetails: (() => {
+            const raw = Array.isArray(b.invoiceDetails) && b.invoiceDetails.length > 0
+              ? b.invoiceDetails
+              : (Array.isArray(b.parcels) && b.parcels.length > 0 ? b.parcels : []);
+            return raw.map(p => ({
+              invoice_no: p.invoiceNo || p.invoice_no || p.invoice || "",
+              invoice_date: p.invoiceDate || p.invoice_date || p.invdate || p.date || "",
+              part_no: p.partNumber || p.part_no || p.part || "",
+              qty: p.quantity || p.qty || p.box || p.packages || "",
+              value: p.invoiceValue || p.invoice_value || p.value || p.amount || "",
+              eway_bill: p.ewayBill || p.eway_bill || p.eway || ""
+            }));
+          })(),
           podUrl: b.podUrl || b.pod || b.pod_url || b.podImage || null,
           podUploaded: !!(b.podUrl || b.pod || b.pod_url || b.podImage)
         };
@@ -128,8 +156,8 @@ router.get('/:awb', async (req, res) => {
 
       // 2. Picked Up milestone (automatically after booked at Origin)
       const hasPickedUpStatus = entries.some(e => String(e.status || '').toLowerCase().includes("pickup") || String(e.status || '').toLowerCase().includes("picked"));
+      const pickupDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
       if (!hasPickedUpStatus) {
-        const pickupDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
         const pickupDateISO = pickupDateObj.toISOString();
         entries.push({
           id: `picked-${booking.id || baseAwb}`,

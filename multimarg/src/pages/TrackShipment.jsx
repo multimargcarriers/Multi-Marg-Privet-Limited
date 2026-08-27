@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText, Check, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEOHead from '../components/SEOHead';
@@ -155,6 +155,7 @@ const TrackShipment = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [showPodModal, setShowPodModal] = useState(false);
   const [selectedPodUrl, setSelectedPodUrl] = useState('');
+  const [showTimelineDetails, setShowTimelineDetails] = useState(true);
   const searchStarted = useRef(false);
 
   const performSearch = async (awb) => {
@@ -356,352 +357,696 @@ const TrackShipment = () => {
             )}
 
             {/* Results State */}
-            {trackingResult && !isSearching && (
-              <motion.div 
-                key="result"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{ maxWidth: '900px', margin: '0 auto' }}
-              >
-                {/* Summary Card */}
-                <div style={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '16px', 
-                  padding: 'clamp(1.25rem, 3vw, 2rem)', 
-                  boxShadow: 'var(--shadow-md)',
-                  marginBottom: '2rem'
-                }}>
-                  {/* Header with AWB, Status, and POD Eye Button */}
+            {trackingResult && !isSearching && (() => {
+              const b = trackingResult.booking || {};
+              const mainPodUrl = b.podUrl || b.pod || trackingResult.tracking.find(t => t.podUrl)?.podUrl || null;
+              const currentAwb = trackingResult.tracking[0]?.awb || b.awb || trackingNumber;
+              
+              const latestEntry = trackingResult.tracking[0] || {};
+              const rawStatus = String(latestEntry?.status || b.status || b.delivery_status || b.transitStatus || "Shipment Booked");
+              const normStatus = rawStatus.toLowerCase();
+
+              const isDelivered = normStatus.includes("deliver");
+              const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
+              const isInTransit = normStatus.includes("transit") || normStatus.includes("reach") || normStatus.includes("hub") || normStatus.includes("arrive");
+              const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
+
+              // Determine step index for the 4-step progress tracker:
+              // 1: Picked Up, 2: In Transit, 3: Out for Delivery, 4: Delivered
+              let currentStepNumber = 1;
+              if (isDelivered) currentStepNumber = 4;
+              else if (isOutForDelivery) currentStepNumber = 3;
+              else if (isInTransit) currentStepNumber = 2;
+              else currentStepNumber = 1;
+
+              // Status Banner styling & messaging
+              let bannerBg = "#046A38"; // DTDC Rich Green
+              let bannerTitle = "Delivered";
+              let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
+              let bannerRibbonBg = "#ecfdf5";
+              let bannerRibbonText = "#065f46";
+              let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+
+              if (isDelivered) {
+                bannerBg = "#046A38";
+                bannerTitle = "Delivered";
+                bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
+                bannerRibbonBg = "#ecfdf5";
+                bannerRibbonText = "#065f46";
+                bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+              } else if (isOutForDelivery) {
+                bannerBg = "#c2410c";
+                bannerTitle = "Out for Delivery";
+                bannerSubtitle = `Out for Delivery at ${b.destination ? b.destination.toUpperCase() : "Destination"}`;
+                bannerRibbonBg = "#fff7ed";
+                bannerRibbonText = "#c2410c";
+                bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
+              } else if (isInTransit) {
+                bannerBg = "#1e40af";
+                bannerTitle = "In Transit";
+                bannerSubtitle = `In Transit to ${b.destination ? b.destination.toUpperCase() : "Destination Hub"}`;
+                bannerRibbonBg = "#eff6ff";
+                bannerRibbonText = "#1e40af";
+                bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+              } else {
+                bannerBg = "#4338ca";
+                bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
+                bannerSubtitle = `Shipment Received at ${b.origin ? b.origin.toUpperCase() : "Origin Facility"}`;
+                bannerRibbonBg = "#eef2ff";
+                bannerRibbonText = "#4338ca";
+                bannerMessage = "📦 Shipment has been booked and Lorry Receipt generated.";
+              }
+
+              const steps = [
+                { id: 1, label: "Picked Up", icon: Package },
+                { id: 2, label: "In Transit", icon: Truck },
+                { id: 3, label: "Out for Delivery", icon: MapPin },
+                { id: 4, label: "Delivered", icon: CheckCircle }
+              ];
+
+              // Invoices Extraction
+              const invoices = (Array.isArray(b.invoiceDetails) && b.invoiceDetails.length > 0)
+                ? b.invoiceDetails
+                : (b.invoice_no || b.eway_bill)
+                  ? [{
+                      invoice_no: b.invoice_no || "-",
+                      invoice_date: b.date || "-",
+                      part_no: "-",
+                      qty: b.box || b.packages || 1,
+                      value: b.declared_value || b.invoice_value || "-",
+                      eway_bill: b.eway_bill || b.eway || "-"
+                    }]
+                  : [];
+
+              const allInvoiceNumbers = invoices.map(i => i.invoice_no || i.invoiceNo).filter(Boolean).join(", ") || b.invoice_no || b.refNo || "-";
+
+              return (
+                <motion.div 
+                  key="result"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ maxWidth: '960px', margin: '0 auto' }}
+                >
+                  {/* Main DTDC Tracking Card */}
                   <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    flexWrap: 'wrap', 
-                    gap: '1rem', 
-                    borderBottom: '1px solid #eee', 
-                    paddingBottom: '1.5rem', 
-                    marginBottom: '1.5rem' 
+                    backgroundColor: 'white', 
+                    borderRadius: '16px', 
+                    padding: 'clamp(1.25rem, 3vw, 2rem)', 
+                    boxShadow: 'var(--shadow-md)',
+                    marginBottom: '2rem'
                   }}>
-                    <div>
-                      <p style={{ color: 'var(--text-light)', fontSize: '0.85rem', marginBottom: '0.2rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Tracking Number</p>
-                      <h2 style={{ color: 'var(--primary-blue)', margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {trackingResult.tracking[0]?.awb}
-                        <CopyButton text={trackingResult.tracking[0]?.awb} size={16} />
-                      </h2>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      {mainPodUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedPodUrl(mainPodUrl);
-                            setShowPodModal(true);
-                          }}
+                    {/* DTDC Top Header Bar */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      flexWrap: 'wrap', 
+                      gap: '0.75rem', 
+                      borderBottom: '1px solid #e2e8f0', 
+                      paddingBottom: '1.25rem', 
+                      marginBottom: '1.25rem' 
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <img
+                          src="/circle_crop_logo.png"
+                          alt="Multimarg Carriers"
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
-                            padding: '0.5rem 1.1rem',
-                            backgroundColor: '#eff6ff',
-                            color: '#2563eb',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '50px',
-                            fontWeight: '700',
-                            fontSize: '0.88rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(37,99,235,0.1)'
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            flexShrink: 0,
+                            border: '2px solid #e2e8f0'
                           }}
-                          title="View Proof of Delivery (POD)"
-                        >
-                          <Eye size={16} /> View POD
-                        </button>
-                      )}
-
-                      <span style={{ 
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.45rem',
-                        padding: '0.5rem 1.25rem', 
-                        backgroundColor: getStatusBg(latestStatus),
-                        color: getStatusColor(latestStatus),
-                        border: `1.5px solid ${getStatusBorder(latestStatus)}`,
-                        borderRadius: '50px',
-                        fontWeight: '800',
-                        fontSize: '0.88rem',
-                        letterSpacing: '0.04em'
-                      }}>
-                        {getStatusIcon(latestStatus)}
-                        {normalizeStatus(latestStatus)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Shipment Details Grid */}
-                  {trackingResult.booking && (() => {
-                    const b = trackingResult.booking;
-                    const boxVal = b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount;
-
-                    return (
-                      <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-                        gap: '1.25rem',
-                        marginTop: '1rem'
-                      }}>
-                        {/* 1. ROUTE CARD */}
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '1.25rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.75rem',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                            <MapPin size={16} color="#3b82f6" /> Route Details
+                        />
+                        <div>
+                          <div style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                            Multimarg Carriers
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
-                            <div style={{ flex: 1 }}>
-                              <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Origin</span>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.1rem', marginTop: '0.1rem' }}>{b.origin ? b.origin.toUpperCase() : '-'}</div>
-                            </div>
-                            <div style={{ color: '#94a3b8', fontWeight: 500, fontSize: '1.2rem', userSelect: 'none' }}>&rarr;</div>
-                            <div style={{ flex: 1, textAlign: 'right' }}>
-                              <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Destination</span>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.1rem', marginTop: '0.1rem' }}>{b.destination ? b.destination.toUpperCase() : '-'}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 2. PARTIES CARD */}
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '1.25rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                            <Package size={16} color="#f59e0b" /> Party Information
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Consignor</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.consignor ? b.consignor.toUpperCase() : '-'}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Consignee</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.consignee ? b.consignee.toUpperCase() : '-'}</span>
-                          </div>
-                        </div>
-
-                        {/* 3. BOOKING CONTEXT CARD */}
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '1.25rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                            <Clock size={16} color="#8b5cf6" /> Booking Context
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Booking Date</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{formatCleanDate(b.date || b.dispatch_date)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Client</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{b.client ? b.client.toUpperCase() : (b.clientName ? b.clientName.toUpperCase() : '-')}</span>
-                          </div>
-                        </div>
-
-                        {/* 4. CARGO & TRANSIT CARD */}
-                        <div style={{ 
-                          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '1.25rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.5rem',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a8a', fontWeight: '800', fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                            <Truck size={16} color="#10b981" /> Cargo & Transit
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.4rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Package Count</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{boxVal ? `${boxVal} PCS` : '-'}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.2rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Transport Mode</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#10b981' }}>{b.mode ? (b.mode.toUpperCase() === 'RAIL' ? 'TRAIN' : b.mode.toUpperCase()) : '-'}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ color: '#0f172a', fontWeight: 800, fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', letterSpacing: '0.5px' }}>
+                              AWB: {currentAwb}
+                            </span>
+                            <CopyButton text={currentAwb} size={16} />
                           </div>
                         </div>
                       </div>
-                    );
-                  })()}
 
-                  {/* No booking data message */}
-                  {!trackingResult.booking && (
-                    <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                      Shipment details not available. Showing tracking updates only.
-                    </p>
-                  )}
-                </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                          Ref. / Inv. No:
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', textTransform: 'uppercase' }}>
+                          {allInvoiceNumbers}
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Timeline */}
-                <div style={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '16px', 
-                  padding: 'clamp(1.25rem, 3vw, 2.5rem)', 
-                  boxShadow: 'var(--shadow-md)' 
-                }}>
-                  <h3 style={{ marginBottom: '2rem', color: 'var(--primary-blue)', fontSize: 'clamp(1.1rem, 3vw, 1.3rem)' }}>
-                    <Clock size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.5rem' }} />
-                    Tracking History
-                  </h3>
-                  
-                  <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
-                    {/* Vertical Line */}
-                    <div style={{ 
-                      position: 'absolute', 
-                      left: '20px', 
-                      top: '20px', 
-                      bottom: '20px', 
-                      width: '2px', 
-                      backgroundColor: '#e5e7eb',
-                      zIndex: 1
-                    }} />
-
-                    {trackingResult.tracking.map((entry, index) => {
-                      const isLatest = index === 0;
-                      const color = getStatusColor(entry.status);
-                      const bg = getStatusBg(entry.status);
-                      const border = getStatusBorder(entry.status);
-                      const statusCaps = normalizeStatus(entry.status);
-                      
-                      return (
-                        <div key={entry.id || index} style={{ 
-                          display: 'flex', 
-                          gap: 'clamp(0.75rem, 2vw, 1.5rem)',
-                          marginBottom: index !== trackingResult.tracking.length - 1 ? '2.5rem' : 0,
-                          position: 'relative',
-                          zIndex: 2
-                        }}>
-                          {/* Circle Icon */}
-                          <div style={{ 
-                            width: '46px', 
-                            height: '46px', 
-                            borderRadius: '50%', 
-                            backgroundColor: isLatest ? color : bg,
-                            border: `2.5px solid ${color}`,
-                            color: isLatest ? 'white' : color,
-                            display: 'flex', 
-                            alignItems: 'center', 
+                    {/* DTDC Prominent Status Hero Banner */}
+                    <div style={{
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+                      marginBottom: '1.5rem'
+                    }}>
+                      <div style={{
+                        background: bannerBg,
+                        color: '#ffffff',
+                        padding: 'clamp(0.75rem, 2vw, 1.25rem) clamp(0.85rem, 2.5vw, 1.5rem)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{
+                            width: 'clamp(36px, 6vw, 48px)',
+                            height: 'clamp(36px, 6vw, 48px)',
+                            borderRadius: '8px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
                             justifyContent: 'center',
-                            flexShrink: 0,
-                            boxShadow: isLatest ? `0 0 0 5px ${color}25, 0 6px 14px ${color}35` : '0 0 0 4px white',
-                            marginLeft: '-3px'
+                            flexShrink: 0
                           }}>
-                            {getStatusIcon(entry.status)}
+                            <Package size={24} color="#ffffff" />
                           </div>
-                          
-                          {/* Details */}
-                          <div style={{ 
-                            flex: 1,
-                            padding: 'clamp(0.85rem, 2vw, 1.15rem) clamp(0.85rem, 2vw, 1.35rem)', 
-                            background: isLatest ? bg : '#ffffff', 
-                            border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, 
-                            borderRadius: '14px', 
-                            boxShadow: isLatest ? `0 6px 16px -2px ${color}15` : 'none' 
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              <span style={{ fontWeight: 800, color: color, fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', letterSpacing: '0.04em' }}>
-                                {statusCaps}
-                              </span>
-                              <span style={{ 
-                                fontSize: '0.825rem', 
-                                color: '#475569', 
-                                background: isLatest ? '#ffffff' : '#f1f5f9', 
-                                padding: '0.25rem 0.75rem', 
-                                borderRadius: '20px', 
-                                fontWeight: 600, 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '0.35rem',
-                                border: '1px solid #e2e8f0',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                <Clock size={13} color="#64748b" />
-                                {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155', fontSize: '0.95rem', fontWeight: 600 }}>
-                              <MapPin size={15} color={color} />
-                              <span style={{ textTransform: 'uppercase', letterSpacing: '0.03em' }}>{entry.location ? String(entry.location).toUpperCase() : 'LOCATION NOT PROVIDED'}</span>
-                            </div>
-
-                            {entry.remarks && (
-                              <div style={{ 
-                                marginTop: '0.6rem', 
-                                fontSize: '0.9rem', 
-                                color: '#334155', 
-                                background: isLatest ? 'rgba(255, 255, 255, 0.8)' : '#f8fafc', 
-                                padding: '0.65rem 0.9rem', 
-                                borderRadius: '8px', 
-                                borderLeft: `3.5px solid ${color}`, 
-                                fontStyle: 'italic',
-                                fontWeight: 500
-                              }}>
-                                "{entry.remarks}"
-                              </div>
-                            )}
-
-                            {entry.podUrl && (
-                              <div style={{ marginTop: '0.6rem' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedPodUrl(entry.podUrl);
-                                    setShowPodModal(true);
-                                  }}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    padding: '0.35rem 0.75rem',
-                                    backgroundColor: '#ecfdf5',
-                                    color: '#059669',
-                                    border: '1px solid #a7f3d0',
-                                    borderRadius: '6px',
-                                    fontWeight: '700',
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <Eye size={14} /> View Attached POD
-                                </button>
-                              </div>
-                            )}
+                          <div>
+                            <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3.5vw, 1.75rem)', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: 1.1, color: '#ffffff' }}>
+                              {bannerTitle}
+                            </h2>
+                            <p style={{ margin: '0.15rem 0 0 0', fontSize: 'clamp(0.72rem, 2vw, 0.9rem)', color: 'rgba(255, 255, 255, 0.9)', fontWeight: '500' }}>
+                              {bannerSubtitle}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
 
-              </motion.div>
-            )}
+                        {mainPodUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPodUrl(mainPodUrl);
+                              setShowPodModal(true);
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              padding: '0.5rem 1.1rem',
+                              backgroundColor: '#ffffff',
+                              color: bannerBg,
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <Eye size={16} /> View POD Proof
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Message Ribbon Bar */}
+                      <div style={{
+                        backgroundColor: bannerRibbonBg,
+                        color: bannerRibbonText,
+                        padding: '0.45rem 0.85rem',
+                        fontSize: 'clamp(0.72rem, 2vw, 0.85rem)',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}>
+                        <span>{bannerMessage}</span>
+                      </div>
+                    </div>
+
+                    {/* 4-Step Horizontal Tracker */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      gap: '0.25rem',
+                      margin: '0.75rem 0',
+                      padding: '0',
+                      flexWrap: 'nowrap'
+                    }}>
+                      {steps.map((step) => {
+                        const isCompleted = step.id <= currentStepNumber;
+                        const activeColor = isDelivered ? '#046A38' : '#2563eb';
+
+                        return (
+                          <div key={step.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 0', minWidth: 0 }}>
+                            {/* Top Step Indicator Bar */}
+                            <div style={{
+                              height: '3px',
+                              borderRadius: '2px',
+                              backgroundColor: isCompleted ? activeColor : '#e2e8f0',
+                              transition: 'all 0.3s ease'
+                            }} />
+                            
+                            {/* Step Label & Icon */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', paddingTop: '0.15rem' }}>
+                              {isCompleted ? (
+                                <div style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  backgroundColor: activeColor,
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <Check size={8} strokeWidth={3} />
+                                </div>
+                              ) : (
+                                <div style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  border: '1.5px solid #cbd5e1',
+                                  backgroundColor: 'white',
+                                  flexShrink: 0
+                                }} />
+                              )}
+                              <span style={{
+                                fontSize: 'clamp(0.6rem, 1.8vw, 0.78rem)',
+                                fontWeight: isCompleted ? 700 : 500,
+                                color: isCompleted ? '#0f172a' : '#64748b',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {step.label}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Origin & Destination Strip */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      padding: '0.5rem 0.75rem',
+                      marginBottom: '0.75rem',
+                      fontSize: '0.78rem',
+                      flexWrap: 'wrap',
+                      gap: '0.35rem'
+                    }}>
+                      <div>
+                        <span style={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>ORIGIN:</span>
+                        <span style={{ color: '#0f172a', fontWeight: 700 }}>
+                          {b.origin ? b.origin.toUpperCase() : 'ORIGIN'}
+                          {b.originPincode ? ` — ${b.originPincode}` : ''}
+                        </span>
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '1rem' }}>→</div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>DESTINATION:</span>
+                        <span style={{ color: '#0f172a', fontWeight: 700 }}>
+                          {b.destination ? b.destination.toUpperCase() : 'DESTINATION'}
+                          {b.destinationPincode ? ` — ${b.destinationPincode}` : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Compact Shipment Details — Single Responsive Card */}
+                    <div style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      backgroundColor: '#ffffff'
+                    }}>
+                      <div style={{
+                        backgroundColor: '#f1f5f9',
+                        padding: '0.45rem 0.75rem',
+                        borderBottom: '1px solid #e2e8f0',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#0C4A6E',
+                        textTransform: 'uppercase',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      }}>
+                        <Layers size={13} color="#0284c7" /> SHIPMENT DETAILS
+                      </div>
+
+                      <div style={{ padding: '0.6rem 0.75rem' }}>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                          gap: '0.4rem 1.5rem',
+                          fontSize: '0.76rem'
+                        }}>
+                          {/* Row: Consignor */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CONSIGNOR:</span>
+                            <span style={{ fontWeight: 700, color: '#0f172a', wordBreak: 'break-word' }}>
+                              {b.consignor ? b.consignor.toUpperCase() : '-'}
+                              {b.consignorGstin && (
+                                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
+                                  (GST: {b.consignorGstin})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Row: Consignee */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CONSIGNEE:</span>
+                            <span style={{ fontWeight: 700, color: '#0f172a', wordBreak: 'break-word' }}>
+                              {b.consignee ? b.consignee.toUpperCase() : '-'}
+                              {b.consigneeGstin && (
+                                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
+                                  (GST: {b.consigneeGstin})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Row: Client */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CLIENT:</span>
+                            <span style={{ fontWeight: 600, color: '#334155' }}>
+                              {b.client ? b.client.toUpperCase() : (b.clientName ? b.clientName.toUpperCase() : '-')}
+                            </span>
+                          </div>
+
+                          {/* Row: Booking Date */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>BOOKED ON:</span>
+                            <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                              {formatCleanDate(b.dispatch_date || b.date || b.createdAt)}
+                            </span>
+                          </div>
+
+                          {/* Row: Package Count */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>PACKAGES:</span>
+                            <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                              {(() => {
+                                const bVal = b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount;
+                                return bVal ? `${bVal} PCS` : '-';
+                              })()}
+                            </span>
+                          </div>
+
+                          {/* Row: Mode / Payment */}
+                          <div style={{ display: 'flex', gap: '0.35rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>MODE:</span>
+                            <span style={{ fontWeight: 700 }}>
+                              <span style={{ color: '#1e3a8a' }}>{(b.mode || 'ROAD').toUpperCase()}</span>
+                              {' / '}
+                              <span style={{ color: '#059669' }}>{(b.paymentMode || b.payment || 'CREDIT').toUpperCase()}</span>
+                            </span>
+                          </div>
+
+                          {/* Row: Vehicle No (conditional) */}
+                          {b.vehicleNo && (
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                              <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>VEHICLE:</span>
+                              <span style={{ fontWeight: 700, color: '#e11d48', fontFamily: 'monospace' }}>
+                                {b.vehicleNo.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Row: Goods Description (conditional) */}
+                          {(b.goods_description || b.goodsDescription || b.goods || b.commodity) && (
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                              <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>GOODS:</span>
+                              <span style={{ fontWeight: 600, color: '#334155' }}>
+                                {(b.goods_description || b.goodsDescription || b.goods || b.commodity || '-').toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* INVOICE & E-WAY BILL DETAILS TABLE */}
+                    {invoices.length > 0 && (
+                      <div style={{
+                        marginTop: '1rem',
+                        marginBottom: '1.5rem',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                      }}>
+                        <div style={{
+                          backgroundColor: '#f8fafc',
+                          padding: '0.5rem 0.75rem',
+                          borderBottom: '1px solid #e2e8f0',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.4rem'
+                        }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase' }}>
+                            <FileText size={14} color="#2563eb" /> Invoice & E-Way Bill Details ({invoices.length})
+                          </div>
+                          {b.eway_bill && (
+                            <div style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 600 }}>
+                              E-WAY: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{b.eway_bill}</strong>
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', minWidth: '520px', textTransform: 'uppercase' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700, borderBottom: '1px solid #cbd5e1' }}>
+                                <th style={{ padding: '5px 6px', width: '28px' }}>#</th>
+                                <th style={{ padding: '5px 6px' }}>INVOICE NO</th>
+                                <th style={{ padding: '5px 6px' }}>DATE</th>
+                                <th style={{ padding: '5px 6px' }}>PART NO / DESC</th>
+                                <th style={{ padding: '5px 6px', textAlign: 'center' }}>PKGS</th>
+                                <th style={{ padding: '5px 6px', textAlign: 'right' }}>VALUE (₹)</th>
+                                <th style={{ padding: '5px 6px' }}>E-WAY BILL NO</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {invoices.map((inv, iIdx) => {
+                                const invNo = inv.invoice_no || inv.invoiceNo || inv.invoice || '-';
+                                const invDate = inv.invoice_date || inv.invoiceDate || inv.date || inv.invdate || '';
+                                const partNo = inv.part_no || inv.partNumber || inv.part || inv.description || '-';
+                                const pkgs = inv.qty || inv.quantity || inv.box || inv.packages || '-';
+                                const val = inv.value || inv.invoiceValue || inv.invoice_value || inv.declared_value || inv.amount || '';
+                                const eway = inv.eway_bill || inv.ewayBill || inv.eway || b.eway_bill || '-';
+
+                                return (
+                                  <tr key={iIdx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: iIdx % 2 === 1 ? '#fafafa' : '#ffffff' }}>
+                                    <td style={{ padding: '5px 6px', color: '#64748b', fontWeight: 600 }}>{iIdx + 1}</td>
+                                    <td style={{ padding: '5px 6px', fontWeight: 700, color: '#1e3a8a' }}>
+                                      {invNo}
+                                    </td>
+                                    <td style={{ padding: '5px 6px', color: '#334155', whiteSpace: 'nowrap' }}>
+                                      {formatCleanDate(invDate)}
+                                    </td>
+                                    <td style={{ padding: '5px 6px', color: '#475569' }}>
+                                      {partNo}
+                                    </td>
+                                    <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
+                                      {pkgs}
+                                    </td>
+                                    <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                                      {val ? `₹${parseFloat(val || 0).toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                    <td style={{ padding: '5px 6px', fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>
+                                      {eway}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SHIPMENT PROGRESS TIMELINE HEADER */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.5rem 0.25rem',
+                      marginBottom: '0.75rem',
+                      borderBottom: '1px solid #e2e8f0'
+                    }}>
+                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Clock size={18} color="#2563eb" /> Shipment Progress
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setShowTimelineDetails(prev => !prev)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#2563eb',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        {showTimelineDetails ? 'View Less' : 'View Details'}
+                        {showTimelineDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    </div>
+
+                    {/* Timeline List */}
+                    {showTimelineDetails && (
+                      <div style={{ position: 'relative', paddingLeft: '1.5rem', marginTop: '1.5rem' }}>
+                        {/* Vertical Line */}
+                        <div style={{ 
+                          position: 'absolute', 
+                          left: '20px', 
+                          top: '20px', 
+                          bottom: '20px', 
+                          width: '2px', 
+                          backgroundColor: '#e5e7eb',
+                          zIndex: 1
+                        }} />
+
+                        {trackingResult.tracking.map((entry, index) => {
+                          const isLatest = index === 0;
+                          const color = getStatusColor(entry.status);
+                          const bg = getStatusBg(entry.status);
+                          const border = getStatusBorder(entry.status);
+                          const statusCaps = normalizeStatus(entry.status);
+                          
+                          return (
+                            <div key={entry.id || index} style={{ 
+                              display: 'flex', 
+                              gap: 'clamp(0.75rem, 2vw, 1.5rem)',
+                              marginBottom: index !== trackingResult.tracking.length - 1 ? '2.2rem' : 0,
+                              position: 'relative',
+                              zIndex: 2
+                            }}>
+                              {/* Circle Icon */}
+                              <div style={{ 
+                                width: '44px', 
+                                height: '44px', 
+                                borderRadius: '50%', 
+                                backgroundColor: isLatest ? color : bg,
+                                border: `2.5px solid ${color}`,
+                                color: isLatest ? 'white' : color,
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                boxShadow: isLatest ? `0 0 0 4px ${color}25, 0 4px 10px ${color}30` : '0 0 0 4px white',
+                                marginLeft: '-3px'
+                              }}>
+                                {getStatusIcon(entry.status)}
+                              </div>
+                              
+                              {/* Details */}
+                              <div style={{ 
+                                flex: 1,
+                                padding: 'clamp(0.85rem, 2vw, 1.1rem) clamp(0.85rem, 2vw, 1.3rem)', 
+                                background: isLatest ? bg : '#ffffff', 
+                                border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, 
+                                borderRadius: '12px', 
+                                boxShadow: isLatest ? `0 4px 12px -2px ${color}15` : 'none' 
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                  <span style={{ fontWeight: 800, color: color, fontSize: 'clamp(0.95rem, 2vw, 1.05rem)', letterSpacing: '0.03em' }}>
+                                    {statusCaps}
+                                  </span>
+                                  <span style={{ 
+                                    fontSize: '0.8rem', 
+                                    color: '#475569', 
+                                    background: isLatest ? '#ffffff' : '#f1f5f9', 
+                                    padding: '0.25rem 0.75rem', 
+                                    borderRadius: '20px', 
+                                    fontWeight: 600, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.35rem',
+                                    border: '1px solid #e2e8f0',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    <Clock size={12} color="#64748b" />
+                                    {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155', fontSize: '0.9rem', fontWeight: 600 }}>
+                                  <MapPin size={14} color={color} />
+                                  <span style={{ textTransform: 'uppercase', letterSpacing: '0.03em' }}>{entry.location ? String(entry.location).toUpperCase() : 'LOCATION NOT PROVIDED'}</span>
+                                </div>
+
+                                {entry.remarks && (
+                                  <div style={{ 
+                                    marginTop: '0.5rem', 
+                                    fontSize: '0.85rem', 
+                                    color: '#334155', 
+                                    background: isLatest ? 'rgba(255, 255, 255, 0.85)' : '#f8fafc', 
+                                    padding: '0.5rem 0.75rem', 
+                                    borderRadius: '6px', 
+                                    borderLeft: `3px solid ${color}`, 
+                                    fontStyle: 'italic',
+                                    fontWeight: 500
+                                  }}>
+                                    "{entry.remarks}"
+                                  </div>
+                                )}
+
+                                {entry.podUrl && (
+                                  <div style={{ marginTop: '0.5rem' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedPodUrl(entry.podUrl);
+                                        setShowPodModal(true);
+                                      }}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem',
+                                        padding: '0.3rem 0.7rem',
+                                        backgroundColor: '#ecfdf5',
+                                        color: '#059669',
+                                        border: '1px solid #a7f3d0',
+                                        borderRadius: '6px',
+                                        fontWeight: '700',
+                                        fontSize: '0.78rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      <Eye size={13} /> View Attached POD
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                </motion.div>
+              );
+            })()}
           </AnimatePresence>
         </div>
       </section>

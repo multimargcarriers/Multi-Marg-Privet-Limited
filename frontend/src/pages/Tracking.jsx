@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
@@ -134,6 +134,7 @@ const Tracking = () => {
   const [modalInitialName, setModalInitialName] = useState("");
   const [showPodModal, setShowPodModal] = useState(false);
   const [selectedPodUrl, setSelectedPodUrl] = useState("");
+  const [showTimelineDetails, setShowTimelineDetails] = useState(true);
 
   const handleCreateNew = (type, name) => {
     setModalType(type);
@@ -707,184 +708,644 @@ const Tracking = () => {
             ) : (
               <div>
                 
-                {/* SHIPMENT DETAILS CARD (Auto-populated from LR) */}
+                {/* DTDC STYLE PROFESSIONAL TRACKING VIEW */}
                 {selectedSearchBooking && (() => {
                   const mainPodUrl = selectedSearchBooking.podUrl || selectedSearchBooking.pod || trackingHistory.find(t => t.podUrl)?.podUrl || null;
+                  const currentAwb = getBookingAwb(selectedSearchBooking) || searchAwb;
                   
-                  return (
-                    <div style={{
-                      background: "linear-gradient(to right, #f8fafc, #f1f5f9)",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "12px",
-                      padding: "1.25rem",
-                      marginBottom: "2rem",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                        <h5 style={{ margin: 0, color: "#334155", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <Package size={18} color="#0284c7" /> Shipment Overview: <span style={{ color: "#0284c7" }}>{getBookingAwb(selectedSearchBooking) || searchAwb}</span>
-                          <CopyButton text={getBookingAwb(selectedSearchBooking) || searchAwb} />
-                        </h5>
-                        {mainPodUrl && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedPodUrl(mainPodUrl);
-                              setShowPodModal(true);
-                            }}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "0.4rem",
-                              padding: "0.4rem 0.9rem",
-                              backgroundColor: "#eff6ff",
-                              color: "#2563eb",
-                              border: "1px solid #bfdbfe",
-                              borderRadius: "6px",
-                              fontWeight: "700",
-                              fontSize: "0.85rem",
-                              cursor: "pointer",
-                              transition: "all 0.2s"
-                            }}
-                            title="View Proof of Delivery (POD)"
-                          >
-                            <Eye size={15} /> View POD
-                          </button>
-                        )}
-                      </div>
+                  const latestEntry = trackingHistory[0] || {};
+                  const rawStatus = String(latestEntry?.status || selectedSearchBooking.status || selectedSearchBooking.delivery_status || selectedSearchBooking.transitStatus || "Shipment Booked");
+                  const normStatus = rawStatus.toLowerCase();
 
-                      <div className="tracking-overview-grid">
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Origin</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "-"}</div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Destination</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "-"}</div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignor</div>
-                          <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}</div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Consignee</div>
-                          <div style={{ fontWeight: 600, color: "#334155" }}>{selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}</div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Booking Date</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {formatCleanDate(selectedSearchBooking.dispatch_date || selectedSearchBooking.date || selectedSearchBooking.createdAt)}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Client</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Package Count (Boxes)</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {(() => {
-                              const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
-                              return bVal ? `${bVal} Pcs` : "-";
-                            })()}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ color: "#64748b", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", marginBottom: "0.2rem" }}>Mode of Transport</div>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{selectedSearchBooking.mode ? (selectedSearchBooking.mode.toUpperCase() === "RAIL" ? "TRAIN" : selectedSearchBooking.mode.toUpperCase()) : "-"}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+                  const isDelivered = normStatus.includes("deliver");
+                  const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
+                  const isInTransit = normStatus.includes("transit") || normStatus.includes("reach") || normStatus.includes("hub") || normStatus.includes("arrive");
+                  const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
 
-                <div className="tracking-timeline-container">
-                  {/* Vertical Line */}
-                  <div className="tracking-timeline-line"></div>                {trackingHistory.map((entry, index) => {
-                  const isLatest = index === 0; 
-                  const color = getStatusColor(entry.status);
-                  const bg = getStatusBg(entry.status);
-                  const border = getStatusBorder(entry.status);
-                  const statusCaps = normalizeStatus(entry.status);
+                  // Determine step index for the 4-step progress tracker:
+                  // 1: Picked Up, 2: In Transit, 3: Out for Delivery, 4: Delivered
+                  let currentStepNumber = 1;
+                  if (isDelivered) currentStepNumber = 4;
+                  else if (isOutForDelivery) currentStepNumber = 3;
+                  else if (isInTransit) currentStepNumber = 2;
+                  else currentStepNumber = 1;
+
+                  // Status Banner styling & messaging
+                  let bannerBg = "#046A38"; // DTDC Rich Green
+                  let bannerTitle = "Delivered";
+                  let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || selectedSearchBooking.deliveryDate || selectedSearchBooking.date)}`;
+                  let bannerRibbonBg = "#ecfdf5";
+                  let bannerRibbonText = "#065f46";
+                  let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+
+                  if (isDelivered) {
+                    bannerBg = "#046A38";
+                    bannerTitle = "Delivered";
+                    bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || selectedSearchBooking.deliveryDate || selectedSearchBooking.date)}`;
+                    bannerRibbonBg = "#ecfdf5";
+                    bannerRibbonText = "#065f46";
+                    bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+                  } else if (isOutForDelivery) {
+                    bannerBg = "#c2410c";
+                    bannerTitle = "Out for Delivery";
+                    bannerSubtitle = `Out for Delivery at ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination"}`;
+                    bannerRibbonBg = "#fff7ed";
+                    bannerRibbonText = "#c2410c";
+                    bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
+                  } else if (isInTransit) {
+                    bannerBg = "#1e40af";
+                    bannerTitle = "In Transit";
+                    bannerSubtitle = `In Transit to ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination Hub"}`;
+                    bannerRibbonBg = "#eff6ff";
+                    bannerRibbonText = "#1e40af";
+                    bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+                  } else {
+                    bannerBg = "#4338ca";
+                    bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
+                    bannerSubtitle = `Shipment Received at ${selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "Origin Facility"}`;
+                    bannerRibbonBg = "#eef2ff";
+                    bannerRibbonText = "#4338ca";
+                    bannerMessage = "📦 Shipment has been booked and Lorry Receipt generated.";
+                  }
+
+                  const steps = [
+                    { id: 1, label: "Picked Up", icon: Package },
+                    { id: 2, label: "In Transit", icon: Truck },
+                    { id: 3, label: "Out for Delivery", icon: MapPin },
+                    { id: 4, label: "Delivered", icon: CheckCircle }
+                  ];
+
+                  // Invoices Extraction
+                  const invoices = (Array.isArray(selectedSearchBooking.invoiceDetails) && selectedSearchBooking.invoiceDetails.length > 0)
+                    ? selectedSearchBooking.invoiceDetails
+                    : (selectedSearchBooking.invoice_no || selectedSearchBooking.eway_bill)
+                      ? [{
+                          invoice_no: selectedSearchBooking.invoice_no || "-",
+                          invoice_date: selectedSearchBooking.date || "-",
+                          part_no: "-",
+                          qty: selectedSearchBooking.box || selectedSearchBooking.packages || 1,
+                          value: selectedSearchBooking.declared_value || selectedSearchBooking.invoice_value || "-",
+                          eway_bill: selectedSearchBooking.eway_bill || selectedSearchBooking.eway || "-"
+                        }]
+                      : [];
+
+                  const allInvoiceNumbers = invoices.map(i => i.invoice_no || i.invoiceNo).filter(Boolean).join(", ") || selectedSearchBooking.invoice_no || selectedSearchBooking.refNo || "-";
 
                   return (
-                    <div key={entry.id || index} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.5rem" }}>
+                    <div style={{ marginBottom: "2rem" }}>
                       
-                      <div style={{ 
-                        width: "46px", 
-                        height: "46px", 
-                        borderRadius: "50%", 
-                        background: isLatest ? color : bg, 
-                        border: `2.5px solid ${color}`,
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "center",
-                        color: isLatest ? "white" : color,
-                        flexShrink: 0,
-                        marginLeft: "-11px",
-                        boxShadow: isLatest ? `0 0 0 5px ${color}25, 0 6px 14px ${color}35` : "0 0 0 4px white"
+                      {/* DTDC TOP HEADER BAR */}
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "0.75rem 0.5rem 1rem",
+                        borderBottom: "1px solid #e2e8f0",
+                        marginBottom: "1rem",
+                        flexWrap: "wrap",
+                        gap: "0.75rem"
                       }}>
-                        {getStatusIcon(entry.status)}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                          <div style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "6px",
+                            backgroundColor: "#e11d48",
+                            color: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: "800",
+                            fontSize: "0.85rem",
+                            letterSpacing: "0.5px"
+                          }}>
+                            MMC
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                              Multimarg Carriers
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                              <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "1.15rem", letterSpacing: "0.5px" }}>
+                                AWB: {currentAwb}
+                              </span>
+                              <CopyButton text={currentAwb} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>
+                            Ref. / Inv. No:
+                          </div>
+                          <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
+                            {allInvoiceNumbers}
+                          </div>
+                        </div>
                       </div>
 
-                      <div style={{ flex: 1, padding: "1.1rem 1.3rem", background: isLatest ? bg : "#ffffff", border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, borderRadius: "14px", boxShadow: isLatest ? `0 6px 16px -2px ${color}15` : "none" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                          <span style={{ fontWeight: 800, color: color, fontSize: "1.05rem", letterSpacing: "0.04em" }}>{statusCaps}</span>
+                      {/* DTDC PROMINENT STATUS HERO BANNER */}
+                      <div style={{
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)",
+                        marginBottom: "1.5rem"
+                      }}>
+                        <div style={{
+                          background: bannerBg,
+                          color: "#ffffff",
+                          padding: "1.25rem 1.5rem",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: "1rem"
+                        }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                            <span style={{ fontSize: "0.825rem", color: "#475569", background: isLatest ? "#ffffff" : "#f1f5f9", padding: "0.25rem 0.75rem", borderRadius: "20px", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.35rem", border: "1px solid #e2e8f0" }}>
-                              <Clock size={13} color="#64748b" />
-                              {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
-                            </span>
+                            <div style={{
+                              width: "48px",
+                              height: "48px",
+                              borderRadius: "8px",
+                              backgroundColor: "rgba(255, 255, 255, 0.15)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center"
+                            }}>
+                              <Package size={28} color="#ffffff" />
+                            </div>
+                            <div>
+                              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "800", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                                {bannerTitle}
+                              </h2>
+                              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "rgba(255, 255, 255, 0.9)", fontWeight: "500" }}>
+                                {bannerSubtitle}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", color: "#334155", fontSize: "0.95rem", fontWeight: 600 }}>
-                          <MapPin size={15} color={color} />
-                          <span style={{ textTransform: "uppercase", letterSpacing: "0.03em" }}>{entry.location ? String(entry.location).toUpperCase() : "LOCATION NOT PROVIDED"}</span>
-                          {isAdmin && (
-                            <span style={{ marginLeft: "auto", background: isLatest ? "#ffffff" : "#f1f5f9", border: "1px solid #e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                              BY: {(entry.enteredBy || "Admin").toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        {entry.remarks && (
-                          <div style={{ fontSize: "0.9rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.8)" : "#f8fafc", padding: "0.65rem 0.9rem", borderRadius: "8px", borderLeft: `3.5px solid ${color}`, fontStyle: "italic", fontWeight: 500 }}>
-                            "{entry.remarks}"
-                          </div>
-                        )}
 
-                        {entry.podUrl && (
-                          <div style={{ marginTop: "0.6rem" }}>
+                          {mainPodUrl && (
                             <button
                               type="button"
                               onClick={() => {
-                                setSelectedPodUrl(entry.podUrl);
+                                setSelectedPodUrl(mainPodUrl);
                                 setShowPodModal(true);
                               }}
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
-                                gap: "0.35rem",
-                                padding: "0.35rem 0.75rem",
-                                backgroundColor: "#ecfdf5",
-                                color: "#059669",
-                                border: "1px solid #a7f3d0",
+                                gap: "0.4rem",
+                                padding: "0.5rem 1rem",
+                                backgroundColor: "#ffffff",
+                                color: bannerBg,
+                                border: "none",
                                 borderRadius: "6px",
                                 fontWeight: "700",
-                                fontSize: "0.8rem",
-                                cursor: "pointer"
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                               }}
                             >
-                              <Eye size={14} /> View Attached POD
+                              <Eye size={16} /> View POD Proof
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
+
+                        {/* Ribbon Message Bar */}
+                        <div style={{
+                          backgroundColor: bannerRibbonBg,
+                          color: bannerRibbonText,
+                          padding: "0.6rem 1.25rem",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem"
+                        }}>
+                          <span>{bannerMessage}</span>
+                        </div>
                       </div>
+
+                      {/* DTDC 4-STEP HORIZONTAL STEP TRACKER */}
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: "0.75rem",
+                        margin: "1.5rem 0",
+                        padding: "0 0.25rem"
+                      }}>
+                        {steps.map((step) => {
+                          const isCompleted = step.id <= currentStepNumber;
+                          const isCurrent = step.id === currentStepNumber;
+                          const activeColor = isDelivered ? "#046A38" : "#2563eb";
+                          const StepIcon = step.icon;
+
+                          return (
+                            <div key={step.id} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                              {/* Top Step Indicator Bar */}
+                              <div style={{
+                                height: "4px",
+                                borderRadius: "2px",
+                                backgroundColor: isCompleted ? activeColor : "#e2e8f0",
+                                transition: "all 0.3s ease"
+                              }} />
+                              
+                              {/* Step Label & Icon */}
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", paddingTop: "0.2rem" }}>
+                                {isCompleted ? (
+                                  <div style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    borderRadius: "50%",
+                                    backgroundColor: activeColor,
+                                    color: "white",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                  }}>
+                                    <Check size={10} strokeWidth={3} />
+                                  </div>
+                                ) : (
+                                  <div style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    borderRadius: "50%",
+                                    border: "1.5px solid #cbd5e1",
+                                    backgroundColor: "white"
+                                  }} />
+                                )}
+                                <span style={{
+                                  fontSize: "0.78rem",
+                                  fontWeight: isCompleted ? 700 : 500,
+                                  color: isCompleted ? "#0f172a" : "#64748b",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis"
+                                }}>
+                                  {step.label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* ORIGIN & DESTINATION STRIP */}
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        padding: "0.75rem 1rem",
+                        marginBottom: "1.25rem",
+                        fontSize: "0.85rem",
+                        flexWrap: "wrap",
+                        gap: "0.5rem"
+                      }}>
+                        <div>
+                          <span style={{ color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Origin:</span>
+                          <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                            {selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "ORIGIN"}
+                            {selectedSearchBooking.originPincode ? `, ${selectedSearchBooking.originPincode}` : ""}
+                            {", INDIA"}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Destination:</span>
+                          <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                            {selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "DESTINATION"}
+                            {selectedSearchBooking.destinationPincode ? `, ${selectedSearchBooking.destinationPincode}` : ""}
+                            {", INDIA"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* COMPACT & SHARP LR SHIPMENT DETAILS GRID */}
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                        gap: "0.75rem",
+                        marginBottom: "1.25rem"
+                      }}>
+                        {/* Box 1: Party Details */}
+                        <div style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          padding: "0.85rem 1rem"
+                        }}>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#0C4A6E", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                            <Layers size={14} color="#0284c7" /> Party Information
+                          </div>
+                          
+                          <div style={{ display: "grid", gridTemplateColumns: "85px 1fr", rowGap: "0.35rem", fontSize: "0.82rem" }}>
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>Consignor:</div>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}
+                              {selectedSearchBooking.consignorGstin && (
+                                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace" }}>
+                                  GST: {selectedSearchBooking.consignorGstin}
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>Consignee:</div>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}
+                              {selectedSearchBooking.consigneeGstin && (
+                                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace" }}>
+                                  GST: {selectedSearchBooking.consigneeGstin}
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>Client:</div>
+                            <div style={{ fontWeight: 600, color: "#334155" }}>
+                              {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Box 2: Cargo & Transit Context */}
+                        <div style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          padding: "0.85rem 1rem"
+                        }}>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#0C4A6E", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                            <Truck size={14} color="#0284c7" /> Cargo & Transit Info
+                          </div>
+
+                          <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", rowGap: "0.35rem", fontSize: "0.82rem" }}>
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>BOOKING DATE:</div>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {formatCleanDate(selectedSearchBooking.dispatch_date || selectedSearchBooking.date || selectedSearchBooking.createdAt)}
+                            </div>
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>PKG COUNT:</div>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {(() => {
+                                const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
+                                return bVal ? `${bVal} Boxes / Pcs` : "-";
+                              })()}
+                            </div>
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>WEIGHT:</div>
+                            <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                              ACT: <strong style={{ color: "#1e3a8a" }}>{selectedSearchBooking.actual_wt || selectedSearchBooking.weight || "-"} KG</strong> | CHG: <strong style={{ color: "#059669" }}>{selectedSearchBooking.charge_wt || selectedSearchBooking.weight || "-"} KG</strong>
+                            </div>
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>MODE / PAY:</div>
+                            <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                              <span style={{ textTransform: "uppercase", color: "#1e3a8a", fontWeight: 700 }}>{selectedSearchBooking.mode || "ROAD"}</span>
+                              {" / "}
+                              <span style={{ textTransform: "uppercase", color: "#059669", fontWeight: 700 }}>{selectedSearchBooking.paymentMode || selectedSearchBooking.payment || "CREDIT"}</span>
+                            </div>
+
+                            {selectedSearchBooking.vehicleNo && (
+                              <>
+                                <div style={{ color: "#64748b", fontWeight: 600 }}>VEHICLE NO:</div>
+                                <div style={{ fontWeight: 700, color: "#e11d48", fontFamily: "monospace" }}>
+                                  {selectedSearchBooking.vehicleNo.toUpperCase()}
+                                </div>
+                              </>
+                            )}
+
+                            <div style={{ color: "#64748b", fontWeight: 600 }}>PKG VALUE:</div>
+                            <div style={{ fontWeight: 700, color: "#059669" }}>
+                              {(() => {
+                                const dv = selectedSearchBooking.declared_value || selectedSearchBooking.declaredValue || selectedSearchBooking.goodsValue || selectedSearchBooking.goods_value;
+                                if (dv) return `₹${parseFloat(dv).toLocaleString('en-IN')}`;
+                                // Sum from invoices
+                                const invTotal = (selectedSearchBooking.invoiceDetails || []).reduce((sum, inv) => {
+                                  const v = parseFloat(inv.value || inv.invoiceValue || inv.invoice_value || 0);
+                                  return sum + (isNaN(v) ? 0 : v);
+                                }, 0);
+                                return invTotal > 0 ? `₹${invTotal.toLocaleString('en-IN')}` : "-";
+                              })()}
+                            </div>
+
+                            {(selectedSearchBooking.goods_description || selectedSearchBooking.goodsDescription || selectedSearchBooking.goods || selectedSearchBooking.commodity) && (
+                              <>
+                                <div style={{ color: "#64748b", fontWeight: 600 }}>GOODS:</div>
+                                <div style={{ fontWeight: 600, color: "#334155", textTransform: "uppercase" }}>
+                                  {(selectedSearchBooking.goods_description || selectedSearchBooking.goodsDescription || selectedSearchBooking.goods || selectedSearchBooking.commodity || "-").toUpperCase()}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* INVOICE & E-WAY BILL DETAILS TABLE */}
+                      {invoices.length > 0 && (
+                        <div style={{
+                          marginTop: "1rem",
+                          marginBottom: "1.5rem",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          backgroundColor: "#ffffff",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+                        }}>
+                          <div style={{
+                            backgroundColor: "#f8fafc",
+                            padding: "0.5rem 0.75rem",
+                            borderBottom: "1px solid #e2e8f0",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "0.4rem"
+                          }}>
+                            <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.4rem", textTransform: "uppercase" }}>
+                              <FileText size={14} color="#2563eb" /> Invoice & E-Way Bill Details ({invoices.length})
+                            </div>
+                            {selectedSearchBooking.eway_bill && (
+                              <div style={{ fontSize: "0.72rem", color: "#475569", fontWeight: 600 }}>
+                                E-WAY: <strong style={{ color: "#0f172a", fontFamily: "monospace" }}>{selectedSearchBooking.eway_bill}</strong>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem", textAlign: "left", minWidth: "520px", textTransform: "uppercase" }}>
+                              <thead>
+                                <tr style={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 700, borderBottom: "1px solid #cbd5e1" }}>
+                                  <th style={{ padding: "5px 6px", width: "28px" }}>#</th>
+                                  <th style={{ padding: "5px 6px" }}>INVOICE NO</th>
+                                  <th style={{ padding: "5px 6px" }}>DATE</th>
+                                  <th style={{ padding: "5px 6px" }}>PART NO / DESC</th>
+                                  <th style={{ padding: "5px 6px", textAlign: "center" }}>PKGS</th>
+                                  <th style={{ padding: "5px 6px", textAlign: "right" }}>VALUE (₹)</th>
+                                  <th style={{ padding: "5px 6px" }}>E-WAY BILL NO</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {invoices.map((inv, iIdx) => {
+                                  const invNo = inv.invoice_no || inv.invoiceNo || inv.invoice || "-";
+                                  const invDate = inv.invoice_date || inv.invoiceDate || inv.date || inv.invdate || "";
+                                  const partNo = inv.part_no || inv.partNumber || inv.part || inv.description || "-";
+                                  const pkgs = inv.qty || inv.quantity || inv.box || inv.packages || "-";
+                                  const val = inv.value || inv.invoiceValue || inv.invoice_value || inv.declared_value || inv.amount || "";
+                                  const eway = inv.eway_bill || inv.ewayBill || inv.eway || selectedSearchBooking.eway_bill || "-";
+
+                                  return (
+                                    <tr key={iIdx} style={{ borderBottom: "1px solid #f1f5f9", backgroundColor: iIdx % 2 === 1 ? "#fafafa" : "#ffffff" }}>
+                                      <td style={{ padding: "5px 6px", color: "#64748b", fontWeight: 600 }}>{iIdx + 1}</td>
+                                      <td style={{ padding: "5px 6px", fontWeight: 700, color: "#1e3a8a" }}>
+                                        {invNo}
+                                      </td>
+                                      <td style={{ padding: "5px 6px", color: "#334155", whiteSpace: "nowrap" }}>
+                                        {formatCleanDate(invDate)}
+                                      </td>
+                                      <td style={{ padding: "5px 6px", color: "#475569" }}>
+                                        {partNo}
+                                      </td>
+                                      <td style={{ padding: "5px 6px", textAlign: "center", fontWeight: 700, color: "#0f172a" }}>
+                                        {pkgs}
+                                      </td>
+                                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>
+                                        {val ? `₹${parseFloat(val || 0).toLocaleString('en-IN')}` : "-"}
+                                      </td>
+                                      <td style={{ padding: "5px 6px", fontWeight: 600, color: "#0f172a", fontFamily: "monospace" }}>
+                                        {eway}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SHIPMENT PROGRESS TIMELINE HEADER */}
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "0.5rem 0.25rem",
+                        marginBottom: "0.75rem",
+                        borderBottom: "1px solid #e2e8f0"
+                      }}>
+                        <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                          <Clock size={18} color="#2563eb" /> Shipment Progress
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowTimelineDetails(prev => !prev)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#2563eb",
+                            fontWeight: 600,
+                            fontSize: "0.85rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.25rem"
+                          }}
+                        >
+                          {showTimelineDetails ? "View Less" : "View Details"}
+                          {showTimelineDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      </div>
+
                     </div>
                   );
-                })}
-                </div>
+                })()}
+
+                {showTimelineDetails && (
+                  <div className="tracking-timeline-container">
+                    {/* Vertical Line */}
+                    <div className="tracking-timeline-line"></div>
+                    {trackingHistory.map((entry, index) => {
+                      const isLatest = index === 0; 
+                      const color = getStatusColor(entry.status);
+                      const bg = getStatusBg(entry.status);
+                      const border = getStatusBorder(entry.status);
+                      const statusCaps = normalizeStatus(entry.status);
+
+                      return (
+                        <div key={entry.id || index} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.2rem" }}>
+                          
+                          <div style={{ 
+                            width: "44px", 
+                            height: "44px", 
+                            borderRadius: "50%", 
+                            background: isLatest ? color : bg, 
+                            border: `2.5px solid ${color}`,
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            color: isLatest ? "white" : color,
+                            flexShrink: 0,
+                            marginLeft: "-10px",
+                            boxShadow: isLatest ? `0 0 0 4px ${color}25, 0 4px 10px ${color}30` : "0 0 0 4px white"
+                          }}>
+                            {getStatusIcon(entry.status)}
+                          </div>
+
+                          <div style={{ flex: 1, padding: "0.9rem 1.2rem", background: isLatest ? bg : "#ffffff", border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, borderRadius: "12px", boxShadow: isLatest ? `0 4px 12px -2px ${color}15` : "none" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                              <span style={{ fontWeight: 800, color: color, fontSize: "1rem", letterSpacing: "0.03em" }}>{statusCaps}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                                <span style={{ fontSize: "0.8rem", color: "#475569", background: isLatest ? "#ffffff" : "#f1f5f9", padding: "0.25rem 0.75rem", borderRadius: "20px", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.35rem", border: "1px solid #e2e8f0" }}>
+                                  <Clock size={12} color="#64748b" />
+                                  {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.4rem", color: "#334155", fontSize: "0.9rem", fontWeight: 600 }}>
+                              <MapPin size={14} color={color} />
+                              <span style={{ textTransform: "uppercase", letterSpacing: "0.03em" }}>{entry.location ? String(entry.location).toUpperCase() : "LOCATION NOT PROVIDED"}</span>
+                              {isAdmin && (
+                                <span style={{ marginLeft: "auto", background: isLatest ? "#ffffff" : "#f1f5f9", border: "1px solid #e2e8f0", padding: "2px 8px", borderRadius: "12px", fontSize: "0.72rem", color: "#475569", fontWeight: 600 }}>
+                                  BY: {(entry.enteredBy || "Admin").toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            {entry.remarks && (
+                              <div style={{ fontSize: "0.85rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.85)" : "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "6px", borderLeft: `3px solid ${color}`, fontStyle: "italic", fontWeight: 500 }}>
+                                "{entry.remarks}"
+                              </div>
+                            )}
+
+                            {entry.podUrl && (
+                              <div style={{ marginTop: "0.5rem" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedPodUrl(entry.podUrl);
+                                    setShowPodModal(true);
+                                  }}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.35rem",
+                                    padding: "0.3rem 0.7rem",
+                                    backgroundColor: "#ecfdf5",
+                                    color: "#059669",
+                                    border: "1px solid #a7f3d0",
+                                    borderRadius: "6px",
+                                    fontWeight: "700",
+                                    fontSize: "0.78rem",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  <Eye size={13} /> View Attached POD
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
