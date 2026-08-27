@@ -241,7 +241,7 @@ const PrintSingleTrip = () => {
         .manifest-table th, 
         .manifest-table td {
           border: 1px solid #94a3b8 !important;
-          padding: 2.5px 3px !important;
+          padding: 3px 5px !important;
           color: #0f172a !important;
           vertical-align: middle;
           box-sizing: border-box !important;
@@ -528,7 +528,7 @@ const PrintSingleTrip = () => {
                               <td className="gray-cell" style={{ textAlign: "left" }}>VEHICLE TYPE</td>
                               <td className="data-cell wrap-cell" style={{ textAlign: "left" }}>{(trip.vehicleType || "-").toUpperCase()}</td>
                               <td className="gray-cell" style={{ textAlign: "left" }}>{isSpecialMode ? "TOTAL FREIGHT" : "PAYMENT"}</td>
-                              <td className="data-cell wrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "right" }}>
+                              <td className="data-cell wrap-cell" style={{ fontWeight: "700", color: isSpecialMode ? "#059669" : "#1e3a8a", fontSize: isSpecialMode ? "0.8rem" : "0.72rem", textAlign: "left" }}>
                                 {isSpecialMode ? (showPrintAmounts ? `Rs. ${baseFreight.toFixed(2)}` : "Rs. 0") : (trip.payment || "-").toUpperCase()}
                               </td>
                             </tr>
