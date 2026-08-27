@@ -29,10 +29,6 @@ const GenerateBill = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  useSocketSync("unbilled", () => { fetchData(); });
-  useSocketSync("bookings", () => { fetchData(); });
-  useSocketSync("bills", () => { fetchData(); });
-
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
   const [modalInitialName, setModalInitialName] = useState("");
@@ -60,10 +56,6 @@ const GenerateBill = () => {
       setFilters({ ...filters, client: data.name || data.client });
     }
   };
-
-  useEffect(() => { 
-    fetchData(); 
-  }, []);
 
   const fetchData = async () => {
     try {
@@ -166,6 +158,14 @@ const GenerateBill = () => {
       setLoading(false);
     }
   };
+
+  useSocketSync("unbilled", () => { fetchData(); });
+  useSocketSync("bookings", () => { fetchData(); });
+  useSocketSync("bills", () => { fetchData(); });
+
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });

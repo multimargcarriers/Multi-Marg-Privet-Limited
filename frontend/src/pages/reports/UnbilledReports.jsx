@@ -98,14 +98,6 @@ const UnbilledReports = () => {
   const [filters, setFilters] = useState({ fr: "", to: "", search: "" });
   const [loading, setLoading] = useState(false);
 
-  useSocketSync("unbilled", fetchUnbilled);
-  useSocketSync("bookings", fetchUnbilled);
-  useSocketSync("bills", fetchUnbilled);
-
-  useEffect(() => {
-    fetchUnbilled();
-  }, []);
-
   const fetchUnbilled = async () => {
     setLoading(true);
     try {
@@ -122,6 +114,14 @@ const UnbilledReports = () => {
       setLoading(false);
     }
   };
+
+  useSocketSync("unbilled", fetchUnbilled);
+  useSocketSync("bookings", fetchUnbilled);
+  useSocketSync("bills", fetchUnbilled);
+
+  useEffect(() => {
+    fetchUnbilled();
+  }, []);
 
   // Compute filtered data based on date range & search filter
   const filteredData = useMemo(() => {
