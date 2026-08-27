@@ -77,6 +77,11 @@ router.get('/:awb', async (req, res) => {
           consignee: b.consignee || null,
           date: b.dispatch_date || b.date || b.createdAt || null,
           createdAt: b.createdAt || b.realBookingDate || b.created_at || null,
+          status: b.status || null,
+          delivery_status: b.delivery_status || null,
+          transitStatus: b.transitStatus || null,
+          trackingStatus: b.trackingStatus || null,
+          deliveryDate: b.deliveryDate || null,
           mode: b.mode || null,
           box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount || null,
           invoiceDetails: b.invoiceDetails || [],
@@ -137,7 +142,9 @@ router.get('/:awb', async (req, res) => {
         });
       }
 
-      // 3. Check if POD is uploaded for this shipment
+      // 3. Check if POD is uploaded or if the shipment is marked as Delivered
+      const isDeliveredBooking = String(booking.status || booking.delivery_status || booking.transitStatus || booking.trackingStatus || '').toLowerCase() === 'delivered';
+
       const podDoc = db.mongoDb ? await db.mongoDb.collection("pod").findOne({
         lrNo: { $in: queryVariations }
       }) : null;
@@ -148,27 +155,27 @@ router.get('/:awb', async (req, res) => {
           booking.podUrl = pUrl;
           booking.podUploaded = true;
         }
+      }
 
-        const hasDeliveredStatus = entries.some(e => String(e.status || '').toLowerCase().includes("delivered"));
-        if (!hasDeliveredStatus) {
-          const podDate = podDoc.uploadedAt || podDoc.createdAt || new Date().toISOString();
-          const destLocation = (booking && (booking.destination || booking.consigneeAddress || booking.consignee)) || (podDoc.destination !== '-' ? podDoc.destination : '') || "Destination";
-          entries.push({
-            id: `pod-delivered-${podDoc.id || podDoc._id || baseAwb}`,
-            awb: baseAwb,
-            status: "Delivered",
-            location: destLocation,
-            date: podDate,
-            remarks: "Proof of Delivery (POD) uploaded. Shipment delivered at destination.",
-            podUrl: pUrl,
-            updatedAt: podDate
-          });
-        } else {
-          // Attach podUrl to existing delivered entry if missing
-          const delEntry = entries.find(e => String(e.status || '').toLowerCase().includes("delivered"));
-          if (delEntry && !delEntry.podUrl) {
-            delEntry.podUrl = pUrl;
-          }
+      const hasDeliveredStatus = entries.some(e => String(e.status || '').toLowerCase().includes("delivered"));
+      if (!hasDeliveredStatus && (isDeliveredBooking || podDoc)) {
+        const podDate = (podDoc && (podDoc.uploadedAt || podDoc.createdAt)) || booking.deliveryDate || bookingDateISO;
+        const destLocation = (booking && (booking.destination || booking.consigneeAddress || booking.consignee)) || (podDoc && podDoc.destination !== '-' ? podDoc.destination : '') || "Destination";
+        entries.push({
+          id: `delivered-${(podDoc && (podDoc.id || podDoc._id)) || booking.id || baseAwb}`,
+          awb: baseAwb,
+          status: "Delivered",
+          location: String(destLocation).toUpperCase(),
+          date: podDate,
+          remarks: podDoc ? "Proof of Delivery (POD) uploaded. Shipment delivered at destination." : "Shipment successfully delivered at destination.",
+          podUrl: booking.podUrl || null,
+          updatedAt: podDate
+        });
+      } else if (hasDeliveredStatus && booking.podUrl) {
+        // Attach podUrl to existing delivered entry if missing
+        const delEntry = entries.find(e => String(e.status || '').toLowerCase().includes("delivered"));
+        if (delEntry && !delEntry.podUrl) {
+          delEntry.podUrl = booking.podUrl;
         }
       }
 

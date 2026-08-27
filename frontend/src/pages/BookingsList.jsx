@@ -634,18 +634,20 @@ const BookingsList = () => {
                       const isDelivered = 
                         Boolean(hasPodEntry) || 
                         (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
-                        (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered');
+                        (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
+                        (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
+                        (item.status && String(item.status).toLowerCase() === 'delivered');
 
                       // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial "booked" as "Picked Up"
                       const trackStatus = typeof track === 'object' ? track?.status : track;
-                      const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus;
+                      const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status;
 
                       let resolvedStatus = 'Picked Up';
                       if (isDelivered) {
                         resolvedStatus = 'Delivered';
                       } else if (explicitStatus && !['booked', 'unbilled', 'billed'].includes(String(explicitStatus).toLowerCase())) {
                         resolvedStatus = explicitStatus;
-                      } else if (item.status && !['booked', 'unbilled', 'billed', 'delivered'].includes(String(item.status).toLowerCase())) {
+                      } else if (item.status && !['booked', 'unbilled', 'billed'].includes(String(item.status).toLowerCase())) {
                         resolvedStatus = item.status;
                       } else {
                         resolvedStatus = 'Picked Up';
