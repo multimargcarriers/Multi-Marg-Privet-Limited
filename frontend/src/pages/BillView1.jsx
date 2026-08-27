@@ -52,11 +52,14 @@ const formatShortInvoiceRef = (item) => {
   }
 };
 
-// Indian Currency Number to Words converter
+// Indian Currency Number to Words converter including Paise (decimal points)
 const numberToWordsIndian = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "Rs. Zero Only.";
-  const n = Math.floor(Math.abs(num));
-  if (n === 0) return "Rs. Zero Only.";
+  const val = Math.abs(Number(num));
+  const rupees = Math.floor(val);
+  const paise = Math.round((val - rupees) * 100);
+
+  if (rupees === 0 && paise === 0) return "Rs. Zero Only.";
 
   const units = [
     "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
@@ -64,52 +67,69 @@ const numberToWordsIndian = (num) => {
   ];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
 
-  function convertChunk(val) {
+  function convertChunk(chunk) {
     let str = "";
-    if (val >= 100) {
-      str += units[Math.floor(val / 100)] + " Hundred ";
-      val %= 100;
+    if (chunk >= 100) {
+      str += units[Math.floor(chunk / 100)] + " Hundred ";
+      chunk %= 100;
     }
-    if (val >= 20) {
-      str += tens[Math.floor(val / 10)] + " ";
-      val %= 10;
+    if (chunk >= 20) {
+      str += tens[Math.floor(chunk / 10)] + " ";
+      chunk %= 10;
     }
-    if (val > 0) {
-      str += units[val] + " ";
+    if (chunk > 0) {
+      str += units[chunk] + " ";
     }
     return str;
   }
 
-  let words = "";
-  let temp = n;
+  function convertFullNumber(n) {
+    let words = "";
+    let temp = n;
 
-  // Crore (1,00,00,000)
-  const crore = Math.floor(temp / 10000000);
-  if (crore > 0) {
-    words += convertChunk(crore) + "Crore ";
-    temp %= 10000000;
+    // Crore (1,00,00,000)
+    const crore = Math.floor(temp / 10000000);
+    if (crore > 0) {
+      words += convertChunk(crore) + "Crore ";
+      temp %= 10000000;
+    }
+
+    // Lakh (1,00,000)
+    const lakh = Math.floor(temp / 100000);
+    if (lakh > 0) {
+      words += convertChunk(lakh) + "Lakh ";
+      temp %= 100000;
+    }
+
+    // Thousand (1,000)
+    const thousand = Math.floor(temp / 1000);
+    if (thousand > 0) {
+      words += convertChunk(thousand) + "Thousand ";
+      temp %= 1000;
+    }
+
+    // Remaining Hundreds/Tens/Units
+    if (temp > 0) {
+      words += convertChunk(temp);
+    }
+    return words.trim();
   }
 
-  // Lakh (1,00,000)
-  const lakh = Math.floor(temp / 100000);
-  if (lakh > 0) {
-    words += convertChunk(lakh) + "Lakh ";
-    temp %= 100000;
+  let finalWords = "";
+  if (rupees > 0) {
+    finalWords += `Rs. ${convertFullNumber(rupees)}`;
   }
 
-  // Thousand (1,000)
-  const thousand = Math.floor(temp / 1000);
-  if (thousand > 0) {
-    words += convertChunk(thousand) + "Thousand ";
-    temp %= 1000;
+  if (paise > 0) {
+    const paiseWords = convertFullNumber(paise);
+    if (rupees > 0) {
+      finalWords += ` and ${paiseWords} Paise`;
+    } else {
+      finalWords += `Rs. ${paiseWords} Paise`;
+    }
   }
 
-  // Remaining Hundreds/Tens/Units
-  if (temp > 0) {
-    words += convertChunk(temp);
-  }
-
-  return `Rs. ${words.trim()} Only.`;
+  return `${finalWords.trim()} Only.`;
 };
 
 const BillView1 = () => {

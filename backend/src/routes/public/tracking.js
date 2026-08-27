@@ -159,7 +159,20 @@ router.get('/:awb', async (req, res) => {
 
       const hasDeliveredStatus = entries.some(e => String(e.status || '').toLowerCase().includes("delivered"));
       if (!hasDeliveredStatus && (isDeliveredBooking || podDoc)) {
-        const podDate = (podDoc && (podDoc.uploadedAt || podDoc.createdAt)) || booking.deliveryDate || bookingDateISO;
+        let deliveredTimeObj = null;
+        if (podDoc && (podDoc.uploadedAt || podDoc.createdAt)) {
+          deliveredTimeObj = new Date(podDoc.uploadedAt || podDoc.createdAt);
+        } else if (booking.deliveryDate) {
+          deliveredTimeObj = parseDateString(booking.deliveryDate);
+        }
+
+        const pickupTimestamp = pickupDateObj.getTime();
+        if (!deliveredTimeObj || isNaN(deliveredTimeObj.getTime()) || deliveredTimeObj.getTime() <= pickupTimestamp) {
+          // Default delivery time to 6 hours after pickup or next day
+          deliveredTimeObj = new Date(pickupTimestamp + 6 * 3600 * 1000);
+        }
+
+        const podDate = deliveredTimeObj.toISOString();
         const destLocation = (booking && (booking.destination || booking.consigneeAddress || booking.consignee)) || (podDoc && podDoc.destination !== '-' ? podDoc.destination : '') || "Destination";
         entries.push({
           id: `delivered-${(podDoc && (podDoc.id || podDoc._id)) || booking.id || baseAwb}`,
@@ -179,7 +192,22 @@ router.get('/:awb', async (req, res) => {
         }
       }
 
-      entries.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const getStatusWeight = (statusStr) => {
+        const s = String(statusStr || '').toLowerCase();
+        if (s.includes('deliver')) return 100;
+        if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 80;
+        if (s.includes('transit') || s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 60;
+        if (s.includes('pickup') || s.includes('picked')) return 40;
+        if (s.includes('book')) return 20;
+        return 50;
+      };
+
+      entries.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.date).getTime();
+        const timeB = new Date(b.updatedAt || b.date).getTime();
+        if (timeA !== timeB) return timeB - timeA;
+        return getStatusWeight(b.status) - getStatusWeight(a.status);
+      });
     }
 
     return res.json({

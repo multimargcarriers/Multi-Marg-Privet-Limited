@@ -243,6 +243,16 @@ const Tracking = () => {
       let data = response.data.success ? response.data.data : [];
       let bookingDetails = response.data.success ? response.data.booking : null;
 
+      const getStatusWeight = (statusStr) => {
+        const s = String(statusStr || '').toLowerCase();
+        if (s.includes('deliver')) return 100;
+        if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 80;
+        if (s.includes('transit') || s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 60;
+        if (s.includes('pickup') || s.includes('picked')) return 40;
+        if (s.includes('book')) return 20;
+        return 50;
+      };
+
       if (fullId && fullId !== actualAwbToSearch) {
           try {
               const res2 = await axios.get(`${API}/public/tracking/${fullId}`);
@@ -251,7 +261,10 @@ const Tracking = () => {
                   merged.sort((a, b) => {
                       const dateA = parseDateSecurely(a.date || a.updatedAt);
                       const dateB = parseDateSecurely(b.date || b.updatedAt);
-                      return (dateB ? dateB.getTime() : 0) - (dateA ? dateA.getTime() : 0);
+                      const timeA = dateA ? dateA.getTime() : 0;
+                      const timeB = dateB ? dateB.getTime() : 0;
+                      if (timeA !== timeB) return timeB - timeA;
+                      return getStatusWeight(b.status) - getStatusWeight(a.status);
                   });
                   const unique = [];
                   const ids = new Set();
@@ -269,6 +282,15 @@ const Tracking = () => {
               console.error("Error fetching for full ID", err);
           }
       }
+
+      data.sort((a, b) => {
+        const dateA = parseDateSecurely(a.date || a.updatedAt);
+        const dateB = parseDateSecurely(b.date || b.updatedAt);
+        const timeA = dateA ? dateA.getTime() : 0;
+        const timeB = dateB ? dateB.getTime() : 0;
+        if (timeA !== timeB) return timeB - timeA;
+        return getStatusWeight(b.status) - getStatusWeight(a.status);
+      });
 
       setTrackingHistory(data);
       // Use the returned booking to populate the shipment details card, ignoring client-side bookingsList
