@@ -379,42 +379,52 @@ const TrackShipment = () => {
               else if (isInTransit) currentStepNumber = 2;
               else currentStepNumber = 1;
 
-              // Status Banner styling & messaging
-              let bannerBg = "#046A38"; // DTDC Rich Green
+              // Status Banner styling & messaging — GRADIENT THEME
+              let bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
+              let bannerAccent = "#059669";
               let bannerTitle = "Delivered";
               let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
-              let bannerRibbonBg = "#ecfdf5";
+              let bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
               let bannerRibbonText = "#065f46";
               let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+              let stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
 
               if (isDelivered) {
-                bannerBg = "#046A38";
+                bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
+                bannerAccent = "#059669";
                 bannerTitle = "Delivered";
                 bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
-                bannerRibbonBg = "#ecfdf5";
+                bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
                 bannerRibbonText = "#065f46";
                 bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+                stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
               } else if (isOutForDelivery) {
-                bannerBg = "#c2410c";
+                bannerBg = "linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #ea580c 100%)";
+                bannerAccent = "#c2410c";
                 bannerTitle = "Out for Delivery";
                 bannerSubtitle = `Out for Delivery at ${b.destination ? b.destination.toUpperCase() : "Destination"}`;
-                bannerRibbonBg = "#fff7ed";
+                bannerRibbonBg = "linear-gradient(90deg, #fff7ed, #fed7aa)";
                 bannerRibbonText = "#c2410c";
                 bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
+                stepGradient = "linear-gradient(90deg, #9a3412, #c2410c, #ea580c)";
               } else if (isInTransit) {
-                bannerBg = "#1e40af";
+                bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #3b82f6 100%)";
+                bannerAccent = "#2563eb";
                 bannerTitle = "In Transit";
                 bannerSubtitle = `In Transit to ${b.destination ? b.destination.toUpperCase() : "Destination Hub"}`;
-                bannerRibbonBg = "#eff6ff";
+                bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
                 bannerRibbonText = "#1e40af";
                 bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+                stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
               } else {
-                bannerBg = "#4338ca";
+                bannerBg = "linear-gradient(135deg, #312e81 0%, #4338ca 50%, #6366f1 100%)";
+                bannerAccent = "#4338ca";
                 bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
                 bannerSubtitle = `Shipment Received at ${b.origin ? b.origin.toUpperCase() : "Origin Facility"}`;
-                bannerRibbonBg = "#eef2ff";
+                bannerRibbonBg = "linear-gradient(90deg, #eef2ff, #e0e7ff)";
                 bannerRibbonText = "#4338ca";
                 bannerMessage = "📦 Shipment has been booked and Lorry Receipt generated.";
+                stepGradient = "linear-gradient(90deg, #312e81, #4338ca, #6366f1)";
               }
 
               const steps = [
@@ -447,44 +457,55 @@ const TrackShipment = () => {
                   animate={{ opacity: 1, y: 0 }}
                   style={{ maxWidth: '960px', margin: '0 auto' }}
                 >
-                  {/* Main DTDC Tracking Card */}
+                  {/* Main Tracking Card */}
                   <div style={{ 
                     backgroundColor: 'white', 
                     borderRadius: '16px', 
                     padding: 'clamp(1.25rem, 3vw, 2rem)', 
-                    boxShadow: 'var(--shadow-md)',
-                    marginBottom: '2rem'
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                    marginBottom: '2rem',
+                    borderTop: '3px solid transparent',
+                    borderImage: stepGradient + ' 1'
                   }}>
-                    {/* DTDC Top Header Bar */}
+                    {/* Top Header Bar */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
                       alignItems: 'center', 
                       flexWrap: 'wrap', 
                       gap: '0.75rem', 
-                      borderBottom: '1px solid #e2e8f0', 
-                      paddingBottom: '1.25rem', 
-                      marginBottom: '1.25rem' 
+                      backgroundColor: '#ffffff',
+                      borderBottom: '2px solid #f1f5f9',
+                      padding: '0 0.25rem 0.85rem', 
+                      marginBottom: '1rem' 
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <img
                           src="/circle_crop_logo.png"
                           alt="Multimarg Carriers"
                           style={{
-                            width: '40px',
-                            height: '40px',
+                            width: '42px',
+                            height: '42px',
                             borderRadius: '50%',
                             objectFit: 'cover',
                             flexShrink: 0,
-                            border: '2px solid #e2e8f0'
+                            border: '2px solid #fed7aa'
                           }}
                         />
                         <div>
-                          <div style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                          <div style={{ color: '#c2410c', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
                             Multimarg Carriers
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <span style={{ color: '#0f172a', fontWeight: 800, fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', letterSpacing: '0.5px' }}>
+                            <span style={{ 
+                              background: 'linear-gradient(135deg, #ea580c, #dc2626, #b91c1c)', 
+                              WebkitBackgroundClip: 'text', 
+                              WebkitTextFillColor: 'transparent', 
+                              backgroundClip: 'text',
+                              fontWeight: 800, 
+                              fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', 
+                              letterSpacing: '0.5px' 
+                            }}>
                               AWB: {currentAwb}
                             </span>
                             <CopyButton text={currentAwb} size={16} />
@@ -492,14 +513,6 @@ const TrackShipment = () => {
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                          Ref. / Inv. No:
-                        </div>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', textTransform: 'uppercase' }}>
-                          {allInvoiceNumbers}
-                        </div>
-                      </div>
                     </div>
 
                     {/* DTDC Prominent Status Hero Banner */}
@@ -555,7 +568,7 @@ const TrackShipment = () => {
                               gap: '0.4rem',
                               padding: '0.5rem 1.1rem',
                               backgroundColor: '#ffffff',
-                              color: bannerBg,
+                              color: bannerAccent,
                               border: 'none',
                               borderRadius: '6px',
                               fontWeight: '700',
@@ -571,7 +584,7 @@ const TrackShipment = () => {
 
                       {/* Message Ribbon Bar */}
                       <div style={{
-                        backgroundColor: bannerRibbonBg,
+                        background: bannerRibbonBg,
                         color: bannerRibbonText,
                         padding: '0.45rem 0.85rem',
                         fontSize: 'clamp(0.72rem, 2vw, 0.85rem)',
@@ -604,7 +617,7 @@ const TrackShipment = () => {
                             <div style={{
                               height: '3px',
                               borderRadius: '2px',
-                              backgroundColor: isCompleted ? activeColor : '#e2e8f0',
+                              background: isCompleted ? stepGradient : '#e2e8f0',
                               transition: 'all 0.3s ease'
                             }} />
                             
@@ -615,7 +628,7 @@ const TrackShipment = () => {
                                   width: '14px',
                                   height: '14px',
                                   borderRadius: '50%',
-                                  backgroundColor: activeColor,
+                                  background: stepGradient,
                                   color: 'white',
                                   display: 'flex',
                                   alignItems: 'center',
@@ -655,7 +668,7 @@ const TrackShipment = () => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      backgroundColor: '#f8fafc',
+                      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
                       border: '1px solid #e2e8f0',
                       borderRadius: '6px',
                       padding: '0.5rem 0.75rem',
@@ -690,18 +703,18 @@ const TrackShipment = () => {
                       backgroundColor: '#ffffff'
                     }}>
                       <div style={{
-                        backgroundColor: '#f1f5f9',
+                        background: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%)',
                         padding: '0.45rem 0.75rem',
                         borderBottom: '1px solid #e2e8f0',
                         fontSize: '0.72rem',
                         fontWeight: 700,
-                        color: '#0C4A6E',
+                        color: '#ffffff',
                         textTransform: 'uppercase',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.35rem'
                       }}>
-                        <Layers size={13} color="#0284c7" /> SHIPMENT DETAILS
+                        <Layers size={13} color="#ffffff" /> SHIPMENT DETAILS
                       </div>
 
                       <div style={{ padding: '0.6rem 0.75rem' }}>
@@ -809,7 +822,7 @@ const TrackShipment = () => {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                       }}>
                         <div style={{
-                          backgroundColor: '#f8fafc',
+                          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
                           padding: '0.5rem 0.75rem',
                           borderBottom: '1px solid #e2e8f0',
                           display: 'flex',
@@ -818,12 +831,12 @@ const TrackShipment = () => {
                           flexWrap: 'wrap',
                           gap: '0.4rem'
                         }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase' }}>
-                            <FileText size={14} color="#2563eb" /> Invoice & E-Way Bill Details ({invoices.length})
+                          <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase' }}>
+                            <FileText size={14} color="#ffffff" /> Invoice & E-Way Bill Details ({invoices.length})
                           </div>
                           {b.eway_bill && (
-                            <div style={{ fontSize: '0.72rem', color: '#475569', fontWeight: 600 }}>
-                              E-WAY: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{b.eway_bill}</strong>
+                            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
+                              E-WAY: <strong style={{ color: '#ffffff', fontFamily: 'monospace' }}>{b.eway_bill}</strong>
                             </div>
                           )}
                         </div>
@@ -831,7 +844,7 @@ const TrackShipment = () => {
                         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', minWidth: '520px', textTransform: 'uppercase' }}>
                             <thead>
-                              <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700, borderBottom: '1px solid #cbd5e1' }}>
+                              <tr style={{ background: 'linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)', color: '#475569', fontWeight: 700, borderBottom: '1px solid #cbd5e1' }}>
                                 <th style={{ padding: '5px 6px', width: '28px' }}>#</th>
                                 <th style={{ padding: '5px 6px' }}>INVOICE NO</th>
                                 <th style={{ padding: '5px 6px' }}>DATE</th>
