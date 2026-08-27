@@ -147,9 +147,33 @@ exports.post_generate_5 = async (req, res) => {
       totalPackaging += packaging;
       totalHandling += handling;
 
-      const lrNumber = booking.awb || booking.lrNumber || booking.id;
-      const refNumber = booking.invoice_no || booking.refNo || booking.reference_no || "-";
-      const lrDateFormatted = booking.dispatch_date ? new Date(booking.dispatch_date).toLocaleDateString("en-GB") : (booking.date ? new Date(booking.date).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"));
+      function formatAnyDate(val) {
+        if (!val) return "";
+        if (typeof val === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(val)) return val;
+        if (typeof val === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+          const p = val.split('/');
+          return `${p[0]}-${p[1]}-${p[2]}`;
+        }
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return String(val).split('T')[0] || "";
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+      }
+
+      let refNumber = "-";
+      if (booking.invoiceDetails && Array.isArray(booking.invoiceDetails) && booking.invoiceDetails.length > 0) {
+        const invs = booking.invoiceDetails.map(it => it.invoiceNo || it.invoiceNumber || it.invoice_no).filter(Boolean);
+        if (invs.length > 0) refNumber = invs.join(", ");
+      }
+      if (refNumber === "-" || !refNumber) {
+        refNumber = booking.invoiceNo || booking.invoice_no || booking.refNo || booking.ref || booking.reference_no || booking.invoiceNumber || booking.ewayBill || "-";
+      }
+
+      const lrNumber = booking.awb || booking.consignment || booking.lrNo || booking.lrNumber || booking.id;
+      const rawDate = booking.dispatch_date || booking.date || booking.createdAt || booking.bookingDate;
+      const lrDateFormatted = formatAnyDate(rawDate) || formatAnyDate(new Date());
       const originCity = booking.origin || "-";
       const destCity = booking.destination || "-";
       const pkgQty = editedData && editedData.pkg !== undefined && editedData.pkg !== "" ? parseInt(editedData.pkg || 0) : parseInt(booking.box || booking.pkg || booking.boxes || booking.package_count || booking.packages || booking.pcs || 1);
@@ -159,8 +183,12 @@ exports.post_generate_5 = async (req, res) => {
       aggregatedItems.push({
         si: i + 1,
         awb: lrNumber,
+        lrNo: lrNumber,
         awb_date: lrDateFormatted,
+        lrDt: lrDateFormatted,
         ref: refNumber,
+        refNo: refNumber,
+        invoiceNo: refNumber,
         origin: originCity,
         destination: destCity,
         box: pkgQty,

@@ -9,6 +9,49 @@ import appDB from "../utils/appDB";
 import { downloadViaPuppeteer, getPdfBase64ViaPuppeteer } from "../utils/puppeteerPdf";
 import { formatDate } from "../utils/formatters";
 
+// Robust Date Formatter that handles DD-MM-YYYY, ISO strings, and timestamp objects
+const formatRowDate = (dateVal) => {
+  if (!dateVal) return "-";
+  if (typeof dateVal === "string" && /^\d{2}-\d{2}-\d{4}$/.test(dateVal)) {
+    return dateVal;
+  }
+  if (typeof dateVal === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(dateVal)) {
+    const parts = dateVal.split("/");
+    return `${parts[0]}-${parts[1]}-${parts[2]}`;
+  }
+  const formatted = formatDate(dateVal);
+  return formatted !== "-" ? formatted : String(dateVal).split("T")[0] || "-";
+};
+
+// Formats invoice reference to show at most 2 invoice numbers followed by ...
+const formatShortInvoiceRef = (item) => {
+  let invList = [];
+  if (Array.isArray(item?.invoiceDetails) && item.invoiceDetails.length > 0) {
+    invList = item.invoiceDetails.map(i => i.invoiceNo || i.invoiceNumber || i.invoice_no).filter(Boolean);
+  }
+  
+  if (invList.length === 0) {
+    const rawRef = item?.ref || item?.refNo || item?.invoiceNo || item?.invoiceNumber || item?.invoice_no || "";
+    if (rawRef && rawRef !== "-") {
+      invList = String(rawRef).split(/[,/;\s]+/).map(s => s.trim()).filter(Boolean);
+    }
+  }
+
+  if (invList.length === 0) {
+    return { shortText: "-", fullText: "-" };
+  }
+
+  const fullText = invList.join(", ");
+  if (invList.length <= 2) {
+    return { shortText: fullText, fullText };
+  } else {
+    return {
+      shortText: `${invList[0]}, ${invList[1]}...`,
+      fullText
+    };
+  }
+};
+
 // Indian Currency Number to Words converter
 const numberToWordsIndian = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "Rs. Zero Only.";
@@ -869,48 +912,49 @@ const BillView1 = () => {
           </div>
 
           {/* LR / Items Table Grid (EXACT 16 COLUMNS OPTIMIZED FOR ALL DATA) */}
-          <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.74rem" }}>
+          <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.74rem", boxSizing: "border-box" }}>
             <thead>
               <tr style={{ background: "#FFFFFF", color: "#000000", borderBottom: "1.5px solid #000000" }}>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "3%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>SI</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>LR NO</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>LR DT</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "9.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>REF</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "11%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>ORG</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "11%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>DEST</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4.5%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>PKG</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>WT</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>RATE</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>FREIGHT</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>AWB</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>PCK</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>DEL</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>SPL</th>
-                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>OTH</th>
-                <th style={{ padding: "0.3rem 0.2rem", width: "11.5%", textAlign: "right", fontWeight: "800", fontSize: "0.58rem", wordBreak: "break-word" }}>TOTAL</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "3%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>SI</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>LR NO</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>LR DT</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "10%", textAlign: "center", fontWeight: "800", fontSize: "0.54rem", wordBreak: "break-word" }}>REF / INV</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "10.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>ORG</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "10.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>DEST</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>PKG</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>WT</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4.5%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>RATE</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "7%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>FREIGHT</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>AWB</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>PCK</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>DEL</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>SPL</th>
+                <th style={{ padding: "0.3rem 0.1rem", borderRight: "1px solid #334155", width: "4%", textAlign: "center", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>OTH</th>
+                <th style={{ padding: "0.3rem 0.2rem", width: "11.5%", textAlign: "right", fontWeight: "800", fontSize: "0.56rem", wordBreak: "break-word" }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
               {itemsList.map((item, idx) => {
-                const refVal = item.ref || item.invoiceNo || item.invoiceNumber || item.invoice_number || (Array.isArray(item.invoiceDetails) ? item.invoiceDetails.map(i => i.invoiceNo || i.invoiceNumber).filter(Boolean).join(", ") : "") || "-";
+                const { shortText: refVal, fullText: fullRef } = formatShortInvoiceRef(item);
+                const lrDateStr = formatRowDate(item.lrDt || item.awb_date || item.dispatch_date || item.date || item.createdAt);
                 return (
                   <tr key={idx} style={{ pageBreakInside: "avoid", borderBottom: "1.5px solid #000000", background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.si || idx + 1}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.lrNo || item.awb}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{formatDate(item.lrDt || item.awb_date || item.date)}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600", fontSize: "0.60rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{refVal}</td>
-                    <td style={{ padding: "0.25rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.org || item.origin}</td>
-                    <td style={{ padding: "0.25rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.dest || item.destination}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.pkg || item.box}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.wt || item.weight}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.rate}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.frg || item.frieght}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.lr || item.awb_charge}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.pick || item.pickup}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.del || item.delivery}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.spl || item.special_delivery}</td>
-                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.oth || item.other_charge}</td>
-                    <td style={{ padding: "0.25rem 0.2rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.62rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "700", fontSize: "0.60rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.si || idx + 1}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "800", color: "#0C4A6E", fontSize: "0.60rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.lrNo || item.awb}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{lrDateStr}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontWeight: "600", fontSize: "0.50rem", wordBreak: "break-all", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.05", color: "#1e293b" }} title={fullRef}>{refVal}</td>
+                    <td style={{ padding: "0.25rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.org || item.origin}</td>
+                    <td style={{ padding: "0.25rem 0.15rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.dest || item.destination}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.pkg || item.box}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.wt || item.weight}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.rate}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.frg || item.frieght}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.lr || item.awb_charge}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.pick || item.pickup}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.del || item.delivery}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.spl || item.special_delivery}</td>
+                    <td style={{ padding: "0.25rem 0.1rem", borderRight: "1px solid #000000", textAlign: "center", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.oth || item.other_charge}</td>
+                    <td style={{ padding: "0.25rem 0.2rem", textAlign: "right", fontWeight: "800", color: "#0F172A", fontSize: "0.58rem", wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "normal", lineHeight: "1.15" }}>{item.total || (parseFloat(item.frieght || 0) + parseFloat(item.awb_charge || 0) + parseFloat(item.pickup || 0) + parseFloat(item.delivery || 0) + parseFloat(item.special_delivery || 0) + parseFloat(item.other_charge || 0)).toFixed(2)}</td>
                   </tr>
                 );
               })}
