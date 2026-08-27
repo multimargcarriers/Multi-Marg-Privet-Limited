@@ -57,14 +57,26 @@ const formatCleanDate = (dateStr) => {
 };
 
 const formatCleanDateTime = (dateStr) => {
-  const d = parseDateSecurely(dateStr);
+  if (!dateStr) return "N/A";
+  const str = String(dateStr).trim();
+  const d = parseDateSecurely(str);
   if (d) {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, '0');
-    const mins = String(d.getMinutes()).padStart(2, '0');
-    return `${day}-${month}-${year} ${hours}:${mins}`;
+
+    const hasTime = str.includes('T') || str.includes(':');
+    if (hasTime) {
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const formattedHours = String(hours).padStart(2, '0');
+      return `${day}-${month}-${year}, ${formattedHours}:${minutes} ${ampm}`;
+    }
+
+    return `${day}-${month}-${year}`;
   }
   return "N/A";
 };
@@ -801,7 +813,7 @@ const Tracking = () => {
                           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                             <span style={{ fontSize: "0.825rem", color: "#475569", background: isLatest ? "#ffffff" : "#f1f5f9", padding: "0.25rem 0.75rem", borderRadius: "20px", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.35rem", border: "1px solid #e2e8f0" }}>
                               <Clock size={13} color="#64748b" />
-                              {formatCleanDateTime(entry.date || entry.updatedAt)}
+                              {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
                             </span>
                           </div>
                         </div>

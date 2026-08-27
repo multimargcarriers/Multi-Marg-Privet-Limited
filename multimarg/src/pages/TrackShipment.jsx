@@ -29,16 +29,46 @@ const formatCleanDate = (dateStr) => {
 
 const formatCleanDateTime = (dateStr) => {
   if (!dateStr) return "N/A";
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, '0');
-    const mins = String(d.getMinutes()).padStart(2, '0');
-    return `${day}-${month}-${year} ${hours}:${mins}`;
+  let d = null;
+  const str = String(dateStr).trim();
+  
+  // Try parsing ISO or Date string
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    d = parsed;
+  } else {
+    // Try DD-MM-YYYY or DD/MM/YYYY with optional time
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      const year = parseInt(dmyMatch[3], 10);
+      const hours = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0;
+      const mins = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0;
+      const secs = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0;
+      d = new Date(year, month, day, hours, mins, secs);
+    }
   }
-  return formatCleanDate(dateStr);
+
+  if (!d || isNaN(d.getTime())) return str;
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  // If date string contains an explicit time (ISO with T or time string), format with AM/PM
+  const hasTime = str.includes('T') || str.includes(':');
+  if (hasTime) {
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // '0' -> 12
+    const formattedHours = String(hours).padStart(2, '0');
+    return `${day}-${month}-${year}, ${formattedHours}:${minutes} ${ampm}`;
+  }
+
+  return `${day}-${month}-${year}`;
 };
 
 const normalizeStatus = (status) => {
@@ -613,7 +643,7 @@ const TrackShipment = () => {
                                 whiteSpace: 'nowrap'
                               }}>
                                 <Clock size={13} color="#64748b" />
-                                {formatCleanDateTime(entry.date || entry.updatedAt)}
+                                {formatCleanDateTime(entry.updatedAt || entry.createdAt || entry.date)}
                               </span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155', fontSize: '0.95rem', fontWeight: 600 }}>

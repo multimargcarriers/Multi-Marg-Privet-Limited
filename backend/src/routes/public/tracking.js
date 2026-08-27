@@ -43,14 +43,15 @@ router.get('/:awb', async (req, res) => {
     const entries = [];
     snapshot.forEach(doc => {
       const data = doc.data();
+      const realTimestamp = data.updatedAt || data.createdAt || (data.date && data.date.includes('T') ? data.date : null) || new Date().toISOString();
       entries.push({
         id: doc.id,
         awb: data.awb,
         status: data.status,
         location: data.location,
-        date: data.date,
+        date: realTimestamp,
         remarks: data.remarks,
-        updatedAt: data.updatedAt || data.date || new Date().toISOString()
+        updatedAt: realTimestamp
       });
     });
 
@@ -75,6 +76,7 @@ router.get('/:awb', async (req, res) => {
           consignor: b.consignor || null,
           consignee: b.consignee || null,
           date: b.dispatch_date || b.date || b.createdAt || null,
+          createdAt: b.createdAt || b.realBookingDate || b.created_at || null,
           mode: b.mode || null,
           box: b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount || null,
           invoiceDetails: b.invoiceDetails || [],
@@ -86,11 +88,12 @@ router.get('/:awb', async (req, res) => {
     });
     
     if (booking) {
-      const parseDateString = (dateStr) => {
+      const parseDateString = (dateStr, fallbackIso) => {
+        if (fallbackIso && !isNaN(new Date(fallbackIso).getTime())) return new Date(fallbackIso);
         if (!dateStr) return new Date();
         let parsed = new Date(dateStr);
         if (!isNaN(parsed.getTime())) return parsed;
-        const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+        const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
         if (dmyMatch) {
           const day = parseInt(dmyMatch[1], 10);
           const month = parseInt(dmyMatch[2], 10) - 1;
@@ -101,7 +104,7 @@ router.get('/:awb', async (req, res) => {
         return new Date();
       };
 
-      const bookingDateObj = parseDateString(booking.date);
+      const bookingDateObj = parseDateString(booking.date, booking.createdAt);
       const bookingDateISO = bookingDateObj.toISOString();
 
       // 1. Shipment Booked milestone
@@ -121,7 +124,7 @@ router.get('/:awb', async (req, res) => {
       // 2. Picked Up milestone (automatically after booked at Origin)
       const hasPickedUpStatus = entries.some(e => String(e.status || '').toLowerCase().includes("pickup") || String(e.status || '').toLowerCase().includes("picked"));
       if (!hasPickedUpStatus) {
-        const pickupDateObj = new Date(bookingDateObj.getTime() + 60 * 60 * 1000);
+        const pickupDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
         const pickupDateISO = pickupDateObj.toISOString();
         entries.push({
           id: `picked-${booking.id || baseAwb}`,

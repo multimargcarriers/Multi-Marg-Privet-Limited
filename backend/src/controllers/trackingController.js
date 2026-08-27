@@ -42,8 +42,16 @@ exports.postRoot_3 = async (req, res) => {
   entry.enteredById = req.user?.id || null;
   entry.enteredByRole = req.user?.role || "Unknown";
 
-  entry.date = entry.date || new Date().toISOString();
-  entry.updatedAt = new Date().toISOString();
+  const now = new Date().toISOString();
+  if (!entry.date || !entry.date.includes('T')) {
+    if (entry.date && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
+      entry.date = `${entry.date}T${now.split('T')[1]}`;
+    } else {
+      entry.date = now;
+    }
+  }
+  entry.createdAt = entry.createdAt || now;
+  entry.updatedAt = now;
   const docRef = await db.collection("tracking").add(entry);
 
   // Sync transit status into matching booking
@@ -227,7 +235,14 @@ exports.postBulk_6 = async (req, res) => {
   const enteredById = req.user?.id || null;
   const enteredByRole = req.user?.role || "Admin";
   const now = new Date().toISOString();
-  const trackingDate = date || now.split('T')[0];
+  let trackingDate = now;
+  if (date) {
+    if (date.includes('T')) {
+      trackingDate = date;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      trackingDate = `${date}T${now.split('T')[1]}`;
+    }
+  }
 
   const createdEntries = [];
 
