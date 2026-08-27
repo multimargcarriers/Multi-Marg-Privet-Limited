@@ -981,12 +981,7 @@ const PrintLR = () => {
 
                   {/* Charges (Right Side) */}
                   <div style={{ width: "320px", borderBottom: "1px solid #cbd5e1" }}>
-                    <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1", borderLeft: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>5. Financials</span>
-                      <span style={{ fontSize: "0.62rem", fontWeight: "800", background: "#f8fafc", color: "#1e3a8a", padding: "1px 6px", borderRadius: "3px", textTransform: "uppercase", border: "1px solid #cbd5e1" }}>
-                        {(booking.paymentMode || "Credit").toUpperCase()}
-                      </span>
-                    </div>
+                    <div className="section-header" style={{ borderBottom: "1px solid #cbd5e1", borderLeft: "none" }}>5. Financials</div>
                     <table className="bilty-table" style={{ border: "none" }}>
                       <tbody>
                         <tr>
