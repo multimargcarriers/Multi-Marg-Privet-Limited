@@ -152,8 +152,8 @@ exports.post_generate_5 = async (req, res) => {
       const lrDateFormatted = booking.dispatch_date ? new Date(booking.dispatch_date).toLocaleDateString("en-GB") : (booking.date ? new Date(booking.date).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"));
       const originCity = booking.origin || "-";
       const destCity = booking.destination || "-";
-      const pkgQty = editedData && editedData.pkg !== undefined ? parseInt(editedData.pkg || 0) : (booking.package_count || booking.pcs || booking.packages || 1);
-      const wtVal = editedData && editedData.wt !== undefined ? parseFloat(editedData.wt || 0) : (booking.weight_chargeable || booking.weight || 0);
+      const pkgQty = editedData && editedData.pkg !== undefined && editedData.pkg !== "" ? parseInt(editedData.pkg || 0) : parseInt(booking.box || booking.pkg || booking.boxes || booking.package_count || booking.packages || booking.pcs || 1);
+      const wtVal = editedData && editedData.wt !== undefined && editedData.wt !== "" ? parseFloat(editedData.wt || 0) : parseFloat(booking.charge_wt || booking.chargeable_weight || booking.chargeWeight || booking.weight_chargeable || booking.weight || booking.actual_wt || 0);
       const rateVal = editedData && editedData.rate !== undefined ? parseFloat(editedData.rate || 0) : (booking.rate || 0);
 
       aggregatedItems.push({
@@ -164,7 +164,9 @@ exports.post_generate_5 = async (req, res) => {
         origin: originCity,
         destination: destCity,
         box: pkgQty,
+        pkg: pkgQty,
         weight: wtVal,
+        wt: wtVal,
         rate: rateVal,
         frieght: freight,
         awb_charge: awb,
@@ -251,14 +253,14 @@ exports.post_generate_5 = async (req, res) => {
     cgst,
     sgst,
     igst,
-      lrNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
-      lrDate: invoiceDate ? new Date(invoiceDate).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
-      refNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
-      date: invoiceDate ? new Date(invoiceDate).toISOString() : new Date().toISOString(),
-      origin: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.origin,
-      destination: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.destination,
-    packages: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseInt(curr.pkg || 0), 0) : firstBooking.package_count,
-    weight: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseFloat(curr.wt || 0), 0) : firstBooking.weight_chargeable,
+    lrNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
+    lrDate: invoiceDate ? new Date(invoiceDate).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"),
+    refNo: bookingIds.length > 1 ? "MULTIPLE" : (firstBooking.awb || firstBooking.lrNumber || firstBooking.id),
+    date: invoiceDate ? new Date(invoiceDate).toISOString() : new Date().toISOString(),
+    origin: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.origin,
+    destination: bookingIds.length > 1 ? "MULTIPLE" : firstBooking.destination,
+    packages: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseInt(curr.pkg || curr.box || 0), 0) : parseInt(firstBooking.box || firstBooking.pkg || firstBooking.boxes || firstBooking.package_count || firstBooking.packages || firstBooking.pcs || aggregatedItems[0]?.box || 1),
+    weight: bookingIds.length > 1 ? aggregatedItems.reduce((acc, curr) => acc + parseFloat(curr.wt || curr.weight || 0), 0) : parseFloat(firstBooking.charge_wt || firstBooking.chargeable_weight || firstBooking.chargeWeight || firstBooking.weight_chargeable || firstBooking.weight || aggregatedItems[0]?.weight || 0),
     rate: bookingIds.length > 1 ? 0 : firstBooking.rate,
     freight: totalFreight,
     lrCharge: totalAwb,
@@ -316,8 +318,11 @@ exports.post_generate_5 = async (req, res) => {
 
   await delCache(CACHE_KEY);
   await delCache("bookings");
+  await delCache("unbilled");
   
-  emitDataUpdated("bills", "update");
+  emitDataUpdated("bills", "create");
+  emitDataUpdated("bookings", "update");
+  emitDataUpdated("unbilled", "update");
 
   logUserActivity(req, {
     type: 'bill_generate',
@@ -445,7 +450,11 @@ exports.put_id_7 = async (req, res) => {
       await recalculatePartyPayments('Client', newClient);
   }
   await delCache(CACHE_KEY);
+  await delCache("bookings");
+  await delCache("unbilled");
   emitDataUpdated("bills", "update");
+  emitDataUpdated("bookings", "update");
+  emitDataUpdated("unbilled", "update");
 
   logUserActivity(req, {
     type: 'bill_update',
@@ -466,26 +475,50 @@ exports.delete_id_8 = async (req, res) => {
   if (!doc.exists) return error(res, "Bill not found", 404);
 
   const billData = doc.data();
+  const targetBillNo = billData.billNo || billData.invoice || id;
+  const lrsToRevert = new Set();
+  if (billData.lrNo && billData.lrNo !== 'MULTIPLE') {
+    lrsToRevert.add(String(billData.lrNo).trim());
+  }
   if (billData.items && Array.isArray(billData.items)) {
-    for (const item of billData.items) {
-      const lrNo = item.awb || item.lrNo;
-      if (lrNo) {
-        // Query by awb
-        const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
-        byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
+    billData.items.forEach(item => {
+      if (item.awb) lrsToRevert.add(String(item.awb).trim());
+      if (item.lrNo) lrsToRevert.add(String(item.lrNo).trim());
+    });
+  }
+  const lrList = Array.from(lrsToRevert);
 
-        // Query by id field just in case
-        const byIdField = await db.collection("bookings").where("id", "==", lrNo).get();
-        byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
-
-        // Check if lrNo is the document ID directly
-        try {
-          const directDoc = await db.collection("bookings").doc(lrNo).get();
-          if (directDoc.exists) {
-            await db.collection("bookings").doc(lrNo).update({ status: "Booked", billed: false, billNo: "" });
-          }
-        } catch(e) {}
+  if (db.mongoDb) {
+    const orClauses = [
+      { billNo: targetBillNo },
+      { billNo: billData.billNo },
+      { billNo: billData.invoice }
+    ];
+    if (lrList.length > 0) {
+      orClauses.push({ consignment: { $in: lrList } });
+      orClauses.push({ awb: { $in: lrList } });
+      orClauses.push({ lrNo: { $in: lrList } });
+      orClauses.push({ lrNumber: { $in: lrList } });
+      orClauses.push({ id: { $in: lrList } });
+    }
+    await db.mongoDb.collection("bookings").updateMany(
+      { $or: orClauses },
+      {
+        $set: {
+          status: "Booked",
+          billed: false,
+          billNo: ""
+        }
       }
+    );
+  } else {
+    for (const lrNo of lrList) {
+      const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
+      byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
+      const byConsignment = await db.collection("bookings").where("consignment", "==", lrNo).get();
+      byConsignment.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
+      const byLrNo = await db.collection("bookings").where("lrNo", "==", lrNo).get();
+      byLrNo.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
     }
   }
 
@@ -504,7 +537,10 @@ exports.delete_id_8 = async (req, res) => {
   }
   await delCache(CACHE_KEY);
   await delCache("bookings");
+  await delCache("unbilled");
   emitDataUpdated("bills", "delete");
+  emitDataUpdated("bookings", "update");
+  emitDataUpdated("unbilled", "update");
 
   logUserActivity(req, {
     type: 'bill_delete',
@@ -753,24 +789,49 @@ exports.delete_clear_all_10 = async (req, res) => {
     for (const item of docsToDelete) {
       batch.delete(db.collection("bills").doc(item.id));
 
-      // Revert booking statuses back to "Booked"
+      // Revert booking statuses back to "Booked" & billed: false
+      const targetBillNo = item.data.billNo || item.data.invoice || item.id;
+      const lrsToRevert = new Set();
+      if (item.data.lrNo && item.data.lrNo !== 'MULTIPLE') {
+        lrsToRevert.add(String(item.data.lrNo).trim());
+      }
       if (item.data.items && Array.isArray(item.data.items)) {
-        for (const lrItem of item.data.items) {
-          const lrNo = lrItem.awb || lrItem.lrNo;
-          if (lrNo) {
-            const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
-            byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
+        item.data.items.forEach(lrItem => {
+          if (lrItem.awb) lrsToRevert.add(String(lrItem.awb).trim());
+          if (lrItem.lrNo) lrsToRevert.add(String(lrItem.lrNo).trim());
+        });
+      }
+      const lrList = Array.from(lrsToRevert);
 
-            const byIdField = await db.collection("bookings").where("id", "==", lrNo).get();
-            byIdField.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked" }));
-
-            try {
-              const directDoc = await db.collection("bookings").doc(lrNo).get();
-              if (directDoc.exists) {
-                await db.collection("bookings").doc(lrNo).update({ status: "Booked" });
-              }
-            } catch(e) {}
+      if (db.mongoDb) {
+        const orClauses = [
+          { billNo: targetBillNo },
+          { billNo: item.data.billNo },
+          { billNo: item.data.invoice }
+        ];
+        if (lrList.length > 0) {
+          orClauses.push({ consignment: { $in: lrList } });
+          orClauses.push({ awb: { $in: lrList } });
+          orClauses.push({ lrNo: { $in: lrList } });
+          orClauses.push({ lrNumber: { $in: lrList } });
+          orClauses.push({ id: { $in: lrList } });
+        }
+        await db.mongoDb.collection("bookings").updateMany(
+          { $or: orClauses },
+          {
+            $set: {
+              status: "Booked",
+              billed: false,
+              billNo: ""
+            }
           }
+        );
+      } else {
+        for (const lrNo of lrList) {
+          const byAwb = await db.collection("bookings").where("awb", "==", lrNo).get();
+          byAwb.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
+          const byConsignment = await db.collection("bookings").where("consignment", "==", lrNo).get();
+          byConsignment.forEach(bDoc => db.collection("bookings").doc(bDoc.id).update({ status: "Booked", billed: false, billNo: "" }));
         }
       }
 
@@ -803,7 +864,10 @@ exports.delete_clear_all_10 = async (req, res) => {
 
     await delCache(CACHE_KEY);
     await delCache("bookings");
+    await delCache("unbilled");
     emitDataUpdated("bills", "delete");
+    emitDataUpdated("bookings", "update");
+    emitDataUpdated("unbilled", "update");
     return success(res, `Successfully moved ${docsToDelete.length} bills to Trash.`);
   } catch (err) {
     console.error("Error clearing bills:", err);

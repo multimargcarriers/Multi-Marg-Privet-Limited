@@ -18,6 +18,7 @@ import {
 import CopyButton, { AwbBadge } from "../../components/CopyButton";
 import ExportModal from "../../components/ExportModal";
 import { exportUnbilledReport } from "../../utils/excelExport";
+import { useSocketSync } from "../../hooks/useSocketSync";
 
 // Robust Date Formatter that handles DD-MM-YYYY, ISO strings, and timestamp objects
 const formatRowDate = (dateVal) => {
@@ -58,9 +59,12 @@ const getChargeableWeight = (b) => {
 
 // Get Box / Package Count across all possible DB field names
 const getBoxCount = (b) => {
-  let count = parseInt(b.box || b.boxes || b.packages || b.noOfPackages || b.qty || 0, 10);
+  let count = parseInt(b.box || b.boxes || b.packages || b.pkg || b.pcs || b.package_count || b.packageCount || b.noOfPackages || b.qty || 0, 10);
   if (!count && b.parcels && Array.isArray(b.parcels)) {
     count = b.parcels.reduce((acc, p) => acc + (parseInt(p.quantity, 10) || 0), 0);
+  }
+  if (!count && b.dimensions && Array.isArray(b.dimensions)) {
+    count = b.dimensions.reduce((acc, d) => acc + (parseInt(d.boxCount, 10) || 0), 0);
   }
   return count || 0;
 };
@@ -93,6 +97,10 @@ const UnbilledReports = () => {
   const [data, setData] = useState([]);
   const [filters, setFilters] = useState({ fr: "", to: "", search: "" });
   const [loading, setLoading] = useState(false);
+
+  useSocketSync("unbilled", fetchUnbilled);
+  useSocketSync("bookings", fetchUnbilled);
+  useSocketSync("bills", fetchUnbilled);
 
   useEffect(() => {
     fetchUnbilled();

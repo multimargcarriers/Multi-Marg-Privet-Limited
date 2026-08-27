@@ -795,8 +795,24 @@ const BookingsList = () => {
 
                     {/* Package / Box Count Badge */}
                     <span className="booking-meta-badge booking-badge-pkg">
-                      <Package size={13} /> Pkg: {item.box || item.boxes || item.packages || item.packageCount || item.pieces || (item.dimensions && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
+                      <Package size={13} /> Pkg: {item.box || item.boxes || item.packages || item.pkg || item.pcs || item.package_count || item.packageCount || item.pieces || (item.dimensions && Array.isArray(item.dimensions) && item.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1}
                     </span>
+
+                    {/* Weight Badge */}
+                    <span className="booking-meta-badge booking-badge-wt" style={{ background: "#f8fafc", color: "#334155", border: "1px solid #e2e8f0" }}>
+                      ⚖️ Wt: {item.charge_wt || item.chargeable_weight || item.chargeWeight || item.weight || item.actual_wt || "0"} Kg
+                    </span>
+
+                    {/* Billing Status Badge */}
+                    {item.billed === true || String(item.status || '').toLowerCase() === 'billed' || item.billNo ? (
+                      <span className="booking-meta-badge booking-badge-billed" style={{ background: "#ecfdf5", color: "#059669", border: "1px solid #a7f3d0", fontWeight: 700 }} title={`Invoice: ${item.billNo || 'Billed'}`}>
+                        🧾 BILLED {item.billNo ? `(${item.billNo})` : ""}
+                      </span>
+                    ) : (
+                      <span className="booking-meta-badge booking-badge-unbilled" style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", fontWeight: 600 }}>
+                        📄 UNBILLED
+                      </span>
+                    )}
 
                     {item.dimensions && Array.isArray(item.dimensions) && item.dimensions.some(d => d.length || d.breadth || d.height || d.boxCount) && (
                       <span className="booking-meta-badge booking-badge-dims">

@@ -86,8 +86,8 @@ const UpdateBill = () => {
         ref: bItem.ref || bItem.refNo || "-",
         org: bItem.org || bItem.origin || "DELHI",
         dest: bItem.dest || bItem.destination || "PANTNAGAR",
-        pkg: bItem.pkg || bItem.box || bItem.packages || "02",
-        wt: bItem.wt || bItem.weight || bItem.charge_wt || "550",
+        pkg: bItem.pkg || bItem.box || bItem.packages || bItem.package_count || bItem.pcs || "1",
+        wt: bItem.wt || bItem.charge_wt || bItem.weight || bItem.chargeable_weight || "0",
         rate: bItem.rate || "0",
         frg: frg.toString(),
         lr: lr.toString(),
@@ -105,8 +105,8 @@ const UpdateBill = () => {
         ref: bill.refNo || "-",
         org: bill.origin || "DELHI",
         dest: bill.destination || "PANTNAGAR",
-        pkg: bill.packages || "02",
-        wt: bill.weight || "550",
+        pkg: bill.packages || bill.box || bill.pkg || "1",
+        wt: bill.weight || bill.charge_wt || "0",
         rate: bill.rate || "0",
         frg: bill.freight || "0",
         lr: bill.lrCharge || "0",
@@ -471,8 +471,8 @@ const UpdateBill = () => {
                         <th style={{ padding: "0.4rem", width: "85px" }}>REF NO</th>
                         <th style={{ padding: "0.4rem", width: "75px" }}>ORG</th>
                         <th style={{ padding: "0.4rem", width: "85px" }}>DEST</th>
-                        <th style={{ padding: "0.4rem", width: "55px" }}>PKG</th>
-                        <th style={{ padding: "0.4rem", width: "60px" }}>WT</th>
+                        <th style={{ padding: "0.4rem", width: "75px" }}>PKG</th>
+                        <th style={{ padding: "0.4rem", width: "120px" }}>CHG WT (KG)</th>
                         <th style={{ padding: "0.4rem", width: "60px" }}>RATE</th>
                         <th style={{ padding: "0.4rem", width: "65px" }}>FREIGHT</th>
                         <th style={{ padding: "0.4rem", width: "85px" }}>AWB CHARGE</th>
@@ -507,10 +507,10 @@ const UpdateBill = () => {
                             <input className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.dest} onChange={(e) => handleItemChange(idx, "dest", e.target.value)} />
                           </td>
                           <td style={{ padding: "0.3rem" }}>
-                            <input type="number" className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.pkg} onChange={(e) => handleItemChange(idx, "pkg", e.target.value)} />
+                            <input type="number" className="form-control" style={{ padding: "0.25rem 0.4rem", fontSize: "0.78rem", width: "100%" }} value={item.pkg} onChange={(e) => handleItemChange(idx, "pkg", e.target.value)} />
                           </td>
                           <td style={{ padding: "0.3rem" }}>
-                            <input type="number" className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.wt} onChange={(e) => handleItemChange(idx, "wt", e.target.value)} />
+                            <input type="number" step="any" className="form-control" style={{ padding: "0.25rem 0.4rem", fontSize: "0.78rem", width: "100%" }} value={item.wt} onChange={(e) => handleItemChange(idx, "wt", e.target.value)} title="Charge Weight (Kg)" />
                           </td>
                           <td style={{ padding: "0.3rem" }}>
                             <input type="number" className="form-control" style={{ padding: "0.25rem", fontSize: "0.75rem" }} value={item.rate} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} />

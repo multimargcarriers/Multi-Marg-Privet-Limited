@@ -11,6 +11,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getCurrentFinancialYear, getFinancialYearOptions } from '../utils/financialYear';
+import { useSocketSync } from '../hooks/useSocketSync';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -27,6 +28,10 @@ const GenerateBill = () => {
   const { _user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+
+  useSocketSync("unbilled", () => { fetchData(); });
+  useSocketSync("bookings", () => { fetchData(); });
+  useSocketSync("bills", () => { fetchData(); });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -139,8 +144,8 @@ const GenerateBill = () => {
 
           return {
             ...b,
-            editable_pkg: parseInt(b.package_count || b.pcs || b.packages || 1),
-            editable_wt: parseFloat(b.charge_wt || b.weight_chargeable || b.weight || 0),
+            editable_pkg: parseInt(b.box || b.pkg || b.boxes || b.package_count || b.packages || b.pcs || (b.dimensions && Array.isArray(b.dimensions) && b.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1),
+            editable_wt: parseFloat(b.charge_wt || b.chargeable_weight || b.chargeWeight || b.weight_chargeable || b.weight || b.actual_wt || 0),
             editable_rate: rateValue,
             editable_freight: freight,
             editable_awb: awb,
@@ -282,11 +287,31 @@ const GenerateBill = () => {
   // Filter bookings locally based on the form
   const filteredBookings = !hasSearched ? [] : bookings.filter(b => {
     let match = true;
-    const filterClient = (filters.client && typeof filters.client === 'object' ? filters.client.name : filters.client || "").trim().toLowerCase();
+    const filterClient = (filters.client && typeof filters.client === 'object' ? (filters.client.name || filters.client.client || '') : filters.client || "").trim().toLowerCase();
     const bClient = (b.client || "").trim().toLowerCase();
     
-    if (filterClient && bClient !== filterClient) match = false;
+    if (filterClient) {
+      const normFilter = filterClient.replace(/[^a-z0-9]/g, '');
+      const normB = bClient.replace(/[^a-z0-9]/g, '');
+      if (bClient !== filterClient && !normB.includes(normFilter) && !normFilter.includes(normB)) {
+        match = false;
+      }
+    }
     if (filters.mode && (b.mode || "").toString().trim().toLowerCase() !== filters.mode.trim().toLowerCase()) match = false;
+
+    if (filters.fromDate) {
+      const bDate = new Date(b.dispatch_date || b.date || b.createdAt);
+      const fDate = new Date(filters.fromDate);
+      fDate.setHours(0, 0, 0, 0);
+      if (!isNaN(bDate.getTime()) && bDate < fDate) match = false;
+    }
+    if (filters.toDate) {
+      const bDate = new Date(b.dispatch_date || b.date || b.createdAt);
+      const tDate = new Date(filters.toDate);
+      tDate.setHours(23, 59, 59, 999);
+      if (!isNaN(bDate.getTime()) && bDate > tDate) match = false;
+    }
+
     return match;
   });
 
@@ -464,8 +489,8 @@ const GenerateBill = () => {
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Date</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Origin</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Destination</th>
-                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 80 }}>Pkg</th>
-                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 120 }}>Act/Chg Wt</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 90 }}>Pkg</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 160 }}>Act / Chg Wt (Kg)</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 100 }}>Rate</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 110 }}>Freight</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)", width: 110 }}>Awb Charge</th>
@@ -484,13 +509,13 @@ const GenerateBill = () => {
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{item.dispatch_date || item.date || item.createdAt ? formatDate(item.dispatch_date || item.date || item.createdAt) : "-"}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.origin}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.destination}</td>
-                  <td style={{ padding: "0.5rem" }}>
-                    <input type="number" style={{ width: "100%", minWidth: "65px", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_pkg} onChange={(e) => handleEditableChange(item.id, "editable_pkg", e.target.value)} onClick={(e) => e.stopPropagation()} />
+                  <td style={{ padding: "0.5rem", minWidth: "80px" }}>
+                    <input type="number" style={{ width: "100%", minWidth: "70px", padding: "0.45rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_pkg} onChange={(e) => handleEditableChange(item.id, "editable_pkg", e.target.value)} onClick={(e) => e.stopPropagation()} title="Package Count" />
                   </td>
-                  <td style={{ padding: "0.5rem", minWidth: "100px" }}>
+                  <td style={{ padding: "0.5rem", minWidth: "150px" }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>Act: {item.actual_wt || item.weight || '0'}</div>
-                      <input type="number" style={{ width: "100%", padding: "0.4rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_wt} onChange={(e) => handleEditableChange(item.id, "editable_wt", e.target.value)} onClick={(e) => e.stopPropagation()} title="Charge Weight" />
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Act: {item.actual_wt || item.actualWeight || item.weight || '0'} Kg</div>
+                      <input type="number" step="any" style={{ width: "100%", padding: "0.45rem 0.5rem", fontSize: "0.85rem", border: "1px solid #d1d5db", borderRadius: "4px", outline: "none", background: "#fff" }} value={item.editable_wt} onChange={(e) => handleEditableChange(item.id, "editable_wt", e.target.value)} onClick={(e) => e.stopPropagation()} title="Charge Weight (Kg)" />
                     </div>
                   </td>
                   <td style={{ padding: "0.5rem" }}>

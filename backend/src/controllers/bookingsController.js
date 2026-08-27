@@ -62,8 +62,8 @@ const generateOrUpdateBillForBooking = async (booking, isNew) => {
   const lrDateFormatted = booking.dispatch_date ? new Date(booking.dispatch_date).toLocaleDateString("en-GB") : (booking.date ? new Date(booking.date).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB"));
   const originCity = booking.origin || "-";
   const destCity = booking.destination || "-";
-  const pkgQty = booking.package_count || booking.pcs || booking.packages || 1;
-  const wtVal = booking.weight_chargeable || booking.weight || 0;
+  const pkgQty = booking.box || booking.pkg || booking.boxes || booking.package_count || booking.packages || booking.pcs || 1;
+  const wtVal = booking.charge_wt || booking.chargeable_weight || booking.chargeWeight || booking.weight_chargeable || booking.weight || 0;
   const rateVal = booking.rate || 0;
 
   let existingBillId = null;
@@ -266,7 +266,11 @@ exports.postRoot_1 = async (req, res) => {
   // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
+  await delCache("unbilled");
+  await delCache("bills");
   emitDataUpdated("bookings", "create");
+  emitDataUpdated("unbilled", "update");
+  emitDataUpdated("bills", "update");
 
   logUserActivity(req, {
     type: 'booking_create',
@@ -490,7 +494,11 @@ exports.put_id_4 = async (req, res) => {
   // await generateOrUpdateBillForBooking(updatedBooking, false); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
+  await delCache("unbilled");
+  await delCache("bills");
   emitDataUpdated("bookings", "update");
+  emitDataUpdated("unbilled", "update");
+  emitDataUpdated("bills", "update");
 
   logUserActivity(req, {
     type: 'booking_update',
@@ -553,7 +561,11 @@ exports.delete_id_5 = async (req, res) => {
   }
 
   await delCache(CACHE_KEY);
+  await delCache("unbilled");
+  await delCache("bills");
   emitDataUpdated("bookings", "delete");
+  emitDataUpdated("unbilled", "update");
+  emitDataUpdated("bills", "update");
   return success(res, "Booking and related data deleted successfully");
 };
 
@@ -657,7 +669,11 @@ exports.delete_clear_all_6 = async (req, res) => {
     
     await batch.commit();
     await delCache(CACHE_KEY);
+    await delCache("unbilled");
+    await delCache("bills");
     emitDataUpdated("bookings", "delete");
+    emitDataUpdated("unbilled", "update");
+    emitDataUpdated("bills", "update");
     return success(res, `Successfully moved ${docsToDelete.length} bookings to Trash.`);
   } catch (err) {
     console.error("Error clearing bookings:", err);
