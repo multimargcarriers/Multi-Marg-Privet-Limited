@@ -342,6 +342,7 @@ const publicQuoteRoutes = require("./src/routes/public/quote");
 const publicContactRoutes = require("./src/routes/public/contact");
 const publicCmsRoutes = require("./src/routes/public/cms");
 const publicApplicationsRoutes = require("./src/routes/public/applications");
+const publicChatbotRoutes = require("./src/routes/public/chatbot");
 
 // ============================================================
 // Mount Public Routes
@@ -387,6 +388,7 @@ app.use("/api/public/quote", publicQuoteRoutes);
 app.use("/api/public/contact", publicContactRoutes);
 app.use("/api/public/cms", publicCmsRoutes);
 app.use("/api/public/applications", publicApplicationsRoutes);
+app.use("/api/public/chatbot", publicChatbotRoutes);
 
 // Public Puppeteer PDF Generation Route (Must be mounted before authenticateToken)
 const { generatePDF } = require("./src/utils/pdfGenerator");

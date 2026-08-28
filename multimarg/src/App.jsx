@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Chatbot from './components/Chatbot';
 import { ToastProvider } from './context/ToastContext';
 import { DialogProvider } from './context/DialogContext';
 
@@ -51,6 +52,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <Chatbot />
       </ToastProvider>
     </DialogProvider>
   );

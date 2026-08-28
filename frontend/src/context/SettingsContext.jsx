@@ -23,6 +23,9 @@ export const SettingsProvider = ({ children }) => {
         if (parsed.integrations && parsed.integrations.enableCsvImport === undefined) {
           parsed.integrations.enableCsvImport = true;
         }
+        if (parsed.integrations && parsed.integrations.enablePublicChatbot === undefined) {
+          parsed.integrations.enablePublicChatbot = false;
+        }
         return parsed;
       } catch (_e) {
         console.error("Failed to parse cached globalSettings");
@@ -67,7 +70,8 @@ export const SettingsProvider = ({ children }) => {
       enableBulkDelete: false,
       enableCsvImport: true,
       enableGlobalBookingWindow: true,
-      globalBookingWindowDays: 10
+      globalBookingWindowDays: 10,
+      enablePublicChatbot: false
     },
     modules: {
       masters: true,

@@ -1,6 +1,45 @@
 const express = require("express");
 const router = express.Router();
 const os = require("os");
+const crypto = require("crypto");
+
+// Encrypt text using JWT_SECRET
+const encryptKey = (text) => {
+  if (!text) return "";
+  try {
+    if (text.includes(':')) return text; // already encrypted
+    const secret = process.env.JWT_SECRET || "default_secret_key_for_multimarg";
+    const key = crypto.createHash('sha256').update(secret).digest();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+  } catch (err) {
+    console.error("Encryption failed:", err);
+    return text;
+  }
+};
+
+// Decrypt text using JWT_SECRET
+const decryptKey = (encryptedText) => {
+  if (!encryptedText) return "";
+  try {
+    if (!encryptedText.includes(':')) return encryptedText;
+    const secret = process.env.JWT_SECRET || "default_secret_key_for_multimarg";
+    const key = crypto.createHash('sha256').update(secret).digest();
+    const parts = encryptedText.split(':');
+    const iv = Buffer.from(parts.shift(), 'hex');
+    const encryptedTextBuffer = Buffer.from(parts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedTextBuffer, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    console.error("Decryption failed:", err);
+    return encryptedText;
+  }
+};
 
 const { success, error } = require("../utils/response");
 const { db } = require("../config/database");
@@ -186,7 +225,9 @@ const defaultSettings = {
     enableBulkDelete: false,
     enableCsvImport: true,
     enableGlobalBookingWindow: true,
-    globalBookingWindowDays: 10
+    globalBookingWindowDays: 10,
+    enablePublicChatbot: false,
+    backupGeminiKeys: []
   },
   modules: {
     masters: true,
@@ -247,8 +288,25 @@ router.get("/config", async (req, res) => {
     if (settings.integrations.enableCsvImport === undefined) settings.integrations.enableCsvImport = true;
     if (settings.integrations.enableGlobalBookingWindow === undefined) settings.integrations.enableGlobalBookingWindow = true;
     if (settings.integrations.globalBookingWindowDays === undefined) settings.integrations.globalBookingWindowDays = 10;
+    if (settings.integrations.enablePublicChatbot === undefined) settings.integrations.enablePublicChatbot = false;
+    if (!settings.integrations.backupGeminiKeys) settings.integrations.backupGeminiKeys = [];
     
-    return success(res, "Global configuration fetched", settings);
+    // Mask keys for browser client transmission
+    const maskedKeys = (settings.integrations.backupGeminiKeys || []).map((k, idx) => {
+      const dec = decryptKey(k);
+      if (!dec) return `API KEY ${idx + 1} (MASKED)`;
+      return `${dec.substring(0, 8)}... (MASKED)`;
+    });
+
+    const clientSettings = {
+      ...settings,
+      integrations: {
+        ...settings.integrations,
+        backupGeminiKeys: maskedKeys
+      }
+    };
+    
+    return success(res, "Global configuration fetched", clientSettings);
   } catch (err) {
     console.error("Error fetching config", err);
     return error(res, err);
@@ -267,6 +325,19 @@ router.put("/config", requireSuperAdmin, async (req, res) => {
     const updateData = { ...req.body };
     delete updateData._id;
     delete updateData.type;
+
+    // Encrypt new backup Gemini keys, while keeping unmodified masked keys intact
+    if (updateData.integrations && Array.isArray(updateData.integrations.backupGeminiKeys)) {
+      const dbKeys = existingConfig.integrations?.backupGeminiKeys || [];
+      const newKeys = updateData.integrations.backupGeminiKeys.map((k, idx) => {
+        if (k.includes('(MASKED)')) {
+          return dbKeys[idx] || "";
+        } else {
+          return encryptKey(k);
+        }
+      }).filter(k => k !== "");
+      updateData.integrations.backupGeminiKeys = newKeys;
+    }
     
     // Merge company carefully - never accidentally blank out fields if incoming is empty/missing
     let mergedCompany = {

@@ -68,6 +68,7 @@ const Settings = () => {
   const [stampPreview, setStampPreview] = useState(() => {
     return globalSettings?.company?.companyStampUrl || "";
   });
+  const [backupKeysText, setBackupKeysText] = useState("");
 
   useEffect(() => {
     if (globalSettings?.company) {
@@ -75,6 +76,9 @@ const Settings = () => {
       if (globalSettings.company.companyStampUrl) {
         setStampPreview(globalSettings.company.companyStampUrl);
       }
+    }
+    if (globalSettings?.integrations?.backupGeminiKeys) {
+      setBackupKeysText(globalSettings.integrations.backupGeminiKeys.join('\n'));
     }
   }, [globalSettings]);
 
@@ -913,14 +917,81 @@ const Settings = () => {
                   if (key === 'enableCsvImport') label = 'Enable CSV Import & Template Download';
                   if (key === 'redis') label = 'Redis In-Memory Key Caching';
                   if (key === 'cloudinary') label = 'Cloudinary Document & Image Storage';
+                  if (key === 'enablePublicChatbot') label = 'Public Website AI Chatbot Integration';
                   
                   return (
-                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: key === 'enableBulkDelete' ? '#dc2626' : '#334155', fontWeight: key === 'enableBulkDelete' ? '600' : 'normal' }}>{label}</span>
-                      <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
-                        {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
-                      </button>
-                    </div>
+                    <React.Fragment key={key}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ textTransform: 'capitalize', fontSize: '0.95rem', color: key === 'enableBulkDelete' ? '#dc2626' : '#334155', fontWeight: key === 'enableBulkDelete' ? '600' : 'normal' }}>{label}</span>
+                        <button onClick={() => handleToggle('integrations', key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: value ? '#10b981' : '#94a3b8' }}>
+                          {value ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                        </button>
+                      </div>
+
+                      {key === 'enablePublicChatbot' && value && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#0f172a' }}>
+                            Backup Gemini API Keys (Up to 25 keys)
+                          </label>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.3 }}>
+                            Enter backup keys (one per line). These keys will be securely encrypted in the database using AES-256-CBC, and used as seamless fallbacks if your primary key fails or expires.
+                          </span>
+                          <textarea
+                            rows={4}
+                            placeholder="ENTER GEMINI API KEYS (ONE PER LINE)..."
+                            value={backupKeysText}
+                            onChange={(e) => setBackupKeysText(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '0.78rem',
+                              fontFamily: 'monospace',
+                              resize: 'vertical',
+                              outline: 'none',
+                              color: '#334155'
+                            }}
+                          />
+                          <button
+                            onClick={async () => {
+                              const lines = backupKeysText
+                                .split('\n')
+                                .map(l => l.trim())
+                                .filter(l => l !== '')
+                                .slice(0, 25);
+                              
+                              const updated = {
+                                ...globalSettings,
+                                integrations: {
+                                  ...globalSettings.integrations,
+                                  backupGeminiKeys: lines
+                                }
+                              };
+                              const success = await updateGlobalSettings(updated);
+                              if (success) {
+                                addToast("Backup Gemini keys updated and encrypted successfully!", "success");
+                              } else {
+                                addToast("Failed to update backup keys.", "error");
+                              }
+                            }}
+                            style={{
+                              alignSelf: 'flex-end',
+                              padding: '0.35rem 0.75rem',
+                              fontSize: '0.75rem',
+                              backgroundColor: '#0F172A',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Save Backup Keys
+                          </button>
+                        </div>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </div>
