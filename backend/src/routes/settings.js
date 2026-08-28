@@ -226,7 +226,7 @@ const defaultSettings = {
     enableCsvImport: true,
     enableGlobalBookingWindow: true,
     globalBookingWindowDays: 10,
-    enablePublicChatbot: false,
+    enablePublicChatbot: true,
     backupGeminiKeys: []
   },
   modules: {
@@ -288,7 +288,7 @@ router.get("/config", async (req, res) => {
     if (settings.integrations.enableCsvImport === undefined) settings.integrations.enableCsvImport = true;
     if (settings.integrations.enableGlobalBookingWindow === undefined) settings.integrations.enableGlobalBookingWindow = true;
     if (settings.integrations.globalBookingWindowDays === undefined) settings.integrations.globalBookingWindowDays = 10;
-    if (settings.integrations.enablePublicChatbot === undefined) settings.integrations.enablePublicChatbot = false;
+    if (settings.integrations.enablePublicChatbot === undefined) settings.integrations.enablePublicChatbot = true;
     if (!settings.integrations.backupGeminiKeys) settings.integrations.backupGeminiKeys = [];
     
     // Mask keys for browser client transmission

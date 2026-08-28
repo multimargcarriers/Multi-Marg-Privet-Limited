@@ -212,20 +212,21 @@ const Chatbot = () => {
         <div
           style={{
             position: 'fixed',
-            bottom: isMobile ? '16px' : '26px',
-            right: isMobile ? '16px' : '26px',
-            width: isMobile ? 'calc(100vw - 32px)' : '385px',
-            height: isMobile ? 'calc(100vh - 32px)' : '550px',
-            maxHeight: isMobile ? 'none' : '650px',
+            bottom: isMobile ? '0' : '26px',
+            right: isMobile ? '0' : '26px',
+            width: isMobile ? '100vw' : '385px',
+            height: isMobile ? '100vh' : '550px',
+            maxHeight: isMobile ? '100vh' : '650px',
             backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            boxShadow: '0 12px 36px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)',
+            borderRadius: isMobile ? '0' : '16px',
+            boxShadow: isMobile ? 'none' : '0 12px 36px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            border: '1px solid #e2e8f0',
+            border: isMobile ? 'none' : '1px solid #e2e8f0',
             animation: 'slideUpChat 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-            fontFamily: "'Roboto', sans-serif"
+            fontFamily: "'Roboto', sans-serif",
+            zIndex: 999999
           }}
         >
           {/* Header */}
