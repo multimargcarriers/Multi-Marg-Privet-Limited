@@ -269,8 +269,8 @@ const Home = () => {
                               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
                               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                             >
-                              <strong style={{ color: 'var(--text-color)', fontSize: '0.95rem' }}>{b.branch}</strong>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.address}</span>
+                              <strong style={{ color: 'var(--text-color)', fontSize: '0.95rem' }}>{(b.branch || '').toUpperCase()}</strong>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b.address || '').toUpperCase()}</span>
                             </div>
                           ))
                         ) : (
@@ -590,15 +590,15 @@ const Home = () => {
         {selectedBranch && (
           <div style={{ textAlign: 'center' }}>
             <MapPin size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1rem' }} />
-            <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{selectedBranch.branch} Branch</h3>
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{(selectedBranch.branch || '').toUpperCase()} BRANCH</h3>
             <div style={{ background: 'var(--bg-light-grey)', padding: '1rem', borderRadius: '8px', margin: '1.5rem 0', textAlign: 'left' }}>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <MapPin size={18} color="var(--primary-red)" style={{ flexShrink: 0, marginTop: '3px' }}/>
-                <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{selectedBranch.address}</span>
+                <span style={{ fontSize: '0.95rem', textTransform: 'uppercase' }}>{(selectedBranch.address || '').toUpperCase()}</span>
               </p>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <Users size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                <span style={{ fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase' }}>{selectedBranch.name || 'Branch Manager'}</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '500', textTransform: 'uppercase' }}>{(selectedBranch.name || 'Branch Manager').toUpperCase()}</span>
               </p>
               <p style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', color: 'var(--text-dark)' }}>
                 <Phone size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
@@ -607,7 +607,7 @@ const Home = () => {
               {selectedBranch.email && (
                 <p style={{ display: 'flex', gap: '0.75rem', color: 'var(--text-dark)' }}>
                   <Mail size={18} color="var(--primary-blue)" style={{ flexShrink: 0 }}/>
-                  <span style={{ fontSize: '0.95rem', textTransform: 'lowercase' }}>{selectedBranch.email}</span>
+                  <span style={{ fontSize: '0.95rem', textTransform: 'lowercase' }}>{(selectedBranch.email || '').toLowerCase()}</span>
                 </p>
               )}
             </div>

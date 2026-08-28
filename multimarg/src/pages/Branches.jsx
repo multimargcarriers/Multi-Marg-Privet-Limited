@@ -32,8 +32,8 @@ const BranchCard = ({ branch, bIdx, fadeInUp }) => {
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <h3 style={{ fontSize: '1.5rem', color: '#0f172a', margin: '0 0 0.25rem 0', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{branch.branch}</h3>
-          {branch.code && <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>CODE: {branch.code}</span>}
+          <h3 style={{ fontSize: '1.5rem', color: '#0f172a', margin: '0 0 0.25rem 0', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{(branch.branch || '').toUpperCase()}</h3>
+          {branch.code && <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>CODE: {(branch.code || '').toUpperCase()}</span>}
         </div>
         <span style={{ 
           fontSize: '0.75rem', 
@@ -56,7 +56,7 @@ const BranchCard = ({ branch, bIdx, fadeInUp }) => {
             <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
               <MapPin size={18} />
             </div>
-            <span style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{branch.address}</span>
+            <span style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{(branch.address || '').toUpperCase()}</span>
           </div>
         )}
         
@@ -65,7 +65,7 @@ const BranchCard = ({ branch, bIdx, fadeInUp }) => {
             <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
               <Mail size={18} />
             </div>
-            <a href={`mailto:${branch.email}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '0.95rem' }}>{branch.email}</a>
+            <a href={`mailto:${(branch.email || '').toLowerCase()}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '0.95rem' }}>{(branch.email || '').toLowerCase()}</a>
           </div>
         )}
 
@@ -87,7 +87,7 @@ const BranchCard = ({ branch, bIdx, fadeInUp }) => {
                   </div>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginBottom: '2px' }}>Contact Person</span>
-                    <span style={{ fontWeight: '600', fontSize: '0.95rem', textTransform: 'uppercase' }}>{branch.name}</span>
+                    <span style={{ fontWeight: '600', fontSize: '0.95rem', textTransform: 'uppercase' }}>{(branch.name || '').toUpperCase()}</span>
                   </div>
                 </div>
               )}
