@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText, Check, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText, Check, ChevronDown, ChevronUp, Layers, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEOHead from '../components/SEOHead';
@@ -8,67 +8,71 @@ import CopyButton from '../components/CopyButton';
 
 const API = `${import.meta.env.VITE_API_URL || ''}/api`;
 
+const parseDateSecurely = (dateVal) => {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) return dateVal;
+  const dateStr = String(dateVal).trim();
+  if (!dateStr) return null;
+
+  // Match DD-MM-YYYY or DD/MM/YYYY
+  const dmyMatch = dateStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1; // 0-indexed
+    const year = parseInt(dmyMatch[3], 10);
+    
+    const timeMatch = dateStr.match(/\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      return new Date(year, month, day, hours, minutes, seconds);
+    }
+    
+    return new Date(year, month, day);
+  }
+
+  const parsedDate = new Date(dateStr);
+  if (!isNaN(parsedDate.getTime())) {
+    return parsedDate;
+  }
+  return null;
+};
+
 const formatCleanDate = (dateStr) => {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) {
+  const d = parseDateSecurely(dateStr);
+  if (d) {
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
     return `${day}-${month}-${year}`;
   }
-  const dmyMatch = String(dateStr).match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-  if (dmyMatch) {
-    const day = String(dmyMatch[1]).padStart(2, '0');
-    const month = String(dmyMatch[2]).padStart(2, '0');
-    const year = dmyMatch[3];
-    return `${day}-${month}-${year}`;
-  }
-  return dateStr;
+  return "-";
 };
 
 const formatCleanDateTime = (dateStr) => {
   if (!dateStr) return "N/A";
-  let d = null;
   const str = String(dateStr).trim();
-  
-  // Try parsing ISO or Date string
-  const parsed = new Date(str);
-  if (!isNaN(parsed.getTime())) {
-    d = parsed;
-  } else {
-    // Try DD-MM-YYYY or DD/MM/YYYY with optional time
-    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-    if (dmyMatch) {
-      const day = parseInt(dmyMatch[1], 10);
-      const month = parseInt(dmyMatch[2], 10) - 1;
-      const year = parseInt(dmyMatch[3], 10);
-      const hours = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 0;
-      const mins = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0;
-      const secs = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0;
-      d = new Date(year, month, day, hours, mins, secs);
+  const d = parseDateSecurely(str);
+  if (d) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+
+    const hasTime = str.includes('T') || str.includes(':');
+    if (hasTime) {
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const formattedHours = String(hours).padStart(2, '0');
+      return `${day}-${month}-${year}, ${formattedHours}:${minutes} ${ampm}`;
     }
+
+    return `${day}-${month}-${year}`;
   }
-
-  if (!d || isNaN(d.getTime())) return str;
-
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-
-  // If date string contains an explicit time (ISO with T or time string), format with AM/PM
-  const hasTime = str.includes('T') || str.includes(':');
-  if (hasTime) {
-    let hours = d.getHours();
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // '0' -> 12
-    const formattedHours = String(hours).padStart(2, '0');
-    return `${day}-${month}-${year}, ${formattedHours}:${minutes} ${ampm}`;
-  }
-
-  return `${day}-${month}-${year}`;
+  return "N/A";
 };
 
 const normalizeStatus = (status) => {
@@ -399,32 +403,32 @@ const TrackShipment = () => {
                 bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
                 stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
               } else if (isOutForDelivery) {
-                bannerBg = "linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #ea580c 100%)";
-                bannerAccent = "#c2410c";
+                bannerBg = "linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #a78bfa 100%)";
+                bannerAccent = "#7c3aed";
                 bannerTitle = "Out for Delivery";
                 bannerSubtitle = `Out for Delivery at ${b.destination ? b.destination.toUpperCase() : "Destination"}`;
-                bannerRibbonBg = "linear-gradient(90deg, #fff7ed, #fed7aa)";
-                bannerRibbonText = "#c2410c";
+                bannerRibbonBg = "linear-gradient(90deg, #f5f3ff, #ede9fe)";
+                bannerRibbonText = "#5b21b6";
                 bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
-                stepGradient = "linear-gradient(90deg, #9a3412, #c2410c, #ea580c)";
+                stepGradient = "linear-gradient(90deg, #5b21b6, #7c3aed, #a78bfa)";
               } else if (isInTransit) {
-                bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #3b82f6 100%)";
-                bannerAccent = "#2563eb";
+                bannerBg = "linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%)";
+                bannerAccent = "#d97706";
                 bannerTitle = "In Transit";
                 bannerSubtitle = `In Transit to ${b.destination ? b.destination.toUpperCase() : "Destination Hub"}`;
-                bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
-                bannerRibbonText = "#1e40af";
+                bannerRibbonBg = "linear-gradient(90deg, #fffbeb, #fef3c7)";
+                bannerRibbonText = "#b45309";
                 bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
-                stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
+                stepGradient = "linear-gradient(90deg, #b45309, #d97706, #f59e0b)";
               } else {
-                bannerBg = "linear-gradient(135deg, #312e81 0%, #4338ca 50%, #6366f1 100%)";
-                bannerAccent = "#4338ca";
+                bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)";
+                bannerAccent = "#1e40af";
                 bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
                 bannerSubtitle = `Shipment Received at ${b.origin ? b.origin.toUpperCase() : "Origin Facility"}`;
-                bannerRibbonBg = "linear-gradient(90deg, #eef2ff, #e0e7ff)";
-                bannerRibbonText = "#4338ca";
-                bannerMessage = "📦 Shipment has been booked and Lorry Receipt generated.";
-                stepGradient = "linear-gradient(90deg, #312e81, #4338ca, #6366f1)";
+                bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
+                bannerRibbonText = "#1e40af";
+                bannerMessage = isPickedUp ? "📦 Shipment has been picked up." : "📦 Shipment has been booked and Lorry Receipt generated.";
+                stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
               }
 
               const steps = [
@@ -450,7 +454,7 @@ const TrackShipment = () => {
 
               const allInvoiceNumbers = invoices.map(i => i.invoice_no || i.invoiceNo).filter(Boolean).join(", ") || b.invoice_no || b.refNo || "-";
 
-              return (
+return (
                 <motion.div 
                   key="result"
                   initial={{ opacity: 0, y: 20 }}
@@ -458,7 +462,7 @@ const TrackShipment = () => {
                   style={{ maxWidth: '960px', margin: '0 auto' }}
                 >
                   {/* Main Tracking Card */}
-                  <div style={{ 
+                  <div className="tracking-card" style={{ 
                     backgroundColor: 'white', 
                     borderRadius: '16px', 
                     padding: 'clamp(1.25rem, 3vw, 2rem)', 
@@ -482,7 +486,7 @@ const TrackShipment = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <img
                           src="/circle_crop_logo.png"
-                          alt="Multimarg Carriers"
+                          alt="Multimarg Carriers Logo"
                           style={{
                             width: '42px',
                             height: '42px',
@@ -493,15 +497,12 @@ const TrackShipment = () => {
                           }}
                         />
                         <div>
-                          <div style={{ color: '#c2410c', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                          <div style={{ color: '#c2410c', fontSize: 'clamp(0.85rem, 2.2vw, 1.05rem)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
                             Multimarg Carriers
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ 
-                              background: 'linear-gradient(135deg, #ea580c, #dc2626, #b91c1c)', 
-                              WebkitBackgroundClip: 'text', 
-                              WebkitTextFillColor: 'transparent', 
-                              backgroundClip: 'text',
+                              color: '#ea580c', 
                               fontWeight: 800, 
                               fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)', 
                               letterSpacing: '0.5px' 
@@ -546,7 +547,7 @@ const TrackShipment = () => {
                             <Package size={24} color="#ffffff" />
                           </div>
                           <div>
-                            <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3.5vw, 1.75rem)', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: 1.1, color: '#ffffff' }}>
+                            <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.75rem)', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: 1.1, color: '#ffffff' }}>
                               {bannerTitle}
                             </h2>
                             <p style={{ margin: '0.15rem 0 0 0', fontSize: 'clamp(0.72rem, 2vw, 0.9rem)', color: 'rgba(255, 255, 255, 0.9)', fontWeight: '500' }}>
@@ -582,78 +583,77 @@ const TrackShipment = () => {
                         )}
                       </div>
 
-                      {/* Message Ribbon Bar */}
+                      {/* Ribbon Message Bar */}
                       <div style={{
                         background: bannerRibbonBg,
                         color: bannerRibbonText,
-                        padding: '0.45rem 0.85rem',
-                        fontSize: 'clamp(0.72rem, 2vw, 0.85rem)',
+                        padding: '0.6rem 1.25rem',
+                        fontSize: '0.85rem',
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.4rem'
+                        gap: '0.5rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
                       }}>
-                        <span>{bannerMessage}</span>
+                        {bannerMessage}
                       </div>
                     </div>
 
-                    {/* 4-Step Horizontal Tracker */}
+                    {/* Step Progress Tracker */}
                     <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      gap: '0.25rem',
-                      margin: '0.75rem 0',
-                      padding: '0',
-                      flexWrap: 'nowrap'
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                      gap: "0.75rem",
+                      margin: "1.5rem 0",
+                      padding: "0 0.25rem"
                     }}>
                       {steps.map((step) => {
                         const isCompleted = step.id <= currentStepNumber;
-                        const activeColor = isDelivered ? '#046A38' : '#2563eb';
+                        const isCurrent = step.id === currentStepNumber;
+                        const StepIcon = step.icon;
 
                         return (
-                          <div key={step.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 0', minWidth: 0 }}>
+                          <div key={step.id} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                             {/* Top Step Indicator Bar */}
                             <div style={{
-                              height: '3px',
-                              borderRadius: '2px',
-                              background: isCompleted ? stepGradient : '#e2e8f0',
-                              transition: 'all 0.3s ease'
+                              height: "4px",
+                              borderRadius: "2px",
+                              background: isCompleted ? stepGradient : "#e2e8f0",
+                              transition: "all 0.3s ease"
                             }} />
                             
                             {/* Step Label & Icon */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', paddingTop: '0.15rem' }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", paddingTop: "0.2rem" }}>
                               {isCompleted ? (
                                 <div style={{
-                                  width: '14px',
-                                  height: '14px',
-                                  borderRadius: '50%',
+                                  width: "16px",
+                                  height: "16px",
+                                  borderRadius: "50%",
                                   background: stepGradient,
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0
+                                  color: "white",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center"
                                 }}>
-                                  <Check size={8} strokeWidth={3} />
+                                  <Check size={10} strokeWidth={3} />
                                 </div>
                               ) : (
                                 <div style={{
-                                  width: '14px',
-                                  height: '14px',
-                                  borderRadius: '50%',
-                                  border: '1.5px solid #cbd5e1',
-                                  backgroundColor: 'white',
-                                  flexShrink: 0
+                                  width: "16px",
+                                  height: "16px",
+                                  borderRadius: "50%",
+                                  border: "1.5px solid #cbd5e1",
+                                  backgroundColor: "white"
                                 }} />
                               )}
-                              <span style={{
-                                fontSize: 'clamp(0.6rem, 1.8vw, 0.78rem)',
-                                fontWeight: isCompleted ? 700 : 500,
-                                color: isCompleted ? '#0f172a' : '#64748b',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
+                              
+                              <span style={{ 
+                                fontSize: "clamp(0.65rem, 1.8vw, 0.8rem)", 
+                                fontWeight: isCurrent ? "700" : (isCompleted ? "600" : "500"),
+                                color: isCurrent ? bannerAccent : (isCompleted ? "#1e293b" : "#64748b"),
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis"
                               }}>
                                 {step.label}
                               </span>
@@ -663,48 +663,17 @@ const TrackShipment = () => {
                       })}
                     </div>
 
-                    {/* Origin & Destination Strip */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '6px',
-                      padding: '0.5rem 0.75rem',
-                      marginBottom: '0.75rem',
-                      fontSize: '0.78rem',
-                      flexWrap: 'wrap',
-                      gap: '0.35rem'
-                    }}>
-                      <div>
-                        <span style={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>ORIGIN:</span>
-                        <span style={{ color: '#0f172a', fontWeight: 700 }}>
-                          {b.origin ? b.origin.toUpperCase() : 'ORIGIN'}
-                          {b.originPincode ? ` — ${b.originPincode}` : ''}
-                        </span>
-                      </div>
-                      <div style={{ color: '#94a3b8', fontSize: '1rem' }}>→</div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', display: 'block' }}>DESTINATION:</span>
-                        <span style={{ color: '#0f172a', fontWeight: 700 }}>
-                          {b.destination ? b.destination.toUpperCase() : 'DESTINATION'}
-                          {b.destinationPincode ? ` — ${b.destinationPincode}` : ''}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Compact Shipment Details — Single Responsive Card */}
+                    {/* Basic Info Details Card - TABLE-LIKE HEADER LAYOUT */}
                     <div style={{
                       border: '1px solid #e2e8f0',
                       borderRadius: '8px',
                       overflow: 'hidden',
-                      marginBottom: '1rem',
+                      marginBottom: '1.5rem',
                       backgroundColor: '#ffffff'
                     }}>
                       <div style={{
-                        background: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%)',
-                        padding: '0.45rem 0.75rem',
+                        background: 'linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)',
+                        padding: '0.5rem 0.75rem',
                         borderBottom: '1px solid #e2e8f0',
                         fontSize: '0.72rem',
                         fontWeight: 700,
@@ -718,19 +687,14 @@ const TrackShipment = () => {
                       </div>
 
                       <div style={{ padding: '0.6rem 0.75rem' }}>
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                          gap: '0.4rem 1.5rem',
-                          fontSize: '0.76rem'
-                        }}>
+                        <div className="shipment-details-grid" style={{ fontSize: '0.78rem' }}>
                           {/* Row: Consignor */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CONSIGNOR:</span>
+                          <div>
+                            <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>CONSIGNOR:</span>
                             <span style={{ fontWeight: 700, color: '#0f172a', wordBreak: 'break-word' }}>
                               {b.consignor ? b.consignor.toUpperCase() : '-'}
                               {b.consignorGstin && (
-                                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
                                   (GST: {b.consignorGstin})
                                 </span>
                               )}
@@ -738,37 +702,29 @@ const TrackShipment = () => {
                           </div>
 
                           {/* Row: Consignee */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CONSIGNEE:</span>
+                          <div>
+                            <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>CONSIGNEE:</span>
                             <span style={{ fontWeight: 700, color: '#0f172a', wordBreak: 'break-word' }}>
                               {b.consignee ? b.consignee.toUpperCase() : '-'}
                               {b.consigneeGstin && (
-                                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, fontFamily: 'monospace', marginLeft: '0.3rem' }}>
                                   (GST: {b.consigneeGstin})
                                 </span>
                               )}
                             </span>
                           </div>
 
-                          {/* Row: Client */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>CLIENT:</span>
-                            <span style={{ fontWeight: 600, color: '#334155' }}>
-                              {b.client ? b.client.toUpperCase() : (b.clientName ? b.clientName.toUpperCase() : '-')}
-                            </span>
-                          </div>
-
                           {/* Row: Booking Date */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>BOOKED ON:</span>
+                          <div>
+                            <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>BOOKED ON:</span>
                             <span style={{ fontWeight: 700, color: '#0f172a' }}>
                               {formatCleanDate(b.dispatch_date || b.date || b.createdAt)}
                             </span>
                           </div>
 
                           {/* Row: Package Count */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>PACKAGES:</span>
+                          <div>
+                            <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>PACKAGES:</span>
                             <span style={{ fontWeight: 700, color: '#0f172a' }}>
                               {(() => {
                                 const bVal = b.box || b.packages || b.pkg || b.pcs || b.package_count || b.boxCount;
@@ -778,8 +734,8 @@ const TrackShipment = () => {
                           </div>
 
                           {/* Row: Mode / Payment */}
-                          <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>MODE:</span>
+                          <div>
+                            <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>MODE:</span>
                             <span style={{ fontWeight: 700 }}>
                               <span style={{ color: '#1e3a8a' }}>{(b.mode || 'ROAD').toUpperCase()}</span>
                               {' / '}
@@ -787,10 +743,27 @@ const TrackShipment = () => {
                             </span>
                           </div>
 
+                          {/* Row: Weight (conditional) */}
+                          {(() => {
+                            const act = parseFloat(b.actual_wt || b.weight || 0);
+                            const chg = parseFloat(b.charge_wt || b.weight || 0);
+                            if (act > 0 || chg > 0) {
+                              return (
+                                <div>
+                                  <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>WEIGHT:</span>
+                                  <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                                    ACT: <strong style={{ color: '#1e3a8a' }}>{b.actual_wt || b.weight || '-'} KG</strong> | CHG: <strong style={{ color: '#059669' }}>{b.charge_wt || b.weight || '-'} KG</strong>
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
                           {/* Row: Vehicle No (conditional) */}
                           {b.vehicleNo && (
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                              <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>VEHICLE:</span>
+                            <div>
+                              <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>VEHICLE:</span>
                               <span style={{ fontWeight: 700, color: '#e11d48', fontFamily: 'monospace' }}>
                                 {b.vehicleNo.toUpperCase()}
                               </span>
@@ -799,8 +772,8 @@ const TrackShipment = () => {
 
                           {/* Row: Goods Description (conditional) */}
                           {(b.goods_description || b.goodsDescription || b.goods || b.commodity) && (
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                              <span style={{ color: '#64748b', fontWeight: 600, minWidth: '80px', flexShrink: 0 }}>GOODS:</span>
+                            <div>
+                              <span style={{ color: '#64748b', fontWeight: 600, marginRight: '0.35rem' }}>COMMODITY:</span>
                               <span style={{ fontWeight: 600, color: '#334155' }}>
                                 {(b.goods_description || b.goodsDescription || b.goods || b.commodity || '-').toUpperCase()}
                               </span>
@@ -821,68 +794,53 @@ const TrackShipment = () => {
                         backgroundColor: '#ffffff',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                       }}>
-                        <div style={{
-                          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%)',
-                          padding: '0.5rem 0.75rem',
-                          borderBottom: '1px solid #e2e8f0',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '0.4rem'
-                        }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase' }}>
-                            <FileText size={14} color="#ffffff" /> Invoice & E-Way Bill Details ({invoices.length})
-                          </div>
-                          {b.eway_bill && (
-                            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
-                              E-WAY: <strong style={{ color: '#ffffff', fontFamily: 'monospace' }}>{b.eway_bill}</strong>
-                            </div>
-                          )}
-                        </div>
+                         <div style={{
+                           background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                           padding: '0.5rem 0.75rem',
+                           borderBottom: '1px solid #e2e8f0',
+                           display: 'flex',
+                           justifyContent: 'space-between',
+                           alignItems: 'center',
+                           flexWrap: 'wrap',
+                           gap: '0.4rem'
+                         }}>
+                           <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase' }}>
+                             <FileText size={14} color="#ffffff" /> Invoice Details ({invoices.length})
+                           </div>
+                         </div>
 
                         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', minWidth: '520px', textTransform: 'uppercase' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', textAlign: 'left', minWidth: '380px', textTransform: 'uppercase' }}>
                             <thead>
-                              <tr style={{ background: 'linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)', color: '#475569', fontWeight: 700, borderBottom: '1px solid #cbd5e1' }}>
-                                <th style={{ padding: '5px 6px', width: '28px' }}>#</th>
-                                <th style={{ padding: '5px 6px' }}>INVOICE NO</th>
-                                <th style={{ padding: '5px 6px' }}>DATE</th>
-                                <th style={{ padding: '5px 6px' }}>PART NO / DESC</th>
-                                <th style={{ padding: '5px 6px', textAlign: 'center' }}>PKGS</th>
-                                <th style={{ padding: '5px 6px', textAlign: 'right' }}>VALUE (₹)</th>
-                                <th style={{ padding: '5px 6px' }}>E-WAY BILL NO</th>
+                              <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700, borderBottom: '1px solid #cbd5e1' }}>
+                                <th style={{ padding: '5px 6px', width: '28px', whiteSpace: 'nowrap' }}>#</th>
+                                <th style={{ padding: '5px 6px', whiteSpace: 'nowrap' }}>INVOICE NO</th>
+                                <th style={{ padding: '5px 6px', whiteSpace: 'nowrap' }}>DATE</th>
+                                <th style={{ padding: '5px 6px', whiteSpace: 'nowrap' }}>PART NO</th>
+                                <th style={{ padding: '5px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>QTY</th>
                               </tr>
                             </thead>
                             <tbody>
                               {invoices.map((inv, iIdx) => {
-                                const invNo = inv.invoice_no || inv.invoiceNo || inv.invoice || '-';
-                                const invDate = inv.invoice_date || inv.invoiceDate || inv.date || inv.invdate || '';
-                                const partNo = inv.part_no || inv.partNumber || inv.part || inv.description || '-';
-                                const pkgs = inv.qty || inv.quantity || inv.box || inv.packages || '-';
-                                const val = inv.value || inv.invoiceValue || inv.invoice_value || inv.declared_value || inv.amount || '';
-                                const eway = inv.eway_bill || inv.ewayBill || inv.eway || b.eway_bill || '-';
+                                const invNo = inv.invoice_no || inv.invoiceNo || inv.invoice || "-";
+                                const invDate = inv.invoice_date || inv.invoiceDate || inv.date || inv.invdate || "";
+                                const partNo = inv.part_no || inv.partNumber || inv.part || inv.description || "-";
+                                const pkgs = inv.qty || inv.quantity || inv.box || inv.packages || "-";
 
                                 return (
                                   <tr key={iIdx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: iIdx % 2 === 1 ? '#fafafa' : '#ffffff' }}>
-                                    <td style={{ padding: '5px 6px', color: '#64748b', fontWeight: 600 }}>{iIdx + 1}</td>
-                                    <td style={{ padding: '5px 6px', fontWeight: 700, color: '#1e3a8a' }}>
+                                    <td style={{ padding: '5px 6px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{iIdx + 1}</td>
+                                    <td style={{ padding: '5px 6px', fontWeight: 700, color: '#1e3a8a', whiteSpace: 'nowrap' }}>
                                       {invNo}
                                     </td>
                                     <td style={{ padding: '5px 6px', color: '#334155', whiteSpace: 'nowrap' }}>
                                       {formatCleanDate(invDate)}
                                     </td>
-                                    <td style={{ padding: '5px 6px', color: '#475569' }}>
+                                    <td style={{ padding: '5px 6px', color: '#475569', whiteSpace: 'nowrap' }}>
                                       {partNo}
                                     </td>
-                                    <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
+                                    <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
                                       {pkgs}
-                                    </td>
-                                    <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                                      {val ? `₹${parseFloat(val || 0).toLocaleString('en-IN')}` : '-'}
-                                    </td>
-                                    <td style={{ padding: '5px 6px', fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>
-                                      {eway}
                                     </td>
                                   </tr>
                                 );
@@ -927,9 +885,9 @@ const TrackShipment = () => {
 
                     {/* Timeline List */}
                     {showTimelineDetails && (
-                      <div style={{ position: 'relative', paddingLeft: '1.5rem', marginTop: '1.5rem' }}>
+                      <div className="timeline-list-container" style={{ position: 'relative', paddingLeft: '1.5rem', marginTop: '1.5rem' }}>
                         {/* Vertical Line */}
-                        <div style={{ 
+                        <div className="timeline-vertical-line" style={{ 
                           position: 'absolute', 
                           left: '20px', 
                           top: '20px', 
@@ -947,7 +905,7 @@ const TrackShipment = () => {
                           const statusCaps = normalizeStatus(entry.status);
                           
                           return (
-                            <div key={entry.id || index} style={{ 
+                            <div key={entry.id || index} className="timeline-item" style={{ 
                               display: 'flex', 
                               gap: 'clamp(0.75rem, 2vw, 1.5rem)',
                               marginBottom: index !== trackingResult.tracking.length - 1 ? '2.2rem' : 0,
@@ -955,7 +913,7 @@ const TrackShipment = () => {
                               zIndex: 2
                             }}>
                               {/* Circle Icon */}
-                              <div style={{ 
+                              <div className="timeline-icon-circle" style={{ 
                                 width: '44px', 
                                 height: '44px', 
                                 borderRadius: '50%', 
@@ -973,7 +931,7 @@ const TrackShipment = () => {
                               </div>
                               
                               {/* Details */}
-                              <div style={{ 
+                              <div className="timeline-details-card" style={{ 
                                 flex: 1,
                                 padding: 'clamp(0.85rem, 2vw, 1.1rem) clamp(0.85rem, 2vw, 1.3rem)', 
                                 background: isLatest ? bg : '#ffffff', 

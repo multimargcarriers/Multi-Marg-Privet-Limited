@@ -131,6 +131,14 @@
   box-sizing: border-box;
 }
 
+html {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg-color);
@@ -4254,9 +4262,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Tracking Layout Responsiveness */
 .tracking-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  grid-template-columns: 1.6fr 1fr;
   gap: 2rem;
   align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .tracking-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 .tracking-search-form {
@@ -4300,11 +4315,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (max-width: 768px) {
   .tracking-layout {
-    gap: 1rem;
+    gap: 0.5rem !important;
   }
 
   .tracking-panel-content {
-    padding: 1rem;
+    padding: 0.2rem !important;
   }
 
   .tracking-search-form {
@@ -4316,16 +4331,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     gap: 0.5rem;
   }
 
+  .tracking-card {
+    padding: 0.4rem 0.5rem !important;
+    border-radius: 8px !important;
+  }
+
   .tracking-timeline-container {
-    padding-left: 0.5rem;
+    padding-left: 0.4rem !important;
+    margin-top: 1rem !important;
   }
 
   .tracking-timeline-line {
-    left: 18px;
+    left: 12px !important;
   }
 
   .tracking-timeline-item {
-    gap: 0.75rem;
+    gap: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .timeline-icon-circle {
+    width: 26px !important;
+    height: 26px !important;
+    border-width: 1.5px !important;
+    margin-left: -1px !important;
+    box-shadow: none !important;
+  }
+
+  .timeline-icon-circle svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .timeline-details-card {
+    padding: 0.6rem 0.75rem !important;
+    border-radius: 8px !important;
   }
 }
 
@@ -4738,4 +4778,18 @@ input[id="name"] {
 
 .username-cell {
   text-transform: none !important;
+}
+
+/* 2-column shipment details grid for desktop, 1-column stack on mobile */
+.shipment-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem 2rem;
+}
+
+@media (max-width: 768px) {
+  .shipment-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem 0.5rem;
+  }
 }

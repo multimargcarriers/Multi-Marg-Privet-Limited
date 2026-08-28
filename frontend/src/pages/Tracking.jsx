@@ -730,42 +730,52 @@ const Tracking = () => {
                   else if (isInTransit) currentStepNumber = 2;
                   else currentStepNumber = 1;
 
-                  // Status Banner styling & messaging
-                  let bannerBg = "#046A38"; // DTDC Rich Green
+                  // Status Banner styling & messaging — GRADIENT THEME
+                  let bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
+                  let bannerAccent = "#059669";
                   let bannerTitle = "Delivered";
                   let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || selectedSearchBooking.deliveryDate || selectedSearchBooking.date)}`;
-                  let bannerRibbonBg = "#ecfdf5";
+                  let bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
                   let bannerRibbonText = "#065f46";
                   let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+                  let stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
 
                   if (isDelivered) {
-                    bannerBg = "#046A38";
+                    bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
+                    bannerAccent = "#059669";
                     bannerTitle = "Delivered";
                     bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || selectedSearchBooking.deliveryDate || selectedSearchBooking.date)}`;
-                    bannerRibbonBg = "#ecfdf5";
+                    bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
                     bannerRibbonText = "#065f46";
                     bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+                    stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
                   } else if (isOutForDelivery) {
-                    bannerBg = "#c2410c";
+                    bannerBg = "linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #a78bfa 100%)";
+                    bannerAccent = "#7c3aed";
                     bannerTitle = "Out for Delivery";
                     bannerSubtitle = `Out for Delivery at ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination"}`;
-                    bannerRibbonBg = "#fff7ed";
-                    bannerRibbonText = "#c2410c";
+                    bannerRibbonBg = "linear-gradient(90deg, #f5f3ff, #ede9fe)";
+                    bannerRibbonText = "#5b21b6";
                     bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
+                    stepGradient = "linear-gradient(90deg, #5b21b6, #7c3aed, #a78bfa)";
                   } else if (isInTransit) {
-                    bannerBg = "#1e40af";
+                    bannerBg = "linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%)";
+                    bannerAccent = "#d97706";
                     bannerTitle = "In Transit";
                     bannerSubtitle = `In Transit to ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination Hub"}`;
-                    bannerRibbonBg = "#eff6ff";
-                    bannerRibbonText = "#1e40af";
+                    bannerRibbonBg = "linear-gradient(90deg, #fffbeb, #fef3c7)";
+                    bannerRibbonText = "#b45309";
                     bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+                    stepGradient = "linear-gradient(90deg, #b45309, #d97706, #f59e0b)";
                   } else {
-                    bannerBg = "#4338ca";
+                    bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)";
+                    bannerAccent = "#1e40af";
                     bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
                     bannerSubtitle = `Shipment Received at ${selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "Origin Facility"}`;
-                    bannerRibbonBg = "#eef2ff";
-                    bannerRibbonText = "#4338ca";
-                    bannerMessage = "📦 Shipment has been booked and Lorry Receipt generated.";
+                    bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
+                    bannerRibbonText = "#1e40af";
+                    bannerMessage = isPickedUp ? "📦 Shipment has been picked up." : "📦 Shipment has been booked and Lorry Receipt generated.";
+                    stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
                   }
 
                   const steps = [
@@ -822,35 +832,27 @@ const Tracking = () => {
                             MMC
                           </div>
                           <div>
-                            <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
+                            <div style={{ fontSize: "clamp(0.85rem, 2.2vw, 1.05rem)", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
                               Multimarg Carriers
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                              <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "1.15rem", letterSpacing: "0.5px" }}>
+                              <span style={{ fontWeight: 800, color: "#ea580c", fontSize: "1.15rem", letterSpacing: "0.5px" }}>
                                 AWB: {currentAwb}
                               </span>
                               <CopyButton text={currentAwb} />
                             </div>
                           </div>
                         </div>
-
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>
-                            Ref. / Inv. No:
-                          </div>
-                          <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
-                            {allInvoiceNumbers}
-                          </div>
-                        </div>
                       </div>
 
                       {/* DTDC PROMINENT STATUS HERO BANNER */}
-                      <div style={{
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)",
-                        marginBottom: "1.5rem"
-                      }}>
+                      <div className="tracking-card" style={{
+                      backgroundColor: "white",
+                      borderRadius: "12px",
+                      padding: "1.5rem",
+                      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+                      border: "1px solid #e2e8f0"
+                    }}>
                         <div style={{
                           background: bannerBg,
                           color: "#ffffff",
@@ -874,7 +876,7 @@ const Tracking = () => {
                               <Package size={28} color="#ffffff" />
                             </div>
                             <div>
-                              <h2 style={{ margin: 0, fontSize: "1.75rem", fontWeight: "800", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                              <h2 style={{ margin: 0, fontSize: "clamp(1.3rem, 4vw, 1.75rem)", fontWeight: "800", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
                                 {bannerTitle}
                               </h2>
                               <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "rgba(255, 255, 255, 0.9)", fontWeight: "500" }}>
@@ -896,7 +898,7 @@ const Tracking = () => {
                                 gap: "0.4rem",
                                 padding: "0.5rem 1rem",
                                 backgroundColor: "#ffffff",
-                                color: bannerBg,
+                                color: bannerAccent,
                                 border: "none",
                                 borderRadius: "6px",
                                 fontWeight: "700",
@@ -928,7 +930,7 @@ const Tracking = () => {
                       {/* DTDC 4-STEP HORIZONTAL STEP TRACKER */}
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                         gap: "0.75rem",
                         margin: "1.5rem 0",
                         padding: "0 0.25rem"
@@ -936,7 +938,6 @@ const Tracking = () => {
                         {steps.map((step) => {
                           const isCompleted = step.id <= currentStepNumber;
                           const isCurrent = step.id === currentStepNumber;
-                          const activeColor = isDelivered ? "#046A38" : "#2563eb";
                           const StepIcon = step.icon;
 
                           return (
@@ -945,7 +946,7 @@ const Tracking = () => {
                               <div style={{
                                 height: "4px",
                                 borderRadius: "2px",
-                                backgroundColor: isCompleted ? activeColor : "#e2e8f0",
+                                background: isCompleted ? stepGradient : "#e2e8f0",
                                 transition: "all 0.3s ease"
                               }} />
                               
@@ -956,7 +957,7 @@ const Tracking = () => {
                                     width: "16px",
                                     height: "16px",
                                     borderRadius: "50%",
-                                    backgroundColor: activeColor,
+                                    background: stepGradient,
                                     color: "white",
                                     display: "flex",
                                     alignItems: "center",
@@ -1021,119 +1022,129 @@ const Tracking = () => {
                         </div>
                       </div>
 
-                      {/* COMPACT & SHARP LR SHIPMENT DETAILS GRID */}
+                      {/* SHIPMENT DETAILS HEADER AND CONTAINER */}
                       <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                        gap: "0.75rem",
-                        marginBottom: "1.25rem"
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        marginBottom: "1.5rem",
+                        backgroundColor: "#ffffff"
                       }}>
-                        {/* Box 1: Party Details */}
                         <div style={{
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                          padding: "0.85rem 1rem"
+                          background: "linear-gradient(135deg, #0c4a6e 0%, #0284c7 100%)",
+                          padding: "0.5rem 0.75rem",
+                          borderBottom: "1px solid #e2e8f0",
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#ffffff",
+                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.35rem"
                         }}>
-                          <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#0C4A6E", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                            <Layers size={14} color="#0284c7" /> Party Information
-                          </div>
-                          
-                          <div style={{ display: "grid", gridTemplateColumns: "85px 1fr", rowGap: "0.35rem", fontSize: "0.82rem" }}>
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>Consignor:</div>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}
-                              {selectedSearchBooking.consignorGstin && (
-                                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace" }}>
-                                  GST: {selectedSearchBooking.consignorGstin}
-                                </div>
-                              )}
-                            </div>
-
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>Consignee:</div>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}
-                              {selectedSearchBooking.consigneeGstin && (
-                                <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace" }}>
-                                  GST: {selectedSearchBooking.consigneeGstin}
-                                </div>
-                              )}
-                            </div>
-
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>Client:</div>
-                            <div style={{ fontWeight: 600, color: "#334155" }}>
-                              {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
-                            </div>
-                          </div>
+                          <Layers size={13} color="#ffffff" /> SHIPMENT DETAILS
                         </div>
 
-                        {/* Box 2: Cargo & Transit Context */}
-                        <div style={{
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "8px",
-                          padding: "0.85rem 1rem"
-                        }}>
-                          <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#0C4A6E", marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                            <Truck size={14} color="#0284c7" /> Cargo & Transit Info
-                          </div>
-
-                          <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", rowGap: "0.35rem", fontSize: "0.82rem" }}>
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>BOOKING DATE:</div>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {formatCleanDate(selectedSearchBooking.dispatch_date || selectedSearchBooking.date || selectedSearchBooking.createdAt)}
+                        <div style={{ padding: "0.6rem 0.75rem" }}>
+                          <div className="shipment-details-grid" style={{ fontSize: "0.78rem" }}>
+                            {/* Row: Consignor */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>CONSIGNOR:</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>
+                                {selectedSearchBooking.consignor ? selectedSearchBooking.consignor.toUpperCase() : "-"}
+                                {selectedSearchBooking.consignorGstin && (
+                                  <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace", marginLeft: "0.3rem" }}>
+                                    (GST: {selectedSearchBooking.consignorGstin})
+                                  </span>
+                                )}
+                              </span>
                             </div>
 
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>PKG COUNT:</div>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {(() => {
-                                const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
-                                return bVal ? `${bVal} Boxes / Pcs` : "-";
-                              })()}
+                            {/* Row: Consignee */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>CONSIGNEE:</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>
+                                {selectedSearchBooking.consignee ? selectedSearchBooking.consignee.toUpperCase() : "-"}
+                                {selectedSearchBooking.consigneeGstin && (
+                                  <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 500, fontFamily: "monospace", marginLeft: "0.3rem" }}>
+                                    (GST: {selectedSearchBooking.consigneeGstin})
+                                  </span>
+                                )}
+                              </span>
                             </div>
 
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>WEIGHT:</div>
-                            <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                              ACT: <strong style={{ color: "#1e3a8a" }}>{selectedSearchBooking.actual_wt || selectedSearchBooking.weight || "-"} KG</strong> | CHG: <strong style={{ color: "#059669" }}>{selectedSearchBooking.charge_wt || selectedSearchBooking.weight || "-"} KG</strong>
+                            {/* Row: Client */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>CLIENT:</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>
+                                {selectedSearchBooking.client ? selectedSearchBooking.client.toUpperCase() : (selectedSearchBooking.clientName ? selectedSearchBooking.clientName.toUpperCase() : "-")}
+                              </span>
                             </div>
 
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>MODE / PAY:</div>
-                            <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                              <span style={{ textTransform: "uppercase", color: "#1e3a8a", fontWeight: 700 }}>{selectedSearchBooking.mode || "ROAD"}</span>
-                              {" / "}
-                              <span style={{ textTransform: "uppercase", color: "#059669", fontWeight: 700 }}>{selectedSearchBooking.paymentMode || selectedSearchBooking.payment || "CREDIT"}</span>
+                            {/* Row: Booking Date */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>BOOKED ON:</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                                {formatCleanDate(selectedSearchBooking.dispatch_date || selectedSearchBooking.date || selectedSearchBooking.createdAt)}
+                              </span>
                             </div>
 
+                            {/* Row: Package Count */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>PACKAGES:</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                                {(() => {
+                                  const bVal = selectedSearchBooking.box || selectedSearchBooking.packages || selectedSearchBooking.pkg || selectedSearchBooking.pcs || selectedSearchBooking.package_count || selectedSearchBooking.boxCount;
+                                  return bVal ? `${bVal} PCS` : "-";
+                                })()}
+                              </span>
+                            </div>
+
+                            {/* Row: Mode / Payment */}
+                            <div>
+                              <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>MODE:</span>
+                              <span style={{ fontWeight: 700 }}>
+                                <span style={{ color: "#1e3a8a" }}>{(selectedSearchBooking.mode || "ROAD").toUpperCase()}</span>
+                                {" / "}
+                                <span style={{ color: "#059669" }}>{(selectedSearchBooking.paymentMode || selectedSearchBooking.payment || "CREDIT").toUpperCase()}</span>
+                              </span>
+                            </div>
+
+                            {/* Row: Weight (conditional) */}
+                            {(() => {
+                              const act = parseFloat(selectedSearchBooking.actual_wt || selectedSearchBooking.weight || 0);
+                              const chg = parseFloat(selectedSearchBooking.charge_wt || selectedSearchBooking.weight || 0);
+                              if (act > 0 || chg > 0) {
+                                return (
+                                  <div>
+                                    <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>WEIGHT:</span>
+                                    <span style={{ fontWeight: 600, color: "#0f172a" }}>
+                                      ACT: <strong style={{ color: "#1e3a8a" }}>{selectedSearchBooking.actual_wt || selectedSearchBooking.weight || "-"} KG</strong> | CHG: <strong style={{ color: "#059669" }}>{selectedSearchBooking.charge_wt || selectedSearchBooking.weight || "-"} KG</strong>
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+
+                            {/* Row: Vehicle No (conditional) */}
                             {selectedSearchBooking.vehicleNo && (
-                              <>
-                                <div style={{ color: "#64748b", fontWeight: 600 }}>VEHICLE NO:</div>
-                                <div style={{ fontWeight: 700, color: "#e11d48", fontFamily: "monospace" }}>
+                              <div>
+                                <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>VEHICLE:</span>
+                                <span style={{ fontWeight: 700, color: "#e11d48", fontFamily: "monospace" }}>
                                   {selectedSearchBooking.vehicleNo.toUpperCase()}
-                                </div>
-                              </>
+                                </span>
+                              </div>
                             )}
 
-                            <div style={{ color: "#64748b", fontWeight: 600 }}>PKG VALUE:</div>
-                            <div style={{ fontWeight: 700, color: "#059669" }}>
-                              {(() => {
-                                const dv = selectedSearchBooking.declared_value || selectedSearchBooking.declaredValue || selectedSearchBooking.goodsValue || selectedSearchBooking.goods_value;
-                                if (dv) return `₹${parseFloat(dv).toLocaleString('en-IN')}`;
-                                // Sum from invoices
-                                const invTotal = (selectedSearchBooking.invoiceDetails || []).reduce((sum, inv) => {
-                                  const v = parseFloat(inv.value || inv.invoiceValue || inv.invoice_value || 0);
-                                  return sum + (isNaN(v) ? 0 : v);
-                                }, 0);
-                                return invTotal > 0 ? `₹${invTotal.toLocaleString('en-IN')}` : "-";
-                              })()}
-                            </div>
-
+                            {/* Row: Goods Description (conditional) */}
                             {(selectedSearchBooking.goods_description || selectedSearchBooking.goodsDescription || selectedSearchBooking.goods || selectedSearchBooking.commodity) && (
-                              <>
-                                <div style={{ color: "#64748b", fontWeight: 600 }}>GOODS:</div>
-                                <div style={{ fontWeight: 600, color: "#334155", textTransform: "uppercase" }}>
+                              <div>
+                                <span style={{ color: "#64748b", fontWeight: 600, marginRight: "0.35rem" }}>GOODS:</span>
+                                <span style={{ fontWeight: 600, color: "#334155" }}>
                                   {(selectedSearchBooking.goods_description || selectedSearchBooking.goodsDescription || selectedSearchBooking.goods || selectedSearchBooking.commodity || "-").toUpperCase()}
-                                </div>
-                              </>
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1151,7 +1162,7 @@ const Tracking = () => {
                           boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
                         }}>
                           <div style={{
-                            backgroundColor: "#f8fafc",
+                            background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
                             padding: "0.5rem 0.75rem",
                             borderBottom: "1px solid #e2e8f0",
                             display: "flex",
@@ -1160,12 +1171,12 @@ const Tracking = () => {
                             flexWrap: "wrap",
                             gap: "0.4rem"
                           }}>
-                            <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.4rem", textTransform: "uppercase" }}>
-                              <FileText size={14} color="#2563eb" /> Invoice & E-Way Bill Details ({invoices.length})
+                            <div style={{ fontWeight: 700, fontSize: "0.78rem", color: "#ffffff", display: "flex", alignItems: "center", gap: "0.4rem", textTransform: "uppercase" }}>
+                              <FileText size={14} color="#ffffff" /> Invoice & E-Way Bill Details ({invoices.length})
                             </div>
                             {selectedSearchBooking.eway_bill && (
-                              <div style={{ fontSize: "0.72rem", color: "#475569", fontWeight: 600 }}>
-                                E-WAY: <strong style={{ color: "#0f172a", fontFamily: "monospace" }}>{selectedSearchBooking.eway_bill}</strong>
+                              <div style={{ fontSize: "0.72rem", color: "#eff6ff", fontWeight: 600 }}>
+                                E-WAY: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{selectedSearchBooking.eway_bill}</strong>
                               </div>
                             )}
                           </div>
@@ -1174,13 +1185,13 @@ const Tracking = () => {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem", textAlign: "left", minWidth: "520px", textTransform: "uppercase" }}>
                               <thead>
                                 <tr style={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 700, borderBottom: "1px solid #cbd5e1" }}>
-                                  <th style={{ padding: "5px 6px", width: "28px" }}>#</th>
-                                  <th style={{ padding: "5px 6px" }}>INVOICE NO</th>
-                                  <th style={{ padding: "5px 6px" }}>DATE</th>
-                                  <th style={{ padding: "5px 6px" }}>PART NO / DESC</th>
-                                  <th style={{ padding: "5px 6px", textAlign: "center" }}>PKGS</th>
-                                  <th style={{ padding: "5px 6px", textAlign: "right" }}>VALUE (₹)</th>
-                                  <th style={{ padding: "5px 6px" }}>E-WAY BILL NO</th>
+                                  <th style={{ padding: "5px 6px", width: "28px", whiteSpace: "nowrap" }}>#</th>
+                                  <th style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>INVOICE NO</th>
+                                  <th style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>DATE</th>
+                                  <th style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>PART NO / DESC</th>
+                                  <th style={{ padding: "5px 6px", textAlign: "center", whiteSpace: "nowrap" }}>PKGS</th>
+                                  <th style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}>VALUE (₹)</th>
+                                  <th style={{ padding: "5px 6px", whiteSpace: "nowrap" }}>E-WAY BILL NO</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1194,23 +1205,23 @@ const Tracking = () => {
 
                                   return (
                                     <tr key={iIdx} style={{ borderBottom: "1px solid #f1f5f9", backgroundColor: iIdx % 2 === 1 ? "#fafafa" : "#ffffff" }}>
-                                      <td style={{ padding: "5px 6px", color: "#64748b", fontWeight: 600 }}>{iIdx + 1}</td>
-                                      <td style={{ padding: "5px 6px", fontWeight: 700, color: "#1e3a8a" }}>
+                                      <td style={{ padding: "5px 6px", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>{iIdx + 1}</td>
+                                      <td style={{ padding: "5px 6px", fontWeight: 700, color: "#1e3a8a", whiteSpace: "nowrap" }}>
                                         {invNo}
                                       </td>
                                       <td style={{ padding: "5px 6px", color: "#334155", whiteSpace: "nowrap" }}>
                                         {formatCleanDate(invDate)}
                                       </td>
-                                      <td style={{ padding: "5px 6px", color: "#475569" }}>
+                                      <td style={{ padding: "5px 6px", color: "#475569", whiteSpace: "nowrap" }}>
                                         {partNo}
                                       </td>
-                                      <td style={{ padding: "5px 6px", textAlign: "center", fontWeight: 700, color: "#0f172a" }}>
+                                      <td style={{ padding: "5px 6px", textAlign: "center", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
                                         {pkgs}
                                       </td>
-                                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669" }}>
+                                      <td style={{ padding: "5px 6px", textAlign: "right", fontWeight: 700, color: "#059669", whiteSpace: "nowrap" }}>
                                         {val ? `₹${parseFloat(val || 0).toLocaleString('en-IN')}` : "-"}
                                       </td>
-                                      <td style={{ padding: "5px 6px", fontWeight: 600, color: "#0f172a", fontFamily: "monospace" }}>
+                                      <td style={{ padding: "5px 6px", fontWeight: 600, color: "#0f172a", fontFamily: "monospace", whiteSpace: "nowrap" }}>
                                         {eway}
                                       </td>
                                     </tr>
@@ -1272,7 +1283,7 @@ const Tracking = () => {
                       return (
                         <div key={entry.id || index} className="tracking-timeline-item" style={{ marginBottom: index === trackingHistory.length - 1 ? "0" : "2.2rem" }}>
                           
-                          <div style={{ 
+                          <div className="timeline-icon-circle" style={{ 
                             width: "44px", 
                             height: "44px", 
                             borderRadius: "50%", 
@@ -1289,7 +1300,7 @@ const Tracking = () => {
                             {getStatusIcon(entry.status)}
                           </div>
 
-                          <div style={{ flex: 1, padding: "0.9rem 1.2rem", background: isLatest ? bg : "#ffffff", border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, borderRadius: "12px", boxShadow: isLatest ? `0 4px 12px -2px ${color}15` : "none" }}>
+                          <div className="timeline-details-card" style={{ flex: 1, padding: "0.9rem 1.2rem", background: isLatest ? bg : "#ffffff", border: `1.5px solid ${isLatest ? border : '#e2e8f0'}`, borderRadius: "12px", boxShadow: isLatest ? `0 4px 12px -2px ${color}15` : "none" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap", gap: "0.5rem" }}>
                               <span style={{ fontWeight: 800, color: color, fontSize: "1rem", letterSpacing: "0.03em" }}>{statusCaps}</span>
                               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
