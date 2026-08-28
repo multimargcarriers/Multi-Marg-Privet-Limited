@@ -816,21 +816,17 @@ const Tracking = () => {
                         gap: "0.75rem"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                          <div style={{
-                            width: "36px",
-                            height: "36px",
-                            borderRadius: "6px",
-                            backgroundColor: "#e11d48",
-                            color: "white",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: "800",
-                            fontSize: "0.85rem",
-                            letterSpacing: "0.5px"
-                          }}>
-                            MMC
-                          </div>
+                          <img 
+                            src="/circle_crop_logo.png" 
+                            alt="Multimarg Carriers Logo" 
+                            style={{
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "50%",
+                              objectFit: "cover",
+                              flexShrink: 0
+                            }}
+                          />
                           <div>
                             <div style={{ fontSize: "clamp(0.85rem, 2.2vw, 1.05rem)", color: "#64748b", fontWeight: 600, textTransform: "uppercase" }}>
                               Multimarg Carriers
@@ -846,13 +842,12 @@ const Tracking = () => {
                       </div>
 
                       {/* DTDC PROMINENT STATUS HERO BANNER */}
-                      <div className="tracking-card" style={{
-                      backgroundColor: "white",
-                      borderRadius: "12px",
-                      padding: "1.5rem",
-                      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-                      border: "1px solid #e2e8f0"
-                    }}>
+                      <div style={{
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)",
+                        marginBottom: "1.5rem"
+                      }}>
                         <div style={{
                           background: bannerBg,
                           color: "#ffffff",
@@ -876,7 +871,7 @@ const Tracking = () => {
                               <Package size={28} color="#ffffff" />
                             </div>
                             <div>
-                              <h2 style={{ margin: 0, fontSize: "clamp(1.3rem, 4vw, 1.75rem)", fontWeight: "800", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                              <h2 style={{ margin: 0, fontSize: "clamp(1.3rem, 4vw, 1.75rem)", fontWeight: "800", letterSpacing: "-0.02em", lineHeight: 1.1, color: "#ffffff" }}>
                                 {bannerTitle}
                               </h2>
                               <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "rgba(255, 255, 255, 0.9)", fontWeight: "500" }}>
