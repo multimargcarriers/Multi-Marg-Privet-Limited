@@ -1,151 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Phone, Mail, User, ChevronDown } from 'lucide-react';
+import { MapPin, Phone, Mail, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import SEOHead from '../components/SEOHead';
-
-const BranchCard = ({ branch, bIdx, fadeInUp }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      variants={fadeInUp}
-      transition={{ delay: (bIdx % 6) * 0.1 }}
-      style={{ 
-        backgroundColor: 'white', 
-        padding: '2.5rem', 
-        borderRadius: '16px', 
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
-        border: '1px solid #e2e8f0',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-      whileHover={{ y: -8, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
-    >
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: branch.code === 'HO' ? 'var(--primary-red)' : 'var(--primary-blue)' }}></div>
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.5rem', color: '#0f172a', margin: '0 0 0.25rem 0', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{(branch.branch || '').toUpperCase()}</h3>
-          {branch.code && <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>CODE: {(branch.code || '').toUpperCase()}</span>}
-        </div>
-        <span style={{ 
-          fontSize: '0.75rem', 
-          padding: '0.35rem 0.85rem', 
-          backgroundColor: branch.code === 'HO' ? '#fee2e2' : '#e0e7ff',
-          color: branch.code === 'HO' ? '#991b1b' : '#3730a3',
-          borderRadius: '20px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          flexShrink: 0
-        }}>
-          {branch.code === 'HO' ? 'CORPORATE' : 'BRANCH'}
-        </span>
-      </div>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem', flexGrow: 1 }}>
-        {branch.address && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', color: '#334155' }}>
-            <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
-              <MapPin size={18} />
-            </div>
-            <span style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{(branch.address || '').toUpperCase()}</span>
-          </div>
-        )}
-        
-        {branch.email && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
-            <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
-              <Mail size={18} />
-            </div>
-            <a href={`mailto:${(branch.email || '').toLowerCase()}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '0.95rem' }}>{(branch.email || '').toLowerCase()}</a>
-          </div>
-        )}
-
-        <AnimatePresence>
-          {expanded && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden' }}
-            >
-              <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
-              
-              {branch.name && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
-                  <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
-                    <User size={18} />
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginBottom: '2px' }}>Contact Person</span>
-                    <span style={{ fontWeight: '600', fontSize: '0.95rem', textTransform: 'uppercase' }}>{(branch.name || '').toUpperCase()}</span>
-                  </div>
-                </div>
-              )}
-
-              {branch.phno && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#334155' }}>
-                  <div style={{ padding: '0.5rem', backgroundColor: '#f1f5f9', borderRadius: '8px', color: 'var(--primary-red)' }}>
-                    <Phone size={18} />
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', marginBottom: '2px' }}>Phone Number</span>
-                    <a href={`tel:${branch.phno.replace(/[^0-9+]/g, '')}`} style={{ color: 'inherit', textDecoration: 'none', fontSize: '1rem', fontWeight: '600' }}>{branch.phno}</a>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div style={{ marginTop: 'auto', paddingTop: '1.5rem' }}>
-          {(branch.name || branch.phno) && (
-            <button 
-              onClick={() => setExpanded(!expanded)}
-              style={{ 
-                background: 'var(--bg-light-grey)', 
-                border: '1px solid #e2e8f0', 
-                color: 'var(--primary-blue)', 
-                fontWeight: '600', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center',
-                justifyContent: 'center', 
-                gap: '0.5rem',
-                padding: '0.75rem 1rem',
-                fontSize: '0.9rem',
-                width: '100%',
-                borderRadius: '8px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary-red)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--primary-red)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-light-grey)'; e.currentTarget.style.color = 'var(--primary-blue)'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-            >
-              {expanded ? 'HIDE DETAILS' : 'VIEW DETAILS'}
-              <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex' }}>
-                <ChevronDown size={16} />
-              </motion.div>
-            </button>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 const Branches = () => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
@@ -173,6 +40,35 @@ const Branches = () => {
     fetchBranches();
   }, []);
 
+  // Reset to first page on search query change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Sort branches numerically: mcpl1, mcpl2, mcpl3... first ("show 1st number earlier 1st")
+  const sortedBranches = [...branches].sort((a, b) => {
+    const aNum = parseInt(String(a.code || "").replace(/\D/g, ""), 10) || 0;
+    const bNum = parseInt(String(b.code || "").replace(/\D/g, ""), 10) || 0;
+    return aNum - bNum;
+  });
+
+  // Filter based on search query
+  const filteredBranches = sortedBranches.filter(b => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (b.branch || '').toLowerCase().includes(term) ||
+      (b.code || '').toLowerCase().includes(term) ||
+      (b.address || '').toLowerCase().includes(term) ||
+      (b.name || '').toLowerCase().includes(term)
+    );
+  });
+
+  const totalPages = Math.ceil(filteredBranches.length / itemsPerPage);
+  const paginatedBranches = filteredBranches.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div style={{ paddingTop: '80px' }}>
       <SEOHead
@@ -181,6 +77,8 @@ const Branches = () => {
         keywords="multimarg branches, logistics offices india, transport branches, rudrapur logistics hub, pan india branch network, freight booking office"
         canonicalPath="/branches"
       />
+      
+      {/* Banner Section */}
       <section style={{ 
         backgroundColor: 'var(--primary-blue)', 
         color: 'white',
@@ -203,41 +101,294 @@ const Branches = () => {
           <motion.div initial="hidden" animate="visible" variants={fadeInUp} style={{ textAlign: 'center' }}>
             <h1 style={{ fontSize: '3rem', marginBottom: '1rem', fontWeight: 800 }}>Our Pan-India Network</h1>
             <p style={{ fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>
-              Strategic locations across the nation to ensure your cargo reaches its destination efficiently.
+              Locate any of our branches instantly. Filter by city, code, or address using our dynamic branch finder.
             </p>
           </motion.div>
         </div>
       </section>
 
-      <section className="section-padding" style={{ backgroundColor: 'var(--bg-color)', minHeight: '50vh' }}>
+      {/* Main Table Finder Section */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--bg-light-grey)', minHeight: '60vh' }}>
         <div className="container">
           
+          {/* Dynamic Search & Stats Header */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1.5rem',
+            marginBottom: '2rem'
+          }}>
+            {/* Search Input Box */}
+            <div style={{ 
+              position: 'relative', 
+              flex: '1 1 350px',
+              maxWidth: '500px'
+            }}>
+              <Search 
+                size={20} 
+                color="#64748b" 
+                style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} 
+              />
+              <input
+                type="text"
+                placeholder="Search branches by city, code, manager, or address..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem 1rem 1rem 3rem',
+                  borderRadius: '30px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                  outline: 'none',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: 'white'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--primary-red)';
+                  e.target.style.boxShadow = '0 10px 15px -3px rgba(239, 68, 68, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)';
+                }}
+              />
+            </div>
+
+            {/* Branch Count Pill */}
+            {!loading && !error && (
+              <div style={{
+                backgroundColor: 'white',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '30px',
+                border: '1px solid #e2e8f0',
+                boxShadow: 'var(--shadow-sm)',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                color: 'var(--primary-blue)'
+              }}>
+                Showing <span style={{ color: 'var(--primary-red)' }}>{filteredBranches.length}</span> of {branches.length} Branches
+              </div>
+            )}
+          </div>
+
+          {/* Table Container */}
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-              <div style={{ width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid var(--primary-red)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+              <div style={{ width: '50px', height: '50px', border: '5px solid #e2e8f0', borderTop: '5px solid var(--primary-red)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               <style>{`
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
               `}</style>
             </div>
           ) : error ? (
-            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#fee2e2', borderRadius: '12px', color: '#991b1b', border: '1px solid #fca5a5' }}>
-              <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>Oops!</h3>
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', backgroundColor: '#fee2e2', borderRadius: '16px', color: '#991b1b', border: '1px solid #fca5a5' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem', fontWeight: '800' }}>Network Error</h3>
               <p>{error}</p>
             </div>
-          ) : branches.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: 'white', borderRadius: '12px', color: '#64748b', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', color: '#334155' }}>No Branches Found</h3>
-              <p>We are currently updating our network data. Please check back later.</p>
+          ) : filteredBranches.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', backgroundColor: 'white', borderRadius: '16px', color: '#64748b', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-md)' }}>
+              <Search size={48} color="#94a3b8" style={{ marginBottom: '1.5rem' }} />
+              <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', color: '#334155', fontWeight: '700' }}>No Match Found</h3>
+              <p>We couldn't find any branches matching "{searchTerm}". Try checking your spelling or search terms.</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
-              {branches.map((branch, bIdx) => (
-                <BranchCard key={branch.id || bIdx} branch={branch} bIdx={bIdx} fadeInUp={fadeInUp} />
-              ))}
+            <div>
+              {/* Responsive Table Wrapper */}
+              <div style={{
+                width: '100%',
+                overflowX: 'auto',
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+                backgroundColor: 'white'
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '0.95rem'
+                }}>
+                  <thead>
+                    <tr style={{
+                      backgroundColor: '#f8fafc',
+                      borderBottom: '2px solid #e2e8f0'
+                    }}>
+                      <th style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Code</th>
+                      <th style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Branch / City</th>
+                      <th style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Address</th>
+                      <th style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contact Person</th>
+                      <th style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right' }}>Contact Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence mode="popLayout">
+                      {paginatedBranches.map((branch, index) => (
+                        <motion.tr
+                          key={branch.id || index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          style={{
+                            borderBottom: '1px solid #e2e8f0',
+                            backgroundColor: index % 2 === 0 ? 'white' : '#f8fafc',
+                            transition: 'background-color 0.2s ease',
+                          }}
+                          className="table-row-hover"
+                        >
+                          {/* Code Badge Column */}
+                          <td style={{ padding: '1.25rem 1.5rem' }}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '0.35rem 0.75rem',
+                              backgroundColor: (branch.code || '').toUpperCase() === 'HO' ? '#fee2e2' : '#f0fdf4',
+                              color: (branch.code || '').toUpperCase() === 'HO' ? '#991b1b' : '#15803d',
+                              borderRadius: '20px',
+                              fontWeight: '700',
+                              fontSize: '0.8rem',
+                              letterSpacing: '0.5px',
+                              textTransform: 'uppercase'
+                            }}>
+                              {(branch.code || '').toUpperCase()}
+                            </span>
+                          </td>
+
+                          {/* Branch City Column */}
+                          <td style={{ padding: '1.25rem 1.5rem', fontWeight: '700', color: 'var(--primary-blue)' }}>
+                            {(branch.branch || '').toUpperCase()}
+                          </td>
+
+                          {/* Address Column */}
+                          <td style={{ padding: '1.25rem 1.5rem', color: '#475569', lineHeight: '1.5', maxWidth: '350px' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                              <MapPin size={16} color="var(--primary-red)" style={{ marginTop: '3px', flexShrink: 0 }} />
+                              <span>{(branch.address || '').toUpperCase()}</span>
+                            </div>
+                          </td>
+
+                          {/* Contact Person Column */}
+                          <td style={{ padding: '1.25rem 1.5rem', color: '#0f172a', fontWeight: '500' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <User size={16} color="var(--primary-blue)" style={{ flexShrink: 0 }} />
+                              <span>{(branch.name || 'Branch Manager').toUpperCase()}</span>
+                            </div>
+                          </td>
+
+                          {/* Action Links Column */}
+                          <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'flex-end' }}>
+                              {branch.phno && (
+                                <a href={`tel:${branch.phno.replace(/[^0-9+]/g, '')}`} style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  color: 'var(--primary-blue)',
+                                  textDecoration: 'none',
+                                  fontWeight: '600',
+                                  fontSize: '0.9rem',
+                                  transition: 'color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary-blue)'}
+                                >
+                                  <Phone size={14} /> {branch.phno}
+                                </a>
+                              )}
+                              {branch.email && (
+                                <a href={`mailto:${(branch.email || '').toLowerCase()}`} style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  color: '#64748b',
+                                  textDecoration: 'none',
+                                  fontSize: '0.85rem',
+                                  transition: 'color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-red)'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+                                >
+                                  <Mail size={14} /> {(branch.email || '').toLowerCase()}
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Dynamic Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  marginTop: '2rem'
+                }}>
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.6rem',
+                      borderRadius: '50%',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: currentPage === 1 ? '#f1f5f9' : 'white',
+                      color: currentPage === 1 ? '#94a3b8' : 'var(--primary-blue)',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  {/* Page Indicator */}
+                  <span style={{ fontWeight: '600', fontSize: '0.95rem', color: '#475569' }}>
+                    Page <span style={{ color: 'var(--primary-red)' }}>{currentPage}</span> of {totalPages}
+                  </span>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.6rem',
+                      borderRadius: '50%',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: currentPage === totalPages ? '#f1f5f9' : 'white',
+                      color: currentPage === totalPages ? '#94a3b8' : 'var(--primary-blue)',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </section>
+
+      <style>{`
+        .table-row-hover:hover {
+          background-color: #f1f5f9 !important;
+        }
+      `}</style>
     </div>
   );
 };
