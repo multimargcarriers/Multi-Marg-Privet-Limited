@@ -275,6 +275,38 @@ const Trips = () => {
     return [...pendingTrips, ...trips];
   }, [trips, syncQueue]);
 
+  const uniqueVendors = useMemo(() => {
+    const s = new Set();
+    displayTrips.forEach(t => { if (t.vendor) s.add(t.vendor); });
+    return Array.from(s).sort();
+  }, [displayTrips]);
+
+  const uniqueClients = useMemo(() => {
+    const s = new Set();
+    displayTrips.forEach(t => {
+      t.materialDetails?.forEach(m => { if (m.clientName) s.add(m.clientName); });
+    });
+    return Array.from(s).sort();
+  }, [displayTrips]);
+
+  const uniqueVehicles = useMemo(() => {
+    const s = new Set();
+    displayTrips.forEach(t => { if (t.vehicleNo) s.add(t.vehicleNo); });
+    return Array.from(s).sort();
+  }, [displayTrips]);
+
+  const uniqueOrigins = useMemo(() => {
+    const s = new Set();
+    displayTrips.forEach(t => { if (t.origin) s.add(t.origin); });
+    return Array.from(s).sort();
+  }, [displayTrips]);
+
+  const uniqueDestinations = useMemo(() => {
+    const s = new Set();
+    displayTrips.forEach(t => { if (t.destination) s.add(t.destination); });
+    return Array.from(s).sort();
+  }, [displayTrips]);
+
   const filteredTrips = useMemo(() => {
     return displayTrips.filter(t => {
       if (startDate || endDate) {
