@@ -376,14 +376,31 @@ const Trips = () => {
       setSelectedTripIds(prev => Array.from(new Set([...prev, ...visibleIds])));
     }
   };
-
   const handleClearSelection = () => {
     setSelectedTripIds([]);
   };
 
-  const calculateTotalChWeight = (tripsList, modeList) => {
+  const calculateTotalChWeight = (tripsList, modeList, currentMonthOnly = false) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
     return tripsList
-      .filter(t => modeList.includes((t.mode || "").toLowerCase()))
+      .filter(t => {
+        if (!modeList.includes((t.mode || "").toLowerCase())) return false;
+        if (currentMonthOnly) {
+          if (!t.date) return false;
+          const parts = String(t.date).split('-');
+          if (parts.length >= 2) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            return y === currentYear && m === currentMonth;
+          }
+          const d = new Date(t.date);
+          return d && d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        }
+        return true;
+      })
       .reduce((total, t) => {
         const tripChWeight = (t.materialDetails || []).reduce((sum, mat) => sum + (parseFloat(mat.chWeight) || 0), 0);
         return total + tripChWeight;
@@ -400,6 +417,9 @@ const Trips = () => {
       roadTripsCount: filteredTrips.filter(t => (t.mode || "").toLowerCase() === 'road').length,
       trainTripsCount: filteredTrips.filter(t => ['train', 'rail'].includes((t.mode || "").toLowerCase())).length,
       flightTripsCount: filteredTrips.filter(t => ['air', 'flight'].includes((t.mode || "").toLowerCase())).length,
+      curMonthRoadChWeight: calculateTotalChWeight(filteredTrips, ['road'], true),
+      curMonthTrainChWeight: calculateTotalChWeight(filteredTrips, ['train', 'rail'], true),
+      curMonthFlightChWeight: calculateTotalChWeight(filteredTrips, ['air', 'flight'], true),
     };
   }, [filteredTrips, activeFilteredTrips]);
 
@@ -687,6 +707,17 @@ const Trips = () => {
               <span><span style={{ color: "#f97316" }}>R:</span> {tripsStats.roadChWeight.toFixed(2)} KG</span>
               <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.trainChWeight.toFixed(2)} KG</span>
               <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.flightChWeight.toFixed(2)} KG</span>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: "1.5rem", borderLeft: "4px solid #10b981" }}>
+            <div style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: "600", marginBottom: "0.5rem" }}>
+              Current ({new Date().toLocaleString('default', { month: 'long' })})
+            </div>
+            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", marginTop: "0.5rem" }}>
+              <span><span style={{ color: "#f97316" }}>R:</span> {tripsStats.curMonthRoadChWeight.toFixed(2)} KG</span>
+              <span><span style={{ color: "#a21caf" }}>T:</span> {tripsStats.curMonthTrainChWeight.toFixed(2)} KG</span>
+              <span><span style={{ color: "#0ea5e9" }}>A:</span> {tripsStats.curMonthFlightChWeight.toFixed(2)} KG</span>
             </div>
           </div>
         </div>
