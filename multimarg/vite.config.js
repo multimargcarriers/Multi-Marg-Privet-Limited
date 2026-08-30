@@ -14,7 +14,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
       },
       manifest: {
-        name: 'Multimarg Carriers Pvt. Ltd.',
+        name: 'Multimarg Carriers Private Limited',
         short_name: 'Multimarg',
         description: 'Multimarg Carriers - Nationwide Logistics & Freight Transport',
         theme_color: '#0B1B3D',

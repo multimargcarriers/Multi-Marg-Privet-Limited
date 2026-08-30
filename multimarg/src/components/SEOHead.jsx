@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 
 const SITE_URL = 'https://www.multimarg.com';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/mc.png`;
-const SITE_NAME = 'Multimarg Carriers Pvt. Ltd.';
+const SITE_NAME = 'Multimarg Carriers Private Limited';
 
 /**
  * SEOHead — Reusable per-page SEO component
