@@ -4,27 +4,32 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
 
-function parseDateToISO(dateStr) {
-  if (!dateStr || dateStr.trim() === '') return new Date().toISOString();
+function formatDateToYYYYMMDD(dateStr) {
+  if (!dateStr || dateStr.trim() === '') return '';
   const cleanStr = dateStr.trim();
   const parts = cleanStr.split(/[-./]/);
   if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    const d = new Date(Date.UTC(year, month, day));
-    if (!isNaN(d.getTime())) {
-      return d.toISOString();
-    }
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`; // YYYY-MM-DD
+  }
+  return '';
+}
+
+function parseDateToISO(dateStr) {
+  const ymd = formatDateToYYYYMMDD(dateStr);
+  if (ymd) {
+    return new Date(ymd + 'T00:00:00.000Z').toISOString();
   }
   return new Date().toISOString();
 }
 
 async function runSeed() {
   await initMongo();
-  console.log("Starting Vendor MIS CSV seeding...");
+  console.log("Starting Vendor MIS CSV seeding with strict YYYY-MM-DD details dates...");
 
-  const csvFilePath = path.join(__dirname, '../../frontend/public/vendor_mis_sample (1).csv');
+  const csvFilePath = path.join(__dirname, '../../frontend/public/vendor_mis_sample-1.csv');
 
   if (!fs.existsSync(csvFilePath)) {
     console.error(`CSV file not found at: ${csvFilePath}`);
@@ -70,7 +75,18 @@ async function runSeed() {
             creatorRole: 'SuperAdmin',
             creatorName: 'SuperAdmin',
             approvalStatus: row['approvalStatus'] || 'Pending',
-            remarks: row['Remarks'] || '',
+            remarks: row['Remarks'] ? [
+              {
+                id: String(Date.now() - Math.floor(Math.random() * 100000)),
+                senderId: 'admin-id-seeder',
+                senderName: 'SuperAdmin',
+                senderRole: 'SuperAdmin',
+                message: row['Remarks'],
+                createdAt: parseDateToISO(row['Created at'])
+              }
+            ] : [],
+            origin: row['Origin'] || '',
+            destination: row['Destination'] || '',
             details: [],
             // Temporary store for inheritance of missing details
             _activeDate: row['Created at'],
@@ -85,7 +101,7 @@ async function runSeed() {
           const vehicleNo = row['Vehicle no'] || currentParent._activeVehicle;
 
           currentParent.details.push({
-            date: parseDateToISO(detailDate),
+            date: formatDateToYYYYMMDD(detailDate), // Must be YYYY-MM-DD for HTML date inputs!
             handoverTo: handoverTo || 'NA',
             vehicleNo: vehicleNo || '-',
             from: row['From'] || '',
@@ -153,7 +169,7 @@ async function runSeed() {
     await batch.commit();
   }
 
-  console.log(`Successfully seeded ${insertCount} vendor MIS entries into database!`);
+  console.log(`Successfully seeded ${insertCount} vendor MIS entries with correct date formatting!`);
   process.exit(0);
 }
 

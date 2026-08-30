@@ -22,6 +22,7 @@ const VendorMIS = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || (user?.role === 'Employee' && hasPermission('vendormis'));
+  const isSuperAdminOrAdmin = user?.role === 'SuperAdmin' || user?.role === 'Admin' || user?.email === 'admin@multimarg.com';
   const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
 
   const initialVendorMisRow = { handoverTo: "", date: "", from: "", vehicleNo: "", to: "", particular: "", mode: "", others: "0", amount: "0", status: "Pending" };
@@ -572,6 +573,169 @@ const VendorMIS = () => {
               display: none !important;
             }
           }
+
+          /* Communication & Remarks Modal Styles */
+          .remarks-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 1rem;
+          }
+
+          .remarks-modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 88vh;
+            border: 1px solid #cbd5e1;
+          }
+
+          .remarks-modal-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: #ffffff;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            flex-shrink: 0;
+            gap: 12px;
+          }
+
+          .remarks-modal-header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .remarks-modal-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            flex-wrap: wrap;
+          }
+
+          .remarks-modal-meta-row {
+            font-size: 0.78rem;
+            color: #cbd5e1;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+
+          .remarks-modal-close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #ffffff;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            margin-left: 10px;
+          }
+          .remarks-modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+          }
+
+          .remarks-modal-chat-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #f8fafc;
+            min-height: 240px;
+          }
+
+          .remarks-modal-footer {
+            padding: 1rem 1.25rem;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-shrink: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.03);
+          }
+
+          /* Mobile responsive styles */
+          @media (max-width: 576px) {
+            .remarks-modal-overlay {
+              padding: 0.5rem;
+            }
+            .remarks-modal-card {
+              border-radius: 12px;
+              max-height: 94vh;
+            }
+            .remarks-modal-header {
+              padding: 0.75rem 1rem;
+              gap: 8px;
+            }
+            .remarks-modal-header-content {
+              gap: 8px;
+            }
+            .remarks-modal-title-row {
+              font-size: 0.88rem;
+              gap: 6px;
+            }
+            .remarks-modal-title-badge {
+              font-size: 0.58rem !important;
+              padding: 1px 4px !important;
+            }
+            .remarks-modal-meta-row {
+              font-size: 0.72rem;
+              gap: 4px;
+            }
+            .remarks-modal-close-btn {
+              width: 30px;
+              height: 30px;
+              margin-left: 4px;
+            }
+            .remarks-modal-chat-body {
+              padding: 0.75rem;
+              gap: 0.75rem;
+            }
+            .remarks-modal-footer {
+              padding: 0.75rem;
+              gap: 8px;
+            }
+            .remarks-modal-footer textarea {
+              font-size: 0.8rem !important;
+              padding: 8px 10px !important;
+            }
+            .remarks-modal-footer button {
+              height: 38px !important;
+              padding: 8px 12px !important;
+              font-size: 0.8rem !important;
+            }
+          }
         `}</style>
 
         {/* Enterprise Card Header & Controls */}
@@ -950,7 +1114,9 @@ const VendorMIS = () => {
                 title="Toggle Select All"
               />
             </div>,
-            "Vendor Name", "Date Created", "Details", "Total Amount", "Status", "Remarks", "Actions"
+            "Vendor Name",
+            ...(isSuperAdminOrAdmin ? ["Trip No"] : []),
+            "Date Created", "Details", "Total Amount", "Status", "Remarks", "Actions"
           ]}
           data={filteredEntries}
           emptyMessage="No Vendor MIS entries added yet. Click 'Add Vendor MIS Entry' to start."
@@ -975,6 +1141,11 @@ const VendorMIS = () => {
                   </div>
                 )}
               </td>
+              {isSuperAdminOrAdmin && (
+                <td style={{ fontWeight: "700", color: "#1e3a8a", whiteSpace: "nowrap" }}>
+                  {item.tripNo || "-"}
+                </td>
+              )}
               <td style={{ whiteSpace: "nowrap" }}>{item.createdAt ? formatDate(item.createdAt) : "-"}</td>
               <td style={{ padding: 0 }}>
                 <div style={{ maxHeight: "300px", overflowY: "auto", margin: "10px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
@@ -1301,49 +1472,16 @@ const VendorMIS = () => {
 
       {/* Communication & Remarks Modal */}
       {activeRemarksModal && createPortal(
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(15, 23, 42, 0.7)",
-          backdropFilter: "blur(6px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          padding: "1rem"
-        }}>
-          <div style={{
-            background: "#ffffff",
-            borderRadius: "16px",
-            width: "95%",
-            maxWidth: "640px",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "88vh",
-            border: "1px solid #cbd5e1"
-          }}>
+        <div className="remarks-modal-overlay">
+          <div className="remarks-modal-card">
             {/* Modal Header with Company Logo & Status Info */}
-            <div style={{
-              background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
-              color: "#ffffff",
-              padding: "1rem 1.25rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderBottom: "1px solid rgba(255,255,255,0.1)",
-              flexShrink: 0
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="remarks-modal-header">
+              <div className="remarks-modal-header-content">
                 <img
                   src="/mc.png"
                   alt="Multimarg Logo"
                   style={{
-                    height: "40px",
+                    height: "36px",
                     width: "auto",
                     objectFit: "contain",
                     background: "#ffffff",
@@ -1352,12 +1490,12 @@ const VendorMIS = () => {
                     boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
                   }}
                 />
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "1rem", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="remarks-modal-title-row">
                     <span>Multimarg Carriers</span>
-                    <span style={{ fontSize: "0.65rem", background: "rgba(255,255,255,0.15)", padding: "2px 6px", borderRadius: "6px", fontWeight: "700" }}>COMMUNICATIONS</span>
+                    <span className="remarks-modal-title-badge" style={{ fontSize: "0.65rem", background: "rgba(255,255,255,0.15)", padding: "2px 6px", borderRadius: "6px", fontWeight: "700" }}>COMMUNICATIONS</span>
                   </div>
-                  <div style={{ fontSize: "0.8rem", color: "#cbd5e1", marginTop: "4px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <div className="remarks-modal-meta-row">
                     <span>Vendor: <strong style={{ color: "#ffffff" }}>{activeRemarksModal.vendorName}</strong></span>
                     <span>•</span>
                     <span>Amount: <strong style={{ color: "#10b981" }}><RupeeIcon size={12} />{parseFloat(activeRemarksModal.totalAmount || 0).toFixed(2)}</strong></span>
@@ -1378,21 +1516,7 @@ const VendorMIS = () => {
               <button
                 type="button"
                 onClick={() => setActiveRemarksModal(null)}
-                style={{
-                  background: "rgba(255,255,255,0.15)",
-                  border: "none",
-                  color: "#ffffff",
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "background 0.2s",
-                  flexShrink: 0,
-                  marginLeft: "10px"
-                }}
+                className="remarks-modal-close-btn"
                 title="Close Modal"
               >
                 <X size={18} />
@@ -1400,17 +1524,8 @@ const VendorMIS = () => {
             </div>
 
             {/* Conversation Messages List */}
-            <div style={{
-              padding: "1.25rem",
-              overflowY: "auto",
-              flex: "1 1 auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1rem",
-              background: "#f8fafc",
-              minHeight: "240px"
-            }}>
-              {(!activeRemarksModal.remarks || activeRemarksModal.remarks.length === 0) ? (
+            <div className="remarks-modal-chat-body">
+              {(!Array.isArray(activeRemarksModal.remarks) || activeRemarksModal.remarks.length === 0) ? (
                 <div style={{
                   textAlign: "center",
                   padding: "2.5rem 1rem",
@@ -1525,16 +1640,7 @@ const VendorMIS = () => {
                     setSubmittingRemark(false);
                   }
                 }}
-                style={{
-                  padding: "1rem 1.25rem",
-                  background: "#ffffff",
-                  borderTop: "1px solid #e2e8f0",
-                  display: "flex",
-                  gap: "10px",
-                  alignItems: "flex-end",
-                  flexShrink: 0,
-                  boxShadow: "0 -2px 10px rgba(0,0,0,0.03)"
-                }}
+                className="remarks-modal-footer"
               >
                 <div style={{ flex: 1 }}>
                   <textarea

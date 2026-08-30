@@ -155,7 +155,7 @@ class DocumentReference {
       this.mongoDb = adapterOrDb;
     }
     this.colName = colName;
-    this.id = id;
+    this.id = id || uuidv4();
   }
 
   async _getDb() {
