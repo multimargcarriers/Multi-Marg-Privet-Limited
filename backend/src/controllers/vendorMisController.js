@@ -73,14 +73,14 @@ exports.postRoot_2 = async (req, res) => {
     snapshot.forEach(doc => {
       const data = doc.data();
       const tripNo = data.tripNo || '';
-      const match = tripNo.match(/^((VEH|VEN)-)?(\d+)(-(VEH|VEN))?$/);
+      const match = tripNo.match(/^([a-zA-Z]+-)?(\d+)(-[a-zA-Z]+)?$/);
       if (match) {
-        const num = parseInt(match[3], 10);
+        const num = parseInt(match[2], 10);
         if (num > maxNum) maxNum = num;
       }
     });
     const nextNum = maxNum + 1;
-    payload.tripNo = `VEN-${String(nextNum).padStart(4, '0')}`;
+    payload.tripNo = `VND-${String(nextNum).padStart(3, '0')}`;
   }
 
   const docRef = await db.collection("vendor_mis").add(payload);

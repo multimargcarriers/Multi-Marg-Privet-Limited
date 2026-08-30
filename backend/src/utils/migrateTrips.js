@@ -59,8 +59,8 @@ async function migrateTrips() {
     
     for (const doc of vendorMisDocs) {
       vendorMisCount++;
-      const padded = String(vendorMisCount).padStart(4, '0');
-      const newTripNo = `VEN-${padded}`;
+      const padded = String(vendorMisCount).padStart(3, '0');
+      const newTripNo = `VND-${padded}`;
       
       if (doc.tripNo !== newTripNo) {
         vendorMisPromises.push(
@@ -71,7 +71,7 @@ async function migrateTrips() {
     
     if (vendorMisPromises.length > 0) {
       await Promise.all(vendorMisPromises);
-      console.log(`🚛 [Migration] Successfully migrated ${vendorMisPromises.length} vendor_mis documents to the new VEN format.`);
+      console.log(`🚛 [Migration] Successfully migrated ${vendorMisPromises.length} vendor_mis documents to the new VND format.`);
     } else {
       console.log("🚛 [Migration] No vendor_mis documents needed migration.");
     }
