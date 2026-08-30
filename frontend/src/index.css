@@ -4793,3 +4793,143 @@ input[id="name"] {
     gap: 0.4rem 0.5rem;
   }
 }
+
+/* Responsive Form Grids for CreateBooking and other pages */
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-grid-2-1-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .form-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid-2-1-1 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .form-grid-2-1-1 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ensure all date inputs stretch to 100% width and behave like block elements */
+input[type="date"].form-control {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Package Dimensions mobile card layout */
+.mobile-dimensions-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 0.75rem !important;
+}
+
+.mobile-dimensions-item {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Fix date filter group inputs alignment on mobile and desktop */
+.date-filter-group {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 5px 12px !important;
+  gap: 10px !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+.date-filter-group input[type="date"].form-control {
+  display: inline-block !important;
+  width: 135px !important;
+  flex-shrink: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  padding: 0 4px !important;
+  font-size: 0.9rem !important;
+  height: 30px !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+}
+
+.date-filter-group span {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Mobile responsive overrides for date filters */
+@media (max-width: 768px) {
+  .date-filter-group {
+    width: 100% !important;
+    max-width: 360px !important;
+    margin: 0 auto !important;
+    padding: 4px 10px !important;
+    gap: 8px !important;
+  }
+  .date-filter-group input[type="date"].form-control {
+    width: 120px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* If there is no space (very narrow mobile screens under 360px), stack them perfectly */
+@media (max-width: 360px) {
+  .date-filter-group {
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+    max-width: 200px !important;
+  }
+  .date-filter-group span {
+    display: none !important;
+  }
+  .date-filter-group input[type="date"].form-control {
+    width: 130px !important;
+    text-align: center !important;
+  }
+}

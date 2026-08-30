@@ -23,6 +23,13 @@ const CreateBooking = () => {
   const isEditMode = !!id;
 
   const [podModalOpen, setPodModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const [formData, setFormData] = useState({
     client: "",
@@ -135,7 +142,7 @@ const CreateBooking = () => {
                 }
                 return raw.split('T')[0];
               }
-              try { return new Date(raw).toISOString().split('T')[0]; } catch(e) { return ""; }
+              try { return new Date(raw).toISOString().split('T')[0]; } catch { return ""; }
             };
 
             let parcels = (b.invoiceDetails && b.invoiceDetails.length > 0) ? b.invoiceDetails : (b.parcels || []);
@@ -279,8 +286,14 @@ const CreateBooking = () => {
       const savedDraft = appDB.memGet('bookingFormDraft');
       if (savedDraft) {
         try {
-          if (savedDraft) {
-            setFormData(prev => ({ ...prev, ...savedDraft }));
+          const isNewFormat = savedDraft.hasOwnProperty('data') && savedDraft.hasOwnProperty('timestamp');
+          const draftData = isNewFormat ? savedDraft.data : savedDraft;
+          const draftTimestamp = isNewFormat ? savedDraft.timestamp : Date.now();
+          const age = Date.now() - draftTimestamp;
+          if (age > 5 * 60 * 1000) {
+            appDB.remove('bookingFormDraft');
+          } else {
+            setFormData(prev => ({ ...prev, ...draftData }));
           }
         } catch (e) {
           console.error("Failed to parse booking draft", e);
@@ -289,12 +302,12 @@ const CreateBooking = () => {
     }
 
     fetchData();
-  }, [id]);
+  }, [id, user, navigate, addToast]);
 
   // Auto-save draft
   useEffect(() => {
     if (!isEditMode && formData) {
-      appDB.set('bookingFormDraft', formData);
+      appDB.set('bookingFormDraft', { data: formData, timestamp: Date.now() });
     }
   }, [formData, isEditMode]);
 
@@ -423,13 +436,25 @@ const CreateBooking = () => {
     setIsSubmitting(true);
     setSuccess(null);
     try {
-      // Removed old silent auto-create logic because we now use QuickAddModal for professional creation
+      // Prepare payload to default empty charges to 0 on save
+      const charges = [
+        'freight_charge', 'awb_charge', 'pickup_charge', 'delivery_charge',
+        'packaging_charge', 'handling_charge', 'insurance_charge', 'fuel_surcharge'
+      ];
+      const payload = { ...formData };
+      charges.forEach(ch => {
+        if (payload[ch] === "" || payload[ch] === null || payload[ch] === undefined) {
+          payload[ch] = 0;
+        } else {
+          payload[ch] = Number(payload[ch]);
+        }
+      });
 
       let response;
       if (isEditMode) {
-        response = await axios.put(`${API}/bookings/${id}`, formData);
+        response = await axios.put(`${API}/bookings/${id}`, payload);
       } else {
-        response = await axios.post(`${API}/bookings`, formData);
+        response = await axios.post(`${API}/bookings`, payload);
       }
       
       if (response.data.success) {
@@ -561,7 +586,7 @@ const CreateBooking = () => {
         {/* 1. Booking Details */}
         <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>1. Booking Details</h5>
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-4">
           <div className="form-group" style={{ margin: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
               <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", margin: 0 }}>Awb No</label>
@@ -600,7 +625,7 @@ const CreateBooking = () => {
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
-            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="dispatch_date" value={formData.dispatch_date} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <input type="date" min="1947-01-01" max="2200-12-31" className="form-control" name="dispatch_date" value={formData.dispatch_date} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px", width: "100%", display: "block" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Mode<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
@@ -623,7 +648,7 @@ const CreateBooking = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div className="form-grid-2-1-1">
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Billed To<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
@@ -671,7 +696,7 @@ const CreateBooking = () => {
         <hr style={{ border: 0, borderTop: "1px solid #e2e8f0", margin: "1.25rem 0" }} />
         <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>2. Route & Party Details</h5>
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-2">
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Consignor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
@@ -712,7 +737,7 @@ const CreateBooking = () => {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-2">
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <CreatableDropdown 
@@ -745,49 +770,165 @@ const CreateBooking = () => {
           <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>3. Invoice Details</h5>
         </div>
         
-        <div style={{ overflowX: "auto", marginBottom: "0.75rem" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
-                <th style={{ padding: "8px 4px", textAlign: "center", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "5%" }}>S.No.</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice No</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Date</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Part Number</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "15%" }}>Quantity</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Value</th>
-                <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Eway Bill</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.invoiceDetails.map((inv, i) => (
-                <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                  <td style={{ padding: "6px 4px", textAlign: "center", fontWeight: "500", color: "#374151", fontSize: "0.8rem" }}>{i + 1}</td>
-                  <td style={{ padding: "4px" }}>
-                    <input id={`invoiceNo-${i}`} aria-label="Invoice Number" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input id={`invoiceDate-${i}`} aria-label="Invoice Date" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input id={`partNumber-${i}`} aria-label="Part Number" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input id={`quantity-${i}`} aria-label="Quantity" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input id={`invoiceValue-${i}`} aria-label="Invoice Value" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <input id={`ewayBill-${i}`} aria-label="E-way Bill" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
-                      {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>&times;</button>}
-                    </div>
-                  </td>
+        {isMobile ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "0.75rem" }}>
+            {formData.invoiceDetails.map((inv, i) => (
+              <div 
+                key={i} 
+                style={{ 
+                  background: "#ffffff", 
+                  border: "1px solid #cbd5e1", 
+                  borderRadius: "8px", 
+                  padding: "1rem", 
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                  position: "relative"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "0.5rem" }}>
+                  <span style={{ fontWeight: "600", fontSize: "0.9rem", color: "#1e293b" }}>Invoice #{i + 1}</span>
+                  {i > 0 && (
+                    <button 
+                      type="button" 
+                      onClick={() => removeInvoiceRow(i)} 
+                      style={{ 
+                        background: "#fef2f2", 
+                        border: "1px solid #fee2e2", 
+                        color: "#ef4444", 
+                        cursor: "pointer", 
+                        fontSize: "0.8rem", 
+                        fontWeight: "600",
+                        padding: "4px 8px", 
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "2px"
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <div className="form-group" style={{ margin: 0, gridColumn: "span 2" }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Invoice No</label>
+                    <input 
+                      id={`invoiceNo-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px" }} 
+                      value={inv.invoiceNo} 
+                      onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} 
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Invoice Date</label>
+                    <input 
+                      id={`invoiceDate-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px", display: "block" }} 
+                      type="date" 
+                      min="1947-01-01" 
+                      max="2200-12-31" 
+                      value={inv.invoiceDate} 
+                      onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} 
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Part Number</label>
+                    <input 
+                      id={`partNumber-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px" }} 
+                      value={inv.partNumber} 
+                      onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} 
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Quantity</label>
+                    <input 
+                      id={`quantity-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px" }} 
+                      type="number" 
+                      value={inv.quantity} 
+                      onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} 
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Invoice Value</label>
+                    <input 
+                      id={`invoiceValue-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px" }} 
+                      type="number" 
+                      value={inv.invoiceValue} 
+                      onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} 
+                    />
+                  </div>
+                  
+                  <div className="form-group" style={{ margin: 0, gridColumn: "span 2" }}>
+                    <label className="form-label" style={{ fontSize: "0.75rem", fontWeight: "600", color: "#475569", marginBottom: "2px" }}>Eway Bill</label>
+                    <input 
+                      id={`ewayBill-mob-${i}`}
+                      className="form-control" 
+                      style={{ fontSize: "0.85rem", padding: "6px 10px", width: "100%", height: "36px" }} 
+                      value={inv.ewayBill} 
+                      onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} 
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto", marginBottom: "0.75rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
+                  <th style={{ padding: "8px 4px", textAlign: "center", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "5%" }}>S.No.</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice No</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Date</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Part Number</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "15%" }}>Quantity</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Invoice Value</th>
+                  <th style={{ padding: "8px 4px", textAlign: "left", fontSize: "0.75rem", color: "#475569", fontWeight: "600", textTransform: "uppercase", width: "16%" }}>Eway Bill</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {formData.invoiceDetails.map((inv, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "6px 4px", textAlign: "center", fontWeight: "500", color: "#374151", fontSize: "0.8rem" }}>{i + 1}</td>
+                    <td style={{ padding: "4px" }}>
+                      <input id={`invoiceNo-${i}`} aria-label="Invoice Number" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.invoiceNo} onChange={(e) => updateInvoiceRow(i, "invoiceNo", formatAllCaps(e.target.value))} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input id={`invoiceDate-${i}`} aria-label="Invoice Date" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px", display: "block" }} type="date" min="1947-01-01" max="2200-12-31" value={inv.invoiceDate} onChange={(e) => updateInvoiceRow(i, "invoiceDate", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input id={`partNumber-${i}`} aria-label="Part Number" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.partNumber} onChange={(e) => updateInvoiceRow(i, "partNumber", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input id={`quantity-${i}`} aria-label="Quantity" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} type="number" value={inv.quantity} onChange={(e) => updateInvoiceRow(i, "quantity", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input id={`invoiceValue-${i}`} aria-label="Invoice Value" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} type="number" value={inv.invoiceValue} onChange={(e) => updateInvoiceRow(i, "invoiceValue", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <input id={`ewayBill-${i}`} aria-label="E-way Bill" className="form-control" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "32px" }} value={inv.ewayBill} onChange={(e) => updateInvoiceRow(i, "ewayBill", e.target.value)} />
+                        {i > 0 && <button type="button" onClick={() => removeInvoiceRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px" }}>&times;</button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
           <button type="button" onClick={addInvoiceRow} style={{ background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1", padding: "4px 12px", fontSize: "0.75rem", borderRadius: "4px", fontWeight: "600", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}>
@@ -798,7 +939,7 @@ const CreateBooking = () => {
         {/* 4. Cargo details */}
         <hr style={{ border: 0, borderTop: "1px solid #e2e8f0", margin: "1.25rem 0" }} />
         <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>4. Cargo Details</h5>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-4">
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>No. of Packages / Boxes<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <input type="number" className="form-control" name="box" placeholder="Qty" value={formData.box} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
@@ -830,89 +971,122 @@ const CreateBooking = () => {
         <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
             <span style={{ fontSize: "0.825rem", fontWeight: "600", color: "#475569" }}>Package Dimensions (Optional)</span>
-            <button type="button" onClick={addDimensionRow} style={{ background: "#f1f5f9", color: "#334155", border: "1px solid #cbd5e1", padding: "3px 10px", fontSize: "0.75rem", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}>+ Add Dimension</button>
+            <button type="button" onClick={addDimensionRow} style={{ background: "#f8fafc", color: "#334155", border: "1px solid #cbd5e1", padding: "4px 12px", fontSize: "0.75rem", borderRadius: "4px", fontWeight: "600", cursor: "pointer" }}>+ Add</button>
           </div>
-          <table className="bilty-table" style={{ background: "white", borderRadius: "6px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Length (cm)</th>
-                <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Breadth (cm)</th>
-                <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Height (cm)</th>
-                <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Box Count</th>
-                <th style={{ padding: "6px 8px", width: "40px" }}></th>
-              </tr>
-            </thead>
-            <tbody>
+          {isMobile ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {(formData.dimensions || []).map((dim, i) => (
-                <tr key={i} style={{ borderTop: "1px solid #e2e8f0" }}>
-                  <td style={{ padding: "4px" }}>
-                    <input className="form-control" type="number" placeholder="L" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.length} onChange={(e) => updateDimensionRow(i, "length", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input className="form-control" type="number" placeholder="B" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.breadth} onChange={(e) => updateDimensionRow(i, "breadth", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input className="form-control" type="number" placeholder="H" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.height} onChange={(e) => updateDimensionRow(i, "height", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px" }}>
-                    <input className="form-control" type="number" placeholder="Qty" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.boxCount} onChange={(e) => updateDimensionRow(i, "boxCount", e.target.value)} />
-                  </td>
-                  <td style={{ padding: "4px", textAlign: "center" }}>
+                <div key={i} style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "0.75rem", position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "4px" }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "#475569" }}>Dim #{i + 1}</span>
                     {i > 0 && (
-                      <button type="button" onClick={() => removeDimensionRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.1rem" }}>
-                        &times;
-                      </button>
+                      <button type="button" onClick={() => removeDimensionRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" }}>Remove</button>
                     )}
-                  </td>
-                </tr>
+                  </div>
+                  <div className="mobile-dimensions-grid">
+                    <div className="mobile-dimensions-item">
+                      <label style={{ fontSize: "0.7rem", color: "#64748b" }}>Length (cm)</label>
+                      <input className="form-control" type="number" placeholder="L" style={{ fontSize: "0.85rem", padding: "4px 8px", width: "100%", height: "32px", display: "block" }} value={dim.length} onChange={(e) => updateDimensionRow(i, "length", e.target.value)} />
+                    </div>
+                    <div className="mobile-dimensions-item">
+                      <label style={{ fontSize: "0.7rem", color: "#64748b" }}>Breadth (cm)</label>
+                      <input className="form-control" type="number" placeholder="B" style={{ fontSize: "0.85rem", padding: "4px 8px", width: "100%", height: "32px", display: "block" }} value={dim.breadth} onChange={(e) => updateDimensionRow(i, "breadth", e.target.value)} />
+                    </div>
+                    <div className="mobile-dimensions-item">
+                      <label style={{ fontSize: "0.7rem", color: "#64748b" }}>Height (cm)</label>
+                      <input className="form-control" type="number" placeholder="H" style={{ fontSize: "0.85rem", padding: "4px 8px", width: "100%", height: "32px", display: "block" }} value={dim.height} onChange={(e) => updateDimensionRow(i, "height", e.target.value)} />
+                    </div>
+                    <div className="mobile-dimensions-item">
+                      <label style={{ fontSize: "0.7rem", color: "#64748b" }}>Box Count</label>
+                      <input className="form-control" type="number" placeholder="Qty" style={{ fontSize: "0.85rem", padding: "4px 8px", width: "100%", height: "32px", display: "block" }} value={dim.boxCount} onChange={(e) => updateDimensionRow(i, "boxCount", e.target.value)} />
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            <table className="bilty-table" style={{ background: "white", borderRadius: "6px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc" }}>
+                  <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Length (cm)</th>
+                  <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Breadth (cm)</th>
+                  <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Height (cm)</th>
+                  <th style={{ padding: "6px 8px", fontSize: "0.75rem", color: "#475569", fontWeight: "600" }}>Box Count</th>
+                  <th style={{ padding: "6px 8px", width: "40px" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(formData.dimensions || []).map((dim, i) => (
+                  <tr key={i} style={{ borderTop: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "4px" }}>
+                      <input className="form-control" type="number" placeholder="L" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.length} onChange={(e) => updateDimensionRow(i, "length", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input className="form-control" type="number" placeholder="B" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.breadth} onChange={(e) => updateDimensionRow(i, "breadth", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input className="form-control" type="number" placeholder="H" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.height} onChange={(e) => updateDimensionRow(i, "height", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px" }}>
+                      <input className="form-control" type="number" placeholder="Qty" style={{ fontSize: "0.85rem", padding: "6px", width: "100%", margin: 0, height: "30px" }} value={dim.boxCount} onChange={(e) => updateDimensionRow(i, "boxCount", e.target.value)} />
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "center" }}>
+                      {i > 0 && (
+                        <button type="button" onClick={() => removeDimensionRow(i)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "1.1rem" }}>
+                          &times;
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* 5. Financial Charges */}
         <hr style={{ border: 0, borderTop: "1px solid #e2e8f0", margin: "1.25rem 0" }} />
         <h5 style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b", marginBottom: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "2px solid #ef4444", paddingBottom: "4px", display: "inline-block" }}>5. Financial Details</h5>
         
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-4">
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Freight Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="freight_charge" placeholder="₹" value={formData.freight_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Freight Charge</label>
+            <input type="number" step="0.01" className="form-control" name="freight_charge" placeholder="₹" value={formData.freight_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Awb Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="awb_charge" placeholder="₹" value={formData.awb_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Awb Charge</label>
+            <input type="number" step="0.01" className="form-control" name="awb_charge" placeholder="₹" value={formData.awb_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Pickup Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="pickup_charge" placeholder="₹" value={formData.pickup_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Pickup Charge</label>
+            <input type="number" step="0.01" className="form-control" name="pickup_charge" placeholder="₹" value={formData.pickup_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Delivery Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="delivery_charge" placeholder="₹" value={formData.delivery_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Packaging Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="packaging_charge" placeholder="₹" value={formData.packaging_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Handling Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="handling_charge" placeholder="₹" value={formData.handling_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Insurance Charge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="insurance_charge" placeholder="₹" value={formData.insurance_charge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Fuel Surcharge{formData.paymentMode !== "Credit" && <span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>}</label>
-            <input type="number" step="0.01" className="form-control" name="fuel_surcharge" placeholder="₹" value={formData.fuel_surcharge} onChange={handleChange} required={formData.paymentMode !== "Credit"} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Delivery Charge</label>
+            <input type="number" step="0.01" className="form-control" name="delivery_charge" placeholder="₹" value={formData.delivery_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="form-grid-4">
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Packaging Charge</label>
+            <input type="number" step="0.01" className="form-control" name="packaging_charge" placeholder="₹" value={formData.packaging_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Handling Charge</label>
+            <input type="number" step="0.01" className="form-control" name="handling_charge" placeholder="₹" value={formData.handling_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Insurance Charge</label>
+            <input type="number" step="0.01" className="form-control" name="insurance_charge" placeholder="₹" value={formData.insurance_charge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Fuel Surcharge</label>
+            <input type="number" step="0.01" className="form-control" name="fuel_surcharge" placeholder="₹" value={formData.fuel_surcharge} onChange={handleChange} style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }} />
+          </div>
+        </div>
+
+        <div className="form-grid-4">
           <div className="form-group" style={{ margin: 0 }}>
             <label className="form-label" style={{ fontSize: "0.825rem", fontWeight: "500", color: "#475569", marginBottom: "4px" }}>Insured By<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
             <select className="form-control" name="insuredBy" value={formData.insuredBy} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }}>

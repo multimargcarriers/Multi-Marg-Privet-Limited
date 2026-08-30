@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Table from "../components/Table";
-import { Plus, FileText, ClipboardList, CheckCircle, Loader2, Eye, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter, Layers, FileSpreadsheet, CheckSquare, Square, Building2, RefreshCw } from "lucide-react";
-import RupeeIcon from '../components/RupeeIcon';
+import { Plus, CheckCircle, Loader2, Download, Clock, Truck, Train, Plane, Edit, Check, X, Search, Filter, Layers, RefreshCw } from "lucide-react";
 
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { AuthContext } from "../context/AuthContext";
@@ -12,7 +10,7 @@ import { useDialog } from "../context/DialogContext";
 import CreatableDropdown from "../components/CreatableDropdown";
 
 import { formatAllCaps, formatDate } from "../utils/formatters";
-import CopyButton, { AwbBadge } from "../components/CopyButton";
+import { AwbBadge } from "../components/CopyButton";
 import { exportVendorShipMis } from "../utils/excelExport";
 import ExportModal from "../components/ExportModal";
 import { useNotification } from "../context/NotificationContext";
@@ -46,8 +44,6 @@ const Trips = () => {
   const [modeFilter, setModeFilter] = useState("ALL");
   const [selectedTripIds, setSelectedTripIds] = useState([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportFormat, setExportFormat] = useState("excel"); // 'excel' | 'csv'
-  const [exportBranding, setExportBranding] = useState("MULTIMARG"); // 'MULTIMARG' | 'PRIME'
   const [isExporting, setIsExporting] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -73,8 +69,20 @@ const Trips = () => {
   const [form, setForm] = useState(() => {
     try {
       const saved = appDB.memGet('manifestFormDraft');
-      if (saved) return saved;
-    } catch (_e) {}
+      if (saved) {
+        const isNewFormat = saved.hasOwnProperty('data') && saved.hasOwnProperty('timestamp');
+        const draftData = isNewFormat ? saved.data : saved;
+        const draftTimestamp = isNewFormat ? saved.timestamp : Date.now();
+        const age = Date.now() - draftTimestamp;
+        if (age > 5 * 60 * 1000) {
+          appDB.remove('manifestFormDraft');
+        } else {
+          return draftData;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading draft", err);
+    }
     return initialFormState;
   });
 
@@ -101,21 +109,22 @@ const Trips = () => {
 
       addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} details are incomplete. Please fill in the ${type} details.`, "warning");
       refreshNotifications();
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       addToast(`Failed to create ${type}`, "error");
     }
   };
 
-  const [view, setView] = useState("manifest");
-
   useEffect(() => {
-    appDB.set('manifestFormDraft', form);
-  }, [form]);
+    if (!editId) {
+      appDB.set('manifestFormDraft', { data: form, timestamp: Date.now() });
+    }
+  }, [form, editId]);
 
   useEffect(() => {
     fetchData();
     clearBadge("trips");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -132,7 +141,9 @@ const Trips = () => {
       if (clientsRes.data.success) setClients(clientsRes.data.data || []);
       if (vendorsRes.data.success) setVendors(vendorsRes.data.data || []);
       if (citiesRes.data.success) setCities(citiesRes.data.data || []);
-    } catch (err) { console.error("Fetch data error", err); }
+    } catch (err) {
+      console.error("Fetch data error", err);
+    }
     finally { setLoading(false); }
   };
 
@@ -233,7 +244,6 @@ const Trips = () => {
       addToast(`Vendor Ship MIS ${format.toUpperCase()} downloaded successfully!`, "success");
       setShowExportModal(false);
     } catch (err) {
-      console.error("Export error:", err);
       addToast("Failed to export: " + (err.message || "Unknown error"), "error");
     } finally {
       setIsExporting(false);
@@ -262,13 +272,11 @@ const Trips = () => {
         id: req.tempId,
         isOfflinePending: true,
       }));
-    // To show new items at top, you might want to unshift or sort, assuming pending are newest
     return [...pendingTrips, ...trips];
   }, [trips, syncQueue]);
 
   const filteredTrips = useMemo(() => {
     return displayTrips.filter(t => {
-      // 1. Date Range Filter
       if (startDate || endDate) {
         const itemDate = new Date(t.date || t.createdAt);
         itemDate.setHours(0, 0, 0, 0);
@@ -279,25 +287,13 @@ const Trips = () => {
         if (itemDate < start || itemDate > end) return false;
       }
 
-      // 2. Vendor Dropdown Filter
       if (selectedVendor && t.vendor !== selectedVendor) return false;
-
-      // 3. Client Dropdown Filter
       if (selectedClient && !t.materialDetails?.some(m => m.clientName === selectedClient)) return false;
-
-      // 4. Vehicle Dropdown Filter
       if (selectedVehicle && t.vehicleNo !== selectedVehicle) return false;
-
-      // 5. Origin Dropdown Filter
       if (selectedOrigin && t.origin !== selectedOrigin) return false;
-
-      // 6. Destination Dropdown Filter
       if (selectedDestination && t.destination !== selectedDestination) return false;
-
-      // 7. Approval Status Dropdown Filter
       if (selectedApprovalStatus && t.approvalStatus !== selectedApprovalStatus) return false;
 
-      // 8. Global Search Filter
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesMain = (t.tripNo || "").toLowerCase().includes(q) ||
@@ -325,55 +321,19 @@ const Trips = () => {
     });
   }, [displayTrips, startDate, endDate, selectedVendor, selectedClient, selectedVehicle, selectedOrigin, selectedDestination, selectedApprovalStatus, searchQuery]);
 
-  const uniqueVendors = useMemo(() => {
-    const set = new Set();
-    displayTrips.forEach(t => {
-      if (t.vendor) set.add(t.vendor);
-    });
-    return Array.from(set).sort();
-  }, [displayTrips]);
-
-  const uniqueClients = useMemo(() => {
-    const set = new Set();
-    displayTrips.forEach(t => {
-      t.materialDetails?.forEach(m => {
-        if (m.clientName) set.add(m.clientName);
-      });
-    });
-    return Array.from(set).sort();
-  }, [displayTrips]);
-
-  const uniqueVehicles = useMemo(() => {
-    const set = new Set();
-    displayTrips.forEach(t => {
-      if (t.vehicleNo) set.add(t.vehicleNo);
-    });
-    return Array.from(set).sort();
-  }, [displayTrips]);
-
-  const uniqueOrigins = useMemo(() => {
-    const set = new Set();
-    displayTrips.forEach(t => {
-      if (t.origin) set.add(t.origin);
-    });
-    return Array.from(set).sort();
-  }, [displayTrips]);
-
-  const uniqueDestinations = useMemo(() => {
-    const set = new Set();
-    displayTrips.forEach(t => {
-      if (t.destination) set.add(t.destination);
-    });
-    return Array.from(set).sort();
-  }, [displayTrips]);
-
   const activeFilteredTrips = useMemo(() => {
     return filteredTrips.filter(t => matchesMode(t.mode, modeFilter));
   }, [filteredTrips, modeFilter]);
 
+  const handleToggleSelectTrip = (id) => {
+    if (!id) return;
+    setSelectedTripIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
   const isAllVisibleSelected = useMemo(() => {
-    const visibleIds = activeFilteredTrips.map(t => t.id).filter(Boolean);
-    return visibleIds.length > 0 && visibleIds.every(id => selectedTripIds.includes(id));
+    return activeFilteredTrips.length > 0 && activeFilteredTrips.every(t => selectedTripIds.includes(t.id));
   }, [activeFilteredTrips, selectedTripIds]);
 
   const handleToggleSelectAll = () => {
@@ -383,13 +343,6 @@ const Trips = () => {
     } else {
       setSelectedTripIds(prev => Array.from(new Set([...prev, ...visibleIds])));
     }
-  };
-
-  const handleToggleSelectTrip = (id) => {
-    if (!id) return;
-    setSelectedTripIds(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
   };
 
   const handleClearSelection = () => {
@@ -496,8 +449,6 @@ const Trips = () => {
        </td>
        <td>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", minWidth: "100px" }}>
-            <button disabled={item.isOfflinePending} onClick={() => handlePreviewManifest(item.id)} style={{ background: "rgba(13, 110, 253, 0.1)", border: "none", color: "var(--primary-color)", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Preview Manifest"><Eye size={16} /></button>
-            <button disabled={item.isOfflinePending} onClick={() => handleDownloadManifest(item.id)} style={{ background: "rgba(16, 185, 129, 0.1)", border: "none", color: "#10b981", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Download Manifest"><Download size={16} /></button>
             <button disabled={item.isOfflinePending} onClick={() => handleEdit(item)} style={{ background: "rgba(245, 158, 11, 0.1)", border: "none", color: "#f59e0b", padding: "6px", borderRadius: "8px", cursor: item.isOfflinePending ? "not-allowed" : "pointer", opacity: item.isOfflinePending ? 0.5 : 1 }} title="Edit Trip"><Edit size={16} /></button>
             
             {isAdminOrSuperAdmin && !item.isOfflinePending && (
@@ -508,16 +459,19 @@ const Trips = () => {
                    onChange={async (e) => {
                      const newStatus = e.target.value;
                      if (newStatus === (item.approvalStatus || 'Approved')) return;
-                     try {
-                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: newStatus });
-                       if(res.data.success) {
-                          const newTrips = [...trips];
-                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = newStatus;
-                          setTrips(newTrips);
-                          addToast(`Status changed to ${newStatus}`, "success");
-                       }
-                     } catch(_e) { addToast("Error updating status", "error"); }
+                      try {
+                        const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: newStatus });
+                        if(res.data.success) {
+                           const newTrips = [...trips];
+                           const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                           if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = newStatus;
+                           setTrips(newTrips);
+                           addToast(`Status changed to ${newStatus}`, "success");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        addToast("Error updating status", "error");
+                      }
                    }}
                    className="action-btn"
                    style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none", fontSize: "0.75rem" }}
@@ -528,53 +482,62 @@ const Trips = () => {
                  </select>
                ) : (
                  <>
-                   <button onClick={async () => {
-                     try {
-                       const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
-                       if(res.data.success) {
-                          const newTrips = [...trips];
-                          const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                          if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
-                          setTrips(newTrips);
-                          addToast("Trip Approved!", "success");
-                       }
-                     } catch(_e) { addToast("Error approving trip", "error"); }
-                   }} className="action-btn action-btn-success" style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                     <Check size={14} /> Approve
-                   </button>
-                   
-                   {item.approvalStatus !== 'Rejected' && (
-                     <button onClick={async () => {
-                       try {
-                         const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
-                         if(res.data.success) {
-                            const newTrips = [...trips];
-                            const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                            if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
-                            setTrips(newTrips);
-                            addToast("Trip Rejected", "success");
-                         }
-                       } catch(_e) { addToast("Error rejecting trip", "error"); }
-                     }} className="action-btn action-btn-danger" style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                       <X size={14} /> Reject
-                     </button>
-                   )}
-                   {item.approvalStatus !== 'Pending' && (
-                     <button onClick={async () => {
-                       try {
-                         const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
-                         if(res.data.success) {
-                            const newTrips = [...trips];
-                            const tripIndex = newTrips.findIndex(t => t.id === item.id);
-                            if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
-                            setTrips(newTrips);
-                            addToast("Trip marked Pending", "success");
-                         }
-                       } catch(_e) { addToast("Error updating trip", "error"); }
-                     }} className="action-btn action-btn-warning" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                       <Clock size={14} /> Pending
-                     </button>
-                   )}
+                    <button onClick={async () => {
+                      try {
+                        const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Approved' });
+                        if(res.data.success) {
+                           const newTrips = [...trips];
+                           const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                           if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Approved';
+                           setTrips(newTrips);
+                           addToast("Trip Approved!", "success");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        addToast("Error approving trip", "error");
+                      }
+                    }} className="action-btn action-btn-success" style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Check size={14} /> Approve
+                    </button>
+                    
+                    {item.approvalStatus !== 'Rejected' && (
+                      <button onClick={async () => {
+                        try {
+                          const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Rejected' });
+                          if(res.data.success) {
+                             const newTrips = [...trips];
+                             const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                             if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Rejected';
+                             setTrips(newTrips);
+                             addToast("Trip Rejected", "success");
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          addToast("Error rejecting trip", "error");
+                        }
+                      }} className="action-btn action-btn-danger" style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <X size={14} /> Reject
+                      </button>
+                    )}
+                    {item.approvalStatus !== 'Pending' && (
+                      <button onClick={async () => {
+                        try {
+                          const res = await axios.put(`${API}/trips/${item.id}`, { approvalStatus: 'Pending' });
+                          if(res.data.success) {
+                             const newTrips = [...trips];
+                             const tripIndex = newTrips.findIndex(t => t.id === item.id);
+                             if (tripIndex !== -1) newTrips[tripIndex].approvalStatus = 'Pending';
+                             setTrips(newTrips);
+                             addToast("Trip marked Pending", "success");
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          addToast("Error updating trip", "error");
+                        }
+                      }} className="action-btn action-btn-warning" style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: "4px", fontSize: "0.7rem", padding: "4px 8px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Clock size={14} /> Pending
+                      </button>
+                    )}
                  </>
                )}
              </>
@@ -884,7 +847,7 @@ const Trips = () => {
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
-            <button type="button" className="btn" onClick={() => { setShowForm(false); setEditId(null); setForm(initialFormState); }} disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>
+            <button type="button" className="btn" onClick={() => { setShowForm(false); setEditId(null); setForm(initialFormState); appDB.remove('manifestFormDraft'); }} disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>
               CANCEL
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ padding: "0 2rem", height: "45px" }}>

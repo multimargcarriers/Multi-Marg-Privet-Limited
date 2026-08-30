@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, ArrowLeft } from "lucide-react";
+import { Plus, Truck, Check, X, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, Lock, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RupeeIcon from '../../components/RupeeIcon';
-import { formatAllCaps, formatTitleCase, formatDate } from "../../utils/formatters";
+import { formatAllCaps, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
@@ -14,8 +13,7 @@ import appDB from "../../utils/appDB";
 import ExportModal from "../ExportModal";
 import { exportVehicleTripMisList } from "../../utils/excelExport";
 import AutoSuggestInput from "../AutoSuggestInput";
-import CopyButton, { AwbBadge } from "../CopyButton";
-import { recordSuggestion } from "../../utils/smartSuggestions";
+import { AwbBadge } from "../CopyButton";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -64,7 +62,7 @@ const TripMIS = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const [printHeader] = useState("MULTIMARG");
   const [showPrintAmounts, setShowPrintAmounts] = useState(false);
   const remarksEndRef = useRef(null);
 
@@ -72,7 +70,7 @@ const TripMIS = () => {
     if (activeRemarksModal && activeRemarksModal.remarks) {
       remarksEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeRemarksModal?.remarks]);
+  }, [activeRemarksModal]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const _handleShareWhatsApp = (item) => {
     appDB.set("printSingleTripData", item);
@@ -180,105 +178,7 @@ const TripMIS = () => {
     }
   };
 
-  const fileInputRef = useRef(null);
 
-  const handleSampleCSV = () => {
-    const csv = "Trip no,Client,Origin,Destination,Lr no,Consignor,Consignee,Lr origin,Lr destination,Lr mode,Lr box,Lr weight,Veh no,Veh type,Mode,FRIEGHT,Pickup,Delivery,Special,Other,Parking,Labor,Payment,Approval status,Created at\nTRP-1001,XYZ Corp,Delhi,Mumbai,LR-001,ABC Ltd,DEF Ltd,Delhi,Mumbai,Air,10,500.5,DL1A1234,Container,Normal,15000,500,0,0,0,0,0,Paid,Approved,2026-08-01\n";
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Trip_MIS_Sample.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleImportCSV = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const data = results.data;
-        if (data.length === 0) {
-          addToast("CSV is empty", "error");
-          return;
-        }
-
-        const tripsMap = {};
-
-        data.forEach(row => {
-          const tripNo = row['Trip no'] || `TRP-NEW-${Math.floor(Math.random() * 10000)}`;
-          if (!tripsMap[tripNo]) {
-            tripsMap[tripNo] = {
-              tripNo: row['Trip no'] || '',
-              date: row['Created at'] ? formatDate(row['Created at']) : formatDate(new Date()),
-              vehicleNo: row['Veh no'] || '',
-              vehicleType: row['Veh type'] || '',
-              mode: row['Mode'] || 'Normal',
-              payment: row['Payment'] || 'To Pay',
-              clientName: row['Client'] || '',
-              origin: row['Origin'] || '',
-              destination: row['Destination'] || '',
-              tripRemarks: row['Remarks'] || row['Trip Remarks'] || '',
-              paidAmount: 0,
-              gstEnabled: true,
-              gstRate: 18,
-              parcels: []
-            };
-          }
-          if (row['Lr no']) {
-            tripsMap[tripNo].parcels.push({
-              lrNo: row['Lr no'],
-              consignor: row['Consignor'] || '',
-              consignee: row['Consignee'] || '',
-              origin: row['Lr origin'] || tripsMap[tripNo].origin,
-              destination: row['Lr destination'] || tripsMap[tripNo].destination,
-              mode: row['Lr mode'] || tripsMap[tripNo].mode,
-              box: row['Lr box'] || '0',
-              weight: row['Lr weight'] || '0',
-              freight: row['FRIEGHT'] || '0',
-              pickup: row['Pickup'] || '0',
-              delivery: row['Delivery'] || '0',
-              special: row['Special'] || '0',
-              other: row['Other'] || '0',
-              parking: row['Parking'] || '0',
-              labor: row['Labor'] || '0'
-            });
-          }
-        });
-
-        const tripsToImport = Object.values(tripsMap);
-        let successCount = 0;
-
-        for (let trip of tripsToImport) {
-          try {
-            trip.freight = trip.parcels.reduce((sum, p) => sum + (parseFloat(p.freight) || 0) + (parseFloat(p.pickup) || 0) + (parseFloat(p.delivery) || 0) + (parseFloat(p.special) || 0) + (parseFloat(p.other) || 0) + (parseFloat(p.parking) || 0) + (parseFloat(p.labor) || 0), 0);
-            trip.box = trip.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
-            trip.weight = trip.parcels.reduce((sum, p) => sum + (parseFloat(p.weight) || 0), 0);
-
-            await axios.post(`${API}/trip-mis`, trip, { headers: { Authorization: `Bearer ${token}` } });
-            successCount++;
-          } catch (error) {
-            console.error("Failed to import trip:", error);
-          }
-        }
-
-        addToast(`Imported ${successCount} trips successfully!`, "success");
-        axios.get(`${API}/trip-mis`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(res => { if (res.data.success) setTripListEntries(res.data.data); })
-          .catch(err => console.error(err));
-      },
-      error: (error) => {
-        addToast("Error parsing CSV: " + error.message, "error");
-      }
-    });
-    e.target.value = null;
-  };
 
   const [clientsList, setClientsList] = useState([]);
   const [showQuickAddClient, setShowQuickAddClient] = useState(false);
@@ -295,9 +195,33 @@ const TripMIS = () => {
     }
   }, [token]);
 
-  const [tripListForm, setTripListForm] = useState(initialTripListForm);
-  const [showTripListForm, setShowTripListForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [tripListForm, setTripListForm] = useState(() => {
+    try {
+      const saved = appDB.memGet('vehicleTripFormDraft');
+      if (saved) {
+        const isNewFormat = saved.hasOwnProperty('data') && saved.hasOwnProperty('timestamp');
+        const draftData = isNewFormat ? saved.data : saved;
+        const draftTimestamp = isNewFormat ? saved.timestamp : Date.now();
+        const age = Date.now() - draftTimestamp;
+        if (age > 5 * 60 * 1000) {
+          appDB.remove('vehicleTripFormDraft');
+        } else {
+          return draftData;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading draft", err);
+    }
+    return initialTripListForm;
+  });
+
+  useEffect(() => {
+    if (!editingId) {
+      appDB.set('vehicleTripFormDraft', { data: tripListForm, timestamp: Date.now() });
+    }
+  }, [tripListForm, editingId]);
+  const [showTripListForm, setShowTripListForm] = useState(false);
   const [_editingStatus, setEditingStatus] = useState('');
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
 
@@ -326,6 +250,7 @@ const TripMIS = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTripListForm]);
 
   return (
@@ -402,7 +327,7 @@ const TripMIS = () => {
               const totalBox = tripListForm.parcels.reduce((sum, p) => sum + (parseInt(p.box) || 0), 0);
               const totalWeight = tripListForm.parcels.reduce((sum, p) => sum + (parseFloat(p.weight) || 0), 0);
               const cleanParcels = tripListForm.parcels.map((p, idx) => {
-                const { rate, ...rest } = p;
+                const { rate: _, ...rest } = p;
                 return {
                   ...rest,
                   origin: p.origin || tripListForm.origin || "",
@@ -448,6 +373,7 @@ const TripMIS = () => {
                     setEditingStatus('');
                     setShowTripListForm(false);
                     addToast("Vehicle Trip MIS entry updated successfully!", "success");
+                    appDB.remove('vehicleTripFormDraft');
                   }
                 } else {
                   const res = await axios.post(`${API}/trip-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
@@ -456,9 +382,11 @@ const TripMIS = () => {
                     setTripListForm({ ...initialTripListForm, parcels: [{ ...initialParcel }] });
                     setShowTripListForm(false);
                     addToast("Vehicle Trip MIS entry added successfully!", "success");
+                    appDB.remove('vehicleTripFormDraft');
                   }
                 }
-              } catch(_err) {
+              } catch(err) {
+                console.error(err);
                 addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
@@ -828,7 +756,7 @@ const TripMIS = () => {
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-              <button type="button" className="btn" onClick={() => { setShowTripListForm(false); setEditingId(null); setEditingStatus(''); setTripListForm(initialTripListForm); }}>Cancel</button>
+              <button type="button" className="btn" onClick={() => { setShowTripListForm(false); setEditingId(null); setEditingStatus(''); setTripListForm(initialTripListForm); appDB.remove('vehicleTripFormDraft'); }}>Cancel</button>
               <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Vehicle Trip MIS Entry" : "Save Vehicle Trip MIS Entry"}</button>
             </div>
          </form>
@@ -857,8 +785,8 @@ const TripMIS = () => {
             </div>,
             "Trip No & Route", "Client Name", "Date", "Vehicle Details", "Parcels & LR Details", "Total Box", "Total Weight", 
             user?.role === 'SuperAdmin' ? (
-              <div style={{ textAlign: "right", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>
-            ) : <div style={{ textAlign: "right" }}>Total Freight</div>,
+              <div key="superadmin-freight-header" style={{ textAlign: "right", lineHeight: "1.2" }}>Total Freight<br/><span style={{ fontSize: "0.65rem", color: "#6b7280" }}>Payment Mode</span></div>
+            ) : <div key="regular-freight-header" style={{ textAlign: "right" }}>Total Freight</div>,
             "Status", "Remarks", "Actions"
           ]}
           data={filteredEntries}
@@ -1066,7 +994,10 @@ const TripMIS = () => {
                                  setTripListEntries(newEntries);
                                  addToast(`Status changed to ${newStatus}`, "success");
                               }
-                            } catch(_e) { addToast("Error updating status", "error"); }
+                            } catch(err) {
+                              console.error(err);
+                              addToast("Error updating status", "error");
+                            }
                           }}
                           className="action-btn"
                           style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none" }}
@@ -1087,7 +1018,10 @@ const TripMIS = () => {
                                  setTripListEntries(newEntries);
                                  addToast("Entry Approved!", "success");
                               }
-                            } catch(_e) { addToast("Error approving entry", "error"); }
+                            } catch(err) {
+                              console.error(err);
+                              addToast("Error approving entry", "error");
+                            }
                           }} className="action-btn action-btn-success">
                             <Check size={14} /> Approve
                           </button>
@@ -1102,7 +1036,10 @@ const TripMIS = () => {
                                    setTripListEntries(newEntries);
                                    addToast("Entry Rejected", "success");
                                 }
-                              } catch(_e) { addToast("Error rejecting entry", "error"); }
+                              } catch(err) {
+                                console.error(err);
+                                addToast("Error rejecting entry", "error");
+                              }
                             }} className="action-btn action-btn-danger">
                               <X size={14} /> Reject
                             </button>
@@ -1123,7 +1060,10 @@ const TripMIS = () => {
                               setTripListEntries(tripListEntries.filter(t => t.id !== item.id));
                               addToast("Entry deleted successfully", "success");
                             }
-                          } catch(_e) { addToast("Error deleting entry", "error"); }
+                          } catch(err) {
+                            console.error(err);
+                            addToast("Error deleting entry", "error");
+                          }
                         }
                       }} className="action-btn action-btn-secondary">
                         <Trash2 size={14} /> Delete
@@ -1208,8 +1148,9 @@ const TripMIS = () => {
                     setPaymentModal({ isOpen: false, idx: null, amount: "", maxAmount: 0 });
                     addToast("Payment updated successfully!", "success");
                   }
-                } catch(_e) {
-                   addToast("Error updating payment", "error");
+                } catch(err) {
+                  console.error(err);
+                  addToast("Error updating payment", "error");
                 }
               }}>Save Payment</button>
             </div>

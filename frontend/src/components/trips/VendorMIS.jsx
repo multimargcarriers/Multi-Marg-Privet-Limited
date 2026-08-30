@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import Papa from "papaparse";
 import Table from "../../components/Table";
-import { Plus, Truck, Check, X, Clock, Trash2, Edit, Printer, Download, Filter, Search, Upload, FileText, MessageSquare, Send, Settings, Lock, Zap, ArrowLeft } from "lucide-react";
+import { Plus, Truck, Check, X, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, Lock, Zap, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RupeeIcon from '../../components/RupeeIcon';
-import { formatAllCaps,  formatDate } from "../../utils/formatters";
+import { formatAllCaps, formatDate } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";
@@ -14,7 +13,6 @@ import appDB from "../../utils/appDB";
 import ExportModal from "../ExportModal";
 import { exportVendorVehicleMisList } from "../../utils/excelExport";
 import AutoSuggestInput from "../AutoSuggestInput";
-import { recordSuggestion } from "../../utils/smartSuggestions";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
@@ -22,7 +20,6 @@ const VendorMIS = () => {
   const { token, user, hasPermission } = useContext(AuthContext);
   const { confirm } = useDialog();
   const { addToast } = useToast();
-  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
   const navigate = useNavigate();
   const isAdminOrSuperAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com' || (user?.role === 'Employee' && hasPermission('vendormis'));
   const isVendorUser = user?.role === 'Vendor' || user?.role?.toLowerCase() === 'vendor' || (!isAdminOrSuperAdmin && (user?.vendorName || user?.vendor));
@@ -43,7 +40,7 @@ const VendorMIS = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [printHeader, setPrintHeader] = useState("MULTIMARG");
+  const [printHeader] = useState("MULTIMARG");
   const [selectedVendor, setSelectedVendor] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState("");
   const [selectedMode, setSelectedMode] = useState("");
@@ -84,7 +81,7 @@ const VendorMIS = () => {
     if (activeRemarksModal && activeRemarksModal.remarks) {
       remarksEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeRemarksModal?.remarks]);
+  }, [activeRemarksModal]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const filteredEntries = useMemo(() => {
     const filtered = vendorMisEntries.filter(item => {
@@ -154,19 +151,7 @@ const VendorMIS = () => {
     });
   }, [vendorMisEntries, startDate, endDate, searchQuery, selectedVendor, selectedVehicle, selectedMode, selectedStatus, selectedApprovalStatus]);
 
-  // Exclude pending/rejected entries from total
-  const totalReceivable = filteredEntries.reduce((sum, item) => {
-    if (item.approvalStatus === 'Pending' || item.approvalStatus === 'Rejected') {
-      return sum;
-    }
-    const approvedDetailsAmount = (item.details || []).reduce((dSum, d) => {
-      if (d.status === 'Pending' || d.status === 'Rejected') {
-        return dSum;
-      }
-      return dSum + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0);
-    }, 0);
-    return sum + (approvedDetailsAmount > 0 ? approvedDetailsAmount : (parseFloat(item.totalAmount) || 0));
-  }, 0);
+
 
   // Selection State
   const [selectedVendorMisIds, setSelectedVendorMisIds] = useState([]);
@@ -203,88 +188,7 @@ const VendorMIS = () => {
     }
   };
 
-  const fileInputRef = useRef(null);
 
-  const handleSampleCSV = () => {
-    const csv = "Vendor name,Handover to,Date,From,To,Veh no,Particular,Mode,Amount,Others,Status,Total amount,Approval status,Created at\nABC Logistics,John Doe,2026-08-01,Delhi,Mumbai,DL1A1234,Transport,Road,15000,500,Pending,15500,Approved,2026-08-01\n";
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Vendor_MIS_Sample.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleImportCSV = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const data = results.data;
-        if (data.length === 0) {
-          addToast("CSV is empty", "error");
-          return;
-        }
-
-        const vendorsMap = {};
-
-        data.forEach(row => {
-          // Fallback vendor name if empty
-          const vendorName = row['Vendor name'] || `Unknown Vendor ${Math.floor(Math.random() * 1000)}`;
-          if (!vendorsMap[vendorName]) {
-            vendorsMap[vendorName] = {
-              vendorName: vendorName,
-              createdAt: row['Created at'] ? formatDate(row['Created at']) : formatDate(new Date()),
-              details: []
-            };
-          }
-
-          if (row['Date'] || row['Veh no']) {
-            vendorsMap[vendorName].details.push({
-              handoverTo: row['Handover to'] || '',
-              date: formatDate(row['Date'] || new Date()),
-              from: row['From'] || '',
-              to: row['To'] || '',
-              vehicleNo: row['Veh no'] || '',
-              particular: row['Particular'] || '',
-              mode: row['Mode'] || 'Road',
-              amount: row['Amount'] || '0',
-              others: row['Others'] || '0',
-              status: row['Status'] || (isAdminOrSuperAdmin ? 'Approved' : 'Pending')
-            });
-          }
-        });
-
-        const vendorsToImport = Object.values(vendorsMap);
-        let successCount = 0;
-
-        for (let vendor of vendorsToImport) {
-          try {
-            vendor.totalAmount = vendor.details.reduce((sum, d) => sum + (parseFloat(d.amount) || 0) + (parseFloat(d.others) || 0), 0);
-            await axios.post(`${API}/vendor-mis`, vendor, { headers: { Authorization: `Bearer ${token}` } });
-            successCount++;
-          } catch (error) {
-            console.error("Failed to import vendor entry:", error);
-          }
-        }
-
-        addToast(`Imported ${successCount} entries successfully!`, "success");
-        axios.get(`${API}/vendor-mis`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(res => { if (res.data.success) setVendorMisEntries(res.data.data); })
-          .catch(err => console.error(err));
-      },
-      error: (error) => {
-        addToast("Error parsing CSV: " + error.message, "error");
-      }
-    });
-    e.target.value = null;
-  };
 
   useEffect(() => {
     if(token) {
@@ -297,9 +201,33 @@ const VendorMIS = () => {
     }
   }, [token]);
 
-  const [vendorMisForm, setVendorMisForm] = useState(initialVendorMisForm);
-  const [showVendorMisForm, setShowVendorMisForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [vendorMisForm, setVendorMisForm] = useState(() => {
+    try {
+      const saved = appDB.memGet('vendorTripFormDraft');
+      if (saved) {
+        const isNewFormat = saved.hasOwnProperty('data') && saved.hasOwnProperty('timestamp');
+        const draftData = isNewFormat ? saved.data : saved;
+        const draftTimestamp = isNewFormat ? saved.timestamp : Date.now();
+        const age = Date.now() - draftTimestamp;
+        if (age > 5 * 60 * 1000) {
+          appDB.remove('vendorTripFormDraft');
+        } else {
+          return draftData;
+        }
+      }
+    } catch (err) {
+      console.error("Error loading draft", err);
+    }
+    return initialVendorMisForm;
+  });
+
+  useEffect(() => {
+    if (!editingId) {
+      appDB.set('vendorTripFormDraft', { data: vendorMisForm, timestamp: Date.now() });
+    }
+  }, [vendorMisForm, editingId]);
+  const [showVendorMisForm, setShowVendorMisForm] = useState(false);
   const [_editingStatus, setEditingStatus] = useState('');
 
   useEffect(() => {
@@ -314,6 +242,7 @@ const VendorMIS = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showVendorMisForm]);
 
   return (
@@ -810,6 +739,7 @@ const VendorMIS = () => {
                     setEditingStatus('');
                     setShowVendorMisForm(false);
                     addToast("Vendor MIS entry updated successfully!", "success");
+                    appDB.remove('vendorTripFormDraft');
                   }
                 } else {
                   const res = await axios.post(`${API}/vendor-mis`, newEntry, { headers: { Authorization: `Bearer ${token}` } });
@@ -818,9 +748,11 @@ const VendorMIS = () => {
                     setVendorMisForm(initialVendorMisForm);
                     setShowVendorMisForm(false);
                     addToast("Vendor MIS entry added successfully!", "success");
+                    appDB.remove('vendorTripFormDraft');
                   }
                 }
-              } catch(_err) {
+              } catch(err) {
+                 console.error(err);
                  addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
               }
          }}>
@@ -991,7 +923,7 @@ const VendorMIS = () => {
             </div>
             
             <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-              <button type="button" className="btn" onClick={() => { setShowVendorMisForm(false); setEditingId(null); setEditingStatus(''); setVendorMisForm(initialVendorMisForm); }}>Cancel</button>
+              <button type="button" className="btn" onClick={() => { setShowVendorMisForm(false); setEditingId(null); setEditingStatus(''); setVendorMisForm(initialVendorMisForm); appDB.remove('vendorTripFormDraft'); }}>Cancel</button>
               <button type="submit" className="btn btn-primary" style={{ padding: "0 2rem" }}>{editingId ? "Update Vendor MIS Entry" : "Save Vendor MIS Entry"}</button>
             </div>
          </form>
@@ -1130,7 +1062,8 @@ const VendorMIS = () => {
                                                 setVendorMisEntries(updated);
                                             }
                                         }
-                                    } catch(_err) {
+                                    } catch(err) {
+                                        console.error(err);
                                         addToast("Failed to update status", "error");
                                     }
                                 }}
@@ -1227,7 +1160,10 @@ const VendorMIS = () => {
                                  setVendorMisEntries(newEntries);
                                  addToast(`Status changed to ${newStatus}`, "success");
                               }
-                            } catch(_e) { addToast("Error updating status", "error"); }
+                            } catch(err) {
+                              console.error(err);
+                              addToast("Error updating status", "error");
+                            }
                           }}
                           className="action-btn"
                           style={{ padding: "4px 8px", borderRadius: "4px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer", fontWeight: 600, outline: "none" }}
@@ -1252,7 +1188,10 @@ const VendorMIS = () => {
                                  setVendorMisEntries(newEntries);
                                  addToast("Entry Approved!", "success");
                               }
-                            } catch(_e) { addToast("Error approving entry", "error"); }
+                            } catch(err) {
+                              console.error(err);
+                              addToast("Error approving entry", "error");
+                            }
                           }} className="action-btn action-btn-success">
                             <Check size={14} /> Approve
                           </button>
@@ -1268,7 +1207,10 @@ const VendorMIS = () => {
                                    setVendorMisEntries(newEntries);
                                    addToast("Entry Rejected", "success");
                                 }
-                              } catch(_e) { addToast("Error rejecting entry", "error"); }
+                              } catch(err) {
+                                console.error(err);
+                                addToast("Error rejecting entry", "error");
+                              }
                             }} className="action-btn action-btn-danger">
                               <X size={14} /> Reject
                             </button>
@@ -1290,7 +1232,8 @@ const VendorMIS = () => {
                                  setVendorMisEntries(vendorMisEntries.filter((_, i) => i !== idx));
                                  addToast("Entry deleted successfully", "success");
                                }
-                            } catch(_err) {
+                            } catch(err) {
+                               console.error(err);
                                addToast("Failed to delete entry", "error");
                             }
                          }
@@ -1576,6 +1519,7 @@ const VendorMIS = () => {
                       addToast("Remark sent!", "success");
                     }
                   } catch (err) {
+                    console.error(err);
                     addToast(err.response?.data?.message || "Failed to send remark", "error");
                   } finally {
                     setSubmittingRemark(false);
@@ -1736,7 +1680,8 @@ const VendorMIS = () => {
                     setQuickAmountModal(null);
                     addToast(`₹ ${totalAmount.toFixed(2)} submitted for ${updatedDetails.length} ${updatedDetails.length === 1 ? 'trip' : 'trips'} to Admin!`, "success");
                   }
-                } catch(_err) {
+                } catch(err) {
+                  console.error(err);
                   addToast("Failed to submit rates", "error");
                 }
               }}
