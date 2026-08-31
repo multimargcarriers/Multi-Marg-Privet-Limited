@@ -660,15 +660,21 @@ const BookingsList = () => {
                     {/* Status badge in top row */}
                     {(() => {
                       const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
+                      const trackStatus = typeof track === 'object' ? track?.status : track;
+                      const trackStatusLower = String(trackStatus || '').toLowerCase();
+                      const latestIsDelivered = trackStatusLower === 'delivered';
+                      const latestIsOther = trackStatusLower && trackStatusLower !== 'delivered';
+
                       const isDelivered = 
                         Boolean(hasPodEntry) || 
-                        (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered') ||
-                        (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
-                        (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
-                        (item.status && String(item.status).toLowerCase() === 'delivered');
+                        (!latestIsOther && (
+                          latestIsDelivered ||
+                          (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
+                          (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
+                          (item.status && String(item.status).toLowerCase() === 'delivered')
+                        ));
 
                       // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial "booked" as "Picked Up"
-                      const trackStatus = typeof track === 'object' ? track?.status : track;
                       const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status;
 
                       let resolvedStatus = 'Picked Up';
@@ -778,10 +784,19 @@ const BookingsList = () => {
                   <div className="booking-card-sub-info">
                     {(() => {
                       const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
+                      const trackStatus = typeof track === 'object' ? track?.status : track;
+                      const trackStatusLower = String(trackStatus || '').toLowerCase();
+                      const latestIsDelivered = trackStatusLower === 'delivered';
+                      const latestIsOther = trackStatusLower && trackStatusLower !== 'delivered';
+
                       const isDelivered = 
                         Boolean(hasPodEntry) || 
-                        String(item.status || '').toLowerCase() === 'delivered' ||
-                        (typeof track === 'object' ? String(track?.status || '').toLowerCase() === 'delivered' : String(track || '').toLowerCase() === 'delivered');
+                        (!latestIsOther && (
+                          latestIsDelivered ||
+                          (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
+                          (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
+                          (item.status && String(item.status).toLowerCase() === 'delivered')
+                        ));
 
                       const location = isDelivered 
                         ? (item.destination || (typeof track === 'object' ? track?.location : null) || 'Destination')
