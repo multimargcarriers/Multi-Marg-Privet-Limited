@@ -241,8 +241,10 @@ const BookingsList = () => {
 
   const handlePrintAction = (item) => {
     const cachedFilename = `LR_${item.id}.pdf`;
-    let apiBaseUrl = API.endsWith("/api") ? API.slice(0, -4) : API;
-    if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
+    let apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    if (apiBaseUrl.endsWith("/api")) {
+      apiBaseUrl = apiBaseUrl.slice(0, -4);
+    } else if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
       apiBaseUrl = import.meta.env.VITE_API_URL.endsWith("/")
         ? import.meta.env.VITE_API_URL.slice(0, -1)
         : import.meta.env.VITE_API_URL;
