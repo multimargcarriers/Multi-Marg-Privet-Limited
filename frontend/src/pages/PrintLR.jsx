@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Download, ArrowLeft } from "lucide-react";
+import { Download, ArrowLeft, Printer } from "lucide-react";
 import RupeeIcon from "../components/RupeeIcon";
 import { AuthContext } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { QRCodeCanvas } from "qrcode.react";
 import { formatDate } from "../utils/formatters";
 import { downloadViaPuppeteer, getPdfBase64ViaPuppeteer } from "../utils/puppeteerPdf";
 
@@ -207,7 +206,7 @@ const PrintLR = () => {
     }
   };
 
-  const handleDownloadPDF = async (onComplete, autoPrint = false) => {
+  const handleDownloadPDF = async (onComplete) => {
     const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
     const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
     const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();
@@ -215,17 +214,104 @@ const PrintLR = () => {
     const clientName = (booking?.consignee || booking?.consignor || booking?.clientName || booking?.client || "").toString().trim().toUpperCase();
     const filename = `${awb}${routeStr ? " - " + routeStr : ""}${clientName ? " - " + clientName : ""}.pdf`;
 
+    addToast("Generating Lorry Receipt PDF locally...", "info");
     try {
       await downloadViaPuppeteer({
         elementId: "bilty-content",
         filename,
         landscape: false,
-        autoPrint
+        autoPrint: false
       });
-      if (typeof onComplete === 'function') onComplete();
+      addToast("PDF Downloaded successfully!", "success");
+      if (typeof onComplete === "function") onComplete();
     } catch (err) {
-      console.error("Puppeteer PDF generation failed:", err);
-      if (typeof onComplete === 'function') onComplete();
+      console.error("Local download failed:", err);
+      addToast("Failed to download PDF locally.", "error");
+      if (typeof onComplete === "function") onComplete();
+    }
+  };
+
+  const handlePrintPDF = async (onComplete) => {
+    const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
+    const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
+    const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();
+    const routeStr = (origin && dest) ? `${origin} TO ${dest}` : (origin || dest || "");
+    const clientName = (booking?.consignee || booking?.consignor || booking?.clientName || booking?.client || "").toString().trim().toUpperCase();
+    
+    // Create unique filename to save on server
+    const uniqueFilename = `${awb}${routeStr ? "_" + routeStr : ""}${clientName ? "_" + clientName : ""}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.pdf`
+      .replace(/[\s/]/g, "_");
+
+    addToast("Generating Lorry Receipt PDF...", "info");
+
+    // Open a blank tab immediately inside click context to prevent browser popup blocking
+    const newTab = window.open("about:blank", "_blank");
+    if (newTab) {
+      newTab.document.title = "Generating PDF...";
+      newTab.document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif; color: #0f172a; background: #f8fafc; margin: 0;">
+          <div style="border: 4px solid #cbd5e1; border-top: 4px solid #1e293b; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;"></div>
+          <p style="margin-top: 20px; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">Generating Lorry Receipt PDF...</p>
+          <p style="margin-top: 6px; font-size: 0.85rem; color: #64748b;">It will open inline for preview and printing shortly.</p>
+          <style>
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </div>
+      `;
+    }
+
+    try {
+      // 1. Generate client-side PDF as base64
+      const pdfBase64 = await getPdfBase64ViaPuppeteer({
+        elementId: "bilty-content",
+        landscape: false
+      });
+
+      addToast("Saving PDF to server storage...", "info");
+
+      // 2. Upload to server
+      const response = await axios.post(`${API}/print/upload-pdf`, {
+        filename: uniqueFilename,
+        pdfBase64
+      });
+
+      if (response.data.success && response.data.data.url) {
+        addToast("Opening PDF preview...", "success");
+        
+        // 3. Build robust full view URL for both local and production environments
+        let fullUrl = "";
+        if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
+          const apiBase = import.meta.env.VITE_API_URL.endsWith("/")
+            ? import.meta.env.VITE_API_URL.slice(0, -1)
+            : import.meta.env.VITE_API_URL;
+          fullUrl = `${apiBase}${response.data.data.url}`;
+        } else if (window.location.port) {
+          // Dev environment: substitute front-end port (e.g. 5173) with backend port (5000)
+          fullUrl = `${window.location.protocol}//${window.location.hostname}:5000${response.data.data.url}`;
+        } else {
+          // Production environment: front-end and backend share same origin
+          fullUrl = `${window.location.origin}${response.data.data.url}`;
+        }
+        
+        // 4. Update the blank tab URL
+        if (newTab) {
+          newTab.location.href = fullUrl;
+        } else {
+          window.open(fullUrl, "_blank");
+        }
+      } else {
+        throw new Error(response.data.message || "Failed to upload PDF");
+      }
+
+      if (typeof onComplete === "function") onComplete();
+    } catch (err) {
+      console.error("PDF generation/upload failed:", err);
+      addToast(err.message || "Failed to generate PDF. Please try again.", "error");
+      if (newTab) newTab.close();
+      if (typeof onComplete === "function") onComplete();
     }
   };
 
@@ -566,8 +652,11 @@ const PrintLR = () => {
               cursor: (user?.role === 'Admin' || user?.role === 'SuperAdmin') ? "text" : "not-allowed"
             }}
           />
+          <button className="btn btn-primary" style={{ fontWeight: 600, background: "#0284c7", border: "none" }} onClick={() => handlePrintPDF()}>
+            <Printer size={18} className="mr-2" /> Print Bilty (PDF Viewer)
+          </button>
           <button className="btn btn-primary" style={{ fontWeight: 600, background: "#1e293b", border: "none" }} onClick={() => handleDownloadPDF()}>
-            <Download size={18} className="mr-2" /> Download PDF Bilty
+            <Download size={18} className="mr-2" /> Download Bilty (Local)
           </button>
         </div>
       </div>

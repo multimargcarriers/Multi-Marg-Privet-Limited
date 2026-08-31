@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { error } = require("../utils/response");
+const { success, error } = require("../utils/response");
 const { asyncHandler } = require("../middleware/errorHandler");
 const { generatePDF, checkChromiumAvailability } = require("../utils/pdfGenerator");
 const { 
@@ -32,6 +32,41 @@ router.post(
 );
 
 router.use(requirePermission(["billing", "reports"]));
+
+router.post(
+  "/upload-pdf",
+  asyncHandler(async (req, res) => {
+    const fs = require("fs");
+    const path = require("path");
+    const { filename, pdfBase64 } = req.body;
+    if (!filename || !pdfBase64) {
+      return error(res, "Filename and PDF content are required", 400);
+    }
+
+    // Sanitize filename to prevent directory traversal
+    const safeFilename = path.basename(filename).replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+    
+    // Convert base64 to binary buffer
+    let cleanBase64 = pdfBase64;
+    if (pdfBase64.includes(";base64,")) {
+      cleanBase64 = pdfBase64.split(";base64,")[1];
+    }
+    const buffer = Buffer.from(cleanBase64, "base64");
+
+    const dirPath = path.join(__dirname, "../../uploads/downloaded_pdfs");
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    const filePath = path.join(dirPath, safeFilename);
+    fs.writeFileSync(filePath, buffer);
+
+    return success(res, "PDF uploaded successfully", {
+      filename: safeFilename,
+      url: `/api/print/view-pdf/${safeFilename}`
+    });
+  })
+);
 
 router.get("/lr/:id", asyncHandler(get_lr_id_1));
 router.get("/lr/:id/pdf", asyncHandler(get_lr_id_pdf_2));

@@ -36,6 +36,7 @@ const { logger } = require("./src/config/logger");
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
 const { initAnalyticsCron } = require("./src/jobs/analyticsJob");
 const { initCloudinaryCleanupCron } = require("./src/jobs/cloudinaryCleanupJob");
+const { initPdfCleanupCron } = require("./src/jobs/pdfCleanupJob");
 const socketUtil = require("./src/utils/socket");
 
 // Import services (initialized on demand)
@@ -407,6 +408,62 @@ app.post("/api/print/generate-pdf", async (req, res) => {
   }
 });
 
+// Public Route to view/stream uploaded PDFs inline
+app.get("/api/print/view-pdf/:filename", (req, res) => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(__dirname, "uploads/downloaded_pdfs", filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: "PDF not found" });
+    }
+
+    if (req.query.raw === "true") {
+      res.type("application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } else {
+      res.type("text/html");
+      res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <title>${filename.split('_').slice(0, 2).join(' ') || "Lorry Receipt PDF"}</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #525659; }
+    iframe { border: none; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <iframe id="pdf-frame" src="/api/print/view-pdf/${filename}?raw=true"></iframe>
+  <script>
+    const iframe = document.getElementById('pdf-frame');
+    iframe.onload = () => {
+      // Delay to ensure the Chrome PDF plugin is initialized
+      setTimeout(() => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.warn("Direct iframe print failed, falling back to window print:", e);
+          window.print();
+        }
+      }, 850);
+    };
+  </script>
+</body>
+</html>
+      `);
+    }
+  } catch (err) {
+    console.error("View PDF Error:", err);
+    res.status(500).json({ success: false, message: "Failed to open PDF", error: err.message });
+  }
+});
+
 // ============================================================
 // Global Authentication & Auditing Lockdown
 // ============================================================
@@ -561,6 +618,13 @@ async function startServer() {
       await initializeBackgroundServices();
       initAnalyticsCron();
       initCloudinaryCleanupCron();
+      initPdfCleanupCron();
+
+      // Ensure uploads/downloaded_pdfs directory exists
+      const downloadedPdfsDir = path.join(__dirname, "uploads/downloaded_pdfs");
+      if (!fs.existsSync(downloadedPdfsDir)) {
+        fs.mkdirSync(downloadedPdfsDir, { recursive: true });
+      }
     } catch (svcErr) {
       logger.error("Background services initialization error:", svcErr);
     }
