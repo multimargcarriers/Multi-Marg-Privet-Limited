@@ -760,10 +760,18 @@ const Chatbot = () => {
                             fontWeight: 800,
                             padding: '2px 8px',
                             borderRadius: '20px',
-                            backgroundColor: 
-                              String(msg.trackingData.booking?.status || '').includes('DELIVER') ? '#ecfdf5' : '#eff6ff',
-                            color: 
-                              String(msg.trackingData.booking?.status || '').includes('DELIVER') ? '#059669' : '#2563eb',
+                            backgroundColor: (() => {
+                              const s = String(msg.trackingData.booking?.status || '').toUpperCase();
+                              if (s.includes('DELIVER') && !s.includes('OUT')) return '#ecfdf5';
+                              if (s.includes('OUT')) return '#f5f3ff';
+                              return '#eff6ff';
+                            })(),
+                            color: (() => {
+                              const s = String(msg.trackingData.booking?.status || '').toUpperCase();
+                              if (s.includes('DELIVER') && !s.includes('OUT')) return '#059669';
+                              if (s.includes('OUT')) return '#7c3aed';
+                              return '#2563eb';
+                            })(),
                             textTransform: 'uppercase'
                           }}
                         >

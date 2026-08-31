@@ -77,8 +77,8 @@ const formatCleanDateTime = (dateStr) => {
 
 const normalizeStatus = (status) => {
   const s = String(status || '').trim().toLowerCase();
-  if (s.includes('deliver')) return 'DELIVERED';
   if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 'OUT FOR DELIVERY';
+  if (s.includes('deliver')) return 'DELIVERED';
   if (s.includes('transit')) return 'IN TRANSIT';
   if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
   if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
@@ -370,8 +370,8 @@ const TrackShipment = () => {
               const rawStatus = String(latestEntry?.status || b.status || b.delivery_status || b.transitStatus || "Shipment Booked");
               const normStatus = rawStatus.toLowerCase();
 
-              const isDelivered = normStatus.includes("deliver");
               const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
+              const isDelivered = normStatus.includes("deliver") && !isOutForDelivery;
               const isInTransit = normStatus.includes("transit") || normStatus.includes("reach") || normStatus.includes("hub") || normStatus.includes("arrive");
               const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
 

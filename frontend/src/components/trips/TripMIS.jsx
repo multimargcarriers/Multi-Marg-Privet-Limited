@@ -5,7 +5,7 @@ import Table from "../../components/Table";
 import { Plus, Truck, Check, X, Trash2, Edit, Printer, Download, Filter, Search, MessageSquare, Send, Lock, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import RupeeIcon from '../../components/RupeeIcon';
-import { formatAllCaps, formatDate } from "../../utils/formatters";
+import { formatAllCaps, formatDate, formatTitleCase } from "../../utils/formatters";
 import { useToast } from "../../context/ToastContext";
 import { AuthContext } from "../../context/AuthContext";
 import { useDialog } from "../../context/DialogContext";

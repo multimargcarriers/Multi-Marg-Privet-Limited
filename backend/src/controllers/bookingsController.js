@@ -263,7 +263,37 @@ exports.postRoot_1 = async (req, res) => {
   }
   
   const createdBooking = { id: docRefId, ...booking };
-  // await generateOrUpdateBillForBooking(createdBooking, true); // Disabled auto-generation per user request
+  
+  // Create initial tracking entry
+  try {
+    const awbVal = String(booking.consignment || booking.awb || booking.lrNo || docRefId).trim();
+    if (awbVal) {
+      const nowStr = new Date().toISOString();
+      let trackingDate = nowStr;
+      if (booking.dispatch_date) {
+        if (booking.dispatch_date.includes('T')) {
+          trackingDate = booking.dispatch_date;
+        } else if (/^\d{4}-\d{2}-\d{2}$/.test(booking.dispatch_date)) {
+          trackingDate = `${booking.dispatch_date}T${nowStr.split('T')[1]}`;
+        }
+      }
+      const initialTracking = {
+        awb: awbVal,
+        status: booking.status || booking.transitStatus || "Shipment Booked",
+        location: booking.origin || "Origin Facility",
+        date: trackingDate,
+        remarks: booking.remarks || "Shipment booked and Lorry Receipt generated.",
+        enteredBy: req.user?.name || req.user?.email || "Admin",
+        enteredById: req.user?.id || null,
+        enteredByRole: req.user?.role || "Admin",
+        createdAt: nowStr,
+        updatedAt: nowStr
+      };
+      await db.collection("tracking").add(initialTracking);
+    }
+  } catch (trkErr) {
+    console.error("[Booking Create Auto Tracking Error]:", trkErr);
+  }
   
   await delCache(CACHE_KEY);
   await delCache("unbilled");
@@ -513,10 +543,40 @@ exports.put_id_4 = async (req, res) => {
     req.body.date = updatedDate;
   }
 
+  // Intercept tracking-related updates for step-by-step history
+  const remarksChanged = req.body.remarks !== undefined && String(req.body.remarks).trim() !== String(existingData.remarks || '').trim();
+  const transitStatusChanged = req.body.transitStatus !== undefined && String(req.body.transitStatus).trim() !== String(existingData.transitStatus || '').trim();
+  const statusChanged = req.body.status !== undefined && String(req.body.status).trim() !== String(existingData.status || '').trim();
+  const locationChanged = req.body.currentLocation !== undefined && String(req.body.currentLocation).trim() !== String(existingData.currentLocation || '').trim();
+
+  if (remarksChanged || transitStatusChanged || statusChanged || locationChanged) {
+    try {
+      const now = new Date();
+      const newRemarks = req.body.remarks !== undefined ? String(req.body.remarks).trim() : String(existingData.remarks || '').trim();
+      const newStatus = req.body.transitStatus || req.body.status || existingData.transitStatus || existingData.status || "In Transit";
+      const newLocation = req.body.currentLocation || req.body.origin || existingData.currentLocation || existingData.origin || "Origin Facility";
+
+      const newTracking = {
+        awb: requestedAwb || oldAwb,
+        status: newStatus,
+        location: newLocation,
+        date: now.toISOString(),
+        remarks: newRemarks || `Status updated to ${newStatus}`,
+        enteredBy: req.user?.name || req.user?.email || "Admin",
+        enteredById: req.user?.id || null,
+        enteredByRole: req.user?.role || "Admin",
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+      };
+      await db.collection("tracking").add(newTracking);
+    } catch (trkErr) {
+      console.error("[Booking Edit Remarks Tracking Sync Error]:", trkErr);
+    }
+  }
+
   await db.collection("bookings").doc(id).update(req.body);
   
   const updatedBooking = { id, ...doc.data(), ...req.body };
-  // await generateOrUpdateBillForBooking(updatedBooking, false); // Disabled auto-generation per user request
   
   await delCache(CACHE_KEY);
   await delCache("unbilled");

@@ -222,8 +222,8 @@ router.get('/:awb', async (req, res) => {
 
       const getStatusWeight = (statusStr) => {
         const s = String(statusStr || '').toLowerCase();
-        if (s.includes('deliver')) return 100;
         if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 80;
+        if (s.includes('deliver')) return 100;
         if (s.includes('transit') || s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 60;
         if (s.includes('pickup') || s.includes('picked')) return 40;
         if (s.includes('book')) return 20;

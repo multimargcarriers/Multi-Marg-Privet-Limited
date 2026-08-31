@@ -690,18 +690,18 @@ const BookingsList = () => {
                       let icon = <Package size={13} />;
                       let displayStatus = 'PICKED UP';
 
-                      if (normStatus.includes('deliver')) {
-                        bg = '#ecfdf5';
-                        color = '#059669';
-                        border = '#a7f3d0';
-                        icon = <CheckCircle2 size={13} />;
-                        displayStatus = 'DELIVERED';
-                      } else if (normStatus.includes('out for delivery') || normStatus.includes('out_for_delivery')) {
+                      if (normStatus.includes('out for delivery') || normStatus.includes('out_for_delivery')) {
                         bg = '#f5f3ff';
                         color = '#7c3aed';
                         border = '#ddd6fe';
                         icon = <Truck size={13} />;
                         displayStatus = 'OUT FOR DELIVERY';
+                      } else if (normStatus.includes('deliver')) {
+                        bg = '#ecfdf5';
+                        color = '#059669';
+                        border = '#a7f3d0';
+                        icon = <CheckCircle2 size={13} />;
+                        displayStatus = 'DELIVERED';
                       } else if (normStatus.includes('reach') || normStatus.includes('hub') || normStatus.includes('arrive')) {
                         bg = '#f0fdfa';
                         color = '#0d9488';
