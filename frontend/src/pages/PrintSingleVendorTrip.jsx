@@ -288,7 +288,7 @@ const PrintSingleVendorTrip = () => {
                     </>
                   ) : (
                     <>
-                      <div style={{ width: "100px", flexShrink: 0 }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "auto" }} /></div>
+                      <div style={{ width: "70px", height: "70px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
                       <div className="print-header-reset" style={{ textAlign: "center", flex: 1, padding: "0 10px", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "0px", lineHeight: "1" }}>
                         <h1 className="blue-text" style={{ margin: "0", padding: "0", fontSize: "1.4rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: "1.15", width: "100%" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
                         <span style={{ margin: "0", padding: "0", fontSize: "0.72rem", fontWeight: "500", color: "#475569", lineHeight: "1.15", whiteSpace: "nowrap" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</span>
