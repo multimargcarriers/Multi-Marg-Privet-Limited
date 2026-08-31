@@ -889,7 +889,7 @@ const PrintLR = () => {
                 {/* Header Section */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 10px", borderBottom: "2px solid #1e293b" }}>
                   {/* Logo */}
-                  <div style={{ width: "70px", height: "70px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "95px", height: "95px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                   </div>
 

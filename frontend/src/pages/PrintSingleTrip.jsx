@@ -459,7 +459,7 @@ const PrintSingleTrip = () => {
                       </>
                     ) : (
                       <>
-                        <div style={{ width: "70px", height: "70px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
+                        <div style={{ width: "85px", height: "85px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><img src="/mc.png" alt="Multimarg Carriers" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
                         <div style={{ textAlign: "center", flex: 1, padding: "0 8px", lineHeight: "1.15" }}>
                           <h1 className="blue-text" style={{ margin: "0", fontSize: "1.25rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", color: "#1e3a8a" }}>MULTIMARG CARRIERS PVT. LTD.</h1>
                           <div style={{ fontSize: "0.7rem", fontWeight: "500", color: "#475569" }}>LIG-194, NEAR NATIONAL PUBLIC SCHOOL, RUDRAPUR, UTTARAKHAND-263153</div>
