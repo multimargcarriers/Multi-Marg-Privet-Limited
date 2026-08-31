@@ -61,6 +61,14 @@ router.post(
     const filePath = path.join(dirPath, safeFilename);
     fs.writeFileSync(filePath, buffer);
 
+    // Invalidate bookings list cache so hasPdf flags reload instantly
+    try {
+      const { delCache } = require("../config/redis");
+      await delCache("bookings");
+    } catch (e) {
+      console.error("[Upload PDF Cache Clear] Error clearing redis cache:", e.message);
+    }
+
     return success(res, "PDF uploaded successfully", {
       filename: safeFilename,
       url: `/api/print/view-pdf/${safeFilename}`

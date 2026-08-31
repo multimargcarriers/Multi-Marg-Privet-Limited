@@ -303,6 +303,28 @@ exports.getRoot_2 = async (req, res) => {
     }
 
     const snapshot = await db.collection("bookings").orderBy("date", "desc").get();
+    
+    // Scan cached PDFs directory to set hasPdf flags instantly
+    const fs = require("fs");
+    const path = require("path");
+    const dirPath = path.join(__dirname, "../../uploads/downloaded_pdfs");
+    const pdfsMap = {};
+    try {
+      if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath);
+        files.forEach(file => {
+          if (file.endsWith(".pdf")) {
+            let fid = file;
+            if (file.startsWith("LR_")) fid = file.substring(3);
+            if (fid.endsWith(".pdf")) fid = fid.substring(0, fid.length - 4);
+            pdfsMap[fid] = true;
+          }
+        });
+      }
+    } catch (e) {
+      console.error("[Bookings Controller] Error reading PDF directory:", e.message);
+    }
+
     const bookings = [];
     snapshot.forEach(doc => {
       const docData = doc.data();
@@ -321,6 +343,9 @@ exports.getRoot_2 = async (req, res) => {
         docData.podUploaded = true;
         docData.podUrl = matchingPodUrl;
       }
+
+      // Add hasPdf cache status flag
+      docData.hasPdf = Boolean(pdfsMap[doc.id]);
 
       bookings.push({
         id: doc.id,
