@@ -231,30 +231,95 @@ const PrintLR = () => {
     }
   };
 
-  const handlePrintPDF = async (onComplete) => {
-    // Predictable cached filename based on booking ID
+  const handlePrintPDF = async (onComplete, redirectSelf = false) => {
     const cachedFilename = `LR_${id}.pdf`;
-
-    addToast("Opening print preview...", "info");
-
-    let fullUrl = "";
+    
+    // Resolve URL bases
+    let apiBaseUrl = API.endsWith("/api") ? API.slice(0, -4) : API;
     if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
-      const apiBase = import.meta.env.VITE_API_URL.endsWith("/")
+      apiBaseUrl = import.meta.env.VITE_API_URL.endsWith("/")
         ? import.meta.env.VITE_API_URL.slice(0, -1)
         : import.meta.env.VITE_API_URL;
-      fullUrl = `${apiBase}/api/print/view-pdf/${cachedFilename}`;
     } else if (window.location.port) {
-      // Dev environment: substitute front-end port (e.g. 5173) with backend port (5000)
-      fullUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/print/view-pdf/${cachedFilename}`;
+      apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
     } else {
-      // Production environment: front-end and backend share same origin
-      fullUrl = `${window.location.origin}/api/print/view-pdf/${cachedFilename}`;
+      apiBaseUrl = window.location.origin;
     }
 
-    // Open directly in a new tab - since it is synchronous in the click thread, it will never trigger popup blockers!
-    window.open(fullUrl, "_blank");
+    const checkUrl = `${apiBaseUrl}/api/print/check-pdf/${cachedFilename}`;
+    const viewUrl = `${apiBaseUrl}/api/print/view-pdf/${cachedFilename}`;
 
-    if (typeof onComplete === "function") onComplete();
+    try {
+      addToast("Checking PDF cache on server...", "info");
+      
+      const checkRes = await axios.get(checkUrl);
+      
+      if (checkRes.data && checkRes.data.exists) {
+        addToast("Opening print preview...", "success");
+        if (redirectSelf) {
+          window.location.href = viewUrl;
+        } else {
+          window.open(viewUrl, "_blank");
+        }
+        if (typeof onComplete === "function") onComplete();
+        return;
+      }
+
+      addToast("Generating Lorry Receipt PDF...", "info");
+      
+      // If we are redirecting self, we don't need a blank tab
+      let newTab = null;
+      if (!redirectSelf) {
+        newTab = window.open("about:blank", "_blank");
+        if (newTab) {
+          newTab.document.title = "Generating PDF...";
+          newTab.document.body.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif; color: #0f172a; background: #f8fafc; margin: 0;">
+              <div style="border: 4px solid #cbd5e1; border-top: 4px solid #1e293b; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;"></div>
+              <p style="margin-top: 20px; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">Generating Lorry Receipt PDF...</p>
+              <p style="margin-top: 6px; font-size: 0.85rem; color: #64748b;">It will open inline for preview and printing shortly.</p>
+              <style>
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              </style>
+            </div>
+          `;
+        }
+      }
+
+      const pdfBase64 = await getPdfBase64ViaPuppeteer({
+        elementId: "bilty-content",
+        landscape: false
+      });
+
+      addToast("Saving PDF to Hostinger storage...", "info");
+
+      const uploadResponse = await axios.post(`${apiBaseUrl}/api/print/upload-pdf`, {
+        filename: cachedFilename,
+        pdfBase64
+      });
+
+      if (uploadResponse.data.success) {
+        addToast("Opening print preview...", "success");
+        if (redirectSelf) {
+          window.location.href = viewUrl;
+        } else if (newTab) {
+          newTab.location.href = viewUrl;
+        } else {
+          window.open(viewUrl, "_blank");
+        }
+      } else {
+        throw new Error(uploadResponse.data.message || "Failed to upload PDF");
+      }
+
+      if (typeof onComplete === "function") onComplete();
+    } catch (err) {
+      console.error("Print flow failed:", err);
+      addToast(err.message || "Failed to print PDF. Please try again.", "error");
+      if (typeof onComplete === "function") onComplete();
+    }
   };
 
   const handleSendEmail = async () => {
@@ -265,7 +330,7 @@ const PrintLR = () => {
 
     setIsSendingEmail(true);
     setEmailStatus("sending");
-    setEmailStatusMsg("Generating Lorry Receipt PDF on browser...");
+    setEmailStatusMsg("");
 
     try {
       const pdfBase64 = await getPdfBase64ViaPuppeteer({
@@ -273,7 +338,6 @@ const PrintLR = () => {
         landscape: false
       });
 
-      setEmailStatusMsg("Sending Lorry Receipt via email...");
       const awb = (booking?.consignment || booking?.awb || booking?.lrNumber || booking?.id?.slice(-6) || id).toString().trim().toUpperCase();
       const origin = (booking?.origin || booking?.from || "").toString().trim().toUpperCase();
       const dest = (booking?.destination || booking?.to || "").toString().trim().toUpperCase();
@@ -281,9 +345,9 @@ const PrintLR = () => {
       const clientName = (booking?.consignee || booking?.consignor || booking?.clientName || booking?.client || "").toString().trim().toUpperCase();
       const filename = `${awb}${routeStr ? " - " + routeStr : ""}${clientName ? " - " + clientName : ""}.pdf`;
 
-      const response = await axios.post(`${API}/email/send-lr`, {
-        lrId: id,
-        to: recipientEmail,
+      addToast("Sending email...", "info");
+      const response = await axios.post(`${API}/print/email-pdf`, {
+        recipientEmail,
         pdfBase64,
         filename
       });
@@ -317,6 +381,10 @@ const PrintLR = () => {
             navigate("/bookings");
           }, 500);
         });
+      }, 500);
+    } else if (urlParams.get('autoprint') === 'true' && booking) {
+      setTimeout(() => {
+        handlePrintPDF(null, true);
       }, 500);
     }
   }, [booking]);

@@ -237,17 +237,64 @@ const BookingsList = () => {
     }
   };
 
-  const getPrintUrl = (itemId) => {
-    const cachedFilename = `LR_${itemId}.pdf`;
-    if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
-      const apiBase = import.meta.env.VITE_API_URL.endsWith("/")
-        ? import.meta.env.VITE_API_URL.slice(0, -1)
-        : import.meta.env.VITE_API_URL;
-      return `${apiBase}/api/print/view-pdf/${cachedFilename}`;
-    } else if (window.location.port) {
-      return `${window.location.protocol}//${window.location.hostname}:5000/api/print/view-pdf/${cachedFilename}`;
-    } else {
-      return `${window.location.origin}/api/print/view-pdf/${cachedFilename}`;
+
+
+  const handlePrintClick = async (itemId) => {
+    const newTab = window.open("about:blank", "_blank");
+    if (newTab) {
+      newTab.document.title = "Preparing Printer...";
+      newTab.document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif; color: #0f172a; background: #f8fafc; margin: 0;">
+          <div style="border: 4px solid #cbd5e1; border-top: 4px solid #1e293b; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;"></div>
+          <p style="margin-top: 20px; font-size: 1rem; font-weight: 600; letter-spacing: 0.5px;">Checking cache and preparing printer...</p>
+          <style>
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </div>
+      `;
+    }
+
+    try {
+      const cachedFilename = `LR_${itemId}.pdf`;
+      let apiBaseUrl = API.endsWith("/api") ? API.slice(0, -4) : API;
+      if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
+        apiBaseUrl = import.meta.env.VITE_API_URL.endsWith("/")
+          ? import.meta.env.VITE_API_URL.slice(0, -1)
+          : import.meta.env.VITE_API_URL;
+      } else if (window.location.port) {
+        apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:5000`;
+      } else {
+        apiBaseUrl = window.location.origin;
+      }
+      
+      const checkRes = await axios.get(`${apiBaseUrl}/api/print/check-pdf/${cachedFilename}`);
+      
+      if (checkRes.data && checkRes.data.exists) {
+        const viewUrl = `${apiBaseUrl}/api/print/view-pdf/${cachedFilename}`;
+        if (newTab) {
+          newTab.location.href = viewUrl;
+        } else {
+          window.open(viewUrl, "_blank");
+        }
+      } else {
+        const autoprintUrl = `/print-lr/${itemId}?autoprint=true`;
+        if (newTab) {
+          newTab.location.href = autoprintUrl;
+        } else {
+          window.open(autoprintUrl, "_blank");
+        }
+      }
+    } catch (err) {
+      console.error("Print pre-check failed:", err);
+      const fallbackUrl = `/print-lr/${itemId}?autoprint=true`;
+      if (newTab) {
+        newTab.location.href = fallbackUrl;
+      } else {
+        window.open(fallbackUrl, "_blank");
+      }
     }
   };
 
@@ -972,7 +1019,7 @@ const BookingsList = () => {
                           {!item.isOfflinePending && (
                             <>
                               <button
-                                onClick={() => window.open(getPrintUrl(item.id), "_blank")}
+                                onClick={() => handlePrintClick(item.id)}
                                 className="booking-action-btn booking-btn-print"
                                 title="Direct Print LR (Opens Printer)"
                               >
@@ -1071,7 +1118,7 @@ const BookingsList = () => {
                       {!item.isOfflinePending && (
                         <>
                           <button
-                            onClick={() => window.open(getPrintUrl(item.id), "_blank")}
+                            onClick={() => handlePrintClick(item.id)}
                             className="booking-action-btn booking-btn-print"
                             title="Direct Print LR (Opens Printer)"
                           >
