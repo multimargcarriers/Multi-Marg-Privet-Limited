@@ -118,6 +118,14 @@ exports.delete_id_4 = async (req, res) => {
   if (!doc.exists) return error(res, "Tracking entry not found", 404);
   
   const entry = doc.data();
+
+  const isSuperAdmin = req.user?.role === 'SuperAdmin' || req.user?.email === 'admin@multimarg.com';
+  const isOwner = entry.enteredById === req.user?.id || entry.enteredBy === req.user?.name || entry.enteredBy === req.user?.email;
+
+  if (!isSuperAdmin && !isOwner) {
+    return error(res, "Unauthorized to delete this tracking entry", 403);
+  }
+
   const awbNo = String(entry.awb || '').trim();
 
   await db.collection("tracking").doc(id).delete();
@@ -206,8 +214,14 @@ exports.put_id_5 = async (req, res) => {
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
   
   const doc = await db.collection("tracking").doc(id).get();
-  if (!doc.exists) return error(res, "Tracking entry not found", 404);
-  
+  const existingEntry = doc.data();
+  const isSuperAdmin = req.user?.role === 'SuperAdmin' || req.user?.email === 'admin@multimarg.com';
+  const isOwner = existingEntry.enteredById === req.user?.id || existingEntry.enteredBy === req.user?.name || existingEntry.enteredBy === req.user?.email;
+
+  if (!isSuperAdmin && !isOwner) {
+    return error(res, "Unauthorized to modify this tracking entry", 403);
+  }
+
   const updates = {
     ...req.body,
     updatedAt: new Date().toISOString(),

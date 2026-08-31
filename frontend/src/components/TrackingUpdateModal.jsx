@@ -72,25 +72,29 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
       fetchCities();
       if (isBulk) {
         const awbList = bulkBookings.map(b => b.awb || b.consignment || b.lrNo || b.id?.slice(-6) || "").filter(Boolean);
-        const defaultLoc = bulkBookings[0]?.origin || "";
-        const initialStatus = "In Transit";
+        const initialStatus = bulkBookings[0]?.transitStatus || bulkBookings[0]?.trackingStatus || bulkBookings[0]?.status || "In Transit";
+        const defaultLoc = initialStatus === "Delivered"
+          ? (bulkBookings[0]?.destination || "")
+          : (bulkBookings[0]?.currentLocation || bulkBookings[0]?.origin || "");
         setFormData({
           awb: "",
           awbs: awbList,
           date: new Date().toISOString().split('T')[0],
-          location: defaultLoc,
+          location: String(defaultLoc).toUpperCase(),
           status: initialStatus,
           remarks: ""
         });
       } else if (booking) {
         const awb = booking.awb || booking.consignment || booking.lrNo || booking.id?.slice(-6) || "";
-        const defaultLoc = booking.origin || "";
-        const initialStatus = "In Transit";
+        const initialStatus = booking.transitStatus || booking.trackingStatus || booking.status || "In Transit";
+        const defaultLoc = initialStatus === "Delivered"
+          ? (booking.destination || "")
+          : (booking.currentLocation || booking.origin || "");
         setFormData({
           awb: String(awb).toUpperCase(),
           awbs: [String(awb).toUpperCase()],
           date: new Date().toISOString().split('T')[0],
-          location: defaultLoc,
+          location: String(defaultLoc).toUpperCase(),
           status: initialStatus,
           remarks: ""
         });
@@ -111,9 +115,20 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
 
   const handleStatusChange = (e) => {
     const newStatus = e.target.value;
+    
+    // When Delivered is selected, default location to destination (but keep it editable)
+    let newLocation = formData.location;
+    if (newStatus === "Delivered") {
+      newLocation = isBulk
+        ? (bulkBookings[0]?.destination || "")
+        : (booking?.destination || "");
+      newLocation = String(newLocation).toUpperCase();
+    }
+
     setFormData(prev => ({
       ...prev,
-      status: newStatus
+      status: newStatus,
+      location: newLocation
     }));
   };
 

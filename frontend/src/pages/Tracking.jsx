@@ -1654,8 +1654,9 @@ const Tracking = () => {
                 defaultEntries={25}
                 minWidth={isAdmin ? "1080px" : "920px"}
                 renderRow={(row, index) => {
-                  const isDelivered = displayUpdates.some(t => t.awb === row.awb && t.status === "Delivered");
-                  const canModify = (isAdmin || !isDelivered) && !row.isOfflinePending;
+                  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+                  const isOwner = row.enteredById === user?.id || row.enteredBy === user?.name || row.enteredBy === user?.email;
+                  const canModify = (isSuperAdmin || (isOwner && !isDelivered)) && !row.isOfflinePending;
                   
                   return (
                     <tr key={row.id || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
