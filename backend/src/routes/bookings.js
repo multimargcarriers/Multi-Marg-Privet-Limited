@@ -105,32 +105,43 @@ router.get(
   )
 );
 
+// Middleware to delete cached PDF when booking is updated or deleted
+const clearBookingPdfCache = (req, res, next) => {
+  const fs = require("fs");
+  const path = require("path");
+  const { id } = req.params;
+  try {
+    const dirPath = path.join(__dirname, "../../uploads/downloaded_pdfs");
+    if (fs.existsSync(dirPath)) {
+      const files = fs.readdirSync(dirPath);
+      files.forEach(file => {
+        if (file.includes(id)) {
+          const filePath = path.join(dirPath, file);
+          fs.unlinkSync(filePath);
+          console.log(`[Cache Clear] Deleted cached PDF for updated/deleted booking: ${file}`);
+        }
+      });
+    }
+  } catch (e) {
+    console.error("[Cache Clear] Error clearing PDF cache:", e.message);
+  }
+  next();
+};
+
 // Update booking
 router.put(
   "/:id",
   requirePermission(writePerms),
-  asyncHandler(put_id_4
-
-
-
-
-
-
-  )
+  clearBookingPdfCache,
+  asyncHandler(put_id_4)
 );
 
 // Delete booking
 router.delete(
   "/:id",
   requirePermission(writePerms),
-  asyncHandler(delete_id_5
-
-
-
-
-
-
-  )
+  clearBookingPdfCache,
+  asyncHandler(delete_id_5)
 );
 
 module.exports = router;

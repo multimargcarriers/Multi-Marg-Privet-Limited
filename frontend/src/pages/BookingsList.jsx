@@ -237,6 +237,20 @@ const BookingsList = () => {
     }
   };
 
+  const getPrintUrl = (itemId) => {
+    const cachedFilename = `LR_${itemId}.pdf`;
+    if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith("http")) {
+      const apiBase = import.meta.env.VITE_API_URL.endsWith("/")
+        ? import.meta.env.VITE_API_URL.slice(0, -1)
+        : import.meta.env.VITE_API_URL;
+      return `${apiBase}/api/print/view-pdf/${cachedFilename}`;
+    } else if (window.location.port) {
+      return `${window.location.protocol}//${window.location.hostname}:5000/api/print/view-pdf/${cachedFilename}`;
+    } else {
+      return `${window.location.origin}/api/print/view-pdf/${cachedFilename}`;
+    }
+  };
+
   useSocketSync("bookings", fetchAllData);
 
   const handleClearAll = async () => {
@@ -321,7 +335,11 @@ const BookingsList = () => {
         (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.destination || "").toLowerCase().includes(search.toLowerCase());
+        (b.destination || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.invoiceNo || b.invoice_no || b.invNo || b.invoice || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.invoiceDetails && Array.isArray(b.invoiceDetails) && b.invoiceDetails.some(inv => 
+          (inv.invoiceNo || inv.invoice_no || inv.invNo || inv.invoice || "").toLowerCase().includes(search.toLowerCase())
+        ));
 
       if (!matchesSearch) return false;
 
@@ -954,20 +972,20 @@ const BookingsList = () => {
                           {!item.isOfflinePending && (
                             <>
                               <button
-                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                                onClick={() => window.open(getPrintUrl(item.id), "_blank")}
                                 className="booking-action-btn booking-btn-print"
-                                title="View / Print LR"
+                                title="Direct Print LR (Opens Printer)"
                               >
                                 <Printer size={13} />
                                 <span className="booking-action-btn-text">PRINT</span>
                               </button>
                               <button
-                                onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                                onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
                                 className="booking-action-btn booking-btn-download"
-                                title="Direct Download PDF"
+                                title="View LR / Bilty Page"
                               >
-                                <Download size={13} />
-                                <span className="booking-action-btn-text">PDF</span>
+                                <Eye size={13} />
+                                <span className="booking-action-btn-text">VIEW</span>
                               </button>
                             </>
                           )}
@@ -1053,20 +1071,20 @@ const BookingsList = () => {
                       {!item.isOfflinePending && (
                         <>
                           <button
-                            onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
+                            onClick={() => window.open(getPrintUrl(item.id), "_blank")}
                             className="booking-action-btn booking-btn-print"
-                            title="View / Print LR"
+                            title="Direct Print LR (Opens Printer)"
                           >
                             <Printer size={13} />
                             <span className="booking-action-btn-text">PRINT</span>
                           </button>
                           <button
-                            onClick={() => window.open(`/print-lr/${item.id}?download=true`, "_blank")}
+                            onClick={() => window.open(`/print-lr/${item.id}`, "_blank")}
                             className="booking-action-btn booking-btn-download"
-                            title="Direct Download PDF"
+                            title="View LR / Bilty Page"
                           >
-                            <Download size={13} />
-                            <span className="booking-action-btn-text">PDF</span>
+                            <Eye size={13} />
+                            <span className="booking-action-btn-text">VIEW</span>
                           </button>
                         </>
                       )}

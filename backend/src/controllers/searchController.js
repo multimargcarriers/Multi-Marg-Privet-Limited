@@ -58,7 +58,16 @@ exports.getRoot_1 = async (req, res) => {
       fetchCached("bills", "bills", "createdAt")
     ]);
 
-    results.push(...bookings.filter(b => match(b, ["lrNo", "consignor", "consignee", "origin", "destination", "awb", "consignment", "client"])).slice(0, 5).map(b => ({
+    results.push(...bookings.filter(b => {
+      const isDirectMatch = match(b, ["lrNo", "consignor", "consignee", "origin", "destination", "awb", "consignment", "client", "invoiceNo", "invoice_no", "invNo", "invoice"]);
+      if (isDirectMatch) return true;
+      if (b.invoiceDetails && Array.isArray(b.invoiceDetails)) {
+        return b.invoiceDetails.some(inv => 
+          (inv.invoiceNo || inv.invoice_no || inv.invNo || inv.invoice || "").toLowerCase().includes(query)
+        );
+      }
+      return false;
+    }).slice(0, 5).map(b => ({
       type: "Booking",
       id: b.id,
       title: b.awb || b.consignment || b.lrNo || "LR",
