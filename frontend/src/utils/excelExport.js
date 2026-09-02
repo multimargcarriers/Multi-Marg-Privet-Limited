@@ -1459,23 +1459,89 @@ export async function exportPartyDetailedLedger({
     return true;
   });
 
+  // D. Pre-calculate TDS mapped to bills by billNo / reference
+  const rawAdj = (party.adjustments || []).filter((adj) => {
+    if (dateRange?.type === "custom" && dateRange.startDate && dateRange.endDate) {
+      const adjDate = adj.date || adj.createdAt;
+      if (adjDate) {
+        try {
+          const dStr = new Date(adjDate).toISOString().split("T")[0];
+          if (dStr < dateRange.startDate || dStr > dateRange.endDate) return false;
+        } catch (_e) {}
+      }
+    }
+    return true;
+  });
+
+  const billTdsMap = new Map();
+  const consumedAdjIds = new Set();
+
+  rawBills.forEach((b) => {
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+    const bId = String(b.id || b._id || "").trim();
+    
+    let tdsForBill = Number(b.tdsAmount || b.tds) || 0;
+
+    rawAdj.forEach((adj, adjIdx) => {
+      const part = String(adj.particulars || "tds").toLowerCase();
+      if (part === "tds") {
+        const adjRef = String(adj.billNo || adj.voucherNo || adj.referenceNo || "").toUpperCase().trim();
+        const adjBillId = String(adj.billId || adj.invoiceId || "").trim();
+
+        if (
+          (adjRef && (adjRef === bNo || bNo.includes(adjRef) || adjRef.includes(bNo))) ||
+          (adjBillId && (adjBillId === bId || adjBillId === bNo))
+        ) {
+          tdsForBill += Number(adj.amount) || 0;
+          consumedAdjIds.add(adj._id || adj.id || adjIdx);
+        }
+      }
+    });
+
+    if (bNo && bNo !== "-") {
+      billTdsMap.set(bNo, tdsForBill);
+    }
+  });
+
   filteredBills.forEach((b) => {
     const bTotal = Number(b.amount || b.total) || 0;
     const bPaid = Number(b.paidAmount) || 0;
-    const bTds = Number(b.tdsAmount) || 0;
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+    const bTds = billTdsMap.has(bNo) ? billTdsMap.get(bNo) : (Number(b.tdsAmount || b.tds) || 0);
     const bDebt = Number(b.debtAmount) || 0;
     const isCancelled = String(b.status || "").toLowerCase() === "cancelled";
     const bDue = isCancelled ? 0 : Math.max(0, bTotal - bPaid - bTds - bDebt);
     const bDate = b.invoice_date || b.billDate || b.date || b.createdAt || b.invoiceDate || b.purchaseDate || b.lrDate;
-    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
     const status = isCancelled ? "CANCELLED" : bDue <= 0.01 ? "PAID" : (bPaid > 0 || bTds > 0 || bDebt > 0) ? "PARTIAL" : "UNPAID";
 
     let particulars = b.remarks || b.description || (isClient ? "Freight & Transportation Services" : "Vendor Transport Charges");
     if (b.vehicles || b.vehicleNo) particulars += ` (Veh: ${b.vehicles || b.vehicleNo})`;
     if (b.tripsCount) particulars += ` [${b.tripsCount} Trips]`;
 
-    const bTaxable = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTotal - Number(b.gstAmount || b.gst) : bTotal / 1.18);
-    const bGst = Number(b.gstAmount || b.gst) || (bTotal - bTaxable);
+    let bTaxable = Number(b.taxableAmount || b.taxable || b.subtotal) || 0;
+    let bGst = 0;
+
+    if (b.gstAmount !== undefined && b.gstAmount !== null && b.gstAmount !== "") {
+      bGst = Number(b.gstAmount) || 0;
+    } else if (b.cgst !== undefined || b.sgst !== undefined || b.igst !== undefined) {
+      bGst = (Number(b.cgst) || 0) + (Number(b.sgst) || 0) + (Number(b.igst) || 0);
+    } else if (bTaxable > 0 && bTotal > bTaxable) {
+      bGst = bTotal - bTaxable;
+    } else if (b.gst && Number(b.gst) > 0) {
+      const gstRate = Number(b.gst);
+      if (bTaxable > 0) {
+        bGst = bTaxable * (gstRate / 100);
+      } else {
+        bTaxable = bTotal / (1 + gstRate / 100);
+        bGst = bTotal - bTaxable;
+      }
+    } else {
+      bGst = bTaxable > 0 ? Math.max(0, bTotal - bTaxable) : 0;
+    }
+
+    if (bTaxable === 0) {
+      bTaxable = Math.max(0, bTotal - bGst);
+    }
 
     ledgerEntries.push({
       date: formatDate(bDate),
@@ -1488,6 +1554,8 @@ export async function exportPartyDetailedLedger({
       gst: Number(bGst.toFixed(2)),
       debit: Number(bTotal.toFixed(2)),
       credit: 0,
+      tds: Number(bTds.toFixed(2)),
+      debt: 0,
       status: status,
       rawBill: b,
     });
@@ -1537,25 +1605,18 @@ export async function exportPartyDetailedLedger({
       gst: 0,
       debit: Number(debit.toFixed(2)),
       credit: Number(credit.toFixed(2)),
+      tds: 0,
+      debt: 0,
       status: "SETTLED",
       rawCash: c,
     });
   });
 
-  // D. TDS & Bad Debt Adjustments
-  const rawAdj = (party.adjustments || []).filter((adj) => {
-    if (dateRange?.type === "custom" && dateRange.startDate && dateRange.endDate) {
-      const adjDate = adj.date || adj.createdAt;
-      if (adjDate) {
-        try {
-          const dStr = new Date(adjDate).toISOString().split("T")[0];
-          if (dStr < dateRange.startDate || dStr > dateRange.endDate) return false;
-        } catch (_e) {}
-      }
-    }
-    return true;
-  });
-  rawAdj.forEach((adj) => {
+  // D. Remaining TDS (Unlinked) & Bad Debt Adjustments
+  rawAdj.forEach((adj, adjIdx) => {
+    const adjId = adj._id || adj.id || adjIdx;
+    if (consumedAdjIds.has(adjId)) return;
+
     const amt = Number(adj.amount) || 0;
     const adjDate = adj.date || adj.createdAt;
     const part = String(adj.particulars || "tds").toLowerCase();
@@ -1729,15 +1790,35 @@ export async function exportPartyDetailedLedger({
 
       rawBills.forEach((b, bIdx) => {
         const bTot = Number(b.amount || b.total) || 0;
-        const bTax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTot - Number(b.gstAmount || b.gst) : bTot / 1.18);
-        const bGst = Number(b.gstAmount || b.gst) || (bTot - bTax);
+        const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+        
+        let bTax = Number(b.taxableAmount || b.taxable || b.subtotal) || 0;
+        let bGst = 0;
+        if (b.gstAmount !== undefined && b.gstAmount !== null && b.gstAmount !== "") {
+          bGst = Number(b.gstAmount) || 0;
+        } else if (b.cgst !== undefined || b.sgst !== undefined || b.igst !== undefined) {
+          bGst = (Number(b.cgst) || 0) + (Number(b.sgst) || 0) + (Number(b.igst) || 0);
+        } else if (bTax > 0 && bTot > bTax) {
+          bGst = bTot - bTax;
+        } else if (b.gst && Number(b.gst) > 0) {
+          const gstRate = Number(b.gst);
+          if (bTax > 0) {
+            bGst = bTax * (gstRate / 100);
+          } else {
+            bTax = bTot / (1 + gstRate / 100);
+            bGst = bTot - bTax;
+          }
+        } else {
+          bGst = bTax > 0 ? Math.max(0, bTot - bTax) : 0;
+        }
+        if (bTax === 0) bTax = Math.max(0, bTot - bGst);
+
         const bP = Number(b.paidAmount) || 0;
-        const bT = Number(b.tdsAmount) || 0;
+        const bT = billTdsMap.has(bNo) ? billTdsMap.get(bNo) : (Number(b.tdsAmount || b.tds) || 0);
         const bD = Number(b.debtAmount) || 0;
         const bRem = Math.max(0, bTot - bP - bT - bD);
         const bSt = bRem <= 0.01 ? "PAID" : (bP > 0 || bT > 0 || bD > 0) ? "PARTIAL" : "UNPAID";
         const bDate = b.invoice_date || b.billDate || b.date || b.createdAt || b.invoiceDate || b.purchaseDate || b.lrDate;
-        const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
         const stDetails = getBillSettlementDetails(b, rawCash, rawAdj);
 
         totCsvTaxable += bTax;
@@ -2278,10 +2359,31 @@ export async function exportPartyDetailedLedger({
 
     rawBills.forEach((b, idx) => {
       const bTot = Number(b.amount || b.total) || 0;
-      const bTax = Number(b.taxableAmount || b.taxable) || (b.gstAmount || b.gst ? bTot - Number(b.gstAmount || b.gst) : bTot / 1.18);
-      const bGst = Number(b.gstAmount || b.gst) || (bTot - bTax);
+      const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+      
+      let bTax = Number(b.taxableAmount || b.taxable || b.subtotal) || 0;
+      let bGst = 0;
+      if (b.gstAmount !== undefined && b.gstAmount !== null && b.gstAmount !== "") {
+        bGst = Number(b.gstAmount) || 0;
+      } else if (b.cgst !== undefined || b.sgst !== undefined || b.igst !== undefined) {
+        bGst = (Number(b.cgst) || 0) + (Number(b.sgst) || 0) + (Number(b.igst) || 0);
+      } else if (bTax > 0 && bTot > bTax) {
+        bGst = bTot - bTax;
+      } else if (b.gst && Number(b.gst) > 0) {
+        const gstRate = Number(b.gst);
+        if (bTax > 0) {
+          bGst = bTax * (gstRate / 100);
+        } else {
+          bTax = bTot / (1 + gstRate / 100);
+          bGst = bTot - bTax;
+        }
+      } else {
+        bGst = bTax > 0 ? Math.max(0, bTot - bTax) : 0;
+      }
+      if (bTax === 0) bTax = Math.max(0, bTot - bGst);
+
       const bP = Number(b.paidAmount) || 0;
-      const bT = Number(b.tdsAmount) || 0;
+      const bT = billTdsMap.has(bNo) ? billTdsMap.get(bNo) : (Number(b.tdsAmount || b.tds) || 0);
       const bD = Number(b.debtAmount) || 0;
       const isCanc = String(b.status || "").toLowerCase() === "cancelled";
       const bRem = isCanc ? 0 : Math.max(0, bTot - bP - bT - bD);
@@ -2296,7 +2398,6 @@ export async function exportPartyDetailedLedger({
       totDue2 += bRem;
 
       const bDate = b.invoice_date || b.billDate || b.date || b.createdAt || b.invoiceDate || b.purchaseDate || b.lrDate;
-      const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
       const stDetails = getBillSettlementDetails(b, rawCash, rawAdj);
 
       const rowVals2 = [

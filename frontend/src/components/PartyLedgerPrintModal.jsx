@@ -81,15 +81,59 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
     return true;
   });
 
+  // Pre-calculate TDS mapped to bills by billNo / reference
+  const rawAdj = (party.adjustments || []).filter((adj) => {
+    if (dateRange?.type === "custom" && dateRange.startDate && dateRange.endDate) {
+      const adjDate = adj.date || adj.createdAt;
+      if (adjDate) {
+        try {
+          const dStr = new Date(adjDate).toISOString().split("T")[0];
+          if (dStr < dateRange.startDate || dStr > dateRange.endDate) return false;
+        } catch (_e) {}
+      }
+    }
+    return true;
+  });
+
+  const billTdsMap = new Map();
+  const consumedAdjIds = new Set();
+
+  rawBills.forEach((b) => {
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+    const bId = String(b.id || b._id || "").trim();
+    
+    let tdsForBill = Number(b.tdsAmount || b.tds) || 0;
+
+    rawAdj.forEach((adj, adjIdx) => {
+      const part = String(adj.particulars || "tds").toLowerCase();
+      if (part === "tds") {
+        const adjRef = String(adj.billNo || adj.voucherNo || adj.referenceNo || "").toUpperCase().trim();
+        const adjBillId = String(adj.billId || adj.invoiceId || "").trim();
+
+        if (
+          (adjRef && (adjRef === bNo || bNo.includes(adjRef) || adjRef.includes(bNo))) ||
+          (adjBillId && (adjBillId === bId || adjBillId === bNo))
+        ) {
+          tdsForBill += Number(adj.amount) || 0;
+          consumedAdjIds.add(adj._id || adj.id || adjIdx);
+        }
+      }
+    });
+
+    if (bNo && bNo !== "-") {
+      billTdsMap.set(bNo, tdsForBill);
+    }
+  });
+
   filteredBills.forEach((b) => {
     const bTotal = Number(b.amount || b.total) || 0;
     const bPaid = Number(b.paidAmount) || 0;
-    const bTds = Number(b.tdsAmount) || 0;
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase().trim();
+    const bTds = billTdsMap.has(bNo) ? billTdsMap.get(bNo) : (Number(b.tdsAmount || b.tds) || 0);
     const bDebt = Number(b.debtAmount) || 0;
     const isCancelled = String(b.status || "").toLowerCase() === "cancelled";
     const bDue = isCancelled ? 0 : Math.max(0, bTotal - bPaid - bTds - bDebt);
     const bDate = b.invoice_date || b.billDate || b.date || b.createdAt || b.invoiceDate || b.purchaseDate || b.lrDate;
-    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || b.invNo || b.refNo || (b.id ? String(b.id).slice(-6) : "") || "-").toUpperCase();
     const status = isCancelled ? "CANCELLED" : bDue <= 0.01 ? "PAID" : (bPaid > 0 || bTds > 0 || bDebt > 0) ? "PARTIAL" : "UNPAID";
 
     let particulars = b.remarks || b.description || (isClient ? "Freight & Transportation Services" : "Vendor Transport Charges");
@@ -105,6 +149,8 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
       mode: b.paymentMode && String(b.paymentMode).toUpperCase() !== "TBB" ? b.paymentMode : "BILL / INVOICE",
       debit: Number(bTotal.toFixed(2)),
       credit: 0,
+      tds: Number(bTds.toFixed(2)),
+      debt: 0,
       status: status,
       rawBill: b,
     });
@@ -152,26 +198,18 @@ const PartyLedgerPrintModal = ({ party, isOpen, onClose, initialStatusFilter = "
       mode: mode,
       debit: Number(debit.toFixed(2)),
       credit: Number(credit.toFixed(2)),
+      tds: 0,
+      debt: 0,
       status: "SETTLED",
       rawCash: c,
     });
   });
 
-  // D. TDS & Bad Debt Adjustments
-  const rawAdj = (party.adjustments || []).filter((adj) => {
-    if (dateRange?.type === "custom" && dateRange.startDate && dateRange.endDate) {
-      const adjDate = adj.date || adj.createdAt;
-      if (adjDate) {
-        try {
-          const dStr = new Date(adjDate).toISOString().split("T")[0];
-          if (dStr < dateRange.startDate || dStr > dateRange.endDate) return false;
-        } catch (_e) {}
-      }
-    }
-    return true;
-  });
+  // D. Remaining TDS (Unlinked) & Bad Debt Adjustments
+  rawAdj.forEach((adj, adjIdx) => {
+    const adjId = adj._id || adj.id || adjIdx;
+    if (consumedAdjIds.has(adjId)) return;
 
-  rawAdj.forEach((adj) => {
     const amt = Number(adj.amount) || 0;
     const adjDate = adj.date || adj.createdAt;
     const part = String(adj.particulars || "tds").toLowerCase();

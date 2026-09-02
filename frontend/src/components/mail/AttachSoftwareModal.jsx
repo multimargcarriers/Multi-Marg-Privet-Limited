@@ -520,16 +520,45 @@ function buildPaginatedPartyLedgerPages(party, todayFormatted) {
     });
   }
 
+  const rawAdj = party.adjustments || [];
+  const billTdsMap = new Map();
+  const consumedAdjIds = new Set();
+
   const rawBills = party.bills || [];
+  rawBills.forEach(b => {
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || "-").toUpperCase().trim();
+    const bId = String(b.id || b._id || "").trim();
+    let tdsForBill = Number(b.tdsAmount || b.tds) || 0;
+
+    rawAdj.forEach((adj, adjIdx) => {
+      const part = String(adj.particulars || "tds").toLowerCase();
+      if (part === "tds") {
+        const adjRef = String(adj.billNo || adj.voucherNo || adj.referenceNo || "").toUpperCase().trim();
+        const adjBillId = String(adj.billId || adj.invoiceId || "").trim();
+        if (
+          (adjRef && (adjRef === bNo || bNo.includes(adjRef) || adjRef.includes(bNo))) ||
+          (adjBillId && (adjBillId === bId || adjBillId === bNo))
+        ) {
+          tdsForBill += Number(adj.amount) || 0;
+          consumedAdjIds.add(adj._id || adj.id || adjIdx);
+        }
+      }
+    });
+
+    if (bNo && bNo !== "-") {
+      billTdsMap.set(bNo, tdsForBill);
+    }
+  });
+
   rawBills.forEach(b => {
     const bTotal = Number(b.amount || b.totalAmount || b.total || 0);
     const bPaid = Number(b.paidAmount || 0);
-    const bTds = Number(b.tdsAmount || 0);
+    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || "-").toUpperCase().trim();
+    const bTds = billTdsMap.has(bNo) ? billTdsMap.get(bNo) : (Number(b.tdsAmount || b.tds) || 0);
     const bDebt = Number(b.debtAmount || 0);
     const isCancelled = String(b.status || "").toLowerCase() === "cancelled";
     const bDue = isCancelled ? 0 : Math.max(0, bTotal - bPaid - bTds - bDebt);
     const bDate = b.invoice_date || b.billDate || b.date || b.createdAt;
-    const bNo = (b.invoice || b.billNo || b.invoiceNo || b.purchaseNo || b.billNumber || "-").toUpperCase();
     const status = isCancelled ? "CANCELLED" : bDue <= 0.01 ? "PAID" : (bPaid > 0 || bTds > 0 || bDebt > 0) ? "PARTIAL" : "UNPAID";
 
     ledgerEntries.push({
@@ -540,7 +569,7 @@ function buildPaginatedPartyLedgerPages(party, todayFormatted) {
       mode: "BILL / INVOICE",
       debit: Number(bTotal.toFixed(2)),
       credit: 0,
-      tds: 0,
+      tds: Number(bTds.toFixed(2)),
       status: status,
       rawBill: b
     });
@@ -573,8 +602,10 @@ function buildPaginatedPartyLedgerPages(party, todayFormatted) {
     });
   });
 
-  const rawAdj = party.adjustments || [];
-  rawAdj.forEach(adj => {
+  rawAdj.forEach((adj, adjIdx) => {
+    const adjId = adj._id || adj.id || adjIdx;
+    if (consumedAdjIds.has(adjId)) return;
+
     const amt = Number(adj.amount || 0);
     const part = String(adj.particulars || "tds").toLowerCase();
     const isTds = part === "tds";
