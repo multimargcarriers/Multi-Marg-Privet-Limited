@@ -2,8 +2,8 @@ import RupeeIcon from '../components/RupeeIcon';
 import { formatDate } from '../utils/formatters';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FileText, Search,   CheckCircle, Loader2, Calculator } from "lucide-react";
-import CopyButton, { AwbBadge } from "../components/CopyButton";
+import { FileText, Search, CheckCircle, Loader2, Calculator } from "lucide-react";
+import { AwbBadge } from "../components/CopyButton";
 import CreatableDropdown from "../components/CreatableDropdown";
 import QuickAddModal from "../components/QuickAddModal";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,39 @@ import { getCurrentFinancialYear, getFinancialYearOptions } from '../utils/finan
 import { useSocketSync } from '../hooks/useSocketSync';
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
+
+// Robust Date Parser that correctly handles DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, Firestore timestamps, ISO strings
+export const parseBookingDate = (dateVal) => {
+  if (!dateVal) return null;
+  if (typeof dateVal === 'object' && dateVal.seconds) {
+    return new Date(dateVal.seconds * 1000);
+  }
+  if (typeof dateVal === 'number') {
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof dateVal === 'string') {
+    const trimmed = dateVal.trim();
+    if (!trimmed) return null;
+    const matchDDMMYYYY = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/.exec(trimmed.split('T')[0]);
+    if (matchDDMMYYYY) {
+      const day = parseInt(matchDDMMYYYY[1], 10);
+      const month = parseInt(matchDDMMYYYY[2], 10) - 1;
+      const year = parseInt(matchDDMMYYYY[3], 10);
+      return new Date(year, month, day);
+    }
+    const matchYYYYMMDD = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/.exec(trimmed.split('T')[0]);
+    if (matchYYYYMMDD) {
+      const year = parseInt(matchYYYYMMDD[1], 10);
+      const month = parseInt(matchYYYYMMDD[2], 10) - 1;
+      const day = parseInt(matchYYYYMMDD[3], 10);
+      return new Date(year, month, day);
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+};
 
 const GenerateBill = () => {
   const [bookings, setBookings] = useState([]);
@@ -66,15 +99,13 @@ const GenerateBill = () => {
         axios.get(`${API}/rates`)
       ]);
       
-      const fetchedRates = ratesRes.data.success ? ratesRes.data.data : [];
+      const fetchedRates = ratesRes.data?.success ? ratesRes.data.data : [];
       setRates(fetchedRates);
 
-      if (bookingsRes.data.success) {
+      if (bookingsRes.data?.success) {
         if (billsRes.data && billsRes.data.data) {
           let maxNum = 0;
           billsRes.data.data.forEach(bill => {
-            
-            // Calculate max invoice number
             const inv = bill.billNo || bill.invoice || "";
             const prefix = filters.invoicePrefix || `MCPL/${getCurrentFinancialYear()}/`;
             if (inv.startsWith(prefix)) {
@@ -90,10 +121,9 @@ const GenerateBill = () => {
           setFilters(prev => ({ ...prev, invoiceNo: nextInvNo }));
         }
 
-        const unbilled = (bookingsRes.data.data || []).filter(b => {
-          return b.status !== "Billed";
-        }).map(b => {
-          const bClient = (b.client || "").toString().trim().toLowerCase();
+        const unbilled = (bookingsRes.data.data || []).map(b => {
+          const clientName = b.client || b.consignor || b.billedTo || b.billing_party || b.party || "";
+          const bClient = clientName.toString().trim().toLowerCase();
           const bOrigin = (b.origin || "").toString().trim().toLowerCase();
           const bDest = (b.destination || "").toString().trim().toLowerCase();
           const bMode = (b.mode || "Road").toString().trim();
@@ -136,6 +166,7 @@ const GenerateBill = () => {
 
           return {
             ...b,
+            client: clientName,
             editable_pkg: parseInt(b.box || b.pkg || b.boxes || b.package_count || b.packages || b.pcs || (b.dimensions && Array.isArray(b.dimensions) && b.dimensions.reduce((acc, d) => acc + (Number(d.boxCount) || 0), 0)) || 1),
             editable_wt: wt,
             editable_rate: rateValue,
@@ -149,7 +180,7 @@ const GenerateBill = () => {
         });
         setBookings(unbilled);
       }
-      if (clientsRes.data.success) {
+      if (clientsRes.data?.success) {
         setClients(clientsRes.data.data || []);
       }
     } catch (err) { 
@@ -175,7 +206,8 @@ const GenerateBill = () => {
     e.preventDefault();
     
     const newBookings = bookings.map(b => {
-      const bClient = (b.client || "").toString().trim().toLowerCase();
+      const clientName = b.client || b.consignor || b.billedTo || b.billing_party || b.party || "";
+      const bClient = clientName.toString().trim().toLowerCase();
       const bOrigin = (b.origin || "").toString().trim().toLowerCase();
       const bDest = (b.destination || "").toString().trim().toLowerCase();
       const effectiveMode = (filters.mode || b.mode || "Road").toString().trim();
@@ -217,6 +249,7 @@ const GenerateBill = () => {
 
       return {
         ...b,
+        client: clientName,
         editable_rate: rateValue,
         editable_freight: freight,
         editable_awb: awb,
@@ -288,28 +321,51 @@ const GenerateBill = () => {
   const filteredBookings = !hasSearched ? [] : bookings.filter(b => {
     let match = true;
     const filterClient = (filters.client && typeof filters.client === 'object' ? (filters.client.name || filters.client.client || '') : filters.client || "").trim().toLowerCase();
-    const bClient = (b.client || "").trim().toLowerCase();
     
     if (filterClient) {
       const normFilter = filterClient.replace(/[^a-z0-9]/g, '');
+      const bClient = (b.client || "").toString().trim().toLowerCase();
       const normB = bClient.replace(/[^a-z0-9]/g, '');
-      if (bClient !== filterClient && !normB.includes(normFilter) && !normFilter.includes(normB)) {
+      const consignor = (b.consignor || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const billedTo = (b.billedTo || b.billed_to || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const party = (b.party || b.partyName || b.billing_party || "").toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const clientMatches = bClient === filterClient ||
+        (normFilter && normB.includes(normFilter)) ||
+        (normB && normFilter.includes(normB)) ||
+        (consignor && (consignor.includes(normFilter) || normFilter.includes(consignor))) ||
+        (billedTo && (billedTo.includes(normFilter) || normFilter.includes(billedTo))) ||
+        (party && (party.includes(normFilter) || normFilter.includes(party)));
+
+      if (!clientMatches) match = false;
+    }
+
+    if (filters.mode) {
+      const fMode = filters.mode.trim().toLowerCase();
+      const bMode = (b.mode || "road").toString().trim().toLowerCase();
+      if (fMode === 'train' || fMode === 'rail') {
+        if (bMode !== 'train' && bMode !== 'rail') match = false;
+      } else if (!bMode.includes(fMode) && !fMode.includes(bMode)) {
         match = false;
       }
     }
-    if (filters.mode && (b.mode || "").toString().trim().toLowerCase() !== filters.mode.trim().toLowerCase()) match = false;
+
+    const bDate = parseBookingDate(b.dispatch_date || b.date || b.createdAt || b.bookingDate || b.lrDate || b.booking_date);
 
     if (filters.fromDate) {
-      const bDate = new Date(b.dispatch_date || b.date || b.createdAt);
-      const fDate = new Date(filters.fromDate);
-      fDate.setHours(0, 0, 0, 0);
-      if (!isNaN(bDate.getTime()) && bDate < fDate) match = false;
+      const fromParts = filters.fromDate.split('-');
+      const fromDateObj = fromParts.length === 3 
+        ? new Date(parseInt(fromParts[0], 10), parseInt(fromParts[1], 10) - 1, parseInt(fromParts[2], 10), 0, 0, 0, 0)
+        : new Date(filters.fromDate);
+      if (!bDate || bDate < fromDateObj) match = false;
     }
+
     if (filters.toDate) {
-      const bDate = new Date(b.dispatch_date || b.date || b.createdAt);
-      const tDate = new Date(filters.toDate);
-      tDate.setHours(23, 59, 59, 999);
-      if (!isNaN(bDate.getTime()) && bDate > tDate) match = false;
+      const toParts = filters.toDate.split('-');
+      const toDateObj = toParts.length === 3 
+        ? new Date(parseInt(toParts[0], 10), parseInt(toParts[1], 10) - 1, parseInt(toParts[2], 10), 23, 59, 59, 999)
+        : new Date(filters.toDate);
+      if (!bDate || bDate > toDateObj) match = false;
     }
 
     return match;
@@ -405,14 +461,14 @@ const GenerateBill = () => {
           </div>
 
           <div style={{ marginBottom: "1.5rem" }}>
-            <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client *</label>
+            <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client</label>
             <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
               <CreatableDropdown 
                 options={clients} 
                 value={filters.client} 
                 onChange={(val) => setFilters({ ...filters, client: val })} 
                 onCreate={(name) => handleCreateNew("client", name)}
-                placeholder="-- Please select the Client --" 
+                placeholder="-- Select Client (or Leave Blank for All) --" 
               />
             </div>
           </div>
@@ -486,6 +542,7 @@ const GenerateBill = () => {
                   <input type="checkbox" onChange={(e) => setSelected(e.target.checked ? filteredBookings.map(b => b.id) : [])} checked={selected.length === filteredBookings.length && filteredBookings.length > 0} />
                 </th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Awb No</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Client</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Date</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Origin</th>
                 <th style={{ padding: "0.75rem", textAlign: "left", color: "#374151", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", borderBottom: "1px solid rgba(0, 0, 0, 0.05)" }}>Destination</th>
@@ -506,6 +563,7 @@ const GenerateBill = () => {
                 <tr key={index} style={{ borderBottom: "1px solid rgba(0, 0, 0, 0.05)", cursor: "pointer", background: selected.includes(item.id) ? "rgba(13, 110, 253, 0.05)" : "transparent" }} onClick={() => toggleSelect(item.id)}>
                   <td style={{ padding: "0.5rem" }}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggleSelect(item.id)} onClick={(e) => e.stopPropagation()} /></td>
                   <td style={{ padding: "0.5rem", fontWeight: 600, fontSize: "0.8rem", whiteSpace: "nowrap" }}><AwbBadge awb={item.awb || item.consignment || item.id?.slice(-6) || index + 1} /></td>
+                  <td style={{ padding: "0.5rem", fontSize: "0.8rem", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.client || item.consignor || "-"}>{item.client || item.consignor || "-"}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{item.dispatch_date || item.date || item.createdAt ? formatDate(item.dispatch_date || item.date || item.createdAt) : "-"}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.origin}</td>
                   <td style={{ padding: "0.5rem", fontSize: "0.8rem" }}>{item.destination}</td>
@@ -550,7 +608,7 @@ const GenerateBill = () => {
                 </tr>
               ))}
               {filteredBookings.length === 0 && (
-                <tr><td colSpan={15} style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>{hasSearched ? "No unbilled bookings found matching criteria." : "Select a client and click Search to load pending bookings."}</td></tr>
+                <tr><td colSpan={16} style={{ padding: "3rem", textAlign: "center", color: "var(--text-muted)" }}>{hasSearched ? "No unbilled bookings found matching criteria." : "Select criteria (or leave blank for all) and click Search to load pending bookings."}</td></tr>
               )}
             </tbody>
           </table>

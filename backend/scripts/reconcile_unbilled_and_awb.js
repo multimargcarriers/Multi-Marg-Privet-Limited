@@ -2,43 +2,24 @@ const dns = require("dns");
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
-const { MongoClient } = require("mongodb");
+const { db, initMongo } = require("../src/config/database");
 const redis = require("redis");
 
 async function run() {
   console.log("[Reconcile] Starting AWB & Unbilled Reconciliation...");
-  const rawUri = process.env.MONGODB_URI;
-  if (!rawUri) {
-    console.error("MONGODB_URI not found");
-    process.exit(1);
-  }
-  const mongoUri = rawUri.replace(/^["']|["']$/g, "").trim();
-
-  const client = new MongoClient(mongoUri, {
-    serverSelectionTimeoutMS: 8000,
-    connectTimeoutMS: 10000
-  });
-
-  await client.connect();
+  await initMongo();
   console.log("[Reconcile] Connected to MongoDB.");
 
-  let dbName = "multimarg";
-  try {
-    const parsedUrl = new URL(mongoUri);
-    if (parsedUrl.pathname && parsedUrl.pathname.length > 1) {
-      dbName = parsedUrl.pathname.substring(1);
-    }
-  } catch(e) {}
-
-  const db = client.db(dbName);
-
   // 1. Fetch and index all bills
-  const bills = await db.collection("bills").find({}).toArray();
+  const bills = await db.mongoDb.collection("bills").find({}).toArray();
   console.log(`[Reconcile] Found ${bills.length} bills.`);
 
   const awbToBillMap = new Map();
+  const billNoSet = new Set();
   bills.forEach(bill => {
     const bNo = bill.billNo || bill.invoice || bill.id || "BILLED";
+    if (bill.billNo) billNoSet.add(String(bill.billNo).trim().toLowerCase());
+    if (bill.invoice) billNoSet.add(String(bill.invoice).trim().toLowerCase());
     if (bill.lrNo && bill.lrNo !== 'MULTIPLE') {
       const clean = String(bill.lrNo).trim().toLowerCase();
       if (clean) awbToBillMap.set(clean, bNo);
@@ -55,7 +36,7 @@ async function run() {
   console.log(`[Reconcile] Distinct billed AWB numbers indexed from bills: ${awbToBillMap.size}`);
 
   // 2. Fetch and reconcile all bookings
-  const bookings = await db.collection("bookings").find({}).toArray();
+  const bookings = await db.mongoDb.collection("bookings").find({}).toArray();
   console.log(`[Reconcile] Found ${bookings.length} bookings.`);
 
   let billedCount = 0;
@@ -79,6 +60,9 @@ async function run() {
         matchedBillNo = awbToBillMap.get(cand);
         break;
       }
+    }
+    if (!matchedBillNo && b.billNo && billNoSet.has(String(b.billNo).trim().toLowerCase())) {
+      matchedBillNo = b.billNo;
     }
 
     // Determine normalized packages
@@ -131,7 +115,7 @@ async function run() {
       updateFields.billed = false;
       updateFields.billNo = "";
       if (String(b.status || '').toLowerCase() === 'billed') {
-        updateFields.status = b.transitStatus || "Booked";
+        updateFields.status = b.transitStatus || "Delivered";
         resetToBookedCount++;
       }
       unbilledCount++;
@@ -145,13 +129,13 @@ async function run() {
     });
 
     if (bulkOps.length >= 500) {
-      await db.collection("bookings").bulkWrite(bulkOps);
+      await db.mongoDb.collection("bookings").bulkWrite(bulkOps);
       bulkOps = [];
     }
   }
 
   if (bulkOps.length > 0) {
-    await db.collection("bookings").bulkWrite(bulkOps);
+    await db.mongoDb.collection("bookings").bulkWrite(bulkOps);
   }
 
   console.log("=========================================");
@@ -159,7 +143,7 @@ async function run() {
   console.log(`- Total Bookings: ${bookings.length}`);
   console.log(`- Accurately Billed AWBs: ${billedCount}`);
   console.log(`- Accurately Unbilled AWBs: ${unbilledCount}`);
-  console.log(`- Reset from False 'Billed' to 'Booked': ${resetToBookedCount}`);
+  console.log(`- Reset from False 'Billed' to transit status: ${resetToBookedCount}`);
   console.log("=========================================");
 
   // Invalidate Redis Cache
@@ -180,7 +164,6 @@ async function run() {
     }
   }
 
-  await client.close();
   console.log("[Reconcile] Finished successfully.");
   process.exit(0);
 }
