@@ -84,8 +84,20 @@ const Footer = () => {
             <h4 style={{ color: 'white', fontSize: '1.1rem', marginBottom: '1.5rem', fontWeight: '500' }}>Contact Us</h4>
             <ul style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
-                <MapPin size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
-                <span>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</span>
+                <MapPin size={20} color="var(--primary-red)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <span>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</span>
+                  <div style={{ marginTop: '4px' }}>
+                    <a 
+                      href="https://maps.app.goo.gl/VijJXSt2mgaYGbLw8" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: '#f87171', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <MapPin size={12} /> View on Google Maps &rarr;
+                    </a>
+                  </div>
+                </div>
               </li>
               <li style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.9rem', color: '#cbd5e1' }}>
                 <PhoneCall size={20} color="var(--primary-red)" style={{ flexShrink: 0 }} />
@@ -100,16 +112,48 @@ const Footer = () => {
         </div>
 
         {/* Full Width Footer Map */}
-        <div style={{ width: '100%', height: '350px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '2.5rem' }}>
+        <div style={{ position: 'relative', width: '100%', height: '350px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '2.5rem' }}>
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            zIndex: 5,
+            background: 'rgba(15, 23, 42, 0.90)',
+            backdropFilter: 'blur(6px)',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ color: '#ffffff', fontSize: '0.82rem', fontWeight: 700 }}>Multimarg Carriers Private Limited Office</span>
+            <a 
+              href="https://maps.app.goo.gl/VijJXSt2mgaYGbLw8"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                backgroundColor: 'var(--primary-red)',
+                color: '#ffffff',
+                padding: '3px 10px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textDecoration: 'none'
+              }}
+            >
+              Open Map &rarr;
+            </a>
+          </div>
           <iframe 
-            src="https://maps.google.com/maps?q=MULTIMARG%20CARRIERS%20Pvt%20Ltd,%20Rudrapur,%20Uttarakhand&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+            src="https://maps.google.com/maps?q=28.989096,79.4184503+(Multimarg%20Carriers%20Private%20Limited%20Office)&t=&z=16&ie=UTF8&iwloc=B&output=embed" 
             width="100%" 
             height="100%" 
             style={{ border: 0 }} 
             allowFullScreen="" 
             loading="lazy" 
             referrerPolicy="no-referrer-when-downgrade"
-            title="Multimarg Carriers Location"
+            title="Multimarg Carriers Private Limited Office Location"
           ></iframe>
         </div>
 

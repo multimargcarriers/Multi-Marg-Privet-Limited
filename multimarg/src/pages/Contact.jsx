@@ -98,7 +98,23 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.35rem', color: 'var(--text-main)', fontWeight: '700' }}>Address</h3>
-                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6, fontSize: '0.95rem' }}>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</p>
+                    <p style={{ color: 'var(--text-light)', lineHeight: 1.6, fontSize: '0.95rem', marginBottom: '0.35rem' }}>LIG-194, AVAS VIKAS, RUDRAPUR, Uttarakhand-263153</p>
+                    <a 
+                      href="https://maps.app.goo.gl/VijJXSt2mgaYGbLw8" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '4px', 
+                        color: 'var(--primary-red)', 
+                        fontSize: '0.86rem', 
+                        fontWeight: '700', 
+                        textDecoration: 'none' 
+                      }}
+                    >
+                      <MapPin size={13} /> View on Google Maps &rarr;
+                    </a>
                   </div>
                 </div>
 
@@ -261,16 +277,61 @@ const Contact = () => {
       </section>
 
       {/* Map Section */}
-      <section style={{ height: '500px', width: '100%' }}>
+      <section style={{ position: 'relative', height: '520px', width: '100%', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          zIndex: 10,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          padding: '12px 20px',
+          borderRadius: '14px',
+          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+          border: '1px solid #e2e8f0',
+          maxWidth: '90%'
+        }}>
+          <img src="/circle_crop_logo.png" alt="Multimarg Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#0f172a' }}>Multimarg Carriers Private Limited Office</div>
+            <div style={{ fontSize: '0.80rem', color: '#64748b' }}>Rudrapur Central Hub • Click to get live directions</div>
+          </div>
+          <a
+            href="https://maps.app.goo.gl/VijJXSt2mgaYGbLw8"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              marginLeft: 'auto',
+              backgroundColor: 'var(--primary-red)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <MapPin size={15} /> Open in Google Maps &rarr;
+          </a>
+        </div>
         <iframe 
-          src="https://maps.google.com/maps?q=MULTIMARG%20CARRIERS%20Pvt%20Ltd,%20Rudrapur,%20Uttarakhand&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+          src="https://maps.google.com/maps?q=28.989096,79.4184503+(Multimarg%20Carriers%20Private%20Limited%20Office)&t=&z=16&ie=UTF8&iwloc=B&output=embed" 
           width="100%" 
           height="100%" 
           style={{ border: 0 }} 
           allowFullScreen="" 
           loading="lazy" 
           referrerPolicy="no-referrer-when-downgrade"
-          title="Multimarg Carriers Location"
+          title="Multimarg Carriers Private Limited Office Location"
         ></iframe>
       </section>
     </div>
