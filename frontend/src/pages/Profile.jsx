@@ -788,8 +788,8 @@ const Profile = () => {
                 </h3>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '440px' }}>
-                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)' }} />
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)' }} />
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" autoCapitalize="none" autoCorrect="off" spellCheck="false" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)', textTransform: 'none' }} />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" autoCapitalize="none" autoCorrect="off" spellCheck="false" style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '4px', border: '1px solid #8A8886', fontSize: '0.9rem', outline: 'none', background: 'var(--bg-color)', color: 'var(--text-dark)', textTransform: 'none' }} />
 
                   <div>
                     <button onClick={handleSubmit} disabled={isLoading || !password || !currentPassword} style={{ padding: '0.5rem 1.25rem', background: (password && currentPassword) ? '#0078D4' : '#E1DFDD', color: (password && currentPassword) ? 'white' : '#A19F9D', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '0.85rem', cursor: (password && currentPassword) ? 'pointer' : 'not-allowed' }}>

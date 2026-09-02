@@ -592,6 +592,7 @@ const Login = () => {
               transition: all 0.2s ease;
               outline: none;
               box-sizing: border-box;
+              text-transform: none !important;
             }
             .input-field:hover {
               border-color: #cbd5e1;
@@ -820,6 +821,10 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required 
                   autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  style={{ textTransform: 'none' }}
                   aria-label="Email, Phone Number, Username, or Emp Code"
                 />
               </div>
@@ -837,6 +842,10 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required 
                   autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  style={{ textTransform: 'none' }}
                   aria-label="Password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
@@ -1243,6 +1252,10 @@ const Login = () => {
                   required 
                   minLength={6}
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  style={{ textTransform: 'none' }}
                   aria-label="New password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">
@@ -1264,6 +1277,10 @@ const Login = () => {
                   required 
                   minLength={6}
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  style={{ textTransform: 'none' }}
                   aria-label="Confirm new password"
                 />
                 <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)} tabIndex="-1" aria-label="Toggle password visibility">

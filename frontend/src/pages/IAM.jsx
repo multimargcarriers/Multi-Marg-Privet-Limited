@@ -864,6 +864,10 @@ const IAM = () => {
                         onChange={e => setFormData({...formData, password: e.target.value})} 
                         required={!formData.id} 
                         className="iam-input"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck="false"
+                        style={{ textTransform: 'none' }}
                       />
                     </div>
                   )}

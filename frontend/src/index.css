@@ -4487,14 +4487,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* 1. Default to ALL CAPS for data text display and text inputs */
 .table td:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]):not([id*="email" i]):not([id*="website" i]):not([id*="address" i]), 
 .booking-card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
-.trip-card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
-.card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
-.details-grid span:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]),
+.trip-card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]):not([class*="pass" i]),
+.card div:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]):not([class*="pass" i]),
+.details-grid span:not([class*="email" i]):not([class*="website" i]):not([class*="url" i]):not([class*="address" i]):not([class*="pass" i]),
 .stats-panel span,
 .lr-row span,
-input[type="text"]:not([name*="email"]):not([name*="website"]):not([name*="address"]):not([id*="email"]):not([id*="website"]):not([id*="address"]):not([name*="password"]):not([id*="password"]):not([name*="username"]):not([id*="username"]):not([name*="name"]):not([id*="name"]),
+input[type="text"]:not([name*="email" i]):not([name*="website" i]):not([name*="address" i]):not([id*="email" i]):not([id*="website" i]):not([id*="address" i]):not([name*="password" i]):not([id*="password" i]):not([name*="pass" i]):not([id*="pass" i]):not([placeholder*="password" i]):not([placeholder*="pass" i]):not([aria-label*="password" i]):not([name*="username" i]):not([id*="username" i]):not([name*="name" i]):not([id*="name" i]):not([class*="password" i]):not([class*="pass" i]):not([class*="credential" i]):not([autocomplete*="password" i]):not([autocomplete*="username" i]),
 input[type="search"],
-textarea:not([name*="address"]):not([id*="address"]) {
+textarea:not([name*="address" i]):not([id*="address" i]):not([name*="pass" i]):not([id*="pass" i]) {
   text-transform: uppercase;
 }
 
@@ -4511,13 +4511,13 @@ a[href^="https://"],
 [class*="url" i],
 [id*="email" i],
 [id*="website" i],
-input[name*="email"], 
-input[id*="email"], 
+input[name*="email" i], 
+input[id*="email" i], 
 input[type="email"],
-input[name*="website"], 
-input[id*="website"], 
-input[name*="url"], 
-input[id*="url"] {
+input[name*="website" i], 
+input[id*="website" i], 
+input[name*="url" i], 
+input[id*="url" i] {
   text-transform: lowercase !important;
 }
 
@@ -4526,21 +4526,35 @@ input[id*="url"] {
 .address-text,
 [class*="address" i],
 [id*="address" i],
-input[name*="address"], 
-input[id*="address"], 
-textarea[name*="address"], 
-textarea[id*="address"] {
+input[name*="address" i], 
+input[id*="address" i], 
+textarea[name*="address" i], 
+textarea[id*="address" i] {
   text-transform: capitalize !important;
 }
 
-/* 4. No Casing override for Passwords, User Names, and Credentials */
+/* 4. No Casing override for Passwords, User Names, Credentials, and Authentication Inputs */
 input[type="password"],
-input[name*="password"],
-input[id*="password"],
-input[name*="username"],
-input[id*="username"],
-input[name="name"],
-input[id="name"] {
+input[name*="password" i],
+input[id*="password" i],
+input[name*="pass" i],
+input[id*="pass" i],
+input[placeholder*="password" i],
+input[placeholder*="pass" i],
+input[aria-label*="password" i],
+input[class*="password" i],
+input[class*="pass" i],
+input[autocomplete*="password" i],
+input[autocomplete*="username" i],
+input[name*="username" i],
+input[id*="username" i],
+input[name="name" i],
+input[id="name" i],
+.password-input,
+.password-field,
+.auth-input,
+.login-form-container input,
+.login-sidebar input {
   text-transform: none !important;
 }
 
