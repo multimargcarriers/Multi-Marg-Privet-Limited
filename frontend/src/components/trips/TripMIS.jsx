@@ -27,10 +27,10 @@ const getClientShortForm = (clientName) => {
 };
 
 const getNextTripNo = (clientName, entries) => {
-  const prefix = getClientShortForm(clientName);
+  const prefix = getClientShortForm(clientName).toUpperCase();
   let maxNum = 0;
   (entries || []).forEach(t => {
-    const tNo = t.tripNo || '';
+    const tNo = (t.tripNo || '').trim().toUpperCase();
     if (tNo.startsWith(prefix)) {
       const match = tNo.substring(prefix.length).match(/[- ]?(\d+)/);
       if (match) {
@@ -343,8 +343,10 @@ const TripMIS = () => {
                 };
               });
               
+              const isManual = Boolean(editingId ? false : (isSuperAdmin && tripListForm.tripNo && !tripListForm.tripNo.toLowerCase().includes('auto')));
               const newEntry = {
-                tripNo: tripListForm.tripNo,
+                tripNo: editingId ? tripListForm.tripNo : (isManual ? tripListForm.tripNo : ""),
+                isManualTripNo: isManual,
                 origin: tripListForm.origin,
                 destination: tripListForm.destination,
                 clientName: tripListForm.clientName,
@@ -381,13 +383,14 @@ const TripMIS = () => {
                     setTripListEntries([res.data.data, ...tripListEntries]);
                     setTripListForm({ ...initialTripListForm, parcels: [{ ...initialParcel }] });
                     setShowTripListForm(false);
-                    addToast("Vehicle Trip MIS entry added successfully!", "success");
+                    addToast(`Vehicle Trip MIS entry added successfully! (${res.data.data?.tripNo || ''})`, "success");
                     appDB.remove('vehicleTripFormDraft');
                   }
                 }
               } catch(err) {
                 console.error(err);
-                addToast(editingId ? "Failed to update entry" : "Failed to add entry", "error");
+                const errMsg = err.response?.data?.message || (editingId ? "Failed to update entry" : "Failed to add entry");
+                addToast(errMsg, "error");
               }
          }}>
             <h5 style={{ marginBottom: "1.5rem", color: "var(--primary-color)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -404,12 +407,11 @@ const TripMIS = () => {
                 <input 
                   type="text" 
                   className="form-control" 
-                  placeholder="Auto-generated (e.g. NOKA 0001)" 
+                  placeholder={tripListForm.clientName ? `Auto-assigned on save (e.g. ${getNextTripNo(tripListForm.clientName, tripListEntries)})` : "Auto-assigned on save"} 
                   value={tripListForm.tripNo} 
                   onChange={e => setTripListForm({ ...tripListForm, tripNo: formatAllCaps(e.target.value) })}
                   disabled={!isSuperAdmin}
                   style={!isSuperAdmin ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : { backgroundColor: "#ffffff" }}
-                  required 
                 />
               </div>
               <div className="form-group">
@@ -453,8 +455,7 @@ const TripMIS = () => {
                     value={tripListForm.clientName || ""}
                     onChange={e => {
                       const clientVal = e.target.value.toUpperCase();
-                      const nextTripNo = editingId ? tripListForm.tripNo : getNextTripNo(clientVal, tripListEntries);
-                      setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: nextTripNo });
+                      setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: editingId ? tripListForm.tripNo : "" });
                       setShowClientDropdown(true);
                     }}
                     onFocus={() => setShowClientDropdown(true)}
@@ -489,8 +490,7 @@ const TripMIS = () => {
                         key={cl.id || i}
                         onClick={() => {
                           const clientVal = cl.name || cl.clientName;
-                          const nextTripNo = editingId ? tripListForm.tripNo : getNextTripNo(clientVal, tripListEntries);
-                          setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: nextTripNo });
+                          setTripListForm({ ...tripListForm, clientName: clientVal, tripNo: editingId ? tripListForm.tripNo : "" });
                           setShowClientDropdown(false);
                         }}
                         style={{

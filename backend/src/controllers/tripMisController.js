@@ -74,6 +74,74 @@ exports.getRoot_1 = async (req, res) => {
   return success(res, "Trip MIS fetched successfully", records);
 };
 
+const getMongoDb = async () => {
+  if (db.mongoDb) return db.mongoDb;
+  if (db.readyPromise) {
+    const d = await db.readyPromise;
+    if (d) return d;
+  }
+  throw new Error("MongoDB not connected");
+};
+
+const getNextTripMisSequence = async (clientPrefix) => {
+  const mongoDb = await getMongoDb();
+  const countersCol = mongoDb.collection("counters");
+  const tripCol = mongoDb.collection("trip_mis");
+  const prefix = (clientPrefix || "VEH").toUpperCase().trim();
+  const counterId = `trip_mis_counter_${prefix}`;
+
+  // Step 1: Ensure counter exists and syncs with existing max numeric sequence for this prefix
+  const counterDoc = await countersCol.findOne({ _id: counterId });
+  if (!counterDoc || typeof counterDoc.seq !== "number") {
+    let maxNum = 0;
+    const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingTrips = await tripCol.find(
+      { tripNo: new RegExp('^' + escapedPrefix, 'i') },
+      { projection: { tripNo: 1 } }
+    ).toArray();
+
+    existingTrips.forEach((t) => {
+      const tripNo = t.tripNo || "";
+      const match = tripNo.substring(prefix.length).match(/[- ]?(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+
+    await countersCol.findOneAndUpdate(
+      { _id: counterId },
+      { $max: { seq: maxNum } },
+      { returnDocument: "after", upsert: true }
+    );
+  }
+
+  // Step 2: Atomic sequence increment with collision check
+  let finalTripNo = null;
+  while (!finalTripNo) {
+    const updatedCounter = await countersCol.findOneAndUpdate(
+      { _id: counterId },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    const seqVal = updatedCounter.seq ?? updatedCounter.value?.seq;
+    const candidateTripNo = `${prefix} ${String(seqVal).padStart(4, "0")}`;
+
+    // Verify candidate is not already used in DB (case-insensitive)
+    const escapedCandidate = candidateTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await tripCol.findOne({
+      tripNo: { $regex: new RegExp(`^${escapedCandidate}$`, "i") }
+    });
+
+    if (!existing) {
+      finalTripNo = candidateTripNo;
+    }
+  }
+
+  return finalTripNo;
+};
+
 exports.postRoot_2 = async (req, res) => {
   const user = req.user;
   const payload = req.body;
@@ -91,26 +159,32 @@ exports.postRoot_2 = async (req, res) => {
     payload.approvalStatus = payload.approvalStatus || 'Approved';
   }
 
-  if (!payload.tripNo || payload.tripNo.trim() === '') {
-    const clientName = payload.clientName || payload.vendorName || 'VEH';
-    const clientPrefix = getClientShortForm(clientName);
+  const clientName = payload.clientName || payload.vendorName || 'VEH';
+  const clientPrefix = getClientShortForm(clientName);
 
-    const snapshot = await db.collection("trip_mis").get();
-    let maxNum = 0;
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const tripNo = data.tripNo || '';
-      if (tripNo.startsWith(clientPrefix)) {
-        const match = tripNo.substring(clientPrefix.length).match(/[- ]?(\d+)/);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) maxNum = num;
-        }
-      }
+  const isAutoAssigned = !payload.tripNo || 
+    payload.tripNo.trim() === '' || 
+    payload.tripNo.toUpperCase().startsWith('TRP-') ||
+    payload.tripNo.toLowerCase().includes('auto') ||
+    payload.isManualTripNo !== true;
+
+  if (isAutoAssigned) {
+    // Sequential number allocated atomically upon DB arrival
+    payload.tripNo = await getNextTripMisSequence(clientPrefix);
+  } else {
+    // Manual tripNo specified by SuperAdmin: verify it's unique!
+    const mongoDb = await getMongoDb();
+    const cleanTripNo = payload.tripNo.trim();
+    const escapedTripNo = cleanTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await mongoDb.collection("trip_mis").findOne({
+      tripNo: { $regex: new RegExp(`^${escapedTripNo}$`, 'i') }
     });
-    const nextNum = maxNum + 1;
-    payload.tripNo = `${clientPrefix} ${String(nextNum).padStart(4, '0')}`;
+    if (existing) {
+      return error(res, `A Vehicle Trip MIS entry with number "${cleanTripNo}" already exists in the database.`, 400);
+    }
+    payload.tripNo = cleanTripNo;
   }
+  delete payload.isManualTripNo;
 
   const docRef = await db.collection("trip_mis").add(payload);
   await delCache(CACHE_KEY);
@@ -163,6 +237,21 @@ exports.put_id_3 = async (req, res) => {
   const updatePayload = { ...req.body };
   delete updatePayload.id;
   delete updatePayload.remarks;
+  delete updatePayload.isManualTripNo;
+
+  if (updatePayload.tripNo && updatePayload.tripNo.trim() !== (existingData.tripNo || '').trim()) {
+    const mongoDb = await getMongoDb();
+    const cleanTripNo = updatePayload.tripNo.trim();
+    const escapedTripNo = cleanTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await mongoDb.collection("trip_mis").findOne({
+      _id: { $ne: id },
+      tripNo: { $regex: new RegExp(`^${escapedTripNo}$`, 'i') }
+    });
+    if (existing) {
+      return error(res, `Vehicle Trip number "${cleanTripNo}" is already used by another trip entry.`, 400);
+    }
+    updatePayload.tripNo = cleanTripNo;
+  }
 
   if (!isAdmin && isVendor && updatePayload.approvalStatus === undefined) {
     if (existingData.approvalStatus === 'Pending' || !existingData.approvalStatus) {

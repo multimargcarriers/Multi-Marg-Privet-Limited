@@ -1,39 +1,46 @@
 const { db } = require("../config/database");
 
+const getMongoDb = async () => {
+  if (db.mongoDb) return db.mongoDb;
+  if (db.readyPromise) {
+    const d = await db.readyPromise;
+    if (d) return d;
+  }
+  throw new Error("MongoDB not connected");
+};
+
 /**
- * Gets the next sequential number for a given collection prefix.
+ * Gets the next sequential number for a given collection prefix atomically.
  * e.g., getNextSequence("TRP") returns "TRP-1", "TRP-2", etc.
- * Uses a Firestore transaction on the 'counters' document in the 'metadata' collection.
+ * Uses atomic findOneAndUpdate on the 'counters' collection in MongoDB.
+ * Never takes old gaps, always increments monotonically forward.
  *
- * @param {string} prefix - The prefix for the sequence (e.g., 'TRP', 'LR', 'BILL')
+ * @param {string} prefix - The prefix for the sequence (e.g., 'TRP', 'AIR', 'TRAIN', 'ROAD')
  * @returns {Promise<string>} The next formatted sequence number
  */
 async function getNextSequence(prefix) {
-  const counterRef = db.collection("metadata").doc("counters");
+  const cleanPrefix = String(prefix || "SEQ").toUpperCase().trim();
+  const counterId = `seq_counter_${cleanPrefix}`;
 
   try {
-    return await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(counterRef);
-      let newSeq = 1;
-      
-      if (doc.exists) {
-        const data = doc.data();
-        newSeq = (data[prefix] || 0) + 1;
-        transaction.update(counterRef, { [prefix]: newSeq });
-      } else {
-        transaction.set(counterRef, { [prefix]: newSeq }, { merge: true });
-      }
+    const mongoDb = await getMongoDb();
+    const countersCol = mongoDb.collection("counters");
 
-      return `${prefix}-${newSeq}`;
-    });
+    const updated = await countersCol.findOneAndUpdate(
+      { _id: counterId },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    const seqVal = updated.seq ?? updated.value?.seq ?? 1;
+    return `${cleanPrefix}-${seqVal}`;
   } catch (error) {
-    console.error("Error generating sequence for", prefix, error);
-    // Fallback if transaction fails
-    const random = Math.floor(10000 + Math.random() * 90000);
-    return `${prefix}-ERR-${random}`;
+    console.error("Error generating sequence for", cleanPrefix, error);
+    return `${cleanPrefix}-${Date.now().toString().slice(-6)}`;
   }
 }
 
 module.exports = {
   getNextSequence
 };
+
