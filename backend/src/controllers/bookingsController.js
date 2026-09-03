@@ -232,19 +232,52 @@ exports.postRoot_1 = async (req, res) => {
   booking.billNo = "";
   booking.lrNumber = generateLRNumber();
   
-  try {
-    // Strictly auto-generate unique sequential AWB number for all new bookings
-    const sequentialAwb = await generateSequentialAwb();
-    booking.consignment = sequentialAwb;
-    booking.awb = sequentialAwb;
-    booking.lrNo = sequentialAwb;
-  } catch (err) {
-    console.error("Error generating sequential AWB:", err);
-    const fallback = `MMC-${Date.now().toString().slice(-6)}`;
-    booking.consignment = fallback;
-    booking.awb = fallback;
-    booking.lrNo = fallback;
+  const isSuperAdminUser = (req.user?.role || "").toLowerCase().replace(/\s+/g, '') === 'superadmin' || req.user?.email === 'admin@multimarg.com';
+  const manualAwbRequested = isSuperAdminUser && (booking.isManualAwb || req.body.isManualAwb) && (booking.consignment || booking.awb || booking.lrNo);
+
+  if (manualAwbRequested) {
+    const rawCandidate = String(booking.consignment || booking.awb || booking.lrNo).trim();
+    if (db.mongoDb) {
+      const existing = await db.mongoDb.collection("bookings").findOne({
+        $or: [
+          { consignment: rawCandidate },
+          { awb: rawCandidate },
+          { lrNo: rawCandidate }
+        ]
+      });
+      if (existing) {
+        return error(res, `AWB Number "${rawCandidate}" is already used by another booking.`, 400);
+      }
+      // If numeric, ensure counter advances above it (no taking old gaps)
+      const match = rawCandidate.match(/^([^0-9]+)?(\d+)$/);
+      if (match) {
+        const num = parseInt(match[2], 10);
+        await db.mongoDb.collection("counters").findOneAndUpdate(
+          { _id: "awb_counter" },
+          { $max: { seq: num } },
+          { upsert: true }
+        );
+      }
+    }
+    booking.consignment = rawCandidate;
+    booking.awb = rawCandidate;
+    booking.lrNo = rawCandidate;
+  } else {
+    try {
+      // Strictly auto-generate unique sequential AWB number for all new bookings
+      const sequentialAwb = await generateSequentialAwb();
+      booking.consignment = sequentialAwb;
+      booking.awb = sequentialAwb;
+      booking.lrNo = sequentialAwb;
+    } catch (err) {
+      console.error("Error generating sequential AWB:", err);
+      const fallback = `MMC-${Date.now().toString().slice(-6)}`;
+      booking.consignment = fallback;
+      booking.awb = fallback;
+      booking.lrNo = fallback;
+    }
   }
+  delete booking.isManualAwb;
 
   if (!booking.clerk_name) {
     booking.clerk_name = req.user?.name || "Admin";

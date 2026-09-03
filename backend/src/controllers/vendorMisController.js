@@ -50,6 +50,68 @@ exports.getRoot_1 = async (req, res) => {
   return success(res, "Vendor MIS fetched successfully", records);
 };
 
+const getMongoDb = async () => {
+  if (db.mongoDb) return db.mongoDb;
+  if (db.readyPromise) {
+    const d = await db.readyPromise;
+    if (d) return d;
+  }
+  throw new Error("MongoDB not connected");
+};
+
+const getNextVendorMisSequence = async () => {
+  const mongoDb = await getMongoDb();
+  const countersCol = mongoDb.collection("counters");
+  const vendorMisCol = mongoDb.collection("vendor_mis");
+  const counterId = "vendor_mis_counter";
+
+  // Step 1: Ensure counter exists and syncs to at least the highest existing sequence (no taking old gaps)
+  const counterDoc = await countersCol.findOne({ _id: counterId });
+  if (!counterDoc || typeof counterDoc.seq !== "number") {
+    let maxNum = 0;
+    const existingEntries = await vendorMisCol.find({}, { projection: { tripNo: 1 } }).toArray();
+    existingEntries.forEach((t) => {
+      const tripNo = t.tripNo || "";
+      const match = tripNo.match(/^([a-zA-Z]+-)?(\d+)(-[a-zA-Z]+)?$/);
+      if (match) {
+        const num = parseInt(match[2], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+
+    await countersCol.findOneAndUpdate(
+      { _id: counterId },
+      { $max: { seq: maxNum } },
+      { returnDocument: "after", upsert: true }
+    );
+  }
+
+  // Step 2: Atomic sequence increment strictly forward (> old entry numbers)
+  let finalTripNo = null;
+  while (!finalTripNo) {
+    const updatedCounter = await countersCol.findOneAndUpdate(
+      { _id: counterId },
+      { $inc: { seq: 1 } },
+      { returnDocument: "after", upsert: true }
+    );
+
+    const seqVal = updatedCounter.seq ?? updatedCounter.value?.seq;
+    const candidateTripNo = `VND-${String(seqVal).padStart(3, "0")}`;
+
+    // Verify candidate is not already used in DB (forward collision check)
+    const escapedCandidate = candidateTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await vendorMisCol.findOne({
+      tripNo: { $regex: new RegExp(`^${escapedCandidate}$`, "i") }
+    });
+
+    if (!existing) {
+      finalTripNo = candidateTripNo;
+    }
+  }
+
+  return finalTripNo;
+};
+
 exports.postRoot_2 = async (req, res) => {
   const user = req.user;
   const payload = req.body;
@@ -67,21 +129,38 @@ exports.postRoot_2 = async (req, res) => {
     payload.approvalStatus = payload.approvalStatus || 'Pending';
   }
 
-  if (!payload.tripNo || payload.tripNo.trim() === '') {
-    const snapshot = await db.collection("vendor_mis").get();
-    let maxNum = 0;
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const tripNo = data.tripNo || '';
-      const match = tripNo.match(/^([a-zA-Z]+-)?(\d+)(-[a-zA-Z]+)?$/);
-      if (match) {
-        const num = parseInt(match[2], 10);
-        if (num > maxNum) maxNum = num;
-      }
+  const isAutoAssigned = !payload.tripNo || 
+    payload.tripNo.trim() === '' || 
+    payload.tripNo.toUpperCase().startsWith('TRP-') ||
+    payload.tripNo.toLowerCase().includes('auto') ||
+    payload.isManualTripNo !== true;
+
+  if (isAutoAssigned) {
+    payload.tripNo = await getNextVendorMisSequence();
+  } else {
+    const mongoDb = await getMongoDb();
+    const cleanTripNo = payload.tripNo.trim();
+    const escapedTripNo = cleanTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await mongoDb.collection("vendor_mis").findOne({
+      tripNo: { $regex: new RegExp(`^${escapedTripNo}$`, 'i') }
     });
-    const nextNum = maxNum + 1;
-    payload.tripNo = `VND-${String(nextNum).padStart(3, '0')}`;
+    if (existing) {
+      return error(res, `A Vendor MIS entry with number "${cleanTripNo}" already exists in the database.`, 400);
+    }
+    payload.tripNo = cleanTripNo;
+
+    // If numeric, ensure counter advances above it
+    const match = cleanTripNo.match(/^([a-zA-Z]+-)?(\d+)(-[a-zA-Z]+)?$/);
+    if (match) {
+      const num = parseInt(match[2], 10);
+      await mongoDb.collection("counters").findOneAndUpdate(
+        { _id: "vendor_mis_counter" },
+        { $max: { seq: num } },
+        { upsert: true }
+      );
+    }
   }
+  delete payload.isManualTripNo;
 
   const docRef = await db.collection("vendor_mis").add(payload);
   await delCache(CACHE_KEY);
@@ -155,6 +234,21 @@ exports.put_id_3 = async (req, res) => {
   const updatePayload = { ...req.body };
   delete updatePayload.id;
   delete updatePayload.remarks; // Remarks are updated via addRemark endpoint
+  delete updatePayload.isManualTripNo;
+
+  if (updatePayload.tripNo && updatePayload.tripNo.trim() !== (existingData.tripNo || '').trim()) {
+    const mongoDb = await getMongoDb();
+    const cleanTripNo = updatePayload.tripNo.trim();
+    const escapedTripNo = cleanTripNo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await mongoDb.collection("vendor_mis").findOne({
+      _id: { $ne: id },
+      tripNo: { $regex: new RegExp(`^${escapedTripNo}$`, 'i') }
+    });
+    if (existing) {
+      return error(res, `Vendor MIS trip number "${cleanTripNo}" is already used by another entry.`, 400);
+    }
+    updatePayload.tripNo = cleanTripNo;
+  }
 
   updatePayload.updatedAt = new Date().toISOString();
   updatePayload.lastModifiedBy = user.name || user.email || 'User';

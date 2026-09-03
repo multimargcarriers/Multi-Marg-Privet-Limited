@@ -82,6 +82,13 @@ exports.postRoot_2 = async (req, res) => {
     const prefix = trip.mode ? String(trip.mode).toUpperCase() : 'TRP';
     const seq = await getNextSequence(prefix);
     trip.tripNo = seq.split('-')[1] || seq;
+  } else {
+    const cleanNo = trip.tripNo.trim();
+    const existing = await db.collection("trips").where("tripNo", "==", cleanNo).get();
+    if (!existing.empty) {
+      return error(res, `A trip with number "${cleanNo}" already exists.`, 400);
+    }
+    trip.tripNo = cleanNo;
   }
   
   const docRef = await db.collection("trips").add(trip);
@@ -99,10 +106,24 @@ exports.put_id_3 = async (req, res) => {
   } = req.params;
   const doc = await db.collection("trips").doc(id).get();
   if (!doc.exists) return error(res, "Trip not found", 404);
+
+  if (req.body.tripNo && req.body.tripNo.trim() !== (doc.data().tripNo || '').trim()) {
+    const cleanNo = req.body.tripNo.trim();
+    const existing = await db.collection("trips").where("tripNo", "==", cleanNo).get();
+    let collision = false;
+    existing.forEach(d => {
+      if (d.id !== id) collision = true;
+    });
+    if (collision) {
+      return error(res, `A trip with number "${cleanNo}" already exists.`, 400);
+    }
+    req.body.tripNo = cleanNo;
+  }
+
   await db.collection("trips").doc(id).update(req.body);
   await delCache(CACHE_KEY);
   emitDataUpdated("trips", "update");
-    return success(res, "Trip updated successfully", {
+  return success(res, "Trip updated successfully", {
     id,
     ...req.body
   });
