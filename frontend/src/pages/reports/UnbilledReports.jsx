@@ -178,6 +178,18 @@ const UnbilledReports = () => {
       });
     }
 
+    // Sort by highest AWB number first (descending)
+    list.sort((a, b) => {
+      const rawA = String(getAwbNo(a) || "");
+      const rawB = String(getAwbNo(b) || "");
+      const numA = parseInt(rawA.replace(/\D/g, ""), 10);
+      const numB = parseInt(rawB.replace(/\D/g, ""), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numB - numA;
+      }
+      return rawB.localeCompare(rawA, undefined, { numeric: true, sensitivity: "base" });
+    });
+
     return list;
   }, [data, filters]);
 

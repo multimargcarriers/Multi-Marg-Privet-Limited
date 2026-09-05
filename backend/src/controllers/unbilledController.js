@@ -101,6 +101,16 @@ exports.getRoot_1 = async (req, res) => {
       });
     }
 
+    // Sort by highest AWB number first (descending)
+    unbilledBookings.sort((a, b) => {
+      const numA = parseInt(String(a.awb || a.lrNumber || a.consignment || "").replace(/\D/g, ""), 10);
+      const numB = parseInt(String(b.awb || b.lrNumber || b.consignment || "").replace(/\D/g, ""), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numB - numA;
+      }
+      return String(b.awb || "").localeCompare(String(a.awb || ""), undefined, { numeric: true });
+    });
+
     return unbilledBookings;
   }, 120);
 
@@ -206,6 +216,16 @@ exports.get_search_2 = async (req, res) => {
       return bDate ? bDate <= toDate : false;
     });
   }
+
+  // Sort by highest AWB number first (descending)
+  bookings.sort((a, b) => {
+    const numA = parseInt(String(a.awb || a.lrNumber || a.consignment || "").replace(/\D/g, ""), 10);
+    const numB = parseInt(String(b.awb || b.lrNumber || b.consignment || "").replace(/\D/g, ""), 10);
+    if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+      return numB - numA;
+    }
+    return String(b.awb || "").localeCompare(String(a.awb || ""), undefined, { numeric: true });
+  });
 
   return success(res, "Unbilled bookings fetched successfully", bookings);
 };
