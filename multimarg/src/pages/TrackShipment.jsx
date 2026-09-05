@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText, Check, ChevronDown, ChevronUp, Layers, Users } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, Truck, Package, PackageCheck, AlertCircle, XCircle, Eye, Download, X, FileText, Check, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import SEOHead from '../components/SEOHead';
@@ -208,10 +208,6 @@ const TrackShipment = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
 
-  const latestStatus = trackingResult?.tracking?.[0]?.status || '';
-  const isDelivered = latestStatus === 'Delivered';
-  const mainPodUrl = trackingResult?.booking?.podUrl || trackingResult?.tracking?.find(t => t.podUrl)?.podUrl || null;
-
   return (
     <div style={{ paddingTop: '80px', minHeight: '100vh', backgroundColor: 'var(--bg-light-grey)' }}>
       <SEOHead
@@ -390,7 +386,7 @@ const TrackShipment = () => {
               let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
               let bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
               let bannerRibbonText = "#065f46";
-              bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+              let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
               let stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
 
               if (isDelivered) {
@@ -614,7 +610,6 @@ return (
                       {steps.map((step) => {
                         const isCompleted = step.id <= currentStepNumber;
                         const isCurrent = step.id === currentStepNumber;
-                        const StepIcon = step.icon;
 
                         return (
                           <div key={step.id} style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
