@@ -4558,6 +4558,33 @@ input[id="name" i],
   text-transform: none !important;
 }
 
+/* 5. Complete Casing Exemption for Emails, Mailbox, and Message Drafting (Show Exactly as Written) */
+.gmail-workspace,
+.gmail-workspace *,
+.webmail-modal,
+.webmail-modal *,
+.webmail-compose-modal,
+.webmail-compose-modal *,
+[class*="webmail" i],
+[class*="webmail" i] *,
+[class*="mail" i] input,
+[class*="mail" i] textarea,
+input[placeholder*="Subject" i],
+input[name*="subject" i],
+input[id*="subject" i],
+textarea[placeholder*="email" i],
+textarea[placeholder*="Write your email" i],
+textarea[name*="body" i],
+textarea[id*="body" i],
+textarea[name*="message" i],
+textarea[id*="message" i],
+.mail-subject,
+.mail-body,
+.mail-content,
+.mail-preview {
+  text-transform: none !important;
+}
+
 /* ==========================================================================
    POD (Proof of Delivery) Comprehensive Mobile & Device Responsive Styles
    ========================================================================== */

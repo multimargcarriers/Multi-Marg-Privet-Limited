@@ -79,10 +79,8 @@ const normalizeStatus = (status) => {
   const s = String(status || '').trim().toLowerCase();
   if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 'OUT FOR DELIVERY';
   if (s.includes('deliver')) return 'DELIVERED';
-  if (s.includes('transit')) return 'IN TRANSIT';
   if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
-  if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
-  if (s.includes('book')) return 'SHIPMENT BOOKED';
+  if (s.includes('transit') || s.includes('pickup') || s.includes('picked') || s.includes('book')) return 'IN TRANSIT';
   if (s.includes('delay')) return 'DELAYED';
   if (s.includes('return') || s.includes('rto')) return 'RETURNED';
   return String(status || 'IN TRANSIT').toUpperCase();
@@ -367,21 +365,23 @@ const TrackShipment = () => {
               const currentAwb = trackingResult.tracking[0]?.awb || b.awb || trackingNumber;
               
               const latestEntry = trackingResult.tracking[0] || {};
-              const rawStatus = String(latestEntry?.status || b.status || b.delivery_status || b.transitStatus || "Shipment Booked");
+              const rawStatus = String(latestEntry?.status || b.transitStatus || b.status || b.delivery_status || "In Transit");
               const normStatus = rawStatus.toLowerCase();
 
               const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
               const isDelivered = normStatus.includes("deliver") && !isOutForDelivery;
-              const isInTransit = normStatus.includes("transit") || normStatus.includes("reach") || normStatus.includes("hub") || normStatus.includes("arrive");
-              const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
+              const isInTransit = !isDelivered && !isOutForDelivery;
 
               // Determine step index for the 4-step progress tracker:
-              // 1: Picked Up, 2: In Transit, 3: Out for Delivery, 4: Delivered
-              let currentStepNumber = 1;
+              // 1: Booked, 2: In Transit, 3: Out for Delivery, 4: Delivered
+              let currentStepNumber = 2;
               if (isDelivered) currentStepNumber = 4;
               else if (isOutForDelivery) currentStepNumber = 3;
-              else if (isInTransit) currentStepNumber = 2;
-              else currentStepNumber = 1;
+              else currentStepNumber = 2;
+
+              const originCity = b.origin ? String(b.origin).toUpperCase() : "";
+              const destCity = b.destination ? String(b.destination).toUpperCase() : "";
+              const currentLoc = (latestEntry?.location || b.currentLocation || originCity || "ORIGIN").trim().toUpperCase();
 
               // Status Banner styling & messaging — GRADIENT THEME
               let bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
@@ -390,7 +390,7 @@ const TrackShipment = () => {
               let bannerSubtitle = `Delivered on ${formatCleanDateTime(latestEntry.date || latestEntry.updatedAt || b.deliveryDate || b.date)}`;
               let bannerRibbonBg = "linear-gradient(90deg, #ecfdf5, #d1fae5)";
               let bannerRibbonText = "#065f46";
-              let bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
+              bannerMessage = "🎉 Your Shipment has been Delivered on Time!";
               let stepGradient = "linear-gradient(90deg, #046A38, #059669, #10b981)";
 
               if (isDelivered) {
@@ -406,7 +406,7 @@ const TrackShipment = () => {
                 bannerBg = "linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #a78bfa 100%)";
                 bannerAccent = "#7c3aed";
                 bannerTitle = "Out for Delivery";
-                bannerSubtitle = `Out for Delivery at ${b.destination ? b.destination.toUpperCase() : "Destination"}`;
+                bannerSubtitle = `Out for Delivery at ${destCity || "Destination"}`;
                 bannerRibbonBg = "linear-gradient(90deg, #f5f3ff, #ede9fe)";
                 bannerRibbonText = "#5b21b6";
                 bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
@@ -415,24 +415,28 @@ const TrackShipment = () => {
                 bannerBg = "linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%)";
                 bannerAccent = "#d97706";
                 bannerTitle = "In Transit";
-                bannerSubtitle = `In Transit to ${b.destination ? b.destination.toUpperCase() : "Destination Hub"}`;
+                const fromStr = originCity ? `In Transit from ${originCity}` : "In Transit";
+                const toStr = destCity ? ` to ${destCity}` : "";
+                bannerSubtitle = currentLoc ? `In Transit - Current Location: ${currentLoc}` : `${fromStr}${toStr}`;
                 bannerRibbonBg = "linear-gradient(90deg, #fffbeb, #fef3c7)";
                 bannerRibbonText = "#b45309";
-                bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+                bannerMessage = currentLoc
+                  ? `🚚 Your Shipment is currently at ${currentLoc}${destCity ? ` moving towards ${destCity}` : ''}.`
+                  : `🚚 Your Shipment is In Transit from ${originCity || "origin"} and moving towards destination.`;
                 stepGradient = "linear-gradient(90deg, #b45309, #d97706, #f59e0b)";
               } else {
                 bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)";
                 bannerAccent = "#1e40af";
-                bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
-                bannerSubtitle = `Shipment Received at ${b.origin ? b.origin.toUpperCase() : "Origin Facility"}`;
+                bannerTitle = "Shipment Booked";
+                bannerSubtitle = originCity ? `Booked at ${originCity}` : "Shipment Booked";
                 bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
                 bannerRibbonText = "#1e40af";
-                bannerMessage = isPickedUp ? "📦 Shipment has been picked up." : "📦 Shipment has been booked and Lorry Receipt generated.";
+                bannerMessage = originCity ? `📦 Shipment has been booked from ${originCity} and Lorry Receipt generated.` : "📦 Shipment has been booked and Lorry Receipt generated.";
                 stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
               }
 
               const steps = [
-                { id: 1, label: "Picked Up", icon: Package },
+                { id: 1, label: "Booked", icon: Package },
                 { id: 2, label: "In Transit", icon: Truck },
                 { id: 3, label: "Out for Delivery", icon: MapPin },
                 { id: 4, label: "Delivered", icon: CheckCircle }
@@ -603,9 +607,9 @@ return (
                     <div style={{
                       display: "grid",
                       gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                      gap: "0.75rem",
+                      gap: "clamp(0.25rem, 1.5vw, 0.75rem)",
                       margin: "1.5rem 0",
-                      padding: "0 0.25rem"
+                      padding: "0 0.15rem"
                     }}>
                       {steps.map((step) => {
                         const isCompleted = step.id <= currentStepNumber;
@@ -623,7 +627,7 @@ return (
                             }} />
                             
                             {/* Step Label & Icon */}
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", paddingTop: "0.2rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingTop: "0.2rem" }}>
                               {isCompleted ? (
                                 <div style={{
                                   width: "16px",
@@ -633,7 +637,8 @@ return (
                                   color: "white",
                                   display: "flex",
                                   alignItems: "center",
-                                  justifyContent: "center"
+                                  justifyContent: "center",
+                                  flexShrink: 0
                                 }}>
                                   <Check size={10} strokeWidth={3} />
                                 </div>
@@ -643,7 +648,8 @@ return (
                                   height: "16px",
                                   borderRadius: "50%",
                                   border: "1.5px solid #cbd5e1",
-                                  backgroundColor: "white"
+                                  backgroundColor: "white",
+                                  flexShrink: 0
                                 }} />
                               )}
                               
@@ -651,9 +657,8 @@ return (
                                 fontSize: "clamp(0.65rem, 1.8vw, 0.8rem)", 
                                 fontWeight: isCurrent ? "700" : (isCompleted ? "600" : "500"),
                                 color: isCurrent ? bannerAccent : (isCompleted ? "#1e293b" : "#64748b"),
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis"
+                                lineHeight: 1.15,
+                                wordBreak: "break-word"
                               }}>
                                 {step.label}
                               </span>
@@ -661,6 +666,46 @@ return (
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* ORIGIN & CURRENT LOCATION & DESTINATION STRIP */}
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      backgroundColor: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "0.75rem 1rem",
+                      marginBottom: "1.25rem",
+                      fontSize: "0.85rem",
+                      flexWrap: "wrap",
+                      gap: "0.5rem"
+                    }}>
+                      <div>
+                        <span style={{ color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Origin:</span>
+                        <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {originCity || "ORIGIN"}
+                          {b.originPincode ? `, ${b.originPincode}` : ""}
+                          {", INDIA"}
+                        </span>
+                      </div>
+                      {currentLoc && (
+                        <div style={{ textAlign: "center", padding: "0 0.5rem" }}>
+                          <span style={{ color: "#d97706", fontWeight: 700, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Current Location:</span>
+                          <span style={{ color: "#b45309", fontWeight: 800, fontSize: "0.9rem" }}>
+                            📍 {currentLoc}
+                          </span>
+                        </div>
+                      )}
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Destination:</span>
+                        <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {destCity || "DESTINATION"}
+                          {b.destinationPincode ? `, ${b.destinationPincode}` : ""}
+                          {", INDIA"}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Basic Info Details Card - TABLE-LIKE HEADER LAYOUT */}

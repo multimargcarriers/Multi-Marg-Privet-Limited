@@ -288,6 +288,7 @@ const Rates = () => {
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Client<span style={{ color: "#ef4444" }}>*</span></label>
                 <div style={{ boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
+                    category="client"
                     options={clients}
                     value={form.client}
                     onChange={(client) => setForm({ ...form, client })}
@@ -300,6 +301,7 @@ const Rates = () => {
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Origin<span style={{ color: "#ef4444" }}>*</span></label>
                 <div style={{ boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
+                    category="origin"
                     options={cities}
                     value={form.origin}
                     onChange={(origin) => setForm({ ...form, origin })}
@@ -312,6 +314,7 @@ const Rates = () => {
                 <label style={{ display: "block", fontSize: "0.85rem", color: "#64748b", fontWeight: "600", marginBottom: "0.5rem" }}>Destination<span style={{ color: "#ef4444" }}>*</span></label>
                 <div style={{ boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.05)", borderRadius: "6px" }}>
                   <CreatableDropdown
+                    category="destination"
                     options={cities}
                     value={form.destination}
                     onChange={(destination) => setForm({ ...form, destination })}

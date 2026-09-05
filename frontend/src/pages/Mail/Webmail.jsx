@@ -1662,7 +1662,7 @@ const Webmail = () => {
                           <Star size={14} fill={msg.isFlagged ? "#facc15" : "none"} />
                         </span>
 
-                        <span style={{ fontSize: "13px", fontWeight: msg.isSeen ? "500" : "800", color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <span style={{ fontSize: "13px", fontWeight: msg.isSeen ? "500" : "800", color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", textTransform: "none" }}>
                           {msg.from?.name || msg.from?.address || "Unknown"}
                         </span>
                       </div>
@@ -1703,7 +1703,7 @@ const Webmail = () => {
                     </div>
 
                     {/* Subject Line */}
-                    <div style={{ fontSize: "12.5px", fontWeight: msg.isSeen ? "400" : "600", color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: "26px" }}>
+                    <div style={{ fontSize: "12.5px", fontWeight: msg.isSeen ? "400" : "600", color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingLeft: "26px", textTransform: "none" }}>
                       {msg.subject}
                     </div>
                   </div>
@@ -2724,6 +2724,7 @@ const Webmail = () => {
       <AnimatePresence>
         {isComposeOpen && (
           <motion.div
+            className="webmail-compose-modal"
             initial={isMobile ? { y: "100%", opacity: 0 } : { y: 50, opacity: 0 }}
             animate={isMobile ? { y: 0, opacity: 1 } : { y: 0, opacity: 1 }}
             exit={isMobile ? { y: "100%", opacity: 0 } : { y: 50, opacity: 0 }}
@@ -2748,7 +2749,8 @@ const Webmail = () => {
               zIndex: 999999,
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden"
+              overflow: "hidden",
+              textTransform: "none"
             } : {
               position: "fixed",
               bottom: "20px",
@@ -2762,7 +2764,8 @@ const Webmail = () => {
               zIndex: 999999,
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden"
+              overflow: "hidden",
+              textTransform: "none"
             }}
           >
             {/* Header Toolbar (Draggable on Desktop ONLY, Fixed on Mobile with Top Action Buttons) */}
@@ -2989,7 +2992,7 @@ const Webmail = () => {
                       placeholder="Subject"
                       value={composeData.subject}
                       onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-                      style={{ width: "100%", border: "none", outline: "none", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}
+                      style={{ width: "100%", border: "none", outline: "none", fontSize: "14px", fontWeight: "600", color: "#0f172a", textTransform: "none" }}
                     />
                   </div>
 
@@ -3009,7 +3012,8 @@ const Webmail = () => {
                       lineHeight: "1.6",
                       outline: "none",
                       resize: isMobile ? "none" : "vertical",
-                      marginBottom: "10px"
+                      marginBottom: "10px",
+                      textTransform: "none"
                     }}
                   />
 
@@ -3034,7 +3038,7 @@ const Webmail = () => {
                             placeholder="Your Name (e.g. Akash Debnath)"
                             value={composeData.senderName || ""}
                             onChange={(e) => updateSenderInfo("senderName", e.target.value)}
-                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box", textTransform: "none" }}
                           />
                         </div>
                         <div>
@@ -3044,7 +3048,7 @@ const Webmail = () => {
                             placeholder="Designation (e.g. Accounts & IT Head)"
                             value={composeData.senderDesignation || ""}
                             onChange={(e) => updateSenderInfo("senderDesignation", e.target.value)}
-                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box", textTransform: "none" }}
                           />
                         </div>
                         <div>
@@ -3054,7 +3058,7 @@ const Webmail = () => {
                             placeholder="Phone (e.g. +91 98765 43210)"
                             value={composeData.senderPhone || ""}
                             onChange={(e) => updateSenderInfo("senderPhone", e.target.value)}
-                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}
+                            style={{ width: "100%", padding: "6px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #cbd5e1", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box", textTransform: "none" }}
                           />
                         </div>
                       </div>
@@ -3070,7 +3074,7 @@ const Webmail = () => {
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: "12px", fontWeight: "800", color: "#0f172a" }}>
-                        {composeData.senderName || (activeAccount?.displayName?.toLowerCase() === "accounts" ? "Accounts" : activeAccount?.displayName) || (activeAccount?.email ? (activeAccount.email.split("@")[0].toLowerCase() === "accounts" ? "Accounts" : activeAccount.email.split("@")[0].toUpperCase()) : "Multimarg Team")}
+                        {composeData.senderName || (activeAccount?.displayName?.toLowerCase() === "accounts" ? "Accounts" : activeAccount?.displayName) || (activeAccount?.email ? (activeAccount.email.split("@")[0].toLowerCase() === "accounts" ? "Accounts" : activeAccount.email.split("@")[0]) : "Multimarg Team")}
                       </div>
                       {composeData.senderDesignation && (
                         <div style={{ fontSize: "11px", fontWeight: "700", color: "#475569" }}>
@@ -3078,10 +3082,10 @@ const Webmail = () => {
                         </div>
                       )}
                       <div style={{ fontSize: "10.5px", fontWeight: "700", color: "#2563eb" }}>
-                        MULTIMARG CARRIERS PRIVATE LIMITED
+                        Multimarg Carriers Private Limited
                       </div>
                       <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "1px" }}>
-                        <span>Landline: <strong style={{ color: "#0f172a" }}>+91 5944-324033</strong></span>
+                        <span>Phone NO.: <strong style={{ color: "#0f172a" }}>+91 5944-324033</strong></span>
                         {composeData.senderPhone && (
                           <span> &bull; Direct: <strong style={{ color: "#0f172a" }}>{composeData.senderPhone}</strong></span>
                         )}

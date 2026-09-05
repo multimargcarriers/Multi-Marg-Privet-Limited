@@ -241,11 +241,11 @@ exports.post_send_lr = async (req, res) => {
         </table>
 
         <!-- Call to Action -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; text-transform: uppercase;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
           <tr>
-            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center; text-transform: uppercase;">
-              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600; text-transform: uppercase;">
-                📎 ATTACHMENT: ${finalFilename.toUpperCase()} HAS BEEN ATTACHED TO THIS EMAIL.
+            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600;">
+                📎 Attachment: ${finalFilename} has been attached to this email.
               </p>
             </td>
           </tr>
@@ -254,10 +254,10 @@ exports.post_send_lr = async (req, res) => {
     </tr>
     <!-- Footer -->
     <tr>
-      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; text-transform: uppercase;">
-        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; text-transform: uppercase;">
-          &copy; ${new Date().getFullYear()} <strong>MULTIMARG CARRIERS PVT. LTD.</strong>. ALL RIGHTS RESERVED.<br>
-          DHANBAD DISTRICT, JHARKHAND, INDIA.
+      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0;">
+          &copy; ${new Date().getFullYear()} <strong>Multimarg Carriers Pvt. Ltd.</strong> All rights reserved.<br>
+          Dhanbad District, Jharkhand, India.
         </p>
       </td>
     </tr>
@@ -267,7 +267,7 @@ exports.post_send_lr = async (req, res) => {
 
     // --- 4. Send email with PDF attachment ---
     const recipients = to.split(",").map(e => e.trim()).filter(Boolean);
-    const subject = `LORRY RECEIPT - LR NO: ${lrNumber} (MULTI MARG CARRIERS)`.toUpperCase();
+    const subject = `Lorry Receipt - LR No: ${lrNumber} (Multimarg Carriers)`;
     await sendEmail({
       to: recipients.join(", "),
       subject,
@@ -437,11 +437,11 @@ exports.post_send_bill = async (req, res) => {
         </table>
 
         <!-- Call to Action -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px; text-transform: uppercase;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
           <tr>
-            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center; text-transform: uppercase;">
-              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600; text-transform: uppercase;">
-                📎 ATTACHMENT: ${finalFilename.toUpperCase()} HAS BEEN ATTACHED TO THIS EMAIL.
+            <td align="center" style="background-color: #fff8f0; border: 1px dashed #FF9900; border-radius: 8px; padding: 15px; text-align: center;">
+              <p style="color: #a05000; font-size: 14px; margin: 0; font-weight: 600;">
+                📎 Attachment: ${finalFilename} has been attached to this email.
               </p>
             </td>
           </tr>
@@ -450,10 +450,10 @@ exports.post_send_bill = async (req, res) => {
     </tr>
     <!-- Footer -->
     <tr>
-      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0; text-transform: uppercase;">
-        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; text-transform: uppercase;">
-          &copy; ${new Date().getFullYear()} <strong>MULTIMARG CARRIERS PVT. LTD.</strong>. ALL RIGHTS RESERVED.<br>
-          DHANBAD DISTRICT, JHARKHAND, INDIA.
+      <td style="background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0;">
+          &copy; ${new Date().getFullYear()} <strong>Multimarg Carriers Pvt. Ltd.</strong> All rights reserved.<br>
+          Dhanbad District, Jharkhand, India.
         </p>
       </td>
     </tr>
@@ -463,7 +463,7 @@ exports.post_send_bill = async (req, res) => {
 
     // --- 4. Send email with PDF attachment ---
     const recipients = to.split(",").map(e => e.trim()).filter(Boolean);
-    const subject = `TAX INVOICE - BILL NO: ${billNo} (MULTI MARG CARRIERS)`.toUpperCase();
+    const subject = `Tax Invoice - Bill No: ${billNo} (Multimarg Carriers)`;
     await sendEmail({
       to: recipients.join(", "),
       subject,

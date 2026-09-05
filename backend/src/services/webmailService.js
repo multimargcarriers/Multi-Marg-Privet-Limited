@@ -630,6 +630,11 @@ const getAttachment = async (account, { folder = "INBOX", uid, attachmentId }) =
 const buildCompanySignature = (account, customOptions = {}) => {
   let senderName = (customOptions.senderName || account.displayName || (account.email ? account.email.split("@")[0] : "Multimarg Team")).trim();
   
+  // If senderName is in ALL CAPS (e.g. "PRAVEEN"), convert to natural written case ("Praveen")
+  if (senderName && senderName === senderName.toUpperCase() && /[A-Z]/.test(senderName) && senderName.length > 1) {
+    senderName = senderName.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+
   // Format "Accounts" with capital first letter
   if (senderName.toLowerCase() === "accounts") {
     senderName = "Accounts";
@@ -637,7 +642,11 @@ const buildCompanySignature = (account, customOptions = {}) => {
     senderName = senderName.replace(/accounts/gi, "Accounts");
   }
 
-  const senderDesignation = (customOptions.senderDesignation || customOptions.designation || "").trim();
+  let senderDesignation = (customOptions.senderDesignation || customOptions.designation || "").trim();
+  if (senderDesignation && senderDesignation === senderDesignation.toUpperCase() && /[A-Z]/.test(senderDesignation) && senderDesignation.length > 2) {
+    senderDesignation = senderDesignation.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+
   const senderPhone = (customOptions.senderPhone || customOptions.phone || "").trim();
   const senderEmail = account.email || "info@multimarg.com";
 
@@ -661,8 +670,8 @@ const buildCompanySignature = (account, customOptions = {}) => {
         ${senderName}
       </div>
       ${senderDesignation ? `<div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 2px;">${senderDesignation}</div>` : ""}
-      <div style="font-size: 12.5px; font-weight: 800; color: #1d4ed8; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px;">
-        MULTIMARG CARRIERS PRIVATE LIMITED
+      <div style="font-size: 13px; font-weight: 800; color: #1d4ed8; letter-spacing: 0.2px; margin-bottom: 3px;">
+        Multimarg Carriers Private Limited
       </div>
       <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; font-weight: 500;">
         <strong>Registered Address:</strong> LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India
@@ -679,7 +688,7 @@ const buildCompanySignature = (account, customOptions = {}) => {
         </span>
         <br/>
         <span style="color: #475569;">
-          <strong>Landline:</strong> <a href="tel:+915944324033" style="color: #2563eb; text-decoration: none; font-weight: 600;">+91 5944-324033</a>
+          <strong>Phone NO.:</strong> <a href="tel:+915944324033" style="color: #2563eb; text-decoration: none; font-weight: 600;">+91 5944-324033</a>
         </span>
         ${senderPhone ? `
         <span style="color: #cbd5e1; margin: 0 6px;">&bull;</span>
@@ -697,7 +706,7 @@ const buildCompanySignature = (account, customOptions = {}) => {
 </table>
 `;
 
-  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMULTIMARG CARRIERS PRIVATE LIMITED\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\nLandline: +91 5944-324033${senderPhone ? ` | Direct: ${senderPhone}` : ""}\n`;
+  const textSignature = `\n\n---\n${senderName}${senderDesignation ? `\n${senderDesignation}` : ""}\nMultimarg Carriers Private Limited\nRegistered Address: LIG-194, Near National Public School, Avas Vikas, Rudrapur, Uttarakhand - 263153, India\nEmail: ${senderEmail} | Website: https://multimarg.com\nPhone NO.: +91 5944-324033${senderPhone ? ` | Direct: ${senderPhone}` : ""}\n`;
 
   return { htmlSignature, textSignature };
 };
@@ -711,24 +720,17 @@ const sendMail = async (account, { to, cc, bcc, subject, text, html, attachments
 
   // Wrap final HTML with clean message body and bottom signature (no top banner)
   const finalHtml = `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 640px;">
-  <div style="padding: 4px 0 16px 0; font-size: 14px; color: #1e293b;">
-    ${html || (text ? `<p style="white-space: pre-wrap; margin: 0;">${text}</p>` : "")}
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 640px; text-transform: none;">
+  <div style="padding: 4px 0 16px 0; font-size: 14px; color: #1e293b; text-transform: none;">
+    ${html || (text ? `<p style="white-space: pre-wrap; margin: 0; text-transform: none;">${text}</p>` : "")}
   </div>
   ${htmlSignature}
 </div>`;
 
   const finalText = (text || "") + textSignature;
 
-  // Format high-visibility sender branding for email clients (e.g. "Accounts | MULTIMARG CARRIERS")
-  let formattedSender = (senderName || account.displayName || (account.email ? account.email.split("@")[0] : "Team")).trim();
-  if (formattedSender.toLowerCase() === "accounts") {
-    formattedSender = "Accounts";
-  } else if (formattedSender.toLowerCase().startsWith("accounts")) {
-    formattedSender = formattedSender.replace(/accounts/gi, "Accounts");
-  }
-
-  const fromDisplayName = `${formattedSender} | MULTIMARG CARRIERS`;
+  // Professional official sender display name without personal name (clean: "Multimarg Carriers")
+  const fromDisplayName = "Multimarg Carriers";
 
   // Attachments list + inline CID logo
   const mailAttachments = attachments.map(att => ({

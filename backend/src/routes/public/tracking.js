@@ -154,20 +154,28 @@ router.get('/:awb', async (req, res) => {
         });
       }
 
-      // 2. Picked Up milestone (automatically after booked at Origin)
-      const hasPickedUpStatus = entries.some(e => String(e.status || '').toLowerCase().includes("pickup") || String(e.status || '').toLowerCase().includes("picked"));
-      const pickupDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
-      if (!hasPickedUpStatus) {
-        const pickupDateISO = pickupDateObj.toISOString();
+      // 2. In Transit milestone (automatically at Origin facility)
+      const hasInTransitStatus = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
+      const transitDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
+      if (!hasInTransitStatus) {
+        const transitDateISO = transitDateObj.toISOString();
         entries.push({
-          id: `picked-${booking.id || baseAwb}`,
+          id: `transit-${booking.id || baseAwb}`,
           awb: baseAwb,
-          status: "Picked Up",
-          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB",
-          date: pickupDateISO,
-          remarks: `Shipment packages received and picked up from ${booking.origin ? String(booking.origin).toUpperCase() : 'origin'} facility.`,
-          updatedAt: pickupDateISO
+          status: "In Transit",
+          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN FACILITY",
+          date: transitDateISO,
+          remarks: `Shipment in transit from ${booking.origin ? String(booking.origin).toUpperCase() : 'origin'} facility.`,
+          updatedAt: transitDateISO
         });
+      }
+
+      booking.currentLocation = String(booking.currentLocation || booking.origin || "ORIGIN FACILITY").trim().toUpperCase();
+      if (!booking.transitStatus || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.transitStatus).toLowerCase())) {
+        booking.transitStatus = 'In Transit';
+      }
+      if (!booking.status || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.status).toLowerCase())) {
+        booking.status = 'In Transit';
       }
 
       // 3. Check if POD is uploaded or if the shipment is marked as Delivered

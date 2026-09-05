@@ -698,6 +698,7 @@ const Purchase = () => {
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Vendor Name *</label>
                       <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
                          <CreatableDropdown 
+                            category="vendor"
                             options={vendors} 
                             value={formData.vendor} 
                             onChange={(val) => setFormData({ ...formData, vendor: val })} 

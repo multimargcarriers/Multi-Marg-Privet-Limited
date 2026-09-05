@@ -588,6 +588,89 @@ const { initMongo, db } = require("./src/config/database");
 async function initializeServices() {
   try {
     await initMongo();
+
+    // Auto-migrate non-delivered bookings to 'In Transit' with origin as currentLocation
+    if (db && db.mongoDb) {
+      try {
+        const bookingsCol = db.mongoDb.collection("bookings");
+        const trackingCol = db.mongoDb.collection("tracking");
+
+        const existingTracks = await trackingCol.find({}, { projection: { awb: 1 } }).toArray();
+        const trackedAwbs = new Set();
+        existingTracks.forEach(t => {
+          if (t.awb) {
+            trackedAwbs.add(String(t.awb).trim().toUpperCase());
+            trackedAwbs.add(String(t.awb).trim().toLowerCase());
+          }
+        });
+
+        const allBookings = await bookingsCol.find({}).toArray();
+        const bookingBulkOps = [];
+        const trackingInserts = [];
+        const nowStr = new Date().toISOString();
+
+        for (const b of allBookings) {
+          const originClean = String(b.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
+          const updates = {};
+          const currStatus = String(b.status || "").trim().toLowerCase();
+          const currTransit = String(b.transitStatus || "").trim().toLowerCase();
+
+          if (["booked", "picked up", "shipment booked"].includes(currStatus)) {
+            updates.status = "In Transit";
+          }
+          if (!b.transitStatus || ["booked", "picked up", "shipment booked", ""].includes(currTransit)) {
+            updates.transitStatus = "In Transit";
+          }
+
+          if (!b.currentLocation || b.currentLocation !== b.currentLocation.toUpperCase() || ["origin facility", "origin hub"].includes(String(b.currentLocation).trim().toLowerCase())) {
+            updates.currentLocation = originClean;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            bookingBulkOps.push({
+              updateOne: {
+                filter: { _id: b._id },
+                update: { $set: updates }
+              }
+            });
+          }
+
+          const awbVal = String(b.consignment || b.awb || b.lrNo || b.id || b._id).trim().toUpperCase();
+          if (awbVal && !trackedAwbs.has(awbVal)) {
+            trackedAwbs.add(awbVal);
+            const dateVal = b.dispatch_date || b.date || b.createdAt || nowStr;
+            trackingInserts.push({
+              awb: awbVal,
+              status: "In Transit",
+              location: originClean,
+              date: String(dateVal).includes('T') ? dateVal : `${dateVal}T00:00:00.000Z`,
+              remarks: `Shipment in transit from ${originClean}`,
+              enteredBy: "System Migration",
+              createdAt: nowStr,
+              updatedAt: nowStr
+            });
+          }
+        }
+
+        if (bookingBulkOps.length > 0) {
+          await bookingsCol.bulkWrite(bookingBulkOps);
+          logger.info(`[Auto-Migration] Marked ${bookingBulkOps.length} bookings as 'In Transit' with origin location.`);
+        }
+
+        if (trackingInserts.length > 0) {
+          await trackingCol.insertMany(trackingInserts);
+          logger.info(`[Auto-Migration] Created ${trackingInserts.length} initial tracking checkpoints.`);
+        }
+
+        const redisModule = require("./src/config/redis");
+        if (redisModule && redisModule.delCache) {
+          await redisModule.delCache("bookings");
+          await redisModule.delCache("tracking");
+        }
+      } catch (migErr) {
+        logger.warn("[Auto-Migration Warning]:", migErr.message);
+      }
+    }
   } catch (err) {
     logger.warn("MongoDB initialization failed (continuing without DB):", err.message);
   }

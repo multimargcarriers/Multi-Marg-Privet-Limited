@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
+import TrackingLocationInput from "../components/TrackingLocationInput";
 import QuickAddModal from "../components/QuickAddModal";
 import Table from "../components/Table";
 import CopyButton, { AwbBadge } from "../components/CopyButton";
@@ -723,12 +724,16 @@ const Tracking = () => {
                   const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
 
                   // Determine step index for the 4-step progress tracker:
-                  // 1: Picked Up, 2: In Transit, 3: Out for Delivery, 4: Delivered
+                  // 1: Booked, 2: In Transit, 3: Out for Delivery, 4: Delivered
                   let currentStepNumber = 1;
                   if (isDelivered) currentStepNumber = 4;
                   else if (isOutForDelivery) currentStepNumber = 3;
                   else if (isInTransit) currentStepNumber = 2;
                   else currentStepNumber = 1;
+
+                  const originCity = selectedSearchBooking.origin ? String(selectedSearchBooking.origin).toUpperCase() : "";
+                  const destCity = selectedSearchBooking.destination ? String(selectedSearchBooking.destination).toUpperCase() : "";
+                  const currentLoc = (latestEntry?.location || selectedSearchBooking?.currentLocation || "").trim().toUpperCase();
 
                   // Status Banner styling & messaging — GRADIENT THEME
                   let bannerBg = "linear-gradient(135deg, #046A38 0%, #059669 50%, #10b981 100%)";
@@ -753,7 +758,7 @@ const Tracking = () => {
                     bannerBg = "linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #a78bfa 100%)";
                     bannerAccent = "#7c3aed";
                     bannerTitle = "Out for Delivery";
-                    bannerSubtitle = `Out for Delivery at ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination"}`;
+                    bannerSubtitle = `Out for Delivery at ${destCity || "Destination"}`;
                     bannerRibbonBg = "linear-gradient(90deg, #f5f3ff, #ede9fe)";
                     bannerRibbonText = "#5b21b6";
                     bannerMessage = "🛵 Shipment is Out for Delivery with the executive.";
@@ -762,24 +767,28 @@ const Tracking = () => {
                     bannerBg = "linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%)";
                     bannerAccent = "#d97706";
                     bannerTitle = "In Transit";
-                    bannerSubtitle = `In Transit to ${selectedSearchBooking.destination ? selectedSearchBooking.destination.toUpperCase() : "Destination Hub"}`;
+                    const fromStr = originCity ? `In Transit from ${originCity}` : "In Transit";
+                    const toStr = destCity ? ` to ${destCity}` : "";
+                    bannerSubtitle = currentLoc ? `In Transit - Current Location: ${currentLoc}` : `${fromStr}${toStr}`;
                     bannerRibbonBg = "linear-gradient(90deg, #fffbeb, #fef3c7)";
                     bannerRibbonText = "#b45309";
-                    bannerMessage = "🚚 Your Shipment is In Transit and moving towards destination.";
+                    bannerMessage = currentLoc 
+                      ? `🚚 Your Shipment is currently at ${currentLoc}${destCity ? ` moving towards ${destCity}` : ''}.`
+                      : `🚚 Your Shipment is In Transit from ${originCity || "origin"} and moving towards destination.`;
                     stepGradient = "linear-gradient(90deg, #b45309, #d97706, #f59e0b)";
                   } else {
                     bannerBg = "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)";
                     bannerAccent = "#1e40af";
-                    bannerTitle = isPickedUp ? "Picked Up" : "Shipment Booked";
-                    bannerSubtitle = `Shipment Received at ${selectedSearchBooking.origin ? selectedSearchBooking.origin.toUpperCase() : "Origin Facility"}`;
+                    bannerTitle = "Shipment Booked";
+                    bannerSubtitle = originCity ? `Booked at ${originCity}` : "Shipment Booked";
                     bannerRibbonBg = "linear-gradient(90deg, #eff6ff, #dbeafe)";
                     bannerRibbonText = "#1e40af";
-                    bannerMessage = isPickedUp ? "📦 Shipment has been picked up." : "📦 Shipment has been booked and Lorry Receipt generated.";
+                    bannerMessage = originCity ? `📦 Shipment has been booked from ${originCity} and Lorry Receipt generated.` : "📦 Shipment has been booked and Lorry Receipt generated.";
                     stepGradient = "linear-gradient(90deg, #1e3a8a, #2563eb, #3b82f6)";
                   }
 
                   const steps = [
-                    { id: 1, label: "Picked Up", icon: Package },
+                    { id: 1, label: "Booked", icon: Package },
                     { id: 2, label: "In Transit", icon: Truck },
                     { id: 3, label: "Out for Delivery", icon: MapPin },
                     { id: 4, label: "Delivered", icon: CheckCircle }
@@ -926,9 +935,9 @@ const Tracking = () => {
                       <div style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                        gap: "0.75rem",
+                        gap: "clamp(0.25rem, 1.5vw, 0.75rem)",
                         margin: "1.5rem 0",
-                        padding: "0 0.25rem"
+                        padding: "0 0.15rem"
                       }}>
                         {steps.map((step) => {
                           const isCompleted = step.id <= currentStepNumber;
@@ -946,7 +955,7 @@ const Tracking = () => {
                               }} />
                               
                               {/* Step Label & Icon */}
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", paddingTop: "0.2rem" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", paddingTop: "0.2rem" }}>
                                 {isCompleted ? (
                                   <div style={{
                                     width: "16px",
@@ -956,7 +965,8 @@ const Tracking = () => {
                                     color: "white",
                                     display: "flex",
                                     alignItems: "center",
-                                    justifyContent: "center"
+                                    justifyContent: "center",
+                                    flexShrink: 0
                                   }}>
                                     <Check size={10} strokeWidth={3} />
                                   </div>
@@ -966,16 +976,16 @@ const Tracking = () => {
                                     height: "16px",
                                     borderRadius: "50%",
                                     border: "1.5px solid #cbd5e1",
-                                    backgroundColor: "white"
+                                    backgroundColor: "white",
+                                    flexShrink: 0
                                   }} />
                                 )}
                                 <span style={{
-                                  fontSize: "0.78rem",
+                                  fontSize: "clamp(0.68rem, 1.8vw, 0.8rem)",
                                   fontWeight: isCompleted ? 700 : 500,
                                   color: isCompleted ? "#0f172a" : "#64748b",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis"
+                                  lineHeight: 1.15,
+                                  wordBreak: "break-word"
                                 }}>
                                   {step.label}
                                 </span>
@@ -1007,6 +1017,14 @@ const Tracking = () => {
                             {", INDIA"}
                           </span>
                         </div>
+                        {currentLoc && (
+                          <div style={{ textAlign: "center", padding: "0 0.5rem" }}>
+                            <span style={{ color: "#d97706", fontWeight: 700, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Current Location:</span>
+                            <span style={{ color: "#b45309", fontWeight: 800, fontSize: "0.9rem" }}>
+                              📍 {currentLoc}
+                            </span>
+                          </div>
+                        )}
                         <div style={{ textAlign: "right" }}>
                           <span style={{ color: "#64748b", fontWeight: 600, textTransform: "uppercase", fontSize: "0.75rem", display: "block" }}>Destination:</span>
                           <span style={{ color: "#0f172a", fontWeight: 700 }}>
@@ -1376,9 +1394,6 @@ const Tracking = () => {
               <h4 style={{ fontSize: "1.2rem", fontWeight: "600", color: "#374151", margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <PlusCircle size={20} color="#6366f1" /> Add Status Update
               </h4>
-              <p style={{ margin: "0.25rem 0 0 0", color: "#6b7280", fontSize: "0.85rem" }}>
-                Fill out the details below to log a new checkpoint.
-              </p>
             </div>
 
             <div style={{ padding: "1.5rem 2rem", flex: 1, background: "white", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
@@ -1408,11 +1423,12 @@ const Tracking = () => {
                   <AutocompleteDropdown 
                     filteredList={formFilteredLRs} 
                     onSelect={(awb, booking) => { 
+                      const loc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
                       setFormData(prev => ({ 
                         ...prev, 
                         awb,
-                        // Auto-fill location with origin if empty
-                        location: prev.location || booking.origin || ""
+                        location: loc,
+                        status: prev.status || "In Transit"
                       })); 
                       setSelectedFormBooking(booking);
                       setShowFormDropdown(false); 
@@ -1461,9 +1477,7 @@ const Tracking = () => {
                   style={{ cursor: "pointer", border: "1px solid #cbd5e1", fontWeight: formData.status ? "600" : "normal", color: formData.status ? getStatusColor(formData.status) : "inherit" }}
                 >
                   <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
-                  <option value="Picked Up" style={{ color: "#000" }}>Picked Up</option>
                   <option value="In Transit" style={{ color: "#000" }}>In Transit</option>
-                  <option value="Reached Hub" style={{ color: "#000" }}>Arrived</option>
                   <option value="Out for Delivery" style={{ color: "#000" }}>Out for Delivery</option>
                   <option value="Delivered" style={{ color: "#000" }}>Delivered</option>
                   <option value="Delayed" style={{ color: "#000" }}>Delayed</option>
@@ -1490,33 +1504,30 @@ const Tracking = () => {
                 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label htmlFor="statusUpdateLocation" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                    Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                    Current Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
                   </label>
-                  <div style={{ position: "relative", zIndex: 10 }}>
-                    <CreatableDropdown 
-                      id="statusUpdateLocation"
-                      options={locations} 
-                      value={formData.location} 
-                      onChange={(loc) => setFormData({ ...formData, location: loc })} 
-                      onCreate={(name) => handleCreateNew("city", name)}
-                      placeholder="-- Select City --" 
-                    />
-                  </div>
+                  <TrackingLocationInput
+                    id="statusUpdateLocation"
+                    name="location"
+                    value={formData.location}
+                    onChange={(val) => setFormData(prev => ({ ...prev, location: val }))}
+                    booking={selectedFormBooking}
+                    required
+                  />
                 </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label htmlFor="statusUpdateRemarks" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                  Remarks<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                  Special Remarks
                 </label>
                 <textarea 
                   id="statusUpdateRemarks"
                   className="form-control" 
                   name="remarks" 
-                  placeholder="Enter detailed remarks about this status update..." 
+                  placeholder="Enter your remarks" 
                   value={formData.remarks} 
                   onChange={handleChange} 
-                  required 
                   rows="3"
                   style={{ border: "1px solid #cbd5e1", resize: "vertical", minHeight: "80px" }}
                 />
