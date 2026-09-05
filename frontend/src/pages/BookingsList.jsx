@@ -442,6 +442,98 @@ const BookingsList = () => {
     }
   }, [sortedData.length, totalPages, currentPage]);
 
+  const checkIsDelivered = useMemo(() => {
+    return (item) => {
+      if (!item) return false;
+      const awbStr = String(item.awb || item.consignment || item.lrNo || item.lrNumber || '').trim();
+      const awbClean = awbStr.toLowerCase();
+      const awbStripped = awbClean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+      const idStr = String(item.id || item._id || '').trim();
+
+      // 1. Direct status flags on booking
+      const transitLower = String(item.transitStatus || '').trim().toLowerCase();
+      const statusLower = String(item.status || '').trim().toLowerCase();
+      const delivStatusLower = String(item.delivery_status || '').trim().toLowerCase();
+      if (transitLower === 'delivered' || statusLower === 'delivered' || delivStatusLower === 'delivered' || item.deliveryDate) {
+        return true;
+      }
+
+      // 2. POD exists
+      const hasPodEntry = Boolean(
+        (podMap && (podMap[awbStr] || podMap[awbClean] || podMap[awbStripped] || podMap[idStr])) ||
+        item.podUrl ||
+        item.podUploaded ||
+        item.pod
+      );
+      if (hasPodEntry) return true;
+
+      // 3. Tracking latest status is Delivered
+      const track = (trackingMap && (trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped])) || null;
+      const trackStatus = typeof track === 'object' ? track?.status : track;
+      if (String(trackStatus || '').trim().toLowerCase() === 'delivered') {
+        return true;
+      }
+
+      // 4. Date rule: on or before 20 Aug 2026 is delivered
+      const dateObj = getBookingDateObj(item);
+      if (dateObj && !isNaN(dateObj.getTime())) {
+        const y = dateObj.getFullYear();
+        const m = dateObj.getMonth();
+        const d = dateObj.getDate();
+        if (y < 2026 || (y === 2026 && (m < 7 || (m === 7 && d <= 20)))) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+  }, [podMap, trackingMap]);
+
+  // SuperAdmin Only: Full / Lifetime & Monthly AWB Status Metrics
+  const awbStats = useMemo(() => {
+    if (!isSuperAdmin) return null;
+    const list = displayBookings;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentMonthName = now.toLocaleString('default', { month: 'long' });
+
+    let fullDelivered = 0;
+    let monthTotal = 0;
+    let monthDelivered = 0;
+
+    for (const item of list) {
+      const isDeliv = checkIsDelivered(item);
+      if (isDeliv) fullDelivered++;
+
+      const dateObj = getBookingDateObj(item);
+      if (dateObj && !isNaN(dateObj.getTime())) {
+        if (dateObj.getFullYear() === currentYear && dateObj.getMonth() === currentMonth) {
+          monthTotal++;
+          if (isDeliv) monthDelivered++;
+        }
+      }
+    }
+
+    const fullTotal = list.length;
+    const fullPending = Math.max(0, fullTotal - fullDelivered);
+    const monthPending = Math.max(0, monthTotal - monthDelivered);
+
+    return {
+      currentMonthName,
+      full: {
+        total: fullTotal,
+        delivered: fullDelivered,
+        pending: fullPending
+      },
+      monthly: {
+        total: monthTotal,
+        delivered: monthDelivered,
+        pending: monthPending
+      }
+    };
+  }, [isSuperAdmin, displayBookings, checkIsDelivered]);
+
   return (
     <div className="bookings-page-wrapper">
       {/* ── Page Header Toolbar ── */}
@@ -522,6 +614,33 @@ const BookingsList = () => {
           </div>
         )}
       </div>
+
+      {/* ── SuperAdmin Shipment Status Summary Bar (Full & Monthly) ── */}
+      {isSuperAdmin && awbStats && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "1.5rem" }}>
+          <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", borderLeft: "4px solid #f59e0b", borderRadius: "10px" }}>
+            <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+              ALL AWB STATUS
+            </div>
+            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <span><span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.full.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span></span>
+              <span><span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.full.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span></span>
+              <span><span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.full.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span></span>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", borderLeft: "4px solid #10b981", borderRadius: "10px" }}>
+            <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", marginBottom: "0.5rem" }}>
+              Current ({awbStats.currentMonthName})
+            </div>
+            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <span><span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.monthly.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span></span>
+              <span><span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.monthly.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span></span>
+              <span><span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.monthly.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span></span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="premium-filter-toolbar">
         <div className="premium-filter-grid">
@@ -751,18 +870,7 @@ const BookingsList = () => {
                     {(() => {
                       const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
                       const trackStatus = typeof track === 'object' ? track?.status : track;
-                      const trackStatusLower = String(trackStatus || '').toLowerCase();
-                      const latestIsDelivered = trackStatusLower === 'delivered';
-                      const latestIsOther = trackStatusLower && trackStatusLower !== 'delivered';
-
-                      const isDelivered = 
-                        Boolean(hasPodEntry) || 
-                        (!latestIsOther && (
-                          latestIsDelivered ||
-                          (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
-                          (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
-                          (item.status && String(item.status).toLowerCase() === 'delivered')
-                        ));
+                      const isDelivered = checkIsDelivered(item);
 
                       const rawLocation = isDelivered 
                         ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')

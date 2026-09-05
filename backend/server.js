@@ -638,13 +638,16 @@ async function initializeServices() {
           const awbVal = String(b.consignment || b.awb || b.lrNo || b.id || b._id).trim().toUpperCase();
           if (awbVal && !trackedAwbs.has(awbVal)) {
             trackedAwbs.add(awbVal);
-            const dateVal = b.dispatch_date || b.date || b.createdAt || nowStr;
+            const isDelivered = currStatus === 'delivered' || currTransit === 'delivered';
+            const locClean = isDelivered ? (String(b.destination || originClean).trim().toUpperCase()) : originClean;
+            const statusClean = isDelivered ? "Delivered" : "In Transit";
+            const dateVal = b.deliveryDate || b.dispatch_date || b.date || b.createdAt || nowStr;
             trackingInserts.push({
               awb: awbVal,
-              status: "In Transit",
-              location: originClean,
+              status: statusClean,
+              location: locClean,
               date: String(dateVal).includes('T') ? dateVal : `${dateVal}T00:00:00.000Z`,
-              remarks: `Shipment in transit from ${originClean}`,
+              remarks: isDelivered ? `Shipment delivered at ${locClean}` : `Shipment in transit from ${originClean}`,
               enteredBy: "System Migration",
               createdAt: nowStr,
               updatedAt: nowStr
