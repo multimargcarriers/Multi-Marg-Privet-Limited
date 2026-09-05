@@ -597,32 +597,58 @@ async function initializeServices() {
 
         const existingTracks = await trackingCol.find({}, { projection: { awb: 1 } }).toArray();
         const trackedAwbs = new Set();
+        const trackingByAwb = new Map();
         existingTracks.forEach(t => {
           if (t.awb) {
-            trackedAwbs.add(String(t.awb).trim().toUpperCase());
-            trackedAwbs.add(String(t.awb).trim().toLowerCase());
+            const raw = String(t.awb).trim();
+            const clean = raw.toLowerCase();
+            const stripped = clean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+            for (const k of [raw, clean, stripped]) {
+              if (!trackingByAwb.has(k)) trackingByAwb.set(k, []);
+              trackingByAwb.get(k).push(t);
+            }
           }
         });
 
         const allBookings = await bookingsCol.find({}).toArray();
         const bookingBulkOps = [];
         const trackingInserts = [];
-        const nowStr = new Date().toISOString();
+        const nowMs = Date.now();
+        const { v4: uuidv4 } = require("uuid");
 
         for (const b of allBookings) {
-          const originClean = String(b.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
+          const originClean = String(b.origin || "").trim().toUpperCase() || "ORIGIN";
           const updates = {};
           const currStatus = String(b.status || "").trim().toLowerCase();
           const currTransit = String(b.transitStatus || "").trim().toLowerCase();
+          const isDelivered = currStatus === 'delivered' || currTransit === 'delivered';
 
-          if (["booked", "picked up", "shipment booked"].includes(currStatus)) {
-            updates.status = "In Transit";
-          }
-          if (!b.transitStatus || ["booked", "picked up", "shipment booked", ""].includes(currTransit)) {
-            updates.transitStatus = "In Transit";
+          const bDate = b.dispatch_date || b.date || b.bookingDate || b.createdAt;
+          let bDateIso = new Date().toISOString();
+          if (bDate) {
+            if (typeof bDate === 'string' && bDate.includes('T')) {
+              bDateIso = bDate;
+            } else if (typeof bDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(bDate)) {
+              bDateIso = `${bDate}T09:00:00.000Z`;
+            } else {
+              const dObj = new Date(bDate);
+              if (!isNaN(dObj.getTime())) bDateIso = dObj.toISOString();
+            }
           }
 
-          if (!b.currentLocation || b.currentLocation !== b.currentLocation.toUpperCase() || ["origin facility", "origin hub"].includes(String(b.currentLocation).trim().toLowerCase())) {
+          const bookingTimeMs = new Date(b.createdAt || bDateIso).getTime();
+          const minutesSinceBooking = (nowMs - bookingTimeMs) / (60 * 1000);
+
+          if (!isDelivered && minutesSinceBooking >= 2.5) {
+            if (["booked", "picked up", "shipment booked", ""].includes(currStatus)) {
+              updates.status = "In Transit";
+            }
+            if (!b.transitStatus || ["booked", "picked up", "shipment booked", ""].includes(currTransit)) {
+              updates.transitStatus = "In Transit";
+            }
+          }
+
+          if (!b.currentLocation || b.currentLocation !== b.currentLocation.toUpperCase() || ["origin facility", "origin hub", "facility"].some(w => String(b.currentLocation).trim().toLowerCase().includes(w))) {
             updates.currentLocation = originClean;
           }
 
@@ -635,23 +661,52 @@ async function initializeServices() {
             });
           }
 
-          const awbVal = String(b.consignment || b.awb || b.lrNo || b.id || b._id).trim().toUpperCase();
-          if (awbVal && !trackedAwbs.has(awbVal)) {
-            trackedAwbs.add(awbVal);
-            const isDelivered = currStatus === 'delivered' || currTransit === 'delivered';
-            const locClean = isDelivered ? (String(b.destination || originClean).trim().toUpperCase()) : originClean;
-            const statusClean = isDelivered ? "Delivered" : "In Transit";
-            const dateVal = b.deliveryDate || b.dispatch_date || b.date || b.createdAt || nowStr;
-            trackingInserts.push({
-              awb: awbVal,
-              status: statusClean,
-              location: locClean,
-              date: String(dateVal).includes('T') ? dateVal : `${dateVal}T00:00:00.000Z`,
-              remarks: isDelivered ? `Shipment delivered at ${locClean}` : `Shipment in transit from ${originClean}`,
-              enteredBy: "System Migration",
-              createdAt: nowStr,
-              updatedAt: nowStr
-            });
+          const awbVal = String(b.consignment || b.awb || b.lrNo || b.id || b._id).trim();
+          if (awbVal) {
+            const raw = awbVal;
+            const clean = raw.toLowerCase();
+            const stripped = clean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+            const existing = trackingByAwb.get(raw) || trackingByAwb.get(clean) || trackingByAwb.get(stripped) || [];
+
+            const hasBooked = existing.some(t => String(t.status || '').toLowerCase().includes('book'));
+            const hasTransit = existing.some(t => String(t.status || '').toLowerCase().includes('transit'));
+
+            if (!hasBooked) {
+              const bookedDoc = {
+                id: uuidv4(),
+                _id: uuidv4(),
+                awb: awbVal,
+                status: "Booked",
+                location: originClean,
+                date: bDateIso,
+                remarks: `SHIPMENT BOOKED AT ${originClean}. LORRY RECEIPT (LR) GENERATED.`,
+                enteredBy: "System",
+                createdAt: bDateIso,
+                updatedAt: bDateIso
+              };
+              trackingInserts.push(bookedDoc);
+              if (!trackingByAwb.has(raw)) trackingByAwb.set(raw, []);
+              trackingByAwb.get(raw).push(bookedDoc);
+            }
+
+            if (!hasTransit && minutesSinceBooking >= 2.5) {
+              const transitDateIso = new Date(bookingTimeMs + 2.5 * 60 * 1000).toISOString();
+              const transitDoc = {
+                id: uuidv4(),
+                _id: uuidv4(),
+                awb: awbVal,
+                status: "In Transit",
+                location: originClean,
+                date: transitDateIso,
+                remarks: `DISPATCHED FROM ${originClean}`,
+                enteredBy: "System",
+                createdAt: transitDateIso,
+                updatedAt: transitDateIso
+              };
+              trackingInserts.push(transitDoc);
+              if (!trackingByAwb.has(raw)) trackingByAwb.set(raw, []);
+              trackingByAwb.get(raw).push(transitDoc);
+            }
           }
         }
 

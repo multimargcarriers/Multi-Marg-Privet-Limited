@@ -15,14 +15,24 @@ exports.getRoot_1 = async (req, res) => {
     snapshot.forEach(doc => {
       const docData = doc.data() || {};
       const docId = String(doc.id || docData.id || docData._id || '');
+      let cleanRemarks = docData.remarks;
+      if (!cleanRemarks || String(cleanRemarks).trim().toLowerCase() === 'na' || String(cleanRemarks).trim() === '') {
+        const loc = String(docData.location || 'ORIGIN').toUpperCase();
+        if (String(docData.status || '').toLowerCase().includes('book')) {
+          cleanRemarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
+        } else if (String(docData.status || '').toLowerCase().includes('transit')) {
+          cleanRemarks = `DISPATCHED FROM ${loc}`;
+        }
+      }
       entries.push({
         id: docId,
         _id: docId,
-        ...docData
+        ...docData,
+        remarks: cleanRemarks ? String(cleanRemarks).toUpperCase() : cleanRemarks
       });
     });
     return entries;
-  }, 300);
+  }, 120);
   return success(res, "Tracking entries fetched successfully", data);
 };
 
@@ -46,7 +56,7 @@ exports.get_awb_2 = async (req, res) => {
       });
     }
     if (booking) {
-      const originLoc = String(booking.origin || "").trim().toUpperCase() || "ORIGIN HUB";
+      const originLoc = String(booking.origin || "").trim().toUpperCase() || "ORIGIN";
       const bookingDate = booking.dispatch_date 
         ? (booking.dispatch_date.includes('T') ? booking.dispatch_date : `${booking.dispatch_date}T09:00:00.000Z`) 
         : (booking.createdAt || new Date().toISOString());
@@ -79,7 +89,7 @@ exports.get_awb_2 = async (req, res) => {
             status: "In Transit",
             location: originLoc,
             date: transitDate,
-            remarks: (booking.remarks && String(booking.remarks).trim().toLowerCase() !== 'na' ? booking.remarks : `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`).toUpperCase(),
+            remarks: `DISPATCHED FROM ${originLoc}`,
             enteredBy: "System",
             createdAt: transitDate,
             updatedAt: transitDate
@@ -88,17 +98,26 @@ exports.get_awb_2 = async (req, res) => {
       }
 
       entries.forEach(e => {
+        const loc = (e.location || originLoc).toUpperCase();
         if (!e.remarks || String(e.remarks).trim().toLowerCase() === 'na' || String(e.remarks).trim() === '') {
           if (String(e.status || '').toLowerCase().includes('book')) {
-            const loc = (e.location || originLoc).toUpperCase();
             e.remarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
+          } else if (String(e.status || '').toLowerCase().includes('transit')) {
+            e.remarks = `DISPATCHED FROM ${loc}`;
           }
         }
-        if (String(e.remarks || '').toUpperCase().includes('BOOKED') || String(e.status || '').toLowerCase().includes('book')) {
+        if (String(e.remarks || '').toUpperCase().includes('BOOKED') && !String(e.status || '').toLowerCase().includes('transit')) {
           e.status = 'Booked';
         }
         if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
       });
+
+      if (booking.podUrl) {
+        const delEntry = entries.find(e => String(e.status || '').toLowerCase().includes("delivered"));
+        if (delEntry && !delEntry.podUrl) {
+          delEntry.podUrl = booking.podUrl;
+        }
+      }
 
       entries.sort((a, b) => {
         const timeA = new Date(a.date || a.updatedAt || 0).getTime();
@@ -173,7 +192,7 @@ exports.postRoot_3 = async (req, res) => {
   if (targetStatusNorm.includes("out for delivery") || targetStatusNorm.includes("out_for_delivery")) {
     const hasInTransit = existingEntries.some(e => String(e.status || '').toLowerCase().includes("transit"));
     if (!hasInTransit) {
-      const originLoc = existingBooking?.origin ? String(existingBooking.origin).trim().toUpperCase() : (entry.location || "ORIGIN FACILITY");
+      const originLoc = existingBooking?.origin ? String(existingBooking.origin).trim().toUpperCase() : (entry.location || "ORIGIN");
       const bDate = existingBooking?.dispatch_date || existingBooking?.date || existingBooking?.createdAt || now;
       const bDateObj = new Date(bDate);
       const transitDateObj = new Date(bDateObj.getTime() + 2.5 * 60 * 1000);
@@ -184,7 +203,7 @@ exports.postRoot_3 = async (req, res) => {
         status: "In Transit",
         location: originLoc,
         date: transitIso,
-        remarks: `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`,
+        remarks: `DISPATCHED FROM ${originLoc}`,
         enteredBy: req.user?.name || req.user?.email || "System",
         enteredById: req.user?.id || null,
         enteredByRole: req.user?.role || "System",
@@ -357,7 +376,7 @@ exports.delete_id_4 = async (req, res) => {
           ]
         });
 
-        const originLoc = existingBooking.origin ? String(existingBooking.origin).trim().toUpperCase() : "ORIGIN FACILITY";
+        const originLoc = existingBooking.origin ? String(existingBooking.origin).trim().toUpperCase() : "ORIGIN";
         let newStatus = "In Transit";
         let currentLocation = originLoc;
 

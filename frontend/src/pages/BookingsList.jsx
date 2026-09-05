@@ -451,6 +451,13 @@ const BookingsList = () => {
         return { status: 'DELIVERED', displayStatus: 'DELIVERED', isDelivered: true, isPending: false };
       }
 
+      // Check time elapsed since booking in minutes
+      const bookingDateObj = getBookingDateObj(item);
+      const bookingTimeMs = bookingDateObj && !isNaN(bookingDateObj.getTime())
+        ? bookingDateObj.getTime()
+        : (item.createdAt ? new Date(item.createdAt).getTime() : 0);
+      const minutesSinceBooking = bookingTimeMs ? (Date.now() - bookingTimeMs) / (60 * 1000) : 9999;
+
       const track = (trackingMap && (trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped])) || null;
       const trackStatus = typeof track === 'object' ? track?.status : track;
       const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status || item.status || '';
@@ -474,8 +481,10 @@ const BookingsList = () => {
       if (norm.includes('return') || norm.includes('rto')) {
         return { status: 'RETURNED', displayStatus: 'RETURNED', isDelivered: false, isPending: true };
       }
-      if (norm.includes('book')) {
-        return { status: 'BOOKED', displayStatus: 'BOOKED', isDelivered: false, isPending: true };
+      
+      // If marked as booked or unassigned, auto-mark as In Transit once 2-3 minutes have passed
+      if (minutesSinceBooking >= 2.5) {
+        return { status: 'IN TRANSIT', displayStatus: 'IN TRANSIT', isDelivered: false, isPending: true };
       }
 
       return { status: 'BOOKED', displayStatus: 'BOOKED', isDelivered: false, isPending: true };
@@ -701,134 +710,280 @@ const BookingsList = () => {
 
       {/* ── SuperAdmin Shipment Status Summary Bar (Full & Monthly) ── */}
       {isSuperAdmin && awbStats && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem", marginBottom: "1.5rem" }}>
-          <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", borderLeft: "4px solid #f59e0b", borderRadius: "10px" }}>
-            <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>
-              ALL AWB STATUS
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem", marginBottom: "1.25rem" }}>
+          {/* Lifetime / All Time AWB Status */}
+          <div className="glass-panel" style={{ padding: "1rem 1.25rem", borderLeft: "4px solid #f59e0b", borderRadius: "10px", background: "#ffffff" }}>
+            <div style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.55rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>ALL AWB STATUS</span>
+              <span style={{ fontSize: "0.7rem", color: "#94a3b8", fontWeight: "500", textTransform: "none" }}>Click to filter</span>
             </div>
-            <div style={{ fontSize: "1.05rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem" }}>
+              {/* Delivered */}
               <button
                 type="button"
                 onClick={() => { setStatusFilter('delivered'); setCurrentPage(1); }}
-                style={{ background: statusFilter === 'delivered' ? '#ecfdf5' : 'transparent', border: statusFilter === 'delivered' ? '1px solid #10b981' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
-                title="Filter: Delivered Shipments"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  padding: "0.55rem 0.75rem",
+                  borderRadius: "8px",
+                  border: statusFilter === 'delivered' ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+                  background: statusFilter === 'delivered' ? "#ecfdf5" : "#f8fafc",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s ease"
+                }}
+                title="Filter Delivered shipments"
               >
-                <span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.full.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#059669", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", display: "inline-block" }}></span>
+                  <span>D • Delivered</span>
+                </div>
+                <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#065f46", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                  {awbStats.full.delivered.toLocaleString()}
+                </div>
               </button>
+
+              {/* Pending */}
               <button
                 type="button"
                 onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
-                style={{ background: statusFilter === 'pending' ? '#fffbeb' : 'transparent', border: statusFilter === 'pending' ? '1px solid #f59e0b' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
-                title="Filter: Pending AWBs"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  padding: "0.55rem 0.75rem",
+                  borderRadius: "8px",
+                  border: statusFilter === 'pending' ? "1.5px solid #f59e0b" : "1px solid #e2e8f0",
+                  background: statusFilter === 'pending' ? "#fffbeb" : "#f8fafc",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s ease"
+                }}
+                title="Filter Pending shipments"
               >
-                <span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.full.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }}></span>
+                  <span>P • Pending</span>
+                </div>
+                <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#92400e", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                  {awbStats.full.pending.toLocaleString()}
+                </div>
               </button>
+
+              {/* Total */}
               <button
                 type="button"
                 onClick={() => { setStatusFilter('all'); setStartDate(''); setEndDate(''); setCurrentPage(1); }}
-                style={{ background: statusFilter === 'all' && !startDate && !endDate ? '#f0f9ff' : 'transparent', border: statusFilter === 'all' && !startDate && !endDate ? '1px solid #0ea5e9' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
-                title="View All Bookings"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  padding: "0.55rem 0.75rem",
+                  borderRadius: "8px",
+                  border: statusFilter === 'all' && !startDate && !endDate ? "1.5px solid #0ea5e9" : "1px solid #e2e8f0",
+                  background: statusFilter === 'all' && !startDate && !endDate ? "#f0f9ff" : "#f8fafc",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "all 0.15s ease"
+                }}
+                title="View All bookings"
               >
-                <span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.full.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#0ea5e9", display: "inline-block" }}></span>
+                  <span>T • Total</span>
+                </div>
+                <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#0369a1", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                  {awbStats.full.total.toLocaleString()}
+                </div>
               </button>
             </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", borderLeft: "4px solid #10b981", borderRadius: "10px" }}>
-            <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", marginBottom: "0.5rem" }}>
-              Current ({awbStats.currentMonthName})
+          {/* Current Month AWB Status */}
+          <div className="glass-panel" style={{ padding: "1rem 1.25rem", borderLeft: "4px solid #10b981", borderRadius: "10px", background: "#ffffff" }}>
+            <div style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "700", marginBottom: "0.55rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span>CURRENT MONTH ({awbStats.currentMonthName.toUpperCase()})</span>
+              <span style={{ fontSize: "0.7rem", color: "#94a3b8", fontWeight: "500" }}>Monthly Status</span>
             </div>
-            <div style={{ fontSize: "1.05rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-              {(() => {
-                const now = new Date();
-                const mStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                const mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-                return (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('delivered'); setCurrentPage(1); }}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
-                      title={`Filter: ${awbStats.currentMonthName} Delivered`}
-                    >
-                      <span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.monthly.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('pending'); setCurrentPage(1); }}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
-                      title={`Filter: ${awbStats.currentMonthName} Pending`}
-                    >
-                      <span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.monthly.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('all'); setCurrentPage(1); }}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
-                      title={`Filter: ${awbStats.currentMonthName} All`}
-                    >
-                      <span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.monthly.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span>
-                    </button>
-                  </>
-                );
-              })()}
-            </div>
+            {(() => {
+              const now = new Date();
+              const mStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+              const mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+              const isCurrentMonthFiltered = startDate === mStart && endDate === mEnd;
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem" }}>
+                  {/* Monthly Delivered */}
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('delivered'); setCurrentPage(1); }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      padding: "0.55rem 0.75rem",
+                      borderRadius: "8px",
+                      border: isCurrentMonthFiltered && statusFilter === 'delivered' ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+                      background: isCurrentMonthFiltered && statusFilter === 'delivered' ? "#ecfdf5" : "#f8fafc",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease"
+                    }}
+                    title={`Filter ${awbStats.currentMonthName} Delivered`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#059669", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", display: "inline-block" }}></span>
+                      <span>D • Delivered</span>
+                    </div>
+                    <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#065f46", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                      {awbStats.monthly.delivered.toLocaleString()}
+                    </div>
+                  </button>
+
+                  {/* Monthly Pending */}
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('pending'); setCurrentPage(1); }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      padding: "0.55rem 0.75rem",
+                      borderRadius: "8px",
+                      border: isCurrentMonthFiltered && statusFilter === 'pending' ? "1.5px solid #f59e0b" : "1px solid #e2e8f0",
+                      background: isCurrentMonthFiltered && statusFilter === 'pending' ? "#fffbeb" : "#f8fafc",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease"
+                    }}
+                    title={`Filter ${awbStats.currentMonthName} Pending`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b", display: "inline-block" }}></span>
+                      <span>P • Pending</span>
+                    </div>
+                    <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#92400e", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                      {awbStats.monthly.pending.toLocaleString()}
+                    </div>
+                  </button>
+
+                  {/* Monthly Total */}
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('all'); setCurrentPage(1); }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      padding: "0.55rem 0.75rem",
+                      borderRadius: "8px",
+                      border: isCurrentMonthFiltered && statusFilter === 'all' ? "1.5px solid #0ea5e9" : "1px solid #e2e8f0",
+                      background: isCurrentMonthFiltered && statusFilter === 'all' ? "#f0f9ff" : "#f8fafc",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease"
+                    }}
+                    title={`Filter ${awbStats.currentMonthName} Total`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.72rem", fontWeight: 600, color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.02em" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#0ea5e9", display: "inline-block" }}></span>
+                      <span>T • Total</span>
+                    </div>
+                    <div style={{ fontSize: "1.28rem", fontWeight: 700, color: "#0369a1", lineHeight: 1.2, marginTop: "0.2rem", letterSpacing: "-0.01em" }}>
+                      {awbStats.monthly.total.toLocaleString()}
+                    </div>
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
 
-      <div className="premium-filter-toolbar">
-        <div className="premium-filter-grid">
-
-          <div className="premium-search-wrapper">
+      {/* ── Structured, Perfectly Aligned Filter Toolbar ── */}
+      <div className="premium-filter-toolbar bookings-filter-toolbar">
+        {/* Row 1: Search + Status Filter + Reset */}
+        <div className="bookings-filter-row primary-row">
+          <div className="premium-search-wrapper bookings-search-wrapper">
             <div className="premium-search-icon">
               <Search size={18} />
             </div>
             <input
               className="premium-search-input"
-              placeholder="Search by client, LR no, origin, destination..."
+              placeholder="Search by client, LR no, origin, destination, invoice..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-          </div>
-
-          {/* Sort Dropdown & Show Entries: Always in 1 same row */}
-          <div className="premium-sort-show-row">
-            <SortDropdown
-              value={sortOption}
-              onChange={setSortOption}
-              options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]}
-            />
-
-            <div className="premium-filter-group show-entries-group">
-              <span className="premium-filter-label">Show</span>
-              <select
-                value={entriesPerPage}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setEntriesPerPage(val);
-                  try {
-                    localStorage.setItem('mmc_bookings_entries_per_page', String(val));
-                  } catch (err) {
-                    console.error('Failed to save entries per page preference', err);
-                  }
-                  setCurrentPage(1);
-                }}
-                className="premium-filter-input"
-                style={{ cursor: "pointer", minWidth: "54px", width: "auto" }}
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="bookings-search-clear-btn"
+                title="Clear Search"
               >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="75">75</option>
-                <option value="100">100</option>
-              </select>
-              <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
-            </div>
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          {/* Date Range: Always in 1 same row */}
-          <div className="premium-date-range-row">
+          <div className="premium-filter-group bookings-status-filter-group">
+            <Filter size={16} style={{ color: "#64748b", flexShrink: 0 }} />
+            <span className="premium-filter-label">Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="premium-filter-input"
+              style={{
+                cursor: "pointer",
+                fontWeight: statusFilter !== 'all' ? '700' : '500',
+                color: statusFilter !== 'all' ? '#1d4ed8' : '#334155'
+              }}
+            >
+              <option value="all">All Statuses ({awbStats?.full?.total || displayBookings.length})</option>
+              <option value="pending">⏳ Pending AWB ({awbStats?.full?.pending ?? 0})</option>
+              <option value="booked">📦 Booked ({awbStats?.full?.booked ?? 0})</option>
+              <option value="transit">🚚 In Transit ({awbStats?.full?.transit ?? 0})</option>
+              <option value="out_for_delivery">🛵 Out for Delivery ({awbStats?.full?.out ?? 0})</option>
+              <option value="delivered">✅ Delivered ({awbStats?.full?.delivered ?? 0})</option>
+              <option value="delayed">⚠️ Delayed ({awbStats?.full?.delayed ?? 0})</option>
+              <option value="returned">↩️ Returned / RTO ({awbStats?.full?.returned ?? 0})</option>
+            </select>
+            {statusFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+                title="Clear Status Filter"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {(statusFilter !== 'all' || startDate || endDate || search) && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter("all");
+                setStartDate("");
+                setEndDate("");
+                setSearch("");
+                setCurrentPage(1);
+              }}
+              className="btn-reset-filters"
+              title="Reset all filters and search query"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: Date Range (From & To) + Sort Order + Show Entries */}
+        <div className="bookings-filter-row secondary-row">
+          <div className="bookings-date-range-group">
             <div className="premium-filter-group date-filter-item">
               <Calendar size={15} style={{ color: "#64748b", flexShrink: 0 }} />
               <span className="premium-filter-label">From:</span>
@@ -872,77 +1027,39 @@ const BookingsList = () => {
             </div>
           </div>
 
-          {/* Status Filter Dropdown & Reset Action */}
-          <div className="premium-status-filter-row" style={{ display: "flex", alignItems: "center", gap: "0.65rem", flexWrap: "wrap" }}>
-            <div className="premium-filter-group" style={{ flex: "1 1 210px", minWidth: "190px" }}>
-              <Filter size={15} style={{ color: "#64748b", flexShrink: 0 }} />
-              <span className="premium-filter-label">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="premium-filter-input"
-                style={{
-                  cursor: "pointer",
-                  flex: 1,
-                  fontWeight: statusFilter !== 'all' ? '600' : 'normal',
-                  color: statusFilter !== 'all' ? '#1e40af' : 'inherit'
-                }}
-              >
-                <option value="all">All Statuses ({awbStats?.full?.total || displayBookings.length})</option>
-                <option value="pending">⏳ Pending AWB ({awbStats?.full?.pending ?? 0})</option>
-                <option value="booked">📦 Booked ({awbStats?.full?.booked ?? 0})</option>
-                <option value="transit">🚚 In Transit ({awbStats?.full?.transit ?? 0})</option>
-                <option value="out_for_delivery">🛵 Out for Delivery ({awbStats?.full?.out ?? 0})</option>
-                <option value="delivered">✅ Delivered ({awbStats?.full?.delivered ?? 0})</option>
-                <option value="delayed">⚠️ Delayed ({awbStats?.full?.delayed ?? 0})</option>
-                <option value="returned">↩️ Returned / RTO ({awbStats?.full?.returned ?? 0})</option>
-              </select>
-              {statusFilter !== 'all' && (
-                <button
-                  type="button"
-                  onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
-                  title="Clear Status Filter"
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
+          <div className="bookings-sort-entries-group">
+            <SortDropdown
+              value={sortOption}
+              onChange={setSortOption}
+              options={["awb_desc", "awb_asc", "newest", "oldest", "amount_desc", "amount_asc", "az", "za"]}
+            />
 
-            {(statusFilter !== 'all' || startDate || endDate || search) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusFilter("all");
-                  setStartDate("");
-                  setEndDate("");
-                  setSearch("");
+            <div className="premium-filter-group show-entries-group">
+              <span className="premium-filter-label">Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEntriesPerPage(val);
+                  try {
+                    localStorage.setItem('mmc_bookings_entries_per_page', String(val));
+                  } catch (err) {
+                    console.error('Failed to save entries per page preference', err);
+                  }
                   setCurrentPage(1);
                 }}
-                className="btn-reset-filters"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '7px',
-                  border: '1px solid #cbd5e1',
-                  background: '#f8fafc',
-                  color: '#334155',
-                  fontSize: '0.82rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap'
-                }}
-                title="Reset all filters and search query"
+                className="premium-filter-input"
+                style={{ cursor: "pointer", minWidth: "54px", width: "auto" }}
               >
-                <RotateCcw size={13} />
-                <span>Reset Filters</span>
-              </button>
-            )}
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="75">75</option>
+                <option value="100">100</option>
+              </select>
+              <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
+            </div>
           </div>
-
         </div>
       </div>
 
@@ -1079,7 +1196,7 @@ const BookingsList = () => {
 
                       const rawLocation = isDelivered 
                         ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')
-                        : ((typeof track === 'object' ? track?.location : null) || item.currentLocation || item.origin || 'Origin Facility');
+                        : (item.origin || (typeof track === 'object' ? track?.location : null) || item.currentLocation || '');
 
                       const location = String(rawLocation || '').trim().toUpperCase();
                       const displayStatus = statusInfo.displayStatus;

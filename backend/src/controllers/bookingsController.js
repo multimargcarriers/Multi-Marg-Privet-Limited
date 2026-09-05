@@ -229,7 +229,7 @@ exports.postRoot_1 = async (req, res) => {
   booking.realBookingDate = booking.createdAt;
   booking.status = "Booked";
   booking.transitStatus = "Booked";
-  booking.currentLocation = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
+  booking.currentLocation = String(booking.origin || "").trim().toUpperCase() || "ORIGIN";
   booking.billed = false;
   booking.billNo = "";
   booking.lrNumber = generateLRNumber();
@@ -319,7 +319,7 @@ exports.postRoot_1 = async (req, res) => {
       const transitDateObj = new Date(bookingDateObj.getTime() + 2 * 60 * 1000);
       const transitDate = !isNaN(transitDateObj.getTime()) ? transitDateObj.toISOString() : nowStr;
 
-      const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
+      const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN";
       
       // 1. Initial Milestone: Booked (Shipment Booked at origin)
       const bookedTracking = {
@@ -335,13 +335,28 @@ exports.postRoot_1 = async (req, res) => {
         updatedAt: bookingDate
       };
       await db.collection("tracking").add(bookedTracking);
-      // NOTE: Milestone 2 (In Transit) automatically activates after 2-3 minutes.
+
+      // 2. Second Milestone: In Transit (Origin city, 2.5 minutes after booking)
+      const transitTracking = {
+        awb: awbVal,
+        status: "In Transit",
+        location: initialOrigin,
+        date: transitDate,
+        remarks: `DISPATCHED FROM ${initialOrigin}`,
+        enteredBy: "System",
+        enteredById: null,
+        enteredByRole: "System",
+        createdAt: transitDate,
+        updatedAt: transitDate
+      };
+      await db.collection("tracking").add(transitTracking);
     }
   } catch (trkErr) {
     console.error("[Booking Create Auto Tracking Error]:", trkErr);
   }
   
   await delCache(CACHE_KEY);
+  await delCache("tracking");
   await delCache("unbilled");
   await delCache("bills");
   emitDataUpdated("bookings", "create");
@@ -619,7 +634,7 @@ exports.put_id_4 = async (req, res) => {
       const now = new Date();
       const newRemarks = req.body.remarks !== undefined ? String(req.body.remarks).trim() : String(existingData.remarks || '').trim();
       const newStatus = req.body.transitStatus || req.body.status || existingData.transitStatus || existingData.status || "In Transit";
-      const newLocation = req.body.currentLocation || req.body.origin || existingData.currentLocation || existingData.origin || "Origin Facility";
+      const newLocation = req.body.currentLocation || req.body.origin || existingData.currentLocation || existingData.origin || "Origin";
 
       const newTracking = {
         awb: requestedAwb || oldAwb,

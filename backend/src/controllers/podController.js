@@ -103,23 +103,98 @@ exports.postRoot_2 = async (req, res) => {
           ]
         });
 
+        const existingDeliveredTrack = await db.mongoDb.collection("tracking").findOne({
+          awb: awbRegex,
+          status: { $regex: /^delivered$/i }
+        });
+
+        const bStatus = String(bookingDoc?.status || '').toLowerCase().trim();
+        const bTransit = String(bookingDoc?.transitStatus || '').toLowerCase().trim();
+        const bTracking = String(bookingDoc?.trackingStatus || '').toLowerCase().trim();
+        const isAlreadyDelivered = bStatus === 'delivered' || bTransit === 'delivered' || bTracking === 'delivered' || !!existingDeliveredTrack;
+
         if (bookingDoc) {
           matchedBookingDocId = bookingDoc.id || bookingDoc._id.toString();
           destAddress = destAddress || bookingDoc.destinationAddress || bookingDoc.destination || bookingDoc.consigneeAddress || bookingDoc.consignee || 'Destination';
           
-          // Update booking status to Delivered with POD URL
-          await db.collection("bookings").doc(matchedBookingDocId).update({
-            status: "Delivered",
-            deliveryDate: new Date().toISOString(),
-            podUploaded: true,
-            podUrl: entry.podUrl || entry.cloudinaryUrl || "",
-            updatedAt: new Date().toISOString()
-          });
+          if (isAlreadyDelivered) {
+            // Already delivered: do NOT overwrite remarks, deliveryDate, or status. Just update POD fields.
+            await db.collection("bookings").doc(matchedBookingDocId).update({
+              podUploaded: true,
+              podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+              updatedAt: new Date().toISOString()
+            });
+
+            // Also attach podUrl to existing delivered tracking record in tracking collection without modifying its remarks or date
+            if (existingDeliveredTrack) {
+              await db.mongoDb.collection("tracking").updateMany(
+                {
+                  awb: awbRegex,
+                  status: { $regex: /^delivered$/i }
+                },
+                {
+                  $set: {
+                    podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+                    updatedAt: new Date().toISOString()
+                  }
+                }
+              );
+            }
+          } else {
+            // Delivered DUE TO POD upload: mark as Delivered with deliveryDate & update status
+            const nowIso = new Date().toISOString();
+            await db.collection("bookings").doc(matchedBookingDocId).update({
+              status: "Delivered",
+              transitStatus: "Delivered",
+              trackingStatus: "Delivered",
+              deliveryDate: nowIso,
+              podUploaded: true,
+              podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+              updatedAt: nowIso
+            });
+
+            // Create Delivered tracking milestone since one doesn't exist
+            await db.collection("tracking").add({
+              awb: awbNo,
+              status: "Delivered",
+              location: String(destAddress || "DESTINATION").toUpperCase(),
+              date: nowIso,
+              remarks: entry.remarks ? String(entry.remarks).trim().toUpperCase() : "DELIVERED. PROOF OF DELIVERY (POD) UPLOADED.",
+              podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+              enteredBy: req.user?.name || req.user?.email || "System",
+              enteredById: req.user?.id || null,
+              enteredByRole: req.user?.role || "System",
+              createdAt: nowIso,
+              updatedAt: nowIso
+            });
+          }
+        } else if (!bookingDoc) {
+          // Booking not found, but tracking might exist
+          if (existingDeliveredTrack) {
+            await db.mongoDb.collection("tracking").updateMany(
+              { awb: awbRegex, status: { $regex: /^delivered$/i } },
+              { $set: { podUrl: entry.podUrl || entry.cloudinaryUrl || "", updatedAt: new Date().toISOString() } }
+            );
+          } else {
+            const nowIso = new Date().toISOString();
+            await db.collection("tracking").add({
+              awb: awbNo,
+              status: "Delivered",
+              location: String(destAddress || "DESTINATION").toUpperCase(),
+              date: nowIso,
+              remarks: entry.remarks ? String(entry.remarks).trim().toUpperCase() : "DELIVERED. PROOF OF DELIVERY (POD) UPLOADED.",
+              podUrl: entry.podUrl || entry.cloudinaryUrl || "",
+              enteredBy: req.user?.name || req.user?.email || "System",
+              enteredById: req.user?.id || null,
+              enteredByRole: req.user?.role || "System",
+              createdAt: nowIso,
+              updatedAt: nowIso
+            });
+          }
         }
       }
 
       destAddress = destAddress || "Destination";
-      // Booking is marked Delivered with POD attached; no synthetic tracking table row needed.
     }
   } catch (syncErr) {
     console.error("[POD Auto-Delivery Error]:", syncErr);
@@ -201,7 +276,18 @@ exports.deleteRoot_3 = async (req, res) => {
       let revertStatus = "Picked Up";
       let revertLocation = null;
 
+      // Check if there is an independent Delivered tracking milestone not created by POD upload
+      let hasIndependentDelivered = false;
       if (lrRegex) {
+        const independentDeliveredTrack = await db.mongoDb.collection("tracking").findOne({
+          awb: lrRegex,
+          status: { $regex: /^delivered$/i },
+          remarks: { $not: { $regex: /Proof of Delivery/i } }
+        });
+        if (independentDeliveredTrack) {
+          hasIndependentDelivered = true;
+        }
+
         const latestNonDeliveredTrack = await db.mongoDb.collection("tracking")
           .find({
             awb: lrRegex,
@@ -219,32 +305,55 @@ exports.deleteRoot_3 = async (req, res) => {
         // Clean up any synthetic tracking entry that was auto-generated for this POD
         await db.mongoDb.collection("tracking").deleteMany({
           awb: lrRegex,
-          remarks: { $regex: /Proof of Delivery \(POD\) uploaded/i }
+          remarks: { $regex: /Proof of Delivery/i }
         });
+
+        // Clear podUrl from remaining tracking records
+        await db.mongoDb.collection("tracking").updateMany(
+          { awb: lrRegex },
+          { $unset: { podUrl: "" } }
+        );
       }
 
-      // Revert booking fields
-      const revertUpdate = {
-        podUploaded: false,
-        podUrl: null,
-        pod: null,
-        deliveryDate: null,
-        transitStatus: revertStatus,
-        trackingStatus: revertStatus,
-        updatedAt: new Date().toISOString()
-      };
-      if (revertLocation) {
-        revertUpdate.currentLocation = revertLocation;
-      }
-
-      // Update matching bookings (reverting status to Picked Up / In Transit if it was Delivered)
+      // Update matching bookings
       const matchingBookings = await db.mongoDb.collection("bookings").find(bookingQuery).toArray();
-      for (const bk of matchingBookings) {
-        const updateDoc = { ...revertUpdate };
-        if (String(bk.status || '').toLowerCase() === "delivered") {
-          updateDoc.status = revertStatus;
+      if (hasIndependentDelivered) {
+        // Shipment was already delivered independently; retain delivery status and only clear POD
+        for (const bk of matchingBookings) {
+          await db.mongoDb.collection("bookings").updateOne(
+            { _id: bk._id },
+            {
+              $set: {
+                podUploaded: false,
+                podUrl: null,
+                pod: null,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          );
         }
-        await db.mongoDb.collection("bookings").updateOne({ _id: bk._id }, { $set: updateDoc });
+      } else {
+        // Revert booking fields back to pre-POD state
+        const revertUpdate = {
+          podUploaded: false,
+          podUrl: null,
+          pod: null,
+          deliveryDate: null,
+          transitStatus: revertStatus,
+          trackingStatus: revertStatus,
+          updatedAt: new Date().toISOString()
+        };
+        if (revertLocation) {
+          revertUpdate.currentLocation = revertLocation;
+        }
+
+        for (const bk of matchingBookings) {
+          const updateDoc = { ...revertUpdate };
+          if (String(bk.status || '').toLowerCase() === "delivered") {
+            updateDoc.status = revertStatus;
+          }
+          await db.mongoDb.collection("bookings").updateOne({ _id: bk._id }, { $set: updateDoc });
+        }
       }
     }
   } catch (revertErr) {

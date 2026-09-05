@@ -30,24 +30,26 @@ const getStatusColor = (status) => {
 };
 
 const getSensibleRemark = (status, location) => {
-  const loc = location ? String(location).trim() : "facility";
+  const loc = location ? String(location).trim() : "Origin";
   switch (status) {
     case "Delivered":
-      return `Shipment delivers to client in ${loc}`;
+      return `Delivered at ${loc}`;
     case "In Transit":
-      return `Shipment leaves ${loc}`;
+      return `Dispatched from ${loc}`;
     case "Reached Hub":
-      return `Shipment arrives at ${loc}`;
+      return `Arrived at ${loc}`;
     case "Out for Delivery":
-      return `Shipment goes for delivery in ${loc}`;
+      return `Out for delivery at ${loc}`;
     case "Picked Up":
-      return `We pick up shipment at ${loc}`;
+      return `Picked up at ${loc}`;
     case "Delayed":
-      return `Shipment delays at ${loc}`;
+      return `Delayed at ${loc}`;
     case "Returned":
-      return `Shipment returns to ${loc}`;
+      return `Returned to ${loc}`;
+    case "Booked":
+      return `Booked at ${loc}`;
     default:
-      return `Shipment is at ${loc}`;
+      return `In transit at ${loc}`;
   }
 };
 

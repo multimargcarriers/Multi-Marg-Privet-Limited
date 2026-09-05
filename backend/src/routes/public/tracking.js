@@ -186,12 +186,12 @@ router.get('/:awb', async (req, res) => {
             status: "In Transit",
             location: originName,
             date: transitDateISO,
-            remarks: (booking.remarks && String(booking.remarks).trim().toLowerCase() !== 'na' ? booking.remarks : `SHIPMENT IN TRANSIT FROM ${originName} FACILITY`).toUpperCase(),
+            remarks: (booking.remarks && String(booking.remarks).trim().toLowerCase() !== 'na' ? booking.remarks : `DISPATCHED FROM ${originName}`).toUpperCase(),
             updatedAt: transitDateISO
           });
         }
 
-        booking.currentLocation = String(booking.currentLocation || booking.origin || "ORIGIN FACILITY").trim().toUpperCase();
+        booking.currentLocation = String(booking.currentLocation || booking.origin || "ORIGIN").trim().toUpperCase();
         if (!booking.transitStatus || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.transitStatus).toLowerCase())) {
           booking.transitStatus = 'In Transit';
         }

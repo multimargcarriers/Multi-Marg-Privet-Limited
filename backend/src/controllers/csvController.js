@@ -322,7 +322,7 @@ function csvRowToBookingDoc(row, user) {
     createdBy_email: userEmail,
     status: (row.status && row.status.toLowerCase() !== 'booked') ? row.status : 'In Transit',
     transitStatus: 'In Transit',
-    currentLocation: String(row.origin || '').trim().toUpperCase() || 'ORIGIN FACILITY',
+    currentLocation: String(row.origin || '').trim().toUpperCase() || 'ORIGIN',
     freight_charge: row.frieght_charge || '0',
     frieght: row.frieght_charge || '0',
     awb_charge: row.awb_charge || '0',
