@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send, Lock } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import TrackingLocationInput from "../components/TrackingLocationInput";
 import QuickAddModal from "../components/QuickAddModal";
@@ -367,7 +367,7 @@ const Tracking = () => {
       }
     } catch (error) {
       console.error("Error saving tracking entry", error);
-      addToast("Failed to save tracking update.", "error");
+      addToast(error.response?.data?.message || "Failed to save tracking update.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -409,8 +409,8 @@ const Tracking = () => {
       case "IN TRANSIT": return "#d97706"; // Amber / Gold
       case "REACHED HUB": return "#0d9488"; // Teal
       case "PICKED UP": return "#0284c7"; // Sky Blue
-      case "SHIPMENT BOOKED": return "#2563eb"; // Primary Royal Blue
-      case "DELAYED": return "#ea580c"; // Coral Orange
+      case "SHIPMENT BOOKED": return "#1e40af"; // Deep Royal Blue
+      case "DELAYED": return "#ea580c"; // Orange
       case "RETURNED": return "#dc2626"; // Red
       default: return "#475569";
     }
@@ -474,12 +474,36 @@ const Tracking = () => {
 
     try {
       await axios.delete(`${API}/tracking/${id}`);
-      setTrackingHistory(trackingHistory.filter(t => t.id !== id));
-      setAllUpdates(allUpdates.filter(t => t.id !== id));
+      setTrackingHistory(prev => prev.filter(t => t.id !== id));
+      setAllUpdates(prev => prev.filter(t => t.id !== id));
+
+      // Refresh bookings and tracking to immediately update status in memory
+      try {
+        const [bkRes, trkRes] = await Promise.all([
+          axios.get(`${API}/bookings?worldwide=true`),
+          axios.get(`${API}/tracking`)
+        ]);
+        if (bkRes?.data?.success) {
+          const freshList = bkRes.data.data || [];
+          setBookingsList(freshList);
+          if (selectedFormBooking) {
+            const updated = freshList.find(b => b.id === selectedFormBooking.id || b._id === selectedFormBooking._id);
+            if (updated) setSelectedFormBooking(updated);
+          }
+        }
+        if (trkRes?.data?.success) {
+          setAllUpdates(trkRes.data.data || []);
+        }
+      } catch (rErr) {}
+
+      if (searchAwb) {
+        fetchTrackingHistory(searchAwb);
+      }
+
       addToast("Tracking update deleted successfully!", "success");
     } catch (error) {
       console.error("Error deleting tracking", error);
-      addToast("Failed to delete tracking update.", "error");
+      addToast(error.response?.data?.message || "Failed to delete tracking update.", "error");
     }
   };
 
@@ -511,6 +535,10 @@ const Tracking = () => {
   };
 
   const handleEdit = (entry) => {
+    if (String(entry.status || '').toLowerCase().includes("deliver")) {
+      addToast("Delivered entries are locked from editing. Delete the Delivered entry below to update the shipment.", "warning");
+      return;
+    }
     setEditingTrackingId(entry.id);
     setFormData({
       awb: entry.awb,
@@ -720,8 +748,8 @@ const Tracking = () => {
 
                   const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
                   const isDelivered = normStatus.includes("deliver") && !isOutForDelivery;
-                  const isInTransit = normStatus.includes("transit") || normStatus.includes("reach") || normStatus.includes("hub") || normStatus.includes("arrive");
-                  const isPickedUp = normStatus.includes("pickup") || normStatus.includes("picked");
+                  const isBooked = normStatus.includes("book") && !normStatus.includes("transit") && !normStatus.includes("out") && !normStatus.includes("deliver");
+                  const isInTransit = !isDelivered && !isOutForDelivery && !isBooked;
 
                   // Determine step index for the 4-step progress tracker:
                   // 1: Booked, 2: In Transit, 3: Out for Delivery, 4: Delivered
@@ -1333,8 +1361,24 @@ const Tracking = () => {
                               )}
                             </div>
                             {entry.remarks && (
-                              <div style={{ fontSize: "0.85rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.85)" : "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "6px", borderLeft: `3px solid ${color}`, fontStyle: "normal", fontWeight: 500 }}>
-                                {entry.remarks}
+                              <div style={{ 
+                                fontSize: "0.85rem", 
+                                color: "#1e3a8a", 
+                                background: "#eff6ff", 
+                                padding: "0.55rem 0.85rem", 
+                                borderRadius: "6px", 
+                                borderLeft: "4px solid #1e40af", 
+                                borderTop: "1px solid #bfdbfe",
+                                borderRight: "1px solid #bfdbfe",
+                                borderBottom: "1px solid #bfdbfe",
+                                fontStyle: "normal", 
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.03em",
+                                lineHeight: "1.45",
+                                boxShadow: "0 1px 3px rgba(30, 64, 175, 0.08)"
+                              }}>
+                                {String(entry.remarks).toUpperCase()}
                               </div>
                             )}
 
@@ -1396,167 +1440,228 @@ const Tracking = () => {
               </h4>
             </div>
 
-            <div style={{ padding: "1.5rem 2rem", flex: 1, background: "white", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
-              
-              <div className="form-group" style={{ marginBottom: 0, position: "relative" }}>
-                <label htmlFor="statusUpdateAwb" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                  AWB / LR No.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-                </label>
-                <input 
-                  id="statusUpdateAwb"
-                  type="text" 
-                  className="form-control" 
-                  name="awb" 
-                  placeholder="e.g. AWB123456789 or LR987654" 
-                  value={formData.awb} 
-                  onChange={(e) => {
-                    handleChange(e);
-                    setSelectedFormBooking(null);
-                  }}
-                  onFocus={() => setShowFormDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowFormDropdown(false), 200)}
-                  required 
-                  autoComplete="off"
-                  style={{ background: "#f8fafc", border: "1px solid #cbd5e1", width: "100%" }}
-                />
-                {showFormDropdown && formData.awb.trim().length > 0 && formFilteredLRs.length > 0 && (
-                  <AutocompleteDropdown 
-                    filteredList={formFilteredLRs} 
-                    onSelect={(awb, booking) => { 
-                      const loc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        awb,
-                        location: loc,
-                        status: prev.status || "In Transit"
-                      })); 
-                      setSelectedFormBooking(booking);
-                      setShowFormDropdown(false); 
-                    }} 
-                  />
-                )}
+            {/* Status Check for Form Locking and Forward Progression */}
+            {(() => {
+              const currentFormAwb = String(formData.awb || '').trim().toLowerCase();
+              const matchedFormBooking = selectedFormBooking || (currentFormAwb ? bookingsList.find(b => {
+                const bAwb = String(b.awb || b.consignment || b.lrNo || b.lrNumber || (b.id ? b.id.slice(-6) : '')).trim().toLowerCase();
+                return bAwb && bAwb === currentFormAwb;
+              }) : null);
 
-                {/* MINI LR CONTEXT CARD */}
-                {selectedFormBooking && (
-                  <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", fontSize: "0.85rem", color: "#0369a1" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                      <span style={{ fontWeight: 600 }}>Date:</span>
-                      <span>{formatCleanDate(selectedFormBooking.dispatch_date || selectedFormBooking.date || selectedFormBooking.createdAt)}</span>
+              const matchedFormUpdates = currentFormAwb ? allUpdates.filter(u => String(u.awb || '').trim().toLowerCase() === currentFormAwb) : [];
+              const latestAwbCheckpoint = matchedFormUpdates[0];
+
+              const rawFormStatus = String(latestAwbCheckpoint?.status || matchedFormBooking?.status || matchedFormBooking?.transitStatus || matchedFormBooking?.delivery_status || '').toLowerCase();
+              const isFormDelivered = rawFormStatus.includes("deliver");
+              const isFormOutForDelivery = !isFormDelivered && (rawFormStatus.includes("out for delivery") || rawFormStatus.includes("out_for_delivery"));
+
+              return (
+                <>
+                  <div style={{ padding: "1.5rem 2rem", flex: 1, background: "white", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+                    
+                    {/* Delivered Lock Alert Banner */}
+                    {isFormDelivered && (
+                      <div style={{
+                        padding: "0.85rem 1.1rem",
+                        background: "#fef2f2",
+                        border: "1.5px solid #fecaca",
+                        borderRadius: "8px",
+                        color: "#991b1b",
+                        fontSize: "0.86rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.65rem",
+                        boxShadow: "0 2px 4px rgba(220, 38, 38, 0.06)"
+                      }}>
+                        <Lock size={20} color="#dc2626" style={{ flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.3px", color: "#b91c1c" }}>
+                            Shipment Delivered — Updates Locked
+                          </div>
+                          <div style={{ fontSize: "0.78rem", color: "#7f1d1d", marginTop: "2px", fontWeight: 500 }}>
+                            This shipment is marked as Delivered. All further status updates are locked. To make updates, delete the Delivered tracking entry from the table below.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="form-group" style={{ marginBottom: 0, position: "relative" }}>
+                      <label htmlFor="statusUpdateAwb" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                        AWB / LR No.<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                      </label>
+                      <input 
+                        id="statusUpdateAwb"
+                        type="text" 
+                        className="form-control" 
+                        name="awb" 
+                        placeholder="e.g. AWB123456789 or LR987654" 
+                        value={formData.awb} 
+                        onChange={(e) => {
+                          handleChange(e);
+                          setSelectedFormBooking(null);
+                        }}
+                        onFocus={() => setShowFormDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowFormDropdown(false), 200)}
+                        required 
+                        autoComplete="off"
+                        style={{ background: "#f8fafc", border: "1px solid #cbd5e1", width: "100%" }}
+                      />
+                      {showFormDropdown && formData.awb.trim().length > 0 && formFilteredLRs.length > 0 && (
+                        <AutocompleteDropdown 
+                          filteredList={formFilteredLRs} 
+                          onSelect={(awb, booking) => { 
+                            const loc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              awb,
+                              location: loc,
+                              status: prev.status || "In Transit"
+                            })); 
+                            setSelectedFormBooking(booking);
+                            setShowFormDropdown(false); 
+                          }} 
+                        />
+                      )}
+
+                      {/* MINI LR CONTEXT CARD */}
+                      {selectedFormBooking && (
+                        <div style={{ marginTop: "0.75rem", padding: "0.75rem", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", fontSize: "0.85rem", color: "#0369a1" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <span style={{ fontWeight: 600 }}>Date:</span>
+                            <span>{formatCleanDate(selectedFormBooking.dispatch_date || selectedFormBooking.date || selectedFormBooking.createdAt)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <span style={{ fontWeight: 600 }}>Route:</span>
+                            <span>{selectedFormBooking.origin || "-"} &rarr; {selectedFormBooking.destination || "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <span style={{ fontWeight: 600 }}>Client:</span>
+                            <span style={{ textAlign: "right" }}>{selectedFormBooking.client || selectedFormBooking.clientName || "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <span style={{ fontWeight: 600 }}>Consignor:</span>
+                            <span style={{ textAlign: "right" }}>{selectedFormBooking.consignor || "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ fontWeight: 600 }}>Consignee:</span>
+                            <span style={{ textAlign: "right" }}>{selectedFormBooking.consignee || "-"}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                      <span style={{ fontWeight: 600 }}>Route:</span>
-                      <span>{selectedFormBooking.origin || "-"} &rarr; {selectedFormBooking.destination || "-"}</span>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="statusUpdateStatus" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                        Status<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                      </label>
+                      <select 
+                        id="statusUpdateStatus"
+                        className="form-control" 
+                        name="status" 
+                        value={formData.status} 
+                        onChange={handleChange} 
+                        required
+                        disabled={isFormDelivered}
+                        style={{ cursor: isFormDelivered ? "not-allowed" : "pointer", border: "1px solid #cbd5e1", fontWeight: formData.status ? "600" : "normal", color: formData.status ? getStatusColor(formData.status) : "inherit", background: isFormDelivered ? "#f8fafc" : "#ffffff" }}
+                      >
+                        <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
+                        <option value="In Transit" disabled={isFormOutForDelivery} style={{ color: isFormOutForDelivery ? "#94a3b8" : "#000" }}>
+                          In Transit {isFormOutForDelivery ? "(Locked - Out for Delivery)" : ""}
+                        </option>
+                        <option value="Out for Delivery" style={{ color: "#000" }}>Out for Delivery</option>
+                        <option value="Delivered" style={{ color: "#000" }}>Delivered</option>
+                        <option value="Delayed" style={{ color: "#000" }}>Delayed</option>
+                        <option value="Returned" style={{ color: "#000" }}>Returned</option>
+                      </select>
+                      {isFormOutForDelivery && (
+                        <div style={{ fontSize: "0.76rem", color: "#7c3aed", fontWeight: 700, marginTop: "0.3rem", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <span>🚚 Status is Out for Delivery. Progression is forward-only (cannot be reverted to In Transit or Booked).</span>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                      <span style={{ fontWeight: 600 }}>Client:</span>
-                      <span style={{ textAlign: "right" }}>{selectedFormBooking.client || selectedFormBooking.clientName || "-"}</span>
+
+                    <div className="grid-2-col" style={{ gap: "1rem" }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label htmlFor="statusUpdateDate" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                          Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                        </label>
+                        <input 
+                          id="statusUpdateDate"
+                          type="date" min="1947-01-01" max="2200-12-31" 
+                          className="form-control" 
+                          name="date" 
+                          value={formData.date} 
+                          onChange={handleChange} 
+                          disabled={isFormDelivered}
+                          required 
+                          style={{ border: "1px solid #cbd5e1", background: isFormDelivered ? "#f8fafc" : "#ffffff", cursor: isFormDelivered ? "not-allowed" : "text" }}
+                        />
+                      </div>
+                      
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label htmlFor="statusUpdateLocation" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                          Current Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
+                        </label>
+                        <TrackingLocationInput
+                          id="statusUpdateLocation"
+                          name="location"
+                          value={formData.location}
+                          onChange={(val) => setFormData(prev => ({ ...prev, location: val }))}
+                          booking={selectedFormBooking}
+                          disabled={isFormDelivered}
+                          required
+                        />
+                      </div>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                      <span style={{ fontWeight: 600 }}>Consignor:</span>
-                      <span style={{ textAlign: "right" }}>{selectedFormBooking.consignor || "-"}</span>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label htmlFor="statusUpdateRemarks" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
+                        Special Remarks
+                      </label>
+                      <textarea 
+                        id="statusUpdateRemarks"
+                        className="form-control" 
+                        name="remarks" 
+                        placeholder="Enter your remarks" 
+                        value={formData.remarks} 
+                        onChange={handleChange} 
+                        disabled={isFormDelivered}
+                        rows="3"
+                        style={{ border: "1px solid #cbd5e1", resize: "vertical", minHeight: "80px", background: isFormDelivered ? "#f8fafc" : "#ffffff", cursor: isFormDelivered ? "not-allowed" : "text" }}
+                      />
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontWeight: 600 }}>Consignee:</span>
-                      <span style={{ textAlign: "right" }}>{selectedFormBooking.consignee || "-"}</span>
-                    </div>
+
                   </div>
-                )}
-              </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="statusUpdateStatus" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                  Status<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-                </label>
-                <select 
-                  id="statusUpdateStatus"
-                  className="form-control" 
-                  name="status" 
-                  value={formData.status} 
-                  onChange={handleChange} 
-                  required
-                  style={{ cursor: "pointer", border: "1px solid #cbd5e1", fontWeight: formData.status ? "600" : "normal", color: formData.status ? getStatusColor(formData.status) : "inherit" }}
-                >
-                  <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
-                  <option value="In Transit" style={{ color: "#000" }}>In Transit</option>
-                  <option value="Out for Delivery" style={{ color: "#000" }}>Out for Delivery</option>
-                  <option value="Delivered" style={{ color: "#000" }}>Delivered</option>
-                  <option value="Delayed" style={{ color: "#000" }}>Delayed</option>
-                  <option value="Returned" style={{ color: "#000" }}>Returned</option>
-                </select>
-              </div>
-
-              <div className="grid-2-col" style={{ gap: "1rem" }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label htmlFor="statusUpdateDate" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                    Date<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-                  </label>
-                  <input 
-                    id="statusUpdateDate"
-                    type="date" min="1947-01-01" max="2200-12-31" 
-                    className="form-control" 
-                    name="date" 
-                    value={formData.date} 
-                    onChange={handleChange} 
-                    required 
-                    style={{ border: "1px solid #cbd5e1" }}
-                  />
-                </div>
-                
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label htmlFor="statusUpdateLocation" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                    Current Location<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span>
-                  </label>
-                  <TrackingLocationInput
-                    id="statusUpdateLocation"
-                    name="location"
-                    value={formData.location}
-                    onChange={(val) => setFormData(prev => ({ ...prev, location: val }))}
-                    booking={selectedFormBooking}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="statusUpdateRemarks" className="form-label" style={{ fontWeight: "600", color: "#374151" }}>
-                  Special Remarks
-                </label>
-                <textarea 
-                  id="statusUpdateRemarks"
-                  className="form-control" 
-                  name="remarks" 
-                  placeholder="Enter your remarks" 
-                  value={formData.remarks} 
-                  onChange={handleChange} 
-                  rows="3"
-                  style={{ border: "1px solid #cbd5e1", resize: "vertical", minHeight: "80px" }}
-                />
-              </div>
-
-            </div>
-
-            <div style={{ padding: "1.5rem 2rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSubmitting}
-                style={{ 
-                  padding: "0.6rem 2.5rem", 
-                  fontSize: "1.05rem", 
-                  fontWeight: "700",
-                  letterSpacing: "0.5px",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.06)",
-                  transition: "all 0.2s"
-                }}
-              >
-                {isSubmitting ? (
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Loader2 size={18} className="spinner" /> Saving...</span>
-                ) : (
-                  "Post Update"
-                )}
-              </button>
-            </div>
+                  <div style={{ padding: "1.5rem 2rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={isSubmitting || isFormDelivered}
+                      style={{ 
+                        padding: "0.6rem 2.5rem", 
+                        fontSize: "1.05rem", 
+                        fontWeight: "700",
+                        letterSpacing: "0.5px",
+                        borderRadius: "8px",
+                        background: isFormDelivered ? "#94a3b8" : undefined,
+                        cursor: isFormDelivered ? "not-allowed" : "pointer",
+                        boxShadow: isFormDelivered ? "none" : "0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.06)",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {isFormDelivered ? (
+                        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Lock size={16} /> Locked (Delivered)</span>
+                      ) : isSubmitting ? (
+                        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><Loader2 size={18} className="spinner" /> Saving...</span>
+                      ) : (
+                        editingTrackingId ? "Update Status" : "Post Update"
+                      )}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </form>
 
           {/* RECENT UPDATES FOR SELECTED AWB */}
@@ -1609,8 +1714,24 @@ const Tracking = () => {
                           )}
                         </div>
                         {entry.remarks && (
-                          <div style={{ marginTop: "0.3rem", fontSize: "0.8rem", color: "#64748b", fontStyle: "normal" }}>
-                            {entry.remarks}
+                          <div style={{ 
+                            marginTop: "0.4rem", 
+                            fontSize: "0.82rem", 
+                            color: "#1e3a8a", 
+                            background: "#eff6ff", 
+                            padding: "0.45rem 0.75rem", 
+                            borderRadius: "6px", 
+                            borderLeft: "4px solid #1e40af", 
+                            borderTop: "1px solid #bfdbfe",
+                            borderRight: "1px solid #bfdbfe",
+                            borderBottom: "1px solid #bfdbfe",
+                            fontStyle: "normal",
+                            fontWeight: 700, 
+                            textTransform: "uppercase", 
+                            letterSpacing: "0.03em",
+                            lineHeight: "1.4" 
+                          }}>
+                            {String(entry.remarks).toUpperCase()}
                           </div>
                         )}
                       </div>
@@ -1693,34 +1814,54 @@ const Tracking = () => {
                           wordBreak: "break-word",
                           overflowWrap: "break-word",
                           lineHeight: "1.45",
-                          color: "#334155",
-                          fontSize: "0.88rem"
+                          color: row.remarks ? "#1e3a8a" : "#64748b",
+                          fontWeight: row.remarks ? 700 : 400,
+                          textTransform: row.remarks ? "uppercase" : "none",
+                          fontSize: "0.86rem"
                         }}>
-                          {row.remarks || "-"}
+                          {row.remarks ? String(row.remarks).toUpperCase() : "-"}
                         </div>
                       </td>
                       <td style={{ minWidth: "110px", width: "110px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap", padding: "10px 14px" }}>
                         {canModify ? (
                           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                            <button 
-                              type="button" 
-                              onClick={() => handleEdit(row)} 
-                              style={{ 
-                                background: "#eff6ff", 
-                                border: "1px solid #bfdbfe", 
-                                color: "#2563eb", 
-                                cursor: "pointer", 
-                                padding: "6px 8px", 
-                                borderRadius: "6px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.15s"
-                              }} 
-                              title="Edit Update"
-                            >
-                              <Edit size={16} />
-                            </button>
+                            {String(row.status || '').toLowerCase().includes("deliver") ? (
+                              <span 
+                                style={{ 
+                                  background: "#f1f5f9", 
+                                  border: "1px solid #e2e8f0", 
+                                  color: "#94a3b8", 
+                                  padding: "6px 8px", 
+                                  borderRadius: "6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center"
+                                }}
+                                title="Delivered entry locked from editing. Delete to revert."
+                              >
+                                <Lock size={15} />
+                              </span>
+                            ) : (
+                              <button 
+                                type="button" 
+                                onClick={() => handleEdit(row)} 
+                                style={{ 
+                                  background: "#eff6ff", 
+                                  border: "1px solid #bfdbfe", 
+                                  color: "#2563eb", 
+                                  cursor: "pointer", 
+                                  padding: "6px 8px", 
+                                  borderRadius: "6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  transition: "all 0.15s"
+                                }} 
+                                title="Edit Update"
+                              >
+                                <Edit size={16} />
+                              </button>
+                            )}
                             <button 
                               type="button" 
                               onClick={() => handleDelete(row.id)} 
@@ -1736,7 +1877,7 @@ const Tracking = () => {
                                 justifyContent: "center",
                                 transition: "all 0.15s"
                               }} 
-                              title="Delete Update"
+                              title={String(row.status || '').toLowerCase().includes("deliver") ? "Delete Delivered entry (unlocks shipment for updates)" : "Delete Update"}
                             >
                               <Trash2 size={16} />
                             </button>
