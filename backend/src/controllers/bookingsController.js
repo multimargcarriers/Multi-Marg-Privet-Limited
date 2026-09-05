@@ -299,33 +299,57 @@ exports.postRoot_1 = async (req, res) => {
   
   const createdBooking = { id: docRefId, ...booking };
   
-  // Create initial tracking entry
+  // Create initial tracking entries: 1st Booked, then In Transit
   try {
     const awbVal = String(booking.consignment || booking.awb || booking.lrNo || docRefId).trim();
     if (awbVal) {
-      const nowStr = new Date().toISOString();
-      let trackingDate = nowStr;
+      const now = new Date();
+      const nowStr = now.toISOString();
+      let bookingDate = nowStr;
       if (booking.dispatch_date) {
         if (booking.dispatch_date.includes('T')) {
-          trackingDate = booking.dispatch_date;
+          bookingDate = booking.dispatch_date;
         } else if (/^\d{4}-\d{2}-\d{2}$/.test(booking.dispatch_date)) {
-          trackingDate = `${booking.dispatch_date}T${nowStr.split('T')[1]}`;
+          bookingDate = `${booking.dispatch_date}T${nowStr.split('T')[1]}`;
         }
       }
+
+      // Transit date set slightly after booking date (+2 minutes or current time)
+      const bookingDateObj = new Date(bookingDate);
+      const transitDateObj = new Date(bookingDateObj.getTime() + 2 * 60 * 1000);
+      const transitDate = !isNaN(transitDateObj.getTime()) ? transitDateObj.toISOString() : nowStr;
+
       const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
-      const initialTracking = {
+      
+      // 1. First Milestone: Booked (Shipment Booked at origin)
+      const bookedTracking = {
         awb: awbVal,
-        status: "In Transit",
+        status: "Booked",
         location: initialOrigin,
-        date: trackingDate,
-        remarks: booking.remarks || `Shipment in transit from ${initialOrigin}`,
+        date: bookingDate,
+        remarks: `Shipment booked at ${initialOrigin}. Lorry Receipt (LR) generated.`,
         enteredBy: req.user?.name || req.user?.email || "Admin",
         enteredById: req.user?.id || null,
         enteredByRole: req.user?.role || "Admin",
-        createdAt: nowStr,
-        updatedAt: nowStr
+        createdAt: bookingDate,
+        updatedAt: bookingDate
       };
-      await db.collection("tracking").add(initialTracking);
+      await db.collection("tracking").add(bookedTracking);
+
+      // 2. Second Milestone: In Transit (Auto-generated next with separate origin note)
+      const transitTracking = {
+        awb: awbVal,
+        status: "In Transit",
+        location: initialOrigin,
+        date: transitDate,
+        remarks: booking.remarks || `Shipment in transit from ${initialOrigin} facility`,
+        enteredBy: req.user?.name || req.user?.email || "Admin",
+        enteredById: req.user?.id || null,
+        enteredByRole: req.user?.role || "Admin",
+        createdAt: transitDate,
+        updatedAt: transitDate
+      };
+      await db.collection("tracking").add(transitTracking);
     }
   } catch (trkErr) {
     console.error("[Booking Create Auto Tracking Error]:", trkErr);

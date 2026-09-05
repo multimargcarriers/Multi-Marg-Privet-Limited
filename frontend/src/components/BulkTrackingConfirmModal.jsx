@@ -29,33 +29,24 @@ const BulkTrackingConfirmModal = ({
           <div className="bulk-confirm-header">
             <div className="bulk-confirm-header-left">
               <div className="bulk-confirm-icon-badge">
-                <Truck size={22} color="#ffffff" />
+                <Truck size={18} color="#ffffff" />
               </div>
-              <div>
+              <div className="bulk-confirm-title-wrap">
                 <h3 className="bulk-confirm-title">Confirm Bulk Tracking Update</h3>
-                <p className="bulk-confirm-subtitle">
-                  Are you sure you want to update tracking for <strong>{selectedBookings.length}</strong> selected {selectedBookings.length === 1 ? 'consignment' : 'consignments'}?
-                </p>
+                <span className="bulk-confirm-badge">
+                  {selectedBookings.length} {selectedBookings.length === 1 ? 'AWB' : 'AWBs'} Selected
+                </span>
               </div>
             </div>
             <button className="bulk-confirm-close-btn" onClick={onClose} title="Close">
-              <X size={18} />
+              <X size={16} />
             </button>
-          </div>
-
-          {/* Quick Metrics Banner */}
-          <div className="bulk-confirm-metrics">
-            <div className="bulk-confirm-metric-pill">
-              <span className="metric-label">Selected:</span>
-              <span className="metric-val">{selectedBookings.length} AWBs</span>
-            </div>
           </div>
 
           {/* Scrollable Booking List */}
           <div className="bulk-confirm-list-wrapper">
             <div className="bulk-confirm-list-header">
               <span>SELECTED CONSIGNMENTS ({selectedBookings.length})</span>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Review items before updating</span>
             </div>
 
             <div className="bulk-confirm-list">

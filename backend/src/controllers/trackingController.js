@@ -23,12 +23,70 @@ exports.getRoot_1 = async (req, res) => {
 
 exports.get_awb_2 = async (req, res) => {
   const { awb } = req.params;
-  const snapshot = await db.collection("tracking").where("awb", "==", awb).orderBy("updatedAt", "desc").get();
+  const cleanAwb = String(awb || '').trim();
+  const snapshot = await db.collection("tracking").where("awb", "==", cleanAwb).orderBy("updatedAt", "desc").get();
   const entries = [];
   snapshot.forEach(doc => entries.push({
     id: doc.id,
     ...doc.data()
   }));
+
+  // Ensure initial milestones (Booked and In Transit) exist if matching booking is found
+  try {
+    let booking = null;
+    if (db.mongoDb) {
+      const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      booking = await db.mongoDb.collection("bookings").findOne({
+        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+      });
+    }
+    if (booking) {
+      const originLoc = String(booking.origin || "").trim().toUpperCase() || "ORIGIN HUB";
+      const bookingDate = booking.dispatch_date 
+        ? (booking.dispatch_date.includes('T') ? booking.dispatch_date : `${booking.dispatch_date}T09:00:00.000Z`) 
+        : (booking.createdAt || new Date().toISOString());
+
+      const hasBooked = entries.some(e => String(e.status || '').toLowerCase().includes("book"));
+      if (!hasBooked) {
+        entries.push({
+          id: `booked-${booking.id || cleanAwb}`,
+          awb: cleanAwb,
+          status: "Booked",
+          location: originLoc,
+          date: bookingDate,
+          remarks: `Shipment booked at ${originLoc}. Lorry Receipt (LR) generated.`,
+          enteredBy: "System",
+          createdAt: bookingDate,
+          updatedAt: bookingDate
+        });
+      }
+
+      const hasTransit = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
+      if (!hasTransit) {
+        const transitDate = new Date(new Date(bookingDate).getTime() + 2 * 60 * 1000).toISOString();
+        entries.push({
+          id: `transit-${booking.id || cleanAwb}`,
+          awb: cleanAwb,
+          status: "In Transit",
+          location: originLoc,
+          date: transitDate,
+          remarks: `Shipment in transit from ${originLoc} facility`,
+          enteredBy: "System",
+          createdAt: transitDate,
+          updatedAt: transitDate
+        });
+      }
+
+      entries.sort((a, b) => {
+        const timeA = new Date(a.date || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.date || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+  } catch (err) {
+    console.error("[get_awb_2 booking check error]:", err);
+  }
+
   return success(res, "Tracking entries fetched successfully", entries);
 };
 
