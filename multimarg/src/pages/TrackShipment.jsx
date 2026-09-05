@@ -80,7 +80,9 @@ const normalizeStatus = (status) => {
   if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 'OUT FOR DELIVERY';
   if (s.includes('deliver')) return 'DELIVERED';
   if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
-  if (s.includes('transit') || s.includes('pickup') || s.includes('picked') || s.includes('book')) return 'IN TRANSIT';
+  if (s.includes('book')) return 'BOOKED';
+  if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
+  if (s.includes('transit')) return 'IN TRANSIT';
   if (s.includes('delay')) return 'DELAYED';
   if (s.includes('return') || s.includes('rto')) return 'RETURNED';
   return String(status || 'IN TRANSIT').toUpperCase();
@@ -94,6 +96,7 @@ const getStatusIcon = (status) => {
     case 'IN TRANSIT': return <Truck size={22} />;
     case 'REACHED HUB': return <MapPin size={22} />;
     case 'PICKED UP': return <Package size={22} />;
+    case 'BOOKED':
     case 'SHIPMENT BOOKED': return <Package size={22} />;
     case 'DELAYED': return <Clock size={22} />;
     case 'RETURNED': return <XCircle size={22} />;
@@ -109,6 +112,7 @@ const getStatusColor = (status) => {
     case 'IN TRANSIT': return '#d97706'; // Amber / Gold
     case 'REACHED HUB': return '#0d9488'; // Teal
     case 'PICKED UP': return '#0284c7'; // Sky Blue
+    case 'BOOKED':
     case 'SHIPMENT BOOKED': return '#2563eb'; // Primary Royal Blue
     case 'DELAYED': return '#ea580c'; // Coral Orange
     case 'RETURNED': return '#dc2626'; // Red
@@ -124,6 +128,7 @@ const getStatusBg = (status) => {
     case 'IN TRANSIT': return '#fffbeb';
     case 'REACHED HUB': return '#f0fdfa';
     case 'PICKED UP': return '#f0f9ff';
+    case 'BOOKED':
     case 'SHIPMENT BOOKED': return '#eff6ff';
     case 'DELAYED': return '#fff7ed';
     case 'RETURNED': return '#fef2f2';
@@ -139,6 +144,7 @@ const getStatusBorder = (status) => {
     case 'IN TRANSIT': return '#fde68a';
     case 'REACHED HUB': return '#99f6e4';
     case 'PICKED UP': return '#bae6fd';
+    case 'BOOKED':
     case 'SHIPMENT BOOKED': return '#bfdbfe';
     case 'DELAYED': return '#fed7aa';
     case 'RETURNED': return '#fecaca';
@@ -1063,7 +1069,13 @@ return (
                                          lineHeight: '1.45',
                                          boxShadow: '0 1px 3px rgba(30, 64, 175, 0.08)'
                                        }}>
-                                         {String(entry.remarks).toUpperCase()}
+                                          {(() => {
+                                            const rem = String(entry.remarks).trim().toUpperCase();
+                                            if ((rem === 'NA' || !rem) && statusCaps === 'BOOKED') {
+                                              return `SHIPMENT BOOKED AT ${(entry.location || 'ORIGIN').toUpperCase()}. LORRY RECEIPT (LR) GENERATED.`;
+                                            }
+                                            return rem;
+                                          })()}
                                        </div>
                                      )}
 

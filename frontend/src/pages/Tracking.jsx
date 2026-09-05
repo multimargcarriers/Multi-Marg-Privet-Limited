@@ -380,7 +380,7 @@ const Tracking = () => {
     if (s.includes('transit')) return 'IN TRANSIT';
     if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
     if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
-    if (s.includes('book')) return 'SHIPMENT BOOKED';
+    if (s.includes('book')) return 'BOOKED';
     if (s.includes('delay')) return 'DELAYED';
     if (s.includes('return') || s.includes('rto')) return 'RETURNED';
     return String(status || 'IN TRANSIT').toUpperCase();
@@ -394,6 +394,7 @@ const Tracking = () => {
       case "IN TRANSIT": return <Truck size={22} />;
       case "REACHED HUB": return <MapPin size={22} />;
       case "PICKED UP": return <Package size={22} />;
+      case "BOOKED":
       case "SHIPMENT BOOKED": return <Package size={22} />;
       case "DELAYED": return <Clock size={22} />;
       case "RETURNED": return <XCircle size={22} />;
@@ -409,6 +410,7 @@ const Tracking = () => {
       case "IN TRANSIT": return "#d97706"; // Amber / Gold
       case "REACHED HUB": return "#0d9488"; // Teal
       case "PICKED UP": return "#0284c7"; // Sky Blue
+      case "BOOKED":
       case "SHIPMENT BOOKED": return "#1e40af"; // Deep Royal Blue
       case "DELAYED": return "#ea580c"; // Orange
       case "RETURNED": return "#dc2626"; // Red
@@ -424,6 +426,7 @@ const Tracking = () => {
       case "IN TRANSIT": return "#fffbeb";
       case "REACHED HUB": return "#f0fdfa";
       case "PICKED UP": return "#f0f9ff";
+      case "BOOKED":
       case "SHIPMENT BOOKED": return "#eff6ff";
       case "DELAYED": return "#fff7ed";
       case "RETURNED": return "#fef2f2";
@@ -439,6 +442,7 @@ const Tracking = () => {
       case "IN TRANSIT": return "#fde68a";
       case "REACHED HUB": return "#99f6e4";
       case "PICKED UP": return "#bae6fd";
+      case "BOOKED":
       case "SHIPMENT BOOKED": return "#bfdbfe";
       case "DELAYED": return "#fed7aa";
       case "RETURNED": return "#fecaca";

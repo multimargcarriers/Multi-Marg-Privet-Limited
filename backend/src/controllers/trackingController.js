@@ -79,7 +79,7 @@ exports.get_awb_2 = async (req, res) => {
             status: "In Transit",
             location: originLoc,
             date: transitDate,
-            remarks: (booking.remarks || `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`).toUpperCase(),
+            remarks: (booking.remarks && String(booking.remarks).trim().toLowerCase() !== 'na' ? booking.remarks : `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`).toUpperCase(),
             enteredBy: "System",
             createdAt: transitDate,
             updatedAt: transitDate
@@ -88,6 +88,12 @@ exports.get_awb_2 = async (req, res) => {
       }
 
       entries.forEach(e => {
+        if (!e.remarks || String(e.remarks).trim().toLowerCase() === 'na' || String(e.remarks).trim() === '') {
+          if (String(e.status || '').toLowerCase().includes('book')) {
+            const loc = (e.location || originLoc).toUpperCase();
+            e.remarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
+          }
+        }
         if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
       });
 

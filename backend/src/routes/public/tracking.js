@@ -44,13 +44,20 @@ router.get('/:awb', async (req, res) => {
     snapshot.forEach(doc => {
       const data = doc.data();
       const realTimestamp = data.updatedAt || data.createdAt || (data.date && data.date.includes('T') ? data.date : null) || new Date().toISOString();
+      let cleanRemarks = data.remarks;
+      if (!cleanRemarks || String(cleanRemarks).trim().toLowerCase() === 'na' || String(cleanRemarks).trim() === '') {
+        if (String(data.status || '').toLowerCase().includes('book')) {
+          const loc = (data.location || 'ORIGIN').toUpperCase();
+          cleanRemarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
+        }
+      }
       entries.push({
         id: doc.id,
         awb: data.awb,
         status: data.status,
         location: data.location,
         date: realTimestamp,
-        remarks: data.remarks,
+        remarks: cleanRemarks ? String(cleanRemarks).toUpperCase() : cleanRemarks,
         updatedAt: realTimestamp
       });
     });
@@ -175,7 +182,7 @@ router.get('/:awb', async (req, res) => {
             status: "In Transit",
             location: originName,
             date: transitDateISO,
-            remarks: (booking.remarks || `SHIPMENT IN TRANSIT FROM ${originName} FACILITY`).toUpperCase(),
+            remarks: (booking.remarks && String(booking.remarks).trim().toLowerCase() !== 'na' ? booking.remarks : `SHIPMENT IN TRANSIT FROM ${originName} FACILITY`).toUpperCase(),
             updatedAt: transitDateISO
           });
         }
