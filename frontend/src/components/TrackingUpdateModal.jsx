@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import axios from "axios";
-import { Loader2, X, Truck, MapPin, CheckCircle2, Clock, PackageCheck, AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, X, Truck, MapPin, CheckCircle2, Clock, PackageCheck, AlertTriangle, RotateCcw, Sparkles, Lock } from "lucide-react";
 import CopyButton, { AwbBadge } from "./CopyButton";
 import { useToast } from "../context/ToastContext";
 import TrackingLocationInput from "./TrackingLocationInput";
@@ -56,6 +56,10 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isBulk = Array.isArray(bulkBookings) && bulkBookings.length > 0;
 
+  const bookingRawStatus = String(booking?.status || booking?.transitStatus || booking?.delivery_status || '').toLowerCase();
+  const isDelivered = !isBulk && bookingRawStatus.includes("deliver");
+  const isOutForDelivery = !isBulk && !isDelivered && (bookingRawStatus.includes("out for delivery") || bookingRawStatus.includes("out_for_delivery"));
+
   const [formData, setFormData] = useState({
     awb: "",
     awbs: [],
@@ -64,8 +68,6 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
     status: "",
     remarks: ""
   });
-
-
 
   useEffect(() => {
     if (isOpen) {
@@ -82,17 +84,18 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
       } else if (booking) {
         const awb = booking.awb || booking.consignment || booking.lrNo || booking.id?.slice(-6) || "";
         const defaultLoc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
+        const initialStatus = isDelivered ? "Delivered" : (isOutForDelivery ? "Out for Delivery" : "In Transit");
         setFormData({
           awb: String(awb).toUpperCase(),
           awbs: [String(awb).toUpperCase()],
           date: new Date().toISOString().split('T')[0],
           location: defaultLoc,
-          status: "In Transit",
+          status: initialStatus,
           remarks: ""
         });
       }
     }
-  }, [isOpen, booking, bulkBookings, isBulk]);
+  }, [isOpen, booking, bulkBookings, isBulk, isDelivered, isOutForDelivery]);
 
   const handleStatusChange = (e) => {
     const newStatus = e.target.value;
@@ -240,6 +243,14 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
             )}
           </div>
 
+          {/* Delivered Lock Banner */}
+          {isDelivered && (
+            <div style={{ padding: "0.75rem 1rem", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#991b1b", fontSize: "0.84rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Lock size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span>Shipment is Delivered. All status updates are locked. Delete the Delivered entry from tracking history to make changes.</span>
+            </div>
+          )}
+
           {/* Status Selection */}
           <div>
             <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -250,23 +261,37 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               value={formData.status} 
               onChange={handleStatusChange} 
               required
+              disabled={isDelivered}
               style={{ 
                 width: "100%", padding: "0.65rem 0.85rem", borderRadius: "8px", 
                 border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box",
                 fontWeight: "800",
                 fontSize: "0.88rem",
                 color: formData.status ? getStatusColor(formData.status) : "#64748b",
-                background: "#ffffff",
-                cursor: "pointer"
+                background: isDelivered ? "#f8fafc" : "#ffffff",
+                cursor: isDelivered ? "not-allowed" : "pointer"
               }}
             >
               <option value="">-- SELECT STATUS --</option>
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value} style={{ color: getStatusColor(opt.value), fontWeight: "700" }}>
-                  {opt.label}
-                </option>
-              ))}
+              {STATUS_OPTIONS.map((opt) => {
+                const isOptionDisabled = isDelivered || (isOutForDelivery && (opt.value === 'In Transit' || opt.value === 'Reached Hub' || opt.value === 'Picked Up'));
+                return (
+                  <option 
+                    key={opt.value} 
+                    value={opt.value} 
+                    disabled={isOptionDisabled}
+                    style={{ color: isOptionDisabled ? "#94a3b8" : getStatusColor(opt.value), fontWeight: "700" }}
+                  >
+                    {opt.label}{isOptionDisabled && isOutForDelivery ? " (Locked - Out for Delivery)" : ""}
+                  </option>
+                );
+              })}
             </select>
+            {isOutForDelivery && (
+              <div style={{ fontSize: "0.74rem", color: "#7c3aed", fontWeight: 700, marginTop: "0.3rem" }}>
+                🚚 Status is Out for Delivery. Progression is forward-only (cannot be moved backward to In Transit).
+              </div>
+            )}
           </div>
 
           {/* Location Selection - Enhanced TrackingLocationInput with IP & City Variants */}
@@ -279,6 +304,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               onChange={handleLocationChange}
               booking={booking}
               bulkBookings={bulkBookings}
+              disabled={isDelivered}
               required
             />
           </div>
@@ -293,6 +319,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               name="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              disabled={isDelivered}
               required
               style={{
                 width: "100%",
@@ -301,7 +328,9 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 border: "1px solid #cbd5e1",
                 fontSize: "0.88rem",
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: isDelivered ? "#f8fafc" : "#ffffff",
+                cursor: isDelivered ? "not-allowed" : "pointer"
               }}
             />
           </div>
@@ -312,26 +341,28 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               <label style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700", color: "#334155", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 SPECIAL REMARKS
               </label>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, remarks: getSensibleRemark(formData.status, formData.location) })}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#4f46e5', 
-                  fontSize: '0.75rem', 
-                  fontWeight: 700, 
-                  cursor: 'pointer', 
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-                title="Auto-Generate Description"
-              >
-                <Sparkles size={13} />
-                <span>AI GENERATE</span>
-              </button>
+              {!isDelivered && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, remarks: getSensibleRemark(formData.status, formData.location) })}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: '#4f46e5', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 700, 
+                    cursor: 'pointer', 
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="Auto-Generate Description"
+                >
+                  <Sparkles size={13} />
+                  <span>AI GENERATE</span>
+                </button>
+              )}
             </div>
             <input
               type="text"
@@ -339,6 +370,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               placeholder="Enter your remarks"
               value={formData.remarks}
               onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+              disabled={isDelivered}
               style={{
                 width: "100%",
                 padding: "0.65rem 0.85rem",
@@ -346,7 +378,9 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 border: "1px solid #cbd5e1",
                 fontSize: "0.88rem",
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: isDelivered ? "#f8fafc" : "#ffffff",
+                cursor: isDelivered ? "not-allowed" : "text"
               }}
             />
           </div>
@@ -372,27 +406,31 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isDelivered}
               style={{
                 flex: 2,
                 padding: "0.75rem",
                 borderRadius: "8px",
                 border: "none",
-                background: isSubmitting ? "#94a3b8" : "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                background: isDelivered ? "#94a3b8" : (isSubmitting ? "#94a3b8" : "linear-gradient(135deg, #2563eb, #1d4ed8)"),
                 color: "#ffffff",
-                fontWeight: "800",
+                fontWeight: "700",
                 fontSize: "0.88rem",
-                cursor: isSubmitting ? "not-allowed" : "pointer",
+                cursor: (isSubmitting || isDelivered) ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "8px",
-                boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.25)",
-                letterSpacing: "0.02em"
+                gap: "6px",
+                boxShadow: (isSubmitting || isDelivered) ? "none" : "0 4px 6px -1px rgba(37, 99, 235, 0.2)"
               }}
             >
-              {isSubmitting ? <Loader2 size={16} className="spin-animation" /> : <CheckCircle2 size={16} />}
-              {isSubmitting ? "SAVING CHECKPOINT..." : (isBulk ? `UPDATE TRACKING FOR ${formData.awbs.length} AWBS` : "SAVE TRACKING CHECKPOINT")}
+              {isDelivered ? (
+                <span>🔒 LOCKED (DELIVERED)</span>
+              ) : isSubmitting ? (
+                <><Loader2 size={16} className="spinner" /> SAVING...</>
+              ) : (
+                <>SAVE STATUS UPDATE</>
+              )}
             </button>
           </div>
 

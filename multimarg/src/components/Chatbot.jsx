@@ -873,8 +873,8 @@ const Chatbot = () => {
                                       {new Date(entry.date).toLocaleString()}
                                     </span>
                                     {entry.remarks && (
-                                      <span style={{ fontSize: '0.68rem', color: '#64748b', fontStyle: 'italic', marginTop: '1px' }}>
-                                        Remarks: {entry.remarks}
+                                      <span style={{ fontSize: '0.68rem', color: '#1e3a8a', fontWeight: 700, textTransform: 'uppercase', fontStyle: 'normal', marginTop: '2px' }}>
+                                        REMARKS: {String(entry.remarks).toUpperCase()}
                                       </span>
                                     )}
                                   </div>

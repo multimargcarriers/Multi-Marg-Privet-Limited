@@ -46,6 +46,9 @@ exports.get_awb_2 = async (req, res) => {
         ? (booking.dispatch_date.includes('T') ? booking.dispatch_date : `${booking.dispatch_date}T09:00:00.000Z`) 
         : (booking.createdAt || new Date().toISOString());
 
+      const bookingTimeMs = new Date(booking.createdAt || booking.realBookingDate || bookingDate).getTime();
+      const minutesSinceBooking = (Date.now() - bookingTimeMs) / (60 * 1000);
+
       const hasBooked = entries.some(e => String(e.status || '').toLowerCase().includes("book"));
       if (!hasBooked) {
         entries.push({
@@ -54,7 +57,7 @@ exports.get_awb_2 = async (req, res) => {
           status: "Booked",
           location: originLoc,
           date: bookingDate,
-          remarks: `Shipment booked at ${originLoc}. Lorry Receipt (LR) generated.`,
+          remarks: `SHIPMENT BOOKED AT ${originLoc}. LORRY RECEIPT (LR) GENERATED.`,
           enteredBy: "System",
           createdAt: bookingDate,
           updatedAt: bookingDate
@@ -62,20 +65,26 @@ exports.get_awb_2 = async (req, res) => {
       }
 
       const hasTransit = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
-      if (!hasTransit) {
-        const transitDate = new Date(new Date(bookingDate).getTime() + 2 * 60 * 1000).toISOString();
-        entries.push({
-          id: `transit-${booking.id || cleanAwb}`,
-          awb: cleanAwb,
-          status: "In Transit",
-          location: originLoc,
-          date: transitDate,
-          remarks: `Shipment in transit from ${originLoc} facility`,
-          enteredBy: "System",
-          createdAt: transitDate,
-          updatedAt: transitDate
-        });
+      if (hasTransit || minutesSinceBooking >= 2.5) {
+        if (!hasTransit) {
+          const transitDate = new Date(bookingTimeMs + 2.5 * 60 * 1000).toISOString();
+          entries.push({
+            id: `transit-${booking.id || cleanAwb}`,
+            awb: cleanAwb,
+            status: "In Transit",
+            location: originLoc,
+            date: transitDate,
+            remarks: (booking.remarks || `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`).toUpperCase(),
+            enteredBy: "System",
+            createdAt: transitDate,
+            updatedAt: transitDate
+          });
+        }
       }
+
+      entries.forEach(e => {
+        if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
+      });
 
       entries.sort((a, b) => {
         const timeA = new Date(a.date || a.updatedAt || 0).getTime();
@@ -95,12 +104,47 @@ exports.postRoot_3 = async (req, res) => {
   if (!errors.isEmpty()) return error(res, "Validation failed", 400, errors.array());
   const entry = req.body;
   
-  // Save who entered the tracking update
-  entry.enteredBy = req.user?.name || req.user?.email || "Unknown";
-  entry.enteredById = req.user?.id || null;
-  entry.enteredByRole = req.user?.role || "Unknown";
+  const cleanAwb = String(entry.awb || '').trim();
+  if (!cleanAwb) return error(res, "AWB number is required", 400);
 
-  entry.location = String(entry.location || '').trim().toUpperCase();
+  // 1. Fetch matching booking and existing tracking entries
+  let existingBooking = null;
+  let awbRegex = null;
+  try {
+    if (db.mongoDb) {
+      awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      existingBooking = await db.mongoDb.collection("bookings").findOne({
+        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+      });
+    }
+  } catch (err) {
+    console.error("[Tracking check booking error]:", err);
+  }
+
+  const existingTrackingSnap = await db.collection("tracking").where("awb", "==", cleanAwb).get();
+  const existingEntries = [];
+  existingTrackingSnap.forEach(d => existingEntries.push({ id: d.id, ...d.data() }));
+
+  // FLOW RULE 1: If shipment is already Delivered, all update options are strictly locked!
+  const isAlreadyDelivered = existingEntries.some(e => String(e.status || '').toLowerCase().includes("delivered")) ||
+    (existingBooking && String(existingBooking.status || existingBooking.transitStatus || '').toLowerCase() === 'delivered');
+
+  if (isAlreadyDelivered) {
+    return error(res, "Shipment is already Delivered. Tracking updates are locked. Delete the Delivered entry first to make changes.", 400);
+  }
+
+  // FLOW RULE 2: "it should not be backed" - if currently Out for Delivery, cannot revert to In Transit or Booked
+  const isAlreadyOutForDelivery = existingEntries.some(e => {
+    const s = String(e.status || '').toLowerCase();
+    return s.includes("out for delivery") || s.includes("out_for_delivery");
+  }) || (existingBooking && (String(existingBooking.status || '').toLowerCase().includes("out for delivery") || String(existingBooking.transitStatus || '').toLowerCase().includes("out for delivery")));
+
+  const targetStatusNorm = String(entry.status || '').trim().toLowerCase();
+
+  if (isAlreadyOutForDelivery && (targetStatusNorm.includes("transit") || targetStatusNorm.includes("book") || targetStatusNorm.includes("pickup"))) {
+    return error(res, "Shipment is already Out for Delivery and cannot be moved backward to In Transit or Booked.", 400);
+  }
+
   const now = new Date().toISOString();
   if (!entry.date || !entry.date.includes('T')) {
     if (entry.date && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
@@ -109,42 +153,61 @@ exports.postRoot_3 = async (req, res) => {
       entry.date = now;
     }
   }
+
+  // FLOW RULE 3: "if we select one out for delivery for shipment the intrinsit should be done after the out for deliovery"
+  // If moving to Out for Delivery, ensure In Transit milestone exists prior in the timeline
+  if (targetStatusNorm.includes("out for delivery") || targetStatusNorm.includes("out_for_delivery")) {
+    const hasInTransit = existingEntries.some(e => String(e.status || '').toLowerCase().includes("transit"));
+    if (!hasInTransit) {
+      const originLoc = existingBooking?.origin ? String(existingBooking.origin).trim().toUpperCase() : (entry.location || "ORIGIN FACILITY");
+      const bDate = existingBooking?.dispatch_date || existingBooking?.date || existingBooking?.createdAt || now;
+      const bDateObj = new Date(bDate);
+      const transitDateObj = new Date(bDateObj.getTime() + 2.5 * 60 * 1000);
+      const transitIso = !isNaN(transitDateObj.getTime()) ? transitDateObj.toISOString() : now;
+
+      const autoTransit = {
+        awb: cleanAwb,
+        status: "In Transit",
+        location: originLoc,
+        date: transitIso,
+        remarks: `SHIPMENT IN TRANSIT FROM ${originLoc} FACILITY`,
+        enteredBy: req.user?.name || req.user?.email || "System",
+        enteredById: req.user?.id || null,
+        enteredByRole: req.user?.role || "System",
+        createdAt: transitIso,
+        updatedAt: transitIso
+      };
+      await db.collection("tracking").add(autoTransit);
+    }
+  }
+
+  // Save who entered the tracking update
+  entry.enteredBy = req.user?.name || req.user?.email || "Unknown";
+  entry.enteredById = req.user?.id || null;
+  entry.enteredByRole = req.user?.role || "Unknown";
+  entry.location = String(entry.location || '').trim().toUpperCase();
+  if (entry.remarks) entry.remarks = String(entry.remarks).trim().toUpperCase();
   entry.createdAt = entry.createdAt || now;
   entry.updatedAt = now;
+
   const docRef = await db.collection("tracking").add(entry);
 
   // Sync transit status into matching booking
   try {
-    const cleanAwb = String(entry.awb || '').trim();
-    if (cleanAwb && db.mongoDb) {
-      const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-      
-      const existingBooking = await db.mongoDb.collection("bookings").findOne({
-        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
-      });
+    if (existingBooking && db.mongoDb) {
+      const bookingUpdate = {
+        lastTrackingUpdate: now,
+        currentLocation: entry.location,
+        transitStatus: entry.status,
+        trackingStatus: entry.status,
+        status: entry.status === 'Delivered' ? 'Delivered' : ((existingBooking.status === "Billed" || existingBooking.status === "Unbilled") ? existingBooking.status : entry.status)
+      };
 
-      if (existingBooking) {
-        const currentStatus = String(existingBooking.status || '').toLowerCase();
-        const currentTransit = String(existingBooking.transitStatus || '').toLowerCase();
-        
-        const isFinal = currentStatus === 'delivered' || currentStatus === 'billed' || currentTransit === 'delivered';
-        
-        const bookingUpdate = {
-          lastTrackingUpdate: new Date().toISOString(),
-          currentLocation: entry.location
-        };
-
-        if (!isFinal) {
-          bookingUpdate.transitStatus = entry.status;
-          bookingUpdate.trackingStatus = entry.status;
-          if (entry.status === 'Delivered') {
-            bookingUpdate.status = 'Delivered';
-            bookingUpdate.deliveryDate = entry.date || new Date().toISOString();
-          }
-        }
-
-        await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
+      if (entry.status === 'Delivered') {
+        bookingUpdate.deliveryDate = entry.date || now;
       }
+
+      await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
     }
   } catch (bkErr) {
     console.error("[Tracking Sync to Booking Error]:", bkErr);
@@ -195,6 +258,17 @@ exports.delete_id_4 = async (req, res) => {
       });
 
       if (existingBooking) {
+        // If deleting a Delivered entry, also purge any attached POD document so delivery is fully reversed
+        const isDeliveredEntryDeleted = String(entry.status || '').toLowerCase().includes("deliver");
+        if (isDeliveredEntryDeleted) {
+          await db.mongoDb.collection("pod").deleteMany({
+            $or: [
+              { lrNo: awbRegex },
+              { bookingId: existingBooking.id || existingBooking._id.toString() }
+            ]
+          });
+        }
+
         const snapshot = await db.collection("tracking").where("awb", "==", awbNo).get();
         const checkpoints = [];
         snapshot.forEach(doc => {
@@ -203,7 +277,7 @@ exports.delete_id_4 = async (req, res) => {
           }
         });
 
-        const podDoc = await db.mongoDb.collection("pod").findOne({
+        const remainingPodDoc = isDeliveredEntryDeleted ? null : await db.mongoDb.collection("pod").findOne({
           $or: [
             { lrNo: awbRegex },
             { bookingId: existingBooking.id || existingBooking._id.toString() }
@@ -214,7 +288,7 @@ exports.delete_id_4 = async (req, res) => {
         let newStatus = "In Transit";
         let currentLocation = originLoc;
 
-        if (podDoc) {
+        if (remainingPodDoc) {
           newStatus = "Delivered";
         } else if (checkpoints.length > 0) {
           const parseDateSecurely = (dateVal) => {
@@ -234,8 +308,8 @@ exports.delete_id_4 = async (req, res) => {
           trackingStatus: newStatus,
           status: (existingBooking.status === "Billed" || existingBooking.status === "Unbilled") ? existingBooking.status : newStatus,
           currentLocation: currentLocation,
-          podUploaded: Boolean(podDoc),
-          podUrl: podDoc ? (podDoc.podUrl || podDoc.cloudinaryUrl) : null,
+          podUploaded: Boolean(remainingPodDoc),
+          podUrl: remainingPodDoc ? (remainingPodDoc.podUrl || remainingPodDoc.cloudinaryUrl) : null,
           updatedAt: new Date().toISOString()
         };
 
@@ -279,8 +353,15 @@ exports.put_id_5 = async (req, res) => {
     return error(res, "Unauthorized to modify this tracking entry", 403);
   }
 
+  // FLOW RULE: Delivered entries are locked from modification
+  if (String(existingEntry.status || '').toLowerCase().includes("deliver")) {
+    return error(res, "Delivered tracking entry is locked. Delete the Delivered entry to update the shipment status.", 400);
+  }
+
   const updates = {
     ...req.body,
+    location: req.body.location ? String(req.body.location).trim().toUpperCase() : existingEntry.location,
+    remarks: req.body.remarks ? String(req.body.remarks).trim().toUpperCase() : existingEntry.remarks,
     updatedAt: new Date().toISOString(),
     enteredBy: req.user?.name || req.user?.email || "Unknown",
     enteredById: req.user?.id || null,
@@ -317,27 +398,30 @@ exports.postBulk_6 = async (req, res) => {
 
   const createdEntries = [];
 
-  const getSensibleRemark = (st, loc) => {
-    const l = loc || "facility";
-    if (st === "Delivered") return `Shipment delivers to client in ${l}`;
-    if (st === "In Transit") return `Shipment leaves ${l}`;
-    if (st === "Reached Hub") return `Shipment arrives at ${l}`;
-    if (st === "Out for Delivery") return `Shipment goes for delivery in ${l}`;
-    if (st === "Picked Up") return `We pick up shipment at ${l}`;
-    if (st === "Delayed") return `Shipment delays at ${l}`;
-    if (st === "Returned") return `Shipment returns to ${l}`;
-    return `Shipment is at ${l}`;
-  };
-
   const cleanLoc = String(location || '').trim().toUpperCase();
   for (const awb of awbs) {
     const cleanAwb = String(awb).trim().toUpperCase();
+
+    // Check if shipment is already delivered (if so, skip because updates are locked)
+    if (cleanAwb && db.mongoDb) {
+      const awbRegex = new RegExp(`^${cleanAwb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+      const existingBooking = await db.mongoDb.collection("bookings").findOne({
+        $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
+      });
+      if (existingBooking) {
+        const curSt = String(existingBooking.status || existingBooking.transitStatus || '').toLowerCase();
+        if (curSt === 'delivered') {
+          continue; // Delivered shipment is locked from updates
+        }
+      }
+    }
+
     const entryData = {
       awb: cleanAwb,
       status,
       location: cleanLoc,
       date: trackingDate,
-      remarks: remarks ? String(remarks).trim() : "",
+      remarks: remarks ? String(remarks).trim().toUpperCase() : "",
       enteredBy,
       enteredById,
       enteredByRole,

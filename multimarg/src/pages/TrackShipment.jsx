@@ -381,14 +381,16 @@ const TrackShipment = () => {
 
               const isOutForDelivery = normStatus.includes("out for delivery") || normStatus.includes("out_for_delivery");
               const isDelivered = normStatus.includes("deliver") && !isOutForDelivery;
-              const isInTransit = !isDelivered && !isOutForDelivery;
+              const isBooked = normStatus.includes("book") && !normStatus.includes("transit") && !normStatus.includes("out") && !normStatus.includes("deliver");
+              const isInTransit = !isDelivered && !isOutForDelivery && !isBooked;
 
               // Determine step index for the 4-step progress tracker:
               // 1: Booked, 2: In Transit, 3: Out for Delivery, 4: Delivered
-              let currentStepNumber = 2;
+              let currentStepNumber = 1;
               if (isDelivered) currentStepNumber = 4;
               else if (isOutForDelivery) currentStepNumber = 3;
-              else currentStepNumber = 2;
+              else if (isInTransit) currentStepNumber = 2;
+              else currentStepNumber = 1;
 
               const originCity = b.origin ? String(b.origin).toUpperCase() : "";
               const destCity = b.destination ? String(b.destination).toUpperCase() : "";
@@ -869,18 +871,6 @@ return (
                           <div style={{ fontWeight: 800, fontSize: 'clamp(0.78rem, 2vw, 0.88rem)', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             <FileText size={16} color="#ffffff" /> INVOICE & E-WAY BILL DETAILS ({invoices.length})
                           </div>
-                          <span style={{
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            color: '#ffffff',
-                            padding: '0.2rem 0.6rem',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700
-                          }}>
-                            {invoices.reduce((sum, i) => sum + (parseFloat(i.qty || i.quantity || i.box || 0) || 0), 0) > 0 ? 
-                              `TOTAL PKGS: ${invoices.reduce((sum, i) => sum + (parseFloat(i.qty || i.quantity || i.box || 0) || 0), 0)} PCS` 
-                              : `${invoices.length} INVOICE(S)`}
-                          </span>
                         </div>
 
                         <div className="responsive-table-wrapper">
@@ -1055,20 +1045,27 @@ return (
                                     </div>
 
                                     {entry.remarks && (
-                                      <div style={{ 
-                                        marginTop: '0.45rem', 
-                                        fontSize: '0.82rem', 
-                                        color: '#334155', 
-                                        background: isLatest ? 'rgba(255, 255, 255, 0.85)' : '#f8fafc', 
-                                        padding: '0.45rem 0.65rem', 
-                                        borderRadius: '6px', 
-                                        borderLeft: `3px solid ${color}`, 
-                                        fontStyle: 'normal',
-                                        fontWeight: 500
-                                      }}>
-                                        {entry.remarks}
-                                      </div>
-                                    )}
+                                       <div style={{ 
+                                         marginTop: '0.5rem', 
+                                         fontSize: '0.84rem', 
+                                         color: '#1e3a8a', 
+                                         background: '#eff6ff', 
+                                         padding: '0.55rem 0.85rem', 
+                                         borderRadius: '6px', 
+                                         borderLeft: '4px solid #1e40af', 
+                                         borderTop: '1px solid #bfdbfe',
+                                         borderRight: '1px solid #bfdbfe',
+                                         borderBottom: '1px solid #bfdbfe',
+                                         fontStyle: 'normal',
+                                         fontWeight: 700,
+                                         textTransform: 'uppercase',
+                                         letterSpacing: '0.03em',
+                                         lineHeight: '1.45',
+                                         boxShadow: '0 1px 3px rgba(30, 64, 175, 0.08)'
+                                       }}>
+                                         {String(entry.remarks).toUpperCase()}
+                                       </div>
+                                     )}
 
                                     {entry.podUrl && (
                                       <div style={{ marginTop: '0.45rem' }}>

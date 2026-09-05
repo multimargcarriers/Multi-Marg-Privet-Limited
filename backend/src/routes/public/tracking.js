@@ -139,9 +139,9 @@ router.get('/:awb', async (req, res) => {
 
       const bookingDateObj = parseDateString(booking.date, booking.createdAt);
       const bookingDateISO = bookingDateObj.toISOString();
-
-      // 1. Shipment Booked milestone
       const originName = booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB";
+
+      // 1. Initial Milestone: Booked (Shipment Booked at origin)
       const hasBookedStatus = entries.some(e => String(e.status || '').toLowerCase().includes("book"));
       if (!hasBookedStatus) {
         entries.push({
@@ -150,35 +150,56 @@ router.get('/:awb', async (req, res) => {
           status: "Booked",
           location: originName,
           date: bookingDateISO,
-          remarks: `Shipment booked at ${originName}. Lorry Receipt (LR) generated.`,
+          remarks: `SHIPMENT BOOKED AT ${originName}. LORRY RECEIPT (LR) GENERATED.`,
           updatedAt: bookingDateISO
         });
       }
 
-      // 2. In Transit milestone (automatically next with separate origin note)
-      const hasInTransitStatus = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
-      const transitDateObj = booking.createdAt 
-        ? new Date(new Date(booking.createdAt).getTime() + 2 * 60 * 1000) 
-        : new Date(bookingDateObj.getTime() + 2 * 60 * 1000);
-      if (!hasInTransitStatus) {
-        const transitDateISO = transitDateObj.toISOString();
-        entries.push({
-          id: `transit-${booking.id || baseAwb}`,
-          awb: baseAwb,
-          status: "In Transit",
-          location: originName,
-          date: transitDateISO,
-          remarks: `Shipment in transit from ${originName} facility`,
-          updatedAt: transitDateISO
-        });
-      }
+      // Check time elapsed since booking (in minutes)
+      const bookingTimeMs = booking.createdAt 
+        ? new Date(booking.createdAt).getTime() 
+        : bookingDateObj.getTime();
+      const minutesSinceBooking = (Date.now() - bookingTimeMs) / (60 * 1000);
 
-      booking.currentLocation = String(booking.currentLocation || booking.origin || "ORIGIN FACILITY").trim().toUpperCase();
-      if (!booking.transitStatus || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.transitStatus).toLowerCase())) {
-        booking.transitStatus = 'In Transit';
-      }
-      if (!booking.status || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.status).toLowerCase())) {
-        booking.status = 'In Transit';
+      // 2. Second Milestone: In Transit (Auto-generated after 2-3 minutes with separate origin note)
+      const hasInTransitStatus = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
+      const isAutoTransit = minutesSinceBooking >= 2.5;
+
+      if (hasInTransitStatus || isAutoTransit) {
+        if (!hasInTransitStatus) {
+          const transitDateObj = new Date(bookingTimeMs + 2.5 * 60 * 1000);
+          const transitDateISO = transitDateObj.toISOString();
+          entries.push({
+            id: `transit-${booking.id || baseAwb}`,
+            awb: baseAwb,
+            status: "In Transit",
+            location: originName,
+            date: transitDateISO,
+            remarks: (booking.remarks || `SHIPMENT IN TRANSIT FROM ${originName} FACILITY`).toUpperCase(),
+            updatedAt: transitDateISO
+          });
+        }
+
+        booking.currentLocation = String(booking.currentLocation || booking.origin || "ORIGIN FACILITY").trim().toUpperCase();
+        if (!booking.transitStatus || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.transitStatus).toLowerCase())) {
+          booking.transitStatus = 'In Transit';
+        }
+        if (!booking.status || ['booked', 'picked up', 'shipment booked', ''].includes(String(booking.status).toLowerCase())) {
+          booking.status = 'In Transit';
+        }
+
+        // Keep DB booking doc in sync if it was created as Booked
+        if (db.mongoDb && booking.id && (!booking.status || String(booking.status).toLowerCase() === 'booked')) {
+          db.mongoDb.collection("bookings").updateOne(
+            { _id: booking.id },
+            { $set: { status: 'In Transit', transitStatus: 'In Transit' } }
+          ).catch(e => console.error("[Auto In Transit DB Update Error]:", e));
+        }
+      } else {
+        // Less than 2-3 minutes: status is strictly Booked
+        booking.currentLocation = originName;
+        booking.transitStatus = 'Booked';
+        booking.status = 'Booked';
       }
 
       // 3. Check if POD is uploaded or if the shipment is marked as Delivered
@@ -205,7 +226,7 @@ router.get('/:awb', async (req, res) => {
           deliveredTimeObj = parseDateString(booking.deliveryDate);
         }
 
-        const pickupTimestamp = pickupDateObj.getTime();
+        const pickupTimestamp = bookingDateObj.getTime();
         if (!deliveredTimeObj || isNaN(deliveredTimeObj.getTime()) || deliveredTimeObj.getTime() <= pickupTimestamp) {
           // Default delivery time to 6 hours after pickup or next day
           deliveredTimeObj = new Date(pickupTimestamp + 6 * 3600 * 1000);
@@ -248,6 +269,10 @@ router.get('/:awb', async (req, res) => {
         return getStatusWeight(b.status) - getStatusWeight(a.status);
       });
     }
+
+    entries.forEach(e => {
+      if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
+    });
 
     return res.json({
       success: true,

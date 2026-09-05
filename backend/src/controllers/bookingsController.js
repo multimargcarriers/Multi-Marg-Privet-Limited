@@ -227,8 +227,8 @@ exports.postRoot_1 = async (req, res) => {
   booking.date = enteredDate;
   booking.createdAt = new Date().toISOString();
   booking.realBookingDate = booking.createdAt;
-  booking.status = "In Transit";
-  booking.transitStatus = "In Transit";
+  booking.status = "Booked";
+  booking.transitStatus = "Booked";
   booking.currentLocation = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
   booking.billed = false;
   booking.billNo = "";
@@ -321,13 +321,13 @@ exports.postRoot_1 = async (req, res) => {
 
       const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
       
-      // 1. First Milestone: Booked (Shipment Booked at origin)
+      // 1. Initial Milestone: Booked (Shipment Booked at origin)
       const bookedTracking = {
         awb: awbVal,
         status: "Booked",
         location: initialOrigin,
         date: bookingDate,
-        remarks: `Shipment booked at ${initialOrigin}. Lorry Receipt (LR) generated.`,
+        remarks: `SHIPMENT BOOKED AT ${initialOrigin}. LORRY RECEIPT (LR) GENERATED.`,
         enteredBy: req.user?.name || req.user?.email || "Admin",
         enteredById: req.user?.id || null,
         enteredByRole: req.user?.role || "Admin",
@@ -335,21 +335,7 @@ exports.postRoot_1 = async (req, res) => {
         updatedAt: bookingDate
       };
       await db.collection("tracking").add(bookedTracking);
-
-      // 2. Second Milestone: In Transit (Auto-generated next with separate origin note)
-      const transitTracking = {
-        awb: awbVal,
-        status: "In Transit",
-        location: initialOrigin,
-        date: transitDate,
-        remarks: booking.remarks || `Shipment in transit from ${initialOrigin} facility`,
-        enteredBy: req.user?.name || req.user?.email || "Admin",
-        enteredById: req.user?.id || null,
-        enteredByRole: req.user?.role || "Admin",
-        createdAt: transitDate,
-        updatedAt: transitDate
-      };
-      await db.collection("tracking").add(transitTracking);
+      // NOTE: Milestone 2 (In Transit) automatically activates after 2-3 minutes.
     }
   } catch (trkErr) {
     console.error("[Booking Create Auto Tracking Error]:", trkErr);
