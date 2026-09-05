@@ -1518,12 +1518,12 @@ const Tracking = () => {
                         <AutocompleteDropdown 
                           filteredList={formFilteredLRs} 
                           onSelect={(awb, booking) => { 
-                            const loc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
+                            const originLoc = String(booking.origin || booking.currentLocation || "").trim().toUpperCase();
                             setFormData(prev => ({ 
                               ...prev, 
                               awb,
-                              location: loc,
-                              status: prev.status || "In Transit"
+                              location: originLoc,
+                              status: prev.status || "Booked"
                             })); 
                             setSelectedFormBooking(booking);
                             setShowFormDropdown(false); 
@@ -1567,12 +1567,24 @@ const Tracking = () => {
                         className="form-control" 
                         name="status" 
                         value={formData.status} 
-                        onChange={handleChange} 
+                        onChange={(e) => {
+                          handleChange(e);
+                          const val = e.target.value;
+                          if ((val === "Booked" || val === "In Transit") && selectedFormBooking) {
+                            const originLoc = String(selectedFormBooking.origin || "").trim().toUpperCase();
+                            if (originLoc) {
+                              setFormData(prev => ({ ...prev, location: originLoc }));
+                            }
+                          }
+                        }} 
                         required
                         disabled={isFormDelivered}
                         style={{ cursor: isFormDelivered ? "not-allowed" : "pointer", border: "1px solid #cbd5e1", fontWeight: formData.status ? "600" : "normal", color: formData.status ? getStatusColor(formData.status) : "inherit", background: isFormDelivered ? "#f8fafc" : "#ffffff" }}
                       >
                         <option value="" style={{ color: "#000" }}>-- Please select the Status --</option>
+                        <option value="Booked" disabled={isFormOutForDelivery} style={{ color: isFormOutForDelivery ? "#94a3b8" : "#000" }}>
+                          Booked {isFormOutForDelivery ? "(Locked - Out for Delivery)" : ""}
+                        </option>
                         <option value="In Transit" disabled={isFormOutForDelivery} style={{ color: isFormOutForDelivery ? "#94a3b8" : "#000" }}>
                           In Transit {isFormOutForDelivery ? "(Locked - Out for Delivery)" : ""}
                         </option>

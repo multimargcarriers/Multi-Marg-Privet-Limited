@@ -51,10 +51,14 @@ router.get('/:awb', async (req, res) => {
           cleanRemarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
         }
       }
+      let entryStatus = data.status;
+      if (String(data.status || '').toLowerCase().includes('book') || String(data.remarks || '').toUpperCase().includes('BOOKED')) {
+        entryStatus = 'Booked';
+      }
       entries.push({
         id: doc.id,
         awb: data.awb,
-        status: data.status,
+        status: entryStatus,
         location: data.location,
         date: realTimestamp,
         remarks: cleanRemarks ? String(cleanRemarks).toUpperCase() : cleanRemarks,

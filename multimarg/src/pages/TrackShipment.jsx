@@ -75,21 +75,22 @@ const formatCleanDateTime = (dateStr) => {
   return "N/A";
 };
 
-const normalizeStatus = (status) => {
+const normalizeStatus = (status, remarks) => {
   const s = String(status || '').trim().toLowerCase();
-  if (s.includes('out for delivery') || s.includes('out_for_delivery')) return 'OUT FOR DELIVERY';
-  if (s.includes('deliver')) return 'DELIVERED';
-  if (s.includes('reach') || s.includes('hub') || s.includes('arrive')) return 'REACHED HUB';
-  if (s.includes('book')) return 'BOOKED';
-  if (s.includes('pickup') || s.includes('picked')) return 'PICKED UP';
-  if (s.includes('transit')) return 'IN TRANSIT';
-  if (s.includes('delay')) return 'DELAYED';
-  if (s.includes('return') || s.includes('rto')) return 'RETURNED';
+  const r = String(remarks || '').trim().toLowerCase();
+  if (s.includes('out for delivery') || s.includes('out_for_delivery') || r.includes('out for delivery')) return 'OUT FOR DELIVERY';
+  if (s.includes('deliver') || r.includes('delivered')) return 'DELIVERED';
+  if (s.includes('reach') || s.includes('hub') || s.includes('arrive') || r.includes('reached hub')) return 'REACHED HUB';
+  if (s.includes('book') || r.includes('booked') || r.includes('lorry receipt')) return 'BOOKED';
+  if (s.includes('pickup') || s.includes('picked') || r.includes('pickup') || r.includes('picked')) return 'PICKED UP';
+  if (s.includes('transit') || r.includes('transit')) return 'IN TRANSIT';
+  if (s.includes('delay') || r.includes('delayed')) return 'DELAYED';
+  if (s.includes('return') || s.includes('rto') || r.includes('returned')) return 'RETURNED';
   return String(status || 'IN TRANSIT').toUpperCase();
 };
 
-const getStatusIcon = (status) => {
-  const norm = normalizeStatus(status);
+const getStatusIcon = (status, remarks) => {
+  const norm = normalizeStatus(status, remarks);
   switch (norm) {
     case 'DELIVERED': return <PackageCheck size={22} />;
     case 'OUT FOR DELIVERY': return <Truck size={22} />;
@@ -104,8 +105,8 @@ const getStatusIcon = (status) => {
   }
 };
 
-const getStatusColor = (status) => {
-  const norm = normalizeStatus(status);
+const getStatusColor = (status, remarks) => {
+  const norm = normalizeStatus(status, remarks);
   switch (norm) {
     case 'DELIVERED': return '#059669'; // Emerald Green
     case 'OUT FOR DELIVERY': return '#7c3aed'; // Vibrant Purple
@@ -120,8 +121,8 @@ const getStatusColor = (status) => {
   }
 };
 
-const getStatusBg = (status) => {
-  const norm = normalizeStatus(status);
+const getStatusBg = (status, remarks) => {
+  const norm = normalizeStatus(status, remarks);
   switch (norm) {
     case 'DELIVERED': return '#ecfdf5';
     case 'OUT FOR DELIVERY': return '#f5f3ff';
@@ -136,8 +137,8 @@ const getStatusBg = (status) => {
   }
 };
 
-const getStatusBorder = (status) => {
-  const norm = normalizeStatus(status);
+const getStatusBorder = (status, remarks) => {
+  const norm = normalizeStatus(status, remarks);
   switch (norm) {
     case 'DELIVERED': return '#a7f3d0';
     case 'OUT FOR DELIVERY': return '#ddd6fe';
@@ -984,10 +985,10 @@ return (
 
                             {trackingResult.tracking.map((entry, index) => {
                               const isLatest = index === 0;
-                              const color = getStatusColor(entry.status);
-                              const bg = getStatusBg(entry.status);
-                              const border = getStatusBorder(entry.status);
-                              const statusCaps = normalizeStatus(entry.status);
+                              const statusCaps = normalizeStatus(entry.status, entry.remarks);
+                              const color = getStatusColor(entry.status, entry.remarks);
+                              const bg = getStatusBg(entry.status, entry.remarks);
+                              const border = getStatusBorder(entry.status, entry.remarks);
                               
                               return (
                                 <div key={entry.id || index} className="timeline-item" style={{ 
@@ -1012,7 +1013,7 @@ return (
                                     boxShadow: isLatest ? `0 0 0 4px ${color}25, 0 4px 10px ${color}30` : '0 0 0 4px white',
                                     marginLeft: '-3px'
                                   }}>
-                                    {getStatusIcon(entry.status)}
+                                    {getStatusIcon(entry.status, entry.remarks)}
                                   </div>
                                   
                                   {/* Details */}

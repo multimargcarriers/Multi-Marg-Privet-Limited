@@ -94,6 +94,9 @@ exports.get_awb_2 = async (req, res) => {
             e.remarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
           }
         }
+        if (String(e.remarks || '').toUpperCase().includes('BOOKED') || String(e.status || '').toLowerCase().includes('book')) {
+          e.status = 'Booked';
+        }
         if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
       });
 

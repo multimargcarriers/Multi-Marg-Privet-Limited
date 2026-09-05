@@ -8,9 +8,14 @@ import { registerSW } from 'virtual:pwa-register'
 
 if (import.meta.env.PROD) {
   registerSW({
-    onNeedRefresh() {},
+    immediate: true,
+    onNeedRefresh(updateSW) {
+      if (typeof updateSW === 'function') {
+        updateSW(true);
+      }
+    },
     onOfflineReady() {},
-  })
+  });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
