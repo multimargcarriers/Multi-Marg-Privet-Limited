@@ -22,5 +22,9 @@
     "multimarg"
   ],
   "author": "Multimarg Carriers",
-  "license": "ISC"
+  "license": "ISC",
+  "overrides": {
+    "fast-uri": ">=3.1.6",
+    "qs": ">=6.16.0"
+  }
 }
