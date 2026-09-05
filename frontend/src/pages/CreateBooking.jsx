@@ -164,9 +164,10 @@ const CreateBooking = () => {
             if (b.mode) {
                const lowerMode = b.mode.toLowerCase();
                if (lowerMode === "road") b.mode = "Road";
+               else if (lowerMode.includes("express")) b.mode = "Road Express";
                else if (lowerMode === "rail" || lowerMode === "train") b.mode = "Train";
                else if (lowerMode === "air") b.mode = "Air";
-               else if (lowerMode === "sea") b.mode = "Sea";
+               else if (lowerMode === "sea") b.mode = "Road Express";
             }
             
             if (b.paymentMode) {
@@ -450,6 +451,12 @@ const CreateBooking = () => {
         }
       });
 
+      if (!isEditMode) {
+        payload.status = "In Transit";
+        payload.transitStatus = "In Transit";
+        payload.currentLocation = String(formData.origin || "").trim().toUpperCase();
+      }
+
       let response;
       if (isEditMode) {
         response = await axios.put(`${API}/bookings/${id}`, payload);
@@ -632,9 +639,9 @@ const CreateBooking = () => {
             <select className="form-control" name="mode" value={formData.mode} onChange={handleChange} required style={{ height: "36px", fontSize: "0.85rem", padding: "6px 10px" }}>
               <option value="">-- Mode --</option>
               <option value="Road">Road</option>
+              <option value="Road Express">Road Express</option>
               <option value="Train">Train</option>
               <option value="Air">Air</option>
-              <option value="Sea">Sea</option>
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>

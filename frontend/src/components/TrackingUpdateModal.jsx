@@ -4,13 +4,12 @@ import axios from "axios";
 import { Loader2, X, Truck, MapPin, CheckCircle2, Clock, PackageCheck, AlertTriangle, RotateCcw, Sparkles } from "lucide-react";
 import CopyButton, { AwbBadge } from "./CopyButton";
 import { useToast } from "../context/ToastContext";
+import TrackingLocationInput from "./TrackingLocationInput";
 
 const API = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "http://localhost:5000/api";
 
 const STATUS_OPTIONS = [
-  { value: "Picked Up", label: "📦 PICKED UP" },
   { value: "In Transit", label: "🔄 IN TRANSIT" },
-  { value: "Reached Hub", label: "🏢 REACHED HUB" },
   { value: "Out for Delivery", label: "🚚 OUT FOR DELIVERY" },
   { value: "Delivered", label: "✅ DELIVERED" },
   { value: "Delayed", label: "⚠️ DELAYED" },
@@ -54,7 +53,6 @@ const getSensibleRemark = (status, location) => {
 
 const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSuccess, onNavigateToTracking }) => {
   const { addToast } = useToast();
-  const [locations, setLocations] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isBulk = Array.isArray(bulkBookings) && bulkBookings.length > 0;
 
@@ -63,72 +61,44 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
     awbs: [],
     date: new Date().toISOString().split('T')[0],
     location: "",
-    status: "In Transit",
+    status: "",
     remarks: ""
   });
 
+
+
   useEffect(() => {
     if (isOpen) {
-      fetchCities();
       if (isBulk) {
         const awbList = bulkBookings.map(b => b.awb || b.consignment || b.lrNo || b.id?.slice(-6) || "").filter(Boolean);
-        const initialStatus = bulkBookings[0]?.transitStatus || bulkBookings[0]?.trackingStatus || bulkBookings[0]?.status || "In Transit";
-        const defaultLoc = initialStatus === "Delivered"
-          ? (bulkBookings[0]?.destination || "")
-          : (bulkBookings[0]?.currentLocation || bulkBookings[0]?.origin || "");
         setFormData({
           awb: "",
           awbs: awbList,
           date: new Date().toISOString().split('T')[0],
-          location: String(defaultLoc).toUpperCase(),
-          status: initialStatus,
+          location: "",
+          status: "",
           remarks: ""
         });
       } else if (booking) {
         const awb = booking.awb || booking.consignment || booking.lrNo || booking.id?.slice(-6) || "";
-        const initialStatus = booking.transitStatus || booking.trackingStatus || booking.status || "In Transit";
-        const defaultLoc = initialStatus === "Delivered"
-          ? (booking.destination || "")
-          : (booking.currentLocation || booking.origin || "");
+        const defaultLoc = String(booking.currentLocation || booking.origin || "").trim().toUpperCase();
         setFormData({
           awb: String(awb).toUpperCase(),
           awbs: [String(awb).toUpperCase()],
           date: new Date().toISOString().split('T')[0],
-          location: String(defaultLoc).toUpperCase(),
-          status: initialStatus,
+          location: defaultLoc,
+          status: "In Transit",
           remarks: ""
         });
       }
     }
   }, [isOpen, booking, bulkBookings, isBulk]);
 
-  const fetchCities = async () => {
-    try {
-      const res = await axios.get(`${API}/cities`);
-      if (res.data.success) {
-        setLocations(res.data.data || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch cities", err);
-    }
-  };
-
   const handleStatusChange = (e) => {
     const newStatus = e.target.value;
-    
-    // When Delivered is selected, default location to destination (but keep it editable)
-    let newLocation = formData.location;
-    if (newStatus === "Delivered") {
-      newLocation = isBulk
-        ? (bulkBookings[0]?.destination || "")
-        : (booking?.destination || "");
-      newLocation = String(newLocation).toUpperCase();
-    }
-
     setFormData(prev => ({
       ...prev,
-      status: newStatus,
-      location: newLocation
+      status: newStatus
     }));
   };
 
@@ -157,7 +127,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
 
     setIsSubmitting(true);
     try {
-      const finalRemarks = formData.remarks ? String(formData.remarks).trim() : getSensibleRemark(formData.status, formData.location);
+      const finalRemarks = formData.remarks ? String(formData.remarks).trim() : "";
 
       if (isBulk) {
         const payload = {
@@ -227,9 +197,6 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
               <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
                 {isBulk ? `Update Tracking (${formData.awbs.length} Shipments)` : `Update Shipment Tracking`}
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                {isBulk ? 'Record location and status checkpoint for all selected shipments' : 'Record real-time movement and transit checkpoint'}
-              </p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', color: '#64748b', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
@@ -276,7 +243,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           {/* Status Selection */}
           <div>
             <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              CURRENT STATUS <span style={{ color: "#ef4444" }}>*</span>
+              STATUS <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <select 
               name="status" 
@@ -288,11 +255,12 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
                 border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box",
                 fontWeight: "800",
                 fontSize: "0.88rem",
-                color: getStatusColor(formData.status),
+                color: formData.status ? getStatusColor(formData.status) : "#64748b",
                 background: "#ffffff",
                 cursor: "pointer"
               }}
             >
+              <option value="">-- SELECT STATUS --</option>
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value} style={{ color: getStatusColor(opt.value), fontWeight: "700" }}>
                   {opt.label}
@@ -301,75 +269,24 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
             </select>
           </div>
 
-          {/* Location Selection with DB Dropdown & Manual Input */}
+          {/* Location Selection - Enhanced TrackingLocationInput with IP & City Variants */}
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-              <label style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700", color: "#334155", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                CURRENT LOCATION / FACILITY <span style={{ color: "#ef4444" }}>*</span>
-              </label>
-              <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Select from database or type custom</span>
-            </div>
-
-            <div style={{ display: "flex", gap: "8px" }}>
-              {/* Text Input with auto-complete list from Database */}
-              <input
-                type="text"
-                list="db-cities-list"
-                name="location"
-                placeholder="TYPE LOCATION OR SELECT FROM LIST..."
-                value={formData.location}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                required
-                style={{
-                  flex: 1,
-                  padding: "0.65rem 0.85rem",
-                  borderRadius: "8px",
-                  border: "1px solid #cbd5e1",
-                  fontSize: "0.88rem",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  outline: "none"
-                }}
-              />
-              <datalist id="db-cities-list">
-                {locations.map((c, i) => (
-                  <option key={i} value={String(c.city || c.name || c.cityName).toUpperCase()} />
-                ))}
-              </datalist>
-
-              {/* Database Quick Dropdown */}
-              {locations.length > 0 && (
-                <select
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) handleLocationChange(e.target.value);
-                  }}
-                  style={{
-                    padding: "0.65rem",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.85rem",
-                    fontWeight: "600",
-                    background: "#f8fafc",
-                    color: "#334155",
-                    cursor: "pointer"
-                  }}
-                >
-                  <option value="">SELECT HUB...</option>
-                  {locations.map((c, i) => (
-                    <option key={i} value={String(c.city || c.name || c.cityName).toUpperCase()}>
-                      {String(c.city || c.name || c.cityName).toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              CURRENT LOCATION <span style={{ color: "#ef4444" }}>*</span>
+            </label>
+            <TrackingLocationInput
+              value={formData.location}
+              onChange={handleLocationChange}
+              booking={booking}
+              bulkBookings={bulkBookings}
+              required
+            />
           </div>
 
           {/* Date & Time */}
           <div>
             <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.4rem", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              CHECKPOINT DATE & TIME <span style={{ color: "#ef4444" }}>*</span>
+              DATE & TIME <span style={{ color: "#ef4444" }}>*</span>
             </label>
             <input
               type="date"
@@ -393,7 +310,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <label style={{ margin: 0, fontSize: "0.82rem", fontWeight: "700", color: "#334155", textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                TRACKING REMARKS / ACTIVITY NOTE
+                SPECIAL REMARKS
               </label>
               <button
                 type="button"
@@ -419,7 +336,7 @@ const TrackingUpdateModal = ({ isOpen, onClose, booking, bulkBookings = [], onSu
             <input
               type="text"
               name="remarks"
-              placeholder="E.G. SHIPMENT IN TRANSIT EN ROUTE VIA PUNE"
+              placeholder="Enter your remarks"
               value={formData.remarks}
               onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
               style={{

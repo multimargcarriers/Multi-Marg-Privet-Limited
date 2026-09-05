@@ -365,6 +365,7 @@ const UpdateBill = () => {
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Client Name</label>
                   <div style={{ width: "100%", background: "white", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
                       <CreatableDropdown
+                        category="client"
                         options={clients}
                         value={form.client}
                         onChange={(val) => {
@@ -387,9 +388,9 @@ const UpdateBill = () => {
                   <label className="form-label" style={{ fontWeight: "700", fontSize: "0.8rem", color: "#334155" }}>Mode</label>
                   <select className="form-control" value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
                     <option value="Road">Road</option>
+                    <option value="Road Express">Road Express</option>
                     <option value="Train">Train</option>
                     <option value="Air">Air</option>
-                    <option value="Sea">Sea</option>
                   </select>
                 </div>
                 <div>

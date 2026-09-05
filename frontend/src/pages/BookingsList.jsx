@@ -674,27 +674,27 @@ const BookingsList = () => {
                           (item.status && String(item.status).toLowerCase() === 'delivered')
                         ));
 
-                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial "booked" as "Picked Up"
+                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial status as "In Transit"
                       const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status;
 
-                      let resolvedStatus = 'Picked Up';
+                      let resolvedStatus = 'In Transit';
                       if (isDelivered) {
                         resolvedStatus = 'Delivered';
-                      } else if (explicitStatus && !['booked', 'unbilled', 'billed'].includes(String(explicitStatus).toLowerCase())) {
+                      } else if (explicitStatus && !['unbilled', 'billed', 'booked', 'picked up', 'shipment booked'].includes(String(explicitStatus).toLowerCase())) {
                         resolvedStatus = explicitStatus;
-                      } else if (item.status && !['booked', 'unbilled', 'billed'].includes(String(item.status).toLowerCase())) {
+                      } else if (item.status && !['unbilled', 'billed', 'booked', 'picked up', 'shipment booked'].includes(String(item.status).toLowerCase())) {
                         resolvedStatus = item.status;
                       } else {
-                        resolvedStatus = 'Picked Up';
+                        resolvedStatus = 'In Transit';
                       }
 
                       const normStatus = String(resolvedStatus || '').trim().toLowerCase();
 
-                      let bg = '#f0f9ff';
-                      let color = '#0284c7';
-                      let border = '#bae6fd';
-                      let icon = <Package size={13} />;
-                      let displayStatus = 'PICKED UP';
+                      let bg = '#fffbeb';
+                      let color = '#d97706';
+                      let border = '#fde68a';
+                      let icon = <Truck size={13} />;
+                      let displayStatus = 'IN TRANSIT';
 
                       if (normStatus.includes('out for delivery') || normStatus.includes('out_for_delivery')) {
                         bg = '#f5f3ff';
@@ -714,24 +714,12 @@ const BookingsList = () => {
                         border = '#99f6e4';
                         icon = <MapPin size={13} />;
                         displayStatus = 'REACHED HUB';
-                      } else if (normStatus.includes('transit')) {
+                      } else if (normStatus.includes('transit') || normStatus.includes('book') || normStatus.includes('pickup') || normStatus.includes('picked')) {
                         bg = '#fffbeb';
                         color = '#d97706';
                         border = '#fde68a';
                         icon = <Truck size={13} />;
                         displayStatus = 'IN TRANSIT';
-                      } else if (normStatus.includes('pickup') || normStatus.includes('picked')) {
-                        bg = '#f0f9ff';
-                        color = '#0284c7';
-                        border = '#bae6fd';
-                        icon = <Package size={13} />;
-                        displayStatus = 'PICKED UP';
-                      } else if (normStatus.includes('book')) {
-                        bg = '#eff6ff';
-                        color = '#2563eb';
-                        border = '#bfdbfe';
-                        icon = <Package size={13} />;
-                        displayStatus = 'SHIPMENT BOOKED';
                       } else if (normStatus.includes('delay')) {
                         bg = '#fff7ed';
                         color = '#ea580c';
@@ -746,11 +734,11 @@ const BookingsList = () => {
                         displayStatus = 'RETURNED';
                       } else {
                         // Custom status
-                        bg = '#f8fafc';
-                        color = '#475569';
-                        border = '#e2e8f0';
+                        bg = '#fffbeb';
+                        color = '#d97706';
+                        border = '#fde68a';
                         icon = <Truck size={13} />;
-                        displayStatus = String(resolvedStatus || '').toUpperCase();
+                        displayStatus = String(resolvedStatus || 'IN TRANSIT').toUpperCase();
                       }
 
                       return (
@@ -798,9 +786,11 @@ const BookingsList = () => {
                           (item.status && String(item.status).toLowerCase() === 'delivered')
                         ));
 
-                      const location = isDelivered 
-                        ? (item.destination || (typeof track === 'object' ? track?.location : null) || 'Destination')
-                        : ((typeof track === 'object' ? track?.location : null) || item.origin || 'Origin Hub');
+                      const rawLocation = isDelivered 
+                        ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')
+                        : ((typeof track === 'object' ? track?.location : null) || item.currentLocation || item.origin || 'Origin Facility');
+
+                      const location = String(rawLocation || '').trim().toUpperCase();
 
                       return (
                         <span className="booking-location-text">

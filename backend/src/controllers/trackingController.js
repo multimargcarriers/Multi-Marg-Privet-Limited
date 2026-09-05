@@ -42,6 +42,7 @@ exports.postRoot_3 = async (req, res) => {
   entry.enteredById = req.user?.id || null;
   entry.enteredByRole = req.user?.role || "Unknown";
 
+  entry.location = String(entry.location || '').trim().toUpperCase();
   const now = new Date().toISOString();
   if (!entry.date || !entry.date.includes('T')) {
     if (entry.date && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
@@ -71,20 +72,17 @@ exports.postRoot_3 = async (req, res) => {
         const isFinal = currentStatus === 'delivered' || currentStatus === 'billed' || currentTransit === 'delivered';
         
         const bookingUpdate = {
-          lastTrackingUpdate: new Date().toISOString()
+          lastTrackingUpdate: new Date().toISOString(),
+          currentLocation: entry.location
         };
 
         if (!isFinal) {
           bookingUpdate.transitStatus = entry.status;
           bookingUpdate.trackingStatus = entry.status;
-          bookingUpdate.currentLocation = entry.location;
           if (entry.status === 'Delivered') {
             bookingUpdate.status = 'Delivered';
             bookingUpdate.deliveryDate = entry.date || new Date().toISOString();
           }
-        } else {
-          // If it is final, only update current location if provided, but don't touch status
-          bookingUpdate.currentLocation = entry.location || existingBooking.currentLocation;
         }
 
         await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });
@@ -154,8 +152,9 @@ exports.delete_id_4 = async (req, res) => {
           ]
         });
 
-        let newStatus = "Picked Up";
-        let currentLocation = null;
+        const originLoc = existingBooking.origin ? String(existingBooking.origin).trim().toUpperCase() : "ORIGIN FACILITY";
+        let newStatus = "In Transit";
+        let currentLocation = originLoc;
 
         if (podDoc) {
           newStatus = "Delivered";
@@ -168,8 +167,8 @@ exports.delete_id_4 = async (req, res) => {
           checkpoints.sort((a, b) => parseDateSecurely(b.date || b.updatedAt || b.createdAt) - parseDateSecurely(a.date || a.updatedAt || a.createdAt));
           
           const latestCheckpoint = checkpoints[0];
-          newStatus = latestCheckpoint.status || "Picked Up";
-          currentLocation = latestCheckpoint.location || null;
+          newStatus = latestCheckpoint.status || "In Transit";
+          currentLocation = latestCheckpoint.location ? String(latestCheckpoint.location).trim().toUpperCase() : originLoc;
         }
 
         const bookingUpdate = {
@@ -272,14 +271,15 @@ exports.postBulk_6 = async (req, res) => {
     return `Shipment is at ${l}`;
   };
 
+  const cleanLoc = String(location || '').trim().toUpperCase();
   for (const awb of awbs) {
     const cleanAwb = String(awb).trim().toUpperCase();
     const entryData = {
       awb: cleanAwb,
       status,
-      location,
+      location: cleanLoc,
       date: trackingDate,
-      remarks: remarks ? String(remarks).trim() : getSensibleRemark(status, location),
+      remarks: remarks ? String(remarks).trim() : "",
       enteredBy,
       enteredById,
       enteredByRole,
@@ -305,20 +305,17 @@ exports.postBulk_6 = async (req, res) => {
           const isFinal = currentStatus === 'delivered' || currentStatus === 'billed' || currentTransit === 'delivered';
           
           const bookingUpdate = {
-            lastTrackingUpdate: now
+            lastTrackingUpdate: now,
+            currentLocation: cleanLoc
           };
 
           if (!isFinal) {
             bookingUpdate.transitStatus = status;
             bookingUpdate.trackingStatus = status;
-            bookingUpdate.currentLocation = location;
             if (status === 'Delivered') {
               bookingUpdate.status = 'Delivered';
               bookingUpdate.deliveryDate = trackingDate;
             }
-          } else {
-            // If it is final, only update current location if provided, but don't touch status
-            bookingUpdate.currentLocation = location || existingBooking.currentLocation;
           }
 
           await db.mongoDb.collection("bookings").updateOne({ _id: existingBooking._id }, { $set: bookingUpdate });

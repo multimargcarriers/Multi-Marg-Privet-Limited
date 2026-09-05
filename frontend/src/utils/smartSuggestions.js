@@ -54,7 +54,12 @@ let suggestionsCache = {
   general: { recent: [], frequent: {}, preloaded: [] }
 };
 
-// Initialize cache from appDB / localStorage
+export const isClientName = (text) => {
+  const t = String(text || "").toUpperCase();
+  return /\b(PVT|LTD|LIMITED|INDUSTRIES|ENTERPRISES|CORPORATION|CORP|COMPANY|AUTOMOTIVE|LOGISTICS|CARRIERS|HOLDINGS|VENTURES|SYSTEMS|LLP|INC|LLC|SEALS|EXHAUST|TECHNOLOGY|ENGINEERING|COMPONENTS|TRADERS|EXPORTS|IMPORTS|AGENCIES)\b/.test(t) || t.includes("UNIT -") || t.includes("UNIT-");
+};
+
+// Initialize cache from appDB / localStorage and sanitize cross-category contamination
 const initSuggestions = () => {
   try {
     const raw = appDB.memGet(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
@@ -71,6 +76,44 @@ const initSuggestions = () => {
           }
         });
       }
+    }
+
+    // STRICT PURGE: Remove any company/client names mistakenly stored under 'city'
+    if (suggestionsCache.city) {
+      const leakedClients = [];
+      
+      suggestionsCache.city.recent = (suggestionsCache.city.recent || []).filter(r => {
+        const text = typeof r === 'string' ? r : r.text;
+        if (isClientName(text)) {
+          leakedClients.push({ text, timestamp: r.timestamp || Date.now() });
+          return false;
+        }
+        return true;
+      });
+
+      const newCityFrequent = {};
+      Object.entries(suggestionsCache.city.frequent || {}).forEach(([k, count]) => {
+        if (isClientName(k)) {
+          leakedClients.push({ text: k, timestamp: Date.now() });
+        } else {
+          newCityFrequent[k] = count;
+        }
+      });
+      suggestionsCache.city.frequent = newCityFrequent;
+
+      suggestionsCache.city.preloaded = (suggestionsCache.city.preloaded || []).filter(p => !isClientName(p));
+
+      // Move leaked items to client category
+      if (leakedClients.length > 0 && suggestionsCache.client) {
+        leakedClients.forEach(c => {
+          if (!suggestionsCache.client.recent.some(r => (typeof r === 'string' ? r : r.text) === c.text)) {
+            suggestionsCache.client.recent.unshift(c);
+          }
+          suggestionsCache.client.frequent[c.text] = (suggestionsCache.client.frequent[c.text] || 0) + 1;
+        });
+      }
+
+      saveSuggestions();
     }
   } catch (e) {
     console.warn('[SmartSuggestions] init error:', e);
@@ -101,7 +144,13 @@ export const recordSuggestion = (rawCategory = 'general', rawText) => {
   const text = normalizeText(rawText);
   if (!text || text.length < 2) return;
 
-  const cat = resolveCategory(rawCategory);
+  let cat = resolveCategory(rawCategory);
+  
+  // Guard against recording client names into city category
+  if (cat === 'city' && isClientName(text)) {
+    cat = 'client';
+  }
+
   if (!suggestionsCache[cat]) {
     suggestionsCache[cat] = { recent: [], frequent: {}, preloaded: [] };
   }
@@ -143,10 +192,16 @@ export const getSuggestions = (rawCategory = 'general', query = '', limit = 8) =
   const seen = new Set();
   const results = [];
 
+  const isValidForCat = (item) => {
+    if (!item) return false;
+    if (cat === 'city' && isClientName(item)) return false;
+    return true;
+  };
+
   // 1. RECENT ITEMS FIRST
   const recentList = (catData.recent || []).map(r => (typeof r === 'string' ? r : r.text));
   for (const item of recentList) {
-    if (!item) continue;
+    if (!isValidForCat(item)) continue;
     if (q && !item.includes(q)) continue;
     if (!seen.has(item)) {
       seen.add(item);
@@ -163,7 +218,7 @@ export const getSuggestions = (rawCategory = 'general', query = '', limit = 8) =
     .sort((a, b) => b[1] - a[1]);
 
   for (const [item, count] of frequentEntries) {
-    if (!item) continue;
+    if (!isValidForCat(item)) continue;
     if (q && !item.includes(q)) continue;
     if (!seen.has(item)) {
       seen.add(item);
@@ -178,7 +233,7 @@ export const getSuggestions = (rawCategory = 'general', query = '', limit = 8) =
   // 3. PRELOADED DATABASE OPTIONS NEXT
   const preloadedList = catData.preloaded || [];
   for (const item of preloadedList) {
-    if (!item) continue;
+    if (!isValidForCat(item)) continue;
     if (q && !item.includes(q)) continue;
     if (!seen.has(item)) {
       seen.add(item);

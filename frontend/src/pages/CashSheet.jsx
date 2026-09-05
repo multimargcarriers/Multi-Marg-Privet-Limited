@@ -828,6 +828,7 @@ const CashSheet = () => {
                         ) : (
                           <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
                             <CreatableDropdown 
+                              category={formData.partyType === "Client" ? "client" : formData.partyType === "Vendor" ? "vendor" : "general"}
                               options={formData.partyType === "Client" ? clients : formData.partyType === "Vendor" ? vendors : employees} 
                               value={formData.partyName} 
                               onChange={(val) => setFormData({ ...formData, partyName: val })} 

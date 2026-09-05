@@ -356,7 +356,7 @@ const Vendors = () => {
                   <option value="ROAD" />
                   <option value="TRAIN" />
                   <option value="AIR" />
-                  <option value="Sea" />
+                  <option value="Road Express" />
                 </datalist>
               </div>
               <div>

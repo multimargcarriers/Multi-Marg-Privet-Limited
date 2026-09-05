@@ -227,7 +227,9 @@ exports.postRoot_1 = async (req, res) => {
   booking.date = enteredDate;
   booking.createdAt = new Date().toISOString();
   booking.realBookingDate = booking.createdAt;
-  booking.status = "Booked";
+  booking.status = "In Transit";
+  booking.transitStatus = "In Transit";
+  booking.currentLocation = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
   booking.billed = false;
   booking.billNo = "";
   booking.lrNumber = generateLRNumber();
@@ -310,12 +312,13 @@ exports.postRoot_1 = async (req, res) => {
           trackingDate = `${booking.dispatch_date}T${nowStr.split('T')[1]}`;
         }
       }
+      const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN FACILITY";
       const initialTracking = {
         awb: awbVal,
-        status: booking.status || booking.transitStatus || "Shipment Booked",
-        location: booking.origin || "Origin Facility",
+        status: "In Transit",
+        location: initialOrigin,
         date: trackingDate,
-        remarks: booking.remarks || "Shipment booked and Lorry Receipt generated.",
+        remarks: booking.remarks || `Shipment in transit from ${initialOrigin}`,
         enteredBy: req.user?.name || req.user?.email || "Admin",
         enteredById: req.user?.id || null,
         enteredByRole: req.user?.role || "Admin",
@@ -400,11 +403,30 @@ exports.getRoot_2 = async (req, res) => {
         docData.podUrl = null;
         docData.pod = null;
         if (String(docData.status || '').toLowerCase() === 'delivered') {
-          docData.status = docData.transitStatus || 'Picked Up';
+          docData.status = docData.transitStatus || 'In Transit';
         }
       } else {
         docData.podUploaded = true;
         docData.podUrl = matchingPodUrl;
+      }
+
+      // If not delivered, ensure transitStatus and status are 'In Transit' if booked/picked up or empty
+      const currSt = String(docData.status || '').toLowerCase();
+      const currTransit = String(docData.transitStatus || '').toLowerCase();
+      if (!matchingPodUrl && currSt !== 'delivered' && currTransit !== 'delivered') {
+        if (!docData.transitStatus || ['booked', 'picked up', 'shipment booked', ''].includes(currTransit)) {
+          docData.transitStatus = 'In Transit';
+        }
+        if (!docData.status || ['booked', 'picked up', 'shipment booked', ''].includes(currSt)) {
+          docData.status = 'In Transit';
+        }
+      }
+
+      // Ensure currentLocation defaults to origin in uppercase
+      if (!docData.currentLocation && docData.origin) {
+        docData.currentLocation = String(docData.origin).trim().toUpperCase();
+      } else if (docData.currentLocation) {
+        docData.currentLocation = String(docData.currentLocation).trim().toUpperCase();
       }
 
       // Add hasPdf cache status flag

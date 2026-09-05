@@ -464,6 +464,7 @@ const GenerateBill = () => {
             <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#475569", marginBottom: "0.5rem" }}>Client</label>
             <div style={{ background: "white", borderRadius: "8px", padding: "2px" }}>
               <CreatableDropdown 
+                category="client"
                 options={clients} 
                 value={filters.client} 
                 onChange={(val) => setFilters({ ...filters, client: val })} 
@@ -479,9 +480,9 @@ const GenerateBill = () => {
               <select name="mode" value={filters.mode} onChange={handleChange} style={{ width: "100%", padding: "0.65rem", borderRadius: "8px", border: "1px solid #cbd5e1", outline: "none", boxSizing: "border-box", backgroundColor: "white" }}>
                 <option value="">-- All Modes --</option>
                 <option value="Road">Road</option>
+                <option value="Road Express">Road Express</option>
                 <option value="Train">Train</option>
                 <option value="Air">Air</option>
-                <option value="Sea">Sea</option>
               </select>
             </div>
             <div>

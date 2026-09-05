@@ -149,4 +149,48 @@ router.get("/recent", async (req, res) => {
   }
 });
 
+// GET /api/suggestions/ip-location - Detect user's current city based on IP
+router.get("/ip-location", async (req, res) => {
+  try {
+    let clientIp = req.headers['cf-connecting-ip'] || 
+                   req.headers['x-real-ip'] || 
+                   (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 
+                   req.socket.remoteAddress || '';
+    
+    // Clean local IPs
+    if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.startsWith('192.168.') || clientIp.startsWith('10.') || clientIp.startsWith('172.')) {
+      clientIp = ''; // Egress IP will be used by geo API
+    }
+
+    const axios = require('axios');
+    const url = clientIp ? `https://ipwho.is/${clientIp}` : `https://ipwho.is/`;
+    const geoRes = await axios.get(url, { timeout: 3000 }).catch(() => null);
+    
+    if (geoRes && geoRes.data && geoRes.data.success !== false && geoRes.data.city) {
+      return res.json({
+        success: true,
+        city: String(geoRes.data.city).toUpperCase(),
+        region: geoRes.data.region || "",
+        country: geoRes.data.country || "India"
+      });
+    }
+
+    // Fallback using ipapi.co
+    const fallbackUrl = clientIp ? `https://ipapi.co/${clientIp}/json/` : `https://ipapi.co/json/`;
+    const fbRes = await axios.get(fallbackUrl, { timeout: 3000 }).catch(() => null);
+    if (fbRes && fbRes.data && fbRes.data.city) {
+      return res.json({
+        success: true,
+        city: String(fbRes.data.city).toUpperCase(),
+        region: fbRes.data.region || "",
+        country: fbRes.data.country_name || "India"
+      });
+    }
+
+    return res.json({ success: false, city: null });
+  } catch (err) {
+    return res.json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

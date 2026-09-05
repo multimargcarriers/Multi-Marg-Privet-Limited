@@ -781,6 +781,7 @@ const Trips = () => {
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Vendor<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
+                category="vendor"
                 options={vendors}
                 value={form.vendor}
                 onChange={(val) => setForm({ ...form, vendor: val })}
@@ -792,6 +793,7 @@ const Trips = () => {
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Origin<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
+                category="origin"
                 options={cities}
                 value={form.origin}
                 onChange={(city) => setForm({ ...form, origin: city })}
@@ -803,6 +805,7 @@ const Trips = () => {
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: "500", color: "#374151" }}>Destination<span style={{ color: "#ef4444", marginLeft: "2px" }}>*</span></label>
               <CreatableDropdown
+                category="destination"
                 options={cities}
                 value={form.destination}
                 onChange={(city) => setForm({ ...form, destination: city })}
@@ -833,6 +836,7 @@ const Trips = () => {
                   <div>
                     <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>Client Name</label>
                     <CreatableDropdown
+                      category="client"
                       options={clients}
                       value={mat.clientName}
                       onChange={val => updateMaterialRow(i, "clientName", val)}
@@ -848,6 +852,7 @@ const Trips = () => {
                   <div>
                     <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>From</label>
                     <CreatableDropdown
+                      category="origin"
                       options={cities}
                       value={mat.origin}
                       onChange={val => updateMaterialRow(i, "origin", val)}
@@ -859,6 +864,7 @@ const Trips = () => {
                   <div>
                     <label style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "4px", display: "block" }}>To</label>
                     <CreatableDropdown
+                      category="destination"
                       options={cities}
                       value={mat.destination}
                       onChange={val => updateMaterialRow(i, "destination", val)}
