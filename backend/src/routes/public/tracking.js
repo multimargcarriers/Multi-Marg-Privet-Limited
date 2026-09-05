@@ -141,31 +141,34 @@ router.get('/:awb', async (req, res) => {
       const bookingDateISO = bookingDateObj.toISOString();
 
       // 1. Shipment Booked milestone
+      const originName = booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB";
       const hasBookedStatus = entries.some(e => String(e.status || '').toLowerCase().includes("book"));
       if (!hasBookedStatus) {
         entries.push({
           id: `booked-${booking.id || baseAwb}`,
           awb: baseAwb,
-          status: "Shipment Booked",
-          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN HUB",
+          status: "Booked",
+          location: originName,
           date: bookingDateISO,
-          remarks: "Shipment details received and Lorry Receipt (LR) generated.",
+          remarks: `Shipment booked at ${originName}. Lorry Receipt (LR) generated.`,
           updatedAt: bookingDateISO
         });
       }
 
-      // 2. In Transit milestone (automatically at Origin facility)
+      // 2. In Transit milestone (automatically next with separate origin note)
       const hasInTransitStatus = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
-      const transitDateObj = booking.createdAt ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000) : bookingDateObj;
+      const transitDateObj = booking.createdAt 
+        ? new Date(new Date(booking.createdAt).getTime() + 2 * 60 * 1000) 
+        : new Date(bookingDateObj.getTime() + 2 * 60 * 1000);
       if (!hasInTransitStatus) {
         const transitDateISO = transitDateObj.toISOString();
         entries.push({
           id: `transit-${booking.id || baseAwb}`,
           awb: baseAwb,
           status: "In Transit",
-          location: booking.origin ? String(booking.origin).toUpperCase() : "ORIGIN FACILITY",
+          location: originName,
           date: transitDateISO,
-          remarks: `Shipment in transit from ${booking.origin ? String(booking.origin).toUpperCase() : 'origin'} facility.`,
+          remarks: `Shipment in transit from ${originName} facility`,
           updatedAt: transitDateISO
         });
       }

@@ -1333,8 +1333,8 @@ const Tracking = () => {
                               )}
                             </div>
                             {entry.remarks && (
-                              <div style={{ fontSize: "0.85rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.85)" : "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "6px", borderLeft: `3px solid ${color}`, fontStyle: "italic", fontWeight: 500 }}>
-                                "{entry.remarks}"
+                              <div style={{ fontSize: "0.85rem", color: "#334155", background: isLatest ? "rgba(255, 255, 255, 0.85)" : "#f8fafc", padding: "0.5rem 0.75rem", borderRadius: "6px", borderLeft: `3px solid ${color}`, fontStyle: "normal", fontWeight: 500 }}>
+                                {entry.remarks}
                               </div>
                             )}
 
@@ -1609,8 +1609,8 @@ const Tracking = () => {
                           )}
                         </div>
                         {entry.remarks && (
-                          <div style={{ marginTop: "0.3rem", fontSize: "0.8rem", color: "#64748b", fontStyle: "italic" }}>
-                            "{entry.remarks}"
+                          <div style={{ marginTop: "0.3rem", fontSize: "0.8rem", color: "#64748b", fontStyle: "normal" }}>
+                            {entry.remarks}
                           </div>
                         )}
                       </div>

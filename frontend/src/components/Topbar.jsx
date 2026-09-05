@@ -292,7 +292,7 @@ const Topbar = ({ toggleSidebar, _isSidebarOpen, hasSidebar = true }) => {
                 }}
                 title="Type custom text size percentage (50 - 400) & press Enter"
                 style={{
-                  width: '32px',
+                  width: '36px',
                   background: 'transparent',
                   border: 'none',
                   color: '#ffffff',

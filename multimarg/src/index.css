@@ -195,16 +195,16 @@ ul {
 .bg-red { background-color: var(--primary-red); }
 
 @media (max-width: 768px) {
-  .section-padding { padding: 3rem 0; }
+  .section-padding { padding: 2rem 0 !important; }
   .section-title h2 { font-size: 1.75rem; }
   .floating-side-nav { display: none; }
   
   .container {
-    padding: 0 0.15rem !important;
+    padding: 0 0.35rem !important;
   }
   
   .nav-container {
-    padding: 0 1rem !important;
+    padding: 0 0.75rem !important;
   }
   
   .brand-name {
@@ -219,39 +219,42 @@ ul {
 
   /* Responsive adjustments for Tracking Card & Timeline */
   .tracking-card {
-    padding: 0.4rem 0.5rem !important;
-    border-radius: 8px !important;
+    padding: 0.65rem 0.55rem !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
   
   .timeline-list-container {
-    padding-left: 0.4rem !important;
+    padding-left: 0.25rem !important;
     margin-top: 1rem !important;
   }
   
   .timeline-vertical-line {
-    left: 12px !important;
+    left: 11px !important;
   }
   
   .timeline-item {
-    gap: 0.5rem !important;
-    margin-bottom: 1.5rem !important;
+    gap: 0.4rem !important;
+    margin-bottom: 1.25rem !important;
   }
   
   .timeline-icon-circle {
-    width: 26px !important;
-    height: 26px !important;
+    width: 24px !important;
+    height: 24px !important;
     border-width: 1.5px !important;
     margin-left: -1px !important;
     box-shadow: none !important;
   }
   
   .timeline-icon-circle svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 11px !important;
+    height: 11px !important;
   }
   
   .timeline-details-card {
-    padding: 0.6rem 0.75rem !important;
+    padding: 0.6rem 0.65rem !important;
     border-radius: 8px !important;
   }
 }
@@ -266,16 +269,146 @@ ul {
   white-space: nowrap;
 }
 
-/* 2-column shipment details grid for desktop, 1-column stack on mobile */
-.shipment-details-grid {
+/* ==========================================================================
+   TRACKING PAGE RESPONSIVE DESIGN SYSTEM (MOBILE, TABLET, DESKTOP)
+   ========================================================================== */
+
+/* Main tracking card wrapper */
+.tracking-wrapper {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-bottom: 4.5rem; /* Prevents floating chat widget from overlapping */
+}
+
+/* Professional Section Card - Easily identified from far away */
+.tracking-section-box {
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.tracking-section-box.section-shipment {
+  border-left: 6px solid #1e40af;
+}
+
+.tracking-section-box.section-invoice {
+  border-left: 6px solid #0284c7;
+}
+
+.tracking-section-box.section-timeline {
+  border-left: 6px solid #059669;
+}
+
+/* Route Strip - Auto arranged across all device widths */
+.tracking-route-bar {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.4rem 2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.tracking-route-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tracking-route-origin {
+  text-align: left;
+}
+
+.tracking-route-current {
+  text-align: center;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+}
+
+.tracking-route-dest {
+  text-align: right;
 }
 
 @media (max-width: 768px) {
-  .shipment-details-grid {
+  .tracking-route-bar {
     grid-template-columns: 1fr;
-    gap: 0.4rem 0.5rem;
+    gap: 0.45rem;
+    padding: 0.55rem 0.65rem;
+  }
+  
+  .tracking-route-origin,
+  .tracking-route-dest {
+    text-align: left;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.35rem;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  
+  .tracking-route-dest {
+    border-bottom: none;
+  }
+  
+  .tracking-route-current {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    padding: 0.35rem 0.5rem;
   }
 }
+
+/* Auto-arranging Shipment Details Grid */
+.shipment-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.shipment-field-card {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .shipment-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+  .shipment-field-card {
+    padding: 0.35rem 0.55rem;
+  }
+}
+
+/* Responsive Table Wrapper with Fluid Font & Touch Scroll */
+.responsive-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.responsive-table-wrapper table {
+  width: 100%;
+}
+

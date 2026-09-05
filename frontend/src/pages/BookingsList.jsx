@@ -70,6 +70,50 @@ const formatRealDateTimeSec = (dateVal) => {
   return `${day}-${month}-${year} ${hours}:${mins}:${secs}`;
 };
 
+// 5 Professional Enterprise Accent Colors for Selector-Side Visual Separation
+const BOOKING_CARD_PALETTES = [
+  {
+    id: 0,
+    name: "navy",
+    border: "#1e40af",      // Corporate Navy Blue
+    hover: "#1d4ed8",
+    glow: "rgba(30, 64, 175, 0.16)",
+    checkbox: "#1e40af",
+  },
+  {
+    id: 1,
+    name: "emerald",
+    border: "#047857",      // Deep Forest Emerald
+    hover: "#065f46",
+    glow: "rgba(4, 120, 87, 0.16)",
+    checkbox: "#047857",
+  },
+  {
+    id: 2,
+    name: "bronze",
+    border: "#b45309",      // Warm Industrial Bronze / Amber
+    hover: "#92400e",
+    glow: "rgba(180, 83, 9, 0.16)",
+    checkbox: "#b45309",
+  },
+  {
+    id: 3,
+    name: "slate",
+    border: "#334155",      // Steel Slate / Charcoal
+    hover: "#1e293b",
+    glow: "rgba(51, 65, 85, 0.16)",
+    checkbox: "#334155",
+  },
+  {
+    id: 4,
+    name: "teal",
+    border: "#0e7490",      // Deep Ocean Teal
+    hover: "#155e75",
+    glow: "rgba(14, 116, 144, 0.16)",
+    checkbox: "#0e7490",
+  },
+];
+
 const BookingsList = () => {
   const { syncQueue } = useSync();
   const { user, hasPermission } = useContext(AuthContext);
@@ -155,7 +199,14 @@ const BookingsList = () => {
 
   // Local Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(50);
+  const [entriesPerPage, setEntriesPerPage] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mmc_bookings_entries_per_page');
+      return saved ? Number(saved) : 50;
+    } catch (e) {
+      return 50;
+    }
+  });
 
   const navigate = useNavigate();
 
@@ -499,13 +550,23 @@ const BookingsList = () => {
               <span className="premium-filter-label">Show</span>
               <select
                 value={entriesPerPage}
-                onChange={(e) => { setEntriesPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEntriesPerPage(val);
+                  try {
+                    localStorage.setItem('mmc_bookings_entries_per_page', String(val));
+                  } catch (err) {
+                    console.error('Failed to save entries per page preference', err);
+                  }
+                  setCurrentPage(1);
+                }}
                 className="premium-filter-input"
-                style={{ cursor: "pointer", width: "45px" }}
+                style={{ cursor: "pointer", minWidth: "54px", width: "auto" }}
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
+                <option value="75">75</option>
                 <option value="100">100</option>
               </select>
               <span className="premium-filter-label" style={{ marginLeft: 0 }}>entries</span>
@@ -557,6 +618,7 @@ const BookingsList = () => {
             </div>
           </div>
 
+
         </div>
       </div>
 
@@ -602,7 +664,7 @@ const BookingsList = () => {
           <p style={{ marginTop: '0.5rem' }}>Try adjusting your search filters or import new data.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           {currentEntries.map((item, index) => {
             const itemId = item.id || item._id;
             const isSelected = selectedBookingIds.includes(itemId);
@@ -636,8 +698,30 @@ const BookingsList = () => {
             const hasPodEntry = Boolean(activePod || item.podUploaded || item.podUrl);
             const itemWithAwb = { ...item, awb: awb || item.awb || item.awbNo || item.consignment || item.lrNo };
 
+            // Assign one of the 5 attractive colors so consecutive cards alternate cleanly
+            const colorIndex = (typeof item.colorIndex === 'number')
+              ? (item.colorIndex % BOOKING_CARD_PALETTES.length)
+              : ((indexOfFirst + index) % BOOKING_CARD_PALETTES.length);
+            const cardTheme = BOOKING_CARD_PALETTES[colorIndex];
+
             return (
-              <div key={itemId || `booking-${index}`} className="booking-card" style={{ opacity: item.isOfflinePending ? 0.8 : 1, border: isSelected ? "2px solid #2563eb" : (item.isOfflinePending ? "2px dashed #f59e0b" : undefined), background: isSelected ? "#f8faff" : undefined }}>
+              <div 
+                key={itemId || `booking-${index}`} 
+                className={`booking-card card-accent-${colorIndex}${item.isOfflinePending ? ' is-offline-pending' : ''}`}
+                style={{ 
+                  opacity: item.isOfflinePending ? 0.8 : 1, 
+                  borderColor: isSelected 
+                    ? cardTheme.border 
+                    : (item.isOfflinePending ? "#f59e0b" : undefined), 
+                  borderLeftColor: item.isOfflinePending 
+                    ? "#f59e0b" 
+                    : cardTheme.border,
+                  boxShadow: isSelected 
+                    ? `0 4px 16px ${cardTheme.glow}` 
+                    : undefined,
+                  background: isSelected ? "#f8faff" : undefined 
+                }}
+              >
 
                 {/* ── Card Header ── */}
                 <div className="booking-card-header">
@@ -647,7 +731,13 @@ const BookingsList = () => {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleSelectBooking(itemId)}
-                        style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#2563eb", flexShrink: 0 }}
+                        style={{ 
+                          width: "18px", 
+                          height: "18px", 
+                          cursor: "pointer", 
+                          accentColor: cardTheme.checkbox, 
+                          flexShrink: 0 
+                        }}
                       />
                       <h4 className="booking-client-name">
                         {String(item.client || item.consignor || "UNKNOWN CLIENT").toUpperCase()}
@@ -657,7 +747,7 @@ const BookingsList = () => {
                       </h4>
                     </div>
 
-                    {/* Status badge in top row */}
+                    {/* Status badge & Location in top right */}
                     {(() => {
                       const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
                       const trackStatus = typeof track === 'object' ? track?.status : track;
@@ -673,6 +763,12 @@ const BookingsList = () => {
                           (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
                           (item.status && String(item.status).toLowerCase() === 'delivered')
                         ));
+
+                      const rawLocation = isDelivered 
+                        ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')
+                        : ((typeof track === 'object' ? track?.location : null) || item.currentLocation || item.origin || 'Origin Facility');
+
+                      const location = String(rawLocation || '').trim().toUpperCase();
 
                       // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial status as "In Transit"
                       const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status;
@@ -755,54 +851,33 @@ const BookingsList = () => {
                               background: bg,
                               color: color,
                               border: `1.5px solid ${border}`,
-                              fontWeight: 800,
-                              fontSize: "0.78rem",
-                              letterSpacing: "0.03em"
                             }}
-                            title="Click to update tracking checkpoint"
+                            title={`Status: ${displayStatus}${location ? ` • ${location}` : ''} (Click to update tracking checkpoint)`}
                           >
-                            {icon} <span>{displayStatus}</span>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 800, fontSize: "0.72rem", letterSpacing: "0.02em" }}>
+                              {icon} <span>{displayStatus}</span>
+                            </div>
+                            {location && (
+                              <span 
+                                style={{ 
+                                  fontSize: "0.58rem", 
+                                  fontWeight: 700, 
+                                  color: "#ef4444", 
+                                  display: "inline-flex", 
+                                  alignItems: "center", 
+                                  gap: "2px", 
+                                  textTransform: "uppercase",
+                                  lineHeight: 1,
+                                  letterSpacing: "0.02em"
+                                }}
+                              >
+                                <MapPin size={8} color="#ef4444" /> {location}
+                              </span>
+                            )}
                           </button>
                         </div>
                       );
                     })()}
-                  </div>
-
-                  {/* Sub-row: Location & Clerk */}
-                  <div className="booking-card-sub-info">
-                    {(() => {
-                      const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
-                      const trackStatus = typeof track === 'object' ? track?.status : track;
-                      const trackStatusLower = String(trackStatus || '').toLowerCase();
-                      const latestIsDelivered = trackStatusLower === 'delivered';
-                      const latestIsOther = trackStatusLower && trackStatusLower !== 'delivered';
-
-                      const isDelivered = 
-                        Boolean(hasPodEntry) || 
-                        (!latestIsOther && (
-                          latestIsDelivered ||
-                          (item.transitStatus && String(item.transitStatus).toLowerCase() === 'delivered') ||
-                          (item.delivery_status && String(item.delivery_status).toLowerCase() === 'delivered') ||
-                          (item.status && String(item.status).toLowerCase() === 'delivered')
-                        ));
-
-                      const rawLocation = isDelivered 
-                        ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')
-                        : ((typeof track === 'object' ? track?.location : null) || item.currentLocation || item.origin || 'Origin Facility');
-
-                      const location = String(rawLocation || '').trim().toUpperCase();
-
-                      return (
-                        <span className="booking-location-text">
-                          <MapPin size={12} color="#64748b" /> {location}
-                        </span>
-                      );
-                    })()}
-                    {isSuperAdmin && (
-                      <span className="booking-clerk-badge">
-                        Booked By: {item.clerk_name || "Admin"}
-                      </span>
-                    )}
                   </div>
 
                   {/* Badges Flow */}
@@ -856,28 +931,37 @@ const BookingsList = () => {
                       </span>
                     )}
 
-                    {/* Super Admin Audit Real Timestamp (Subtle small font at the end) */}
+                    {/* Super Admin Audit: Booked By & Real Timestamp */}
                     {isSuperAdmin && (
-                      <span 
-                        className="booking-meta-badge" 
-                        style={{ 
-                          background: "#f8fafc", 
-                          color: "#64748b", 
-                          border: "1px solid #e2e8f0",
-                          fontWeight: 500,
-                          fontSize: "0.68rem",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                          padding: "2px 7px",
-                          borderRadius: "4px",
-                          letterSpacing: "0.02em",
-                          marginLeft: "auto"
-                        }} 
-                        title={`Database Real Creation Timestamp (Super Admin Tracking): ${item.createdAt || item.realBookingDate || item.created_at || item.date}`}
-                      >
-                        🕒 Real: {formatRealDateTimeSec(item.createdAt || item.realBookingDate || item.created_at || item.date)}
-                      </span>
+                      <div className="booking-superadmin-meta">
+                        <span 
+                          className="booking-meta-badge"
+                          style={{ 
+                            background: "#f1f5f9", 
+                            color: "#475569", 
+                            border: "1px solid #cbd5e1",
+                            fontWeight: 700,
+                            letterSpacing: "0.02em",
+                            textTransform: "uppercase"
+                          }}
+                          title={`Booked by: ${item.clerk_name || "Admin"}`}
+                        >
+                          👤 BOOKED BY: {String(item.clerk_name || "Admin").toUpperCase()}
+                        </span>
+                        <span 
+                          className="booking-meta-badge" 
+                          style={{ 
+                            background: "#f8fafc", 
+                            color: "#64748b", 
+                            border: "1px solid #e2e8f0",
+                            fontWeight: 500,
+                            letterSpacing: "0.02em"
+                          }} 
+                          title={`Database Real Creation Timestamp (Super Admin Tracking): ${item.createdAt || item.realBookingDate || item.created_at || item.date}`}
+                        >
+                          🕒 REAL: {formatRealDateTimeSec(item.createdAt || item.realBookingDate || item.created_at || item.date)}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>

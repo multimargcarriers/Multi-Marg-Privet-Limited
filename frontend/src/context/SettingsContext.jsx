@@ -168,7 +168,12 @@ export const SettingsProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    document.documentElement.style.fontSize = `${fontSize}%`;
+    // Set CSS custom property on :root — the CSS rule `.page-content` picks it up
+    if (fontSize && Number(fontSize) !== 100) {
+      document.documentElement.style.setProperty('--app-zoom', `${fontSize}%`);
+    } else {
+      document.documentElement.style.removeProperty('--app-zoom');
+    }
     appDB.set('app_font_size', fontSize);
   }, [fontSize]);
 
