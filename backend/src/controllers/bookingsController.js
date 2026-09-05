@@ -686,37 +686,98 @@ exports.delete_id_5 = async (req, res) => {
 
   await db.collection("bookings").doc(id).delete(req.user);
 
-  // Cascade delete related tracking entries
-  if (bookingData?.consignment) {
-    const trackingSnap = await db.collection("tracking")
-      .where("awb", "==", bookingData.consignment)
-      .get();
-    const batchDel = db.batch();
-    trackingSnap.forEach(trkDoc => {
-      batchDel.delete(db.collection("tracking").doc(trkDoc.id));
-    });
-    await batchDel.commit();
+  // Full cascade deletion: Tracking, POD, Bills, and Trips
+  const awbCandidates = [
+    bookingData?.consignment,
+    bookingData?.awb,
+    bookingData?.lrNo,
+    bookingData?.lrNumber,
+    bookingData?.id,
+    id
+  ].filter(Boolean).map(s => String(s).trim());
+
+  const uniqueAwbs = [...new Set(awbCandidates)];
+  const awbRegexes = uniqueAwbs.map(a => new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+  const bookingIds = [id, bookingData?.id, bookingData?._id ? String(bookingData._id) : null].filter(Boolean);
+
+  if (db.mongoDb) {
+    try {
+      // 1. Cascade delete POD documents
+      await db.mongoDb.collection("pod").deleteMany({
+        $or: [
+          { lrNo: { $in: awbRegexes } },
+          { awb: { $in: awbRegexes } },
+          { consignment: { $in: awbRegexes } },
+          { bookingId: { $in: bookingIds } }
+        ]
+      });
+
+      // 2. Cascade delete tracking checkpoints
+      await db.mongoDb.collection("tracking").deleteMany({
+        $or: [
+          { awb: { $in: awbRegexes } },
+          { lrNo: { $in: awbRegexes } },
+          { consignment: { $in: awbRegexes } },
+          { bookingId: { $in: bookingIds } }
+        ]
+      });
+
+      // 3. Cascade delete bills
+      await db.mongoDb.collection("bills").deleteMany({
+        $or: [
+          { lrNo: { $in: awbRegexes } },
+          { lrNumber: { $in: awbRegexes } },
+          { bookingId: { $in: bookingIds } }
+        ]
+      });
+
+      // 4. Remove booking/AWB from any manifests in trips collection
+      await db.mongoDb.collection("trips").updateMany(
+        {
+          $or: [
+            { "manifest.awb": { $in: awbRegexes } },
+            { "manifest.lrNo": { $in: awbRegexes } },
+            { "manifest.consignment": { $in: awbRegexes } },
+            { "manifest.bookingId": { $in: bookingIds } },
+            { "manifest.id": { $in: bookingIds } }
+          ]
+        },
+        {
+          $pull: {
+            manifest: {
+              $or: [
+                { awb: { $in: awbRegexes } },
+                { lrNo: { $in: awbRegexes } },
+                { consignment: { $in: awbRegexes } },
+                { bookingId: { $in: bookingIds } },
+                { id: { $in: bookingIds } }
+              ]
+            }
+          }
+        }
+      );
+    } catch (cascadeErr) {
+      console.error("[Booking Cascade Deletion Error]:", cascadeErr);
+    }
   }
 
-  // Cascade delete related bills
-  if (bookingData?.lrNumber) {
-    const billsSnap = await db.collection("bills")
-      .where("lrNo", "==", bookingData.lrNumber)
-      .get();
-    const batchBills = db.batch();
-    billsSnap.forEach(billDoc => {
-      batchBills.delete(db.collection("bills").doc(billDoc.id));
-    });
-    await batchBills.commit();
-  }
+  await Promise.all([
+    delCache(CACHE_KEY),
+    delCache("unbilled"),
+    delCache("bills"),
+    delCache("tracking"),
+    delCache("pod"),
+    delCache("trips"),
+    delCache("dashboard_stats")
+  ]);
 
-  await delCache(CACHE_KEY);
-  await delCache("unbilled");
-  await delCache("bills");
   emitDataUpdated("bookings", "delete");
   emitDataUpdated("unbilled", "update");
   emitDataUpdated("bills", "update");
-  return success(res, "Booking and related data deleted successfully");
+  emitDataUpdated("tracking", "delete");
+  emitDataUpdated("pod", "delete");
+
+  return success(res, "Booking and related data (tracking, POD, bills) deleted successfully");
 };
 
 exports.delete_clear_all_6 = async (req, res) => {
@@ -794,37 +855,104 @@ exports.delete_clear_all_6 = async (req, res) => {
     const batch = db.batch();
     for (const item of docsToDelete) {
       batch.delete(db.collection("bookings").doc(item.id));
+    }
+    await batch.commit();
 
-      // Cascade delete related tracking entries
-      if (item.data.consignment) {
-        const trackingSnap = await db.collection("tracking")
-          .where("awb", "==", item.data.consignment)
-          .get();
-        trackingSnap.forEach(trkDoc => {
-          batch.delete(db.collection("tracking").doc(trkDoc.id));
-        });
-      }
+    // Cascade delete related tracking, pod, bills, trips in MongoDB
+    if (db.mongoDb) {
+      try {
+        const allAwbs = [];
+        const allIds = [];
+        for (const item of docsToDelete) {
+          allIds.push(item.id);
+          const d = item.data || {};
+          if (d.id) allIds.push(d.id);
+          if (d.consignment) allAwbs.push(String(d.consignment).trim());
+          if (d.awb) allAwbs.push(String(d.awb).trim());
+          if (d.lrNo) allAwbs.push(String(d.lrNo).trim());
+          if (d.lrNumber) allAwbs.push(String(d.lrNumber).trim());
+        }
 
-      // Cascade delete related bills
-      const lrNo = item.data.lrNumber || item.data.awb || item.data.lrNo;
-      if (lrNo) {
-        const billsSnap = await db.collection("bills")
-          .where("lrNo", "==", lrNo)
-          .get();
-        billsSnap.forEach(billDoc => {
-          batch.delete(db.collection("bills").doc(billDoc.id));
-        });
+        const uniqueAwbs = [...new Set(allAwbs.filter(Boolean))];
+        const uniqueIds = [...new Set(allIds.filter(Boolean))];
+        const awbRegexes = uniqueAwbs.map(a => new RegExp(`^${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+
+        if (awbRegexes.length > 0 || uniqueIds.length > 0) {
+          // 1. Cascade delete POD
+          await db.mongoDb.collection("pod").deleteMany({
+            $or: [
+              { lrNo: { $in: awbRegexes } },
+              { awb: { $in: awbRegexes } },
+              { consignment: { $in: awbRegexes } },
+              { bookingId: { $in: uniqueIds } }
+            ]
+          });
+
+          // 2. Cascade delete tracking
+          await db.mongoDb.collection("tracking").deleteMany({
+            $or: [
+              { awb: { $in: awbRegexes } },
+              { lrNo: { $in: awbRegexes } },
+              { consignment: { $in: awbRegexes } },
+              { bookingId: { $in: uniqueIds } }
+            ]
+          });
+
+          // 3. Cascade delete bills
+          await db.mongoDb.collection("bills").deleteMany({
+            $or: [
+              { lrNo: { $in: awbRegexes } },
+              { lrNumber: { $in: awbRegexes } },
+              { bookingId: { $in: uniqueIds } }
+            ]
+          });
+
+          // 4. Clean trips manifests
+          await db.mongoDb.collection("trips").updateMany(
+            {
+              $or: [
+                { "manifest.awb": { $in: awbRegexes } },
+                { "manifest.lrNo": { $in: awbRegexes } },
+                { "manifest.consignment": { $in: awbRegexes } },
+                { "manifest.bookingId": { $in: uniqueIds } },
+                { "manifest.id": { $in: uniqueIds } }
+              ]
+            },
+            {
+              $pull: {
+                manifest: {
+                  $or: [
+                    { awb: { $in: awbRegexes } },
+                    { lrNo: { $in: awbRegexes } },
+                    { consignment: { $in: awbRegexes } },
+                    { bookingId: { $in: uniqueIds } },
+                    { id: { $in: uniqueIds } }
+                  ]
+                }
+              }
+            }
+          );
+        }
+      } catch (cascadeErr) {
+        console.error("[Clear All Bookings Cascade Deletion Error]:", cascadeErr);
       }
     }
-    
-    await batch.commit();
-    await delCache(CACHE_KEY);
-    await delCache("unbilled");
-    await delCache("bills");
+
+    await Promise.all([
+      delCache(CACHE_KEY),
+      delCache("unbilled"),
+      delCache("bills"),
+      delCache("tracking"),
+      delCache("pod"),
+      delCache("trips"),
+      delCache("dashboard_stats")
+    ]);
     emitDataUpdated("bookings", "delete");
     emitDataUpdated("unbilled", "update");
     emitDataUpdated("bills", "update");
-    return success(res, `Successfully moved ${docsToDelete.length} bookings to Trash.`);
+    emitDataUpdated("tracking", "delete");
+    emitDataUpdated("pod", "delete");
+    return success(res, `Successfully moved ${docsToDelete.length} bookings to Trash and cleaned related tracking and POD.`);
   } catch (err) {
     console.error("Error clearing bookings:", err);
     return error(res, "Failed to clear bookings", 500);

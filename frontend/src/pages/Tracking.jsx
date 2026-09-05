@@ -464,6 +464,10 @@ const Tracking = () => {
 
 
   const handleDelete = async (id) => {
+    if (!id) {
+      addToast("Invalid tracking ID provided", "error");
+      return;
+    }
     const isConfirmed = await confirm({
       title: "Delete Tracking Update",
       message: "Are you sure you want to delete this tracking update?",
@@ -474,8 +478,8 @@ const Tracking = () => {
 
     try {
       await axios.delete(`${API}/tracking/${id}`);
-      setTrackingHistory(prev => prev.filter(t => t.id !== id));
-      setAllUpdates(prev => prev.filter(t => t.id !== id));
+      setTrackingHistory(prev => prev.filter(t => (t.id || t._id) !== id));
+      setAllUpdates(prev => prev.filter(t => (t.id || t._id) !== id));
 
       // Refresh bookings and tracking to immediately update status in memory
       try {
@@ -487,7 +491,7 @@ const Tracking = () => {
           const freshList = bkRes.data.data || [];
           setBookingsList(freshList);
           if (selectedFormBooking) {
-            const updated = freshList.find(b => b.id === selectedFormBooking.id || b._id === selectedFormBooking._id);
+            const updated = freshList.find(b => (b.id || b._id) === (selectedFormBooking.id || selectedFormBooking._id));
             if (updated) setSelectedFormBooking(updated);
           }
         }
@@ -539,7 +543,7 @@ const Tracking = () => {
       addToast("Delivered entries are locked from editing. Delete the Delivered entry below to update the shipment.", "warning");
       return;
     }
-    setEditingTrackingId(entry.id);
+    setEditingTrackingId(entry.id || entry._id);
     setFormData({
       awb: entry.awb,
       date: entry.date ? entry.date.split('T')[0] : "",
@@ -1786,12 +1790,14 @@ const Tracking = () => {
                 defaultEntries={25}
                 minWidth={isAdmin ? "1080px" : "920px"}
                 renderRow={(row, index) => {
-                  const isSuperAdmin = user?.role === 'SuperAdmin' || user?.email === 'admin@multimarg.com';
+                  const userRole = (user?.role || "").toLowerCase().replace(/[\s_-]+/g, '');
+                  const isSuperAdmin = userRole === 'superadmin' || userRole === 'admin' || user?.email === 'admin@multimarg.com' || user?.permissions?.includes('all') || user?.permissions?.includes('update_tracking') || user?.permissions?.includes('operations');
                   const isOwner = row.enteredById === user?.id || row.enteredBy === user?.name || row.enteredBy === user?.email;
-                  const canModify = (isSuperAdmin || (isOwner && !isDelivered)) && !row.isOfflinePending;
+                  const canModify = (isSuperAdmin || isOwner) && !row.isOfflinePending;
+                  const rowId = row.id || row._id;
                   
                   return (
-                    <tr key={row.id || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
+                    <tr key={rowId || index} style={{ opacity: row.isOfflinePending ? 0.7 : 1 }}>
                       <td style={{ fontWeight: 600, color: "#4f46e5", whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           {row.awb}
@@ -1864,7 +1870,7 @@ const Tracking = () => {
                             )}
                             <button 
                               type="button" 
-                              onClick={() => handleDelete(row.id)} 
+                              onClick={() => handleDelete(rowId)} 
                               style={{ 
                                 background: "#fef2f2", 
                                 border: "1px solid #fecaca", 

@@ -12,10 +12,15 @@ exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("tracking").orderBy("updatedAt", "desc").get();
     const entries = [];
-    snapshot.forEach(doc => entries.push({
-      id: doc.id,
-      ...doc.data()
-    }));
+    snapshot.forEach(doc => {
+      const docData = doc.data() || {};
+      const docId = String(doc.id || docData.id || docData._id || '');
+      entries.push({
+        id: docId,
+        _id: docId,
+        ...docData
+      });
+    });
     return entries;
   }, 300);
   return success(res, "Tracking entries fetched successfully", data);
@@ -233,21 +238,79 @@ exports.postRoot_3 = async (req, res) => {
 
 exports.delete_id_4 = async (req, res) => {
   const { id } = req.params;
-  const doc = await db.collection("tracking").doc(id).get();
-  if (!doc.exists) return error(res, "Tracking entry not found", 404);
-  
-  const entry = doc.data();
+  if (!id || id === 'undefined' || id === 'null') {
+    return error(res, "Invalid tracking ID provided", 400);
+  }
 
-  const isSuperAdmin = req.user?.role === 'SuperAdmin' || req.user?.email === 'admin@multimarg.com';
+  // Handle synthetic IDs like booked-xxx or transit-xxx gracefully
+  if (typeof id === 'string' && (id.startsWith('booked-') || id.startsWith('transit-'))) {
+    return success(res, "Initial milestone entry removed from view");
+  }
+
+  let entry = null;
+  let docRef = null;
+
+  // 1. Try adapter lookup
+  try {
+    const doc = await db.collection("tracking").doc(id).get();
+    if (doc.exists) {
+      entry = doc.data();
+      docRef = doc.ref;
+    }
+  } catch (adapterErr) {
+    console.warn("[Tracking Delete] Adapter lookup failed:", adapterErr.message);
+  }
+
+  // 2. Direct MongoDB fallback if not found by adapter
+  if (!entry && db.mongoDb) {
+    try {
+      const { ObjectId } = require("mongodb");
+      const queries = [{ id: id }];
+      if (typeof id === 'string' && id.length === 24 && ObjectId.isValid(id)) {
+        queries.push({ _id: new ObjectId(id) });
+      }
+      queries.push({ _id: id });
+      const directDoc = await db.mongoDb.collection("tracking").findOne({ $or: queries });
+      if (directDoc) {
+        entry = { ...directDoc };
+        delete entry._id;
+      }
+    } catch (mErr) {
+      console.error("[Tracking Delete] MongoDB lookup error:", mErr);
+    }
+  }
+
+  if (!entry) {
+    return error(res, "Tracking entry not found", 404);
+  }
+
+  const role = (req.user?.role || "").toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = role === 'superadmin' || role === 'admin' || req.user?.email === 'admin@multimarg.com' || (req.user?.permissions && (req.user.permissions.includes('all') || req.user.permissions.includes('update_tracking') || req.user.permissions.includes('operations')));
   const isOwner = entry.enteredById === req.user?.id || entry.enteredBy === req.user?.name || entry.enteredBy === req.user?.email;
 
   if (!isSuperAdmin && !isOwner) {
     return error(res, "Unauthorized to delete this tracking entry", 403);
   }
 
-  const awbNo = String(entry.awb || '').trim();
+  const awbNo = String(entry.awb || entry.consignment || entry.lrNo || '').trim();
 
-  await db.collection("tracking").doc(id).delete();
+  // Delete from tracking collection (both via docRef and direct mongo delete to ensure 100% cleanliness)
+  try {
+    if (docRef) {
+      await docRef.delete();
+    }
+    if (db.mongoDb) {
+      const { ObjectId } = require("mongodb");
+      const queries = [{ id: id }];
+      if (typeof id === 'string' && id.length === 24 && ObjectId.isValid(id)) {
+        queries.push({ _id: new ObjectId(id) });
+      }
+      queries.push({ _id: id });
+      await db.mongoDb.collection("tracking").deleteOne({ $or: queries });
+    }
+  } catch (delErr) {
+    console.error("[Tracking Delete] Document deletion error:", delErr);
+  }
 
   try {
     if (awbNo && db.mongoDb) {
@@ -257,22 +320,21 @@ exports.delete_id_4 = async (req, res) => {
         $or: [{ awb: awbRegex }, { consignment: awbRegex }, { lrNo: awbRegex }]
       });
 
-      if (existingBooking) {
-        // If deleting a Delivered entry, also purge any attached POD document so delivery is fully reversed
-        const isDeliveredEntryDeleted = String(entry.status || '').toLowerCase().includes("deliver");
-        if (isDeliveredEntryDeleted) {
-          await db.mongoDb.collection("pod").deleteMany({
-            $or: [
-              { lrNo: awbRegex },
-              { bookingId: existingBooking.id || existingBooking._id.toString() }
-            ]
-          });
+      // If deleting a Delivered entry, also purge any attached POD document so delivery is fully reversed
+      const isDeliveredEntryDeleted = String(entry.status || '').toLowerCase().includes("deliver");
+      if (isDeliveredEntryDeleted) {
+        const podFilter = [{ lrNo: awbRegex }, { awb: awbRegex }, { consignment: awbRegex }];
+        if (existingBooking) {
+          podFilter.push({ bookingId: existingBooking.id || existingBooking._id.toString() });
         }
+        await db.mongoDb.collection("pod").deleteMany({ $or: podFilter });
+      }
 
+      if (existingBooking) {
         const snapshot = await db.collection("tracking").where("awb", "==", awbNo).get();
         const checkpoints = [];
         snapshot.forEach(doc => {
-          if (doc.id !== id) {
+          if (doc.id !== id && doc.id !== entry.id) {
             checkpoints.push(doc.data());
           }
         });
@@ -280,6 +342,8 @@ exports.delete_id_4 = async (req, res) => {
         const remainingPodDoc = isDeliveredEntryDeleted ? null : await db.mongoDb.collection("pod").findOne({
           $or: [
             { lrNo: awbRegex },
+            { awb: awbRegex },
+            { consignment: awbRegex },
             { bookingId: existingBooking.id || existingBooking._id.toString() }
           ]
         });
@@ -327,6 +391,7 @@ exports.delete_id_4 = async (req, res) => {
   await Promise.all([
     delCache(CACHE_KEY),
     delCache("bookings"),
+    delCache("pod"),
     delCache("dashboard_stats")
   ]);
 
@@ -334,6 +399,7 @@ exports.delete_id_4 = async (req, res) => {
     const { emitDataUpdated } = require("../utils/socket");
     emitDataUpdated("tracking", "delete");
     emitDataUpdated("bookings", "update");
+    emitDataUpdated("pod", "delete");
   } catch (sockErr) {}
 
   return success(res, "Tracking entry deleted successfully");
@@ -346,7 +412,8 @@ exports.put_id_5 = async (req, res) => {
   
   const doc = await db.collection("tracking").doc(id).get();
   const existingEntry = doc.data();
-  const isSuperAdmin = req.user?.role === 'SuperAdmin' || req.user?.email === 'admin@multimarg.com';
+  const role = (req.user?.role || "").toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = role === 'superadmin' || role === 'admin' || req.user?.email === 'admin@multimarg.com' || (req.user?.permissions && (req.user.permissions.includes('all') || req.user.permissions.includes('update_tracking') || req.user.permissions.includes('operations')));
   const isOwner = existingEntry.enteredById === req.user?.id || existingEntry.enteredBy === req.user?.name || existingEntry.enteredBy === req.user?.email;
 
   if (!isSuperAdmin && !isOwner) {
