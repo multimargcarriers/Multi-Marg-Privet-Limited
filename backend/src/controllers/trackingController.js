@@ -12,18 +12,31 @@ exports.getRoot_1 = async (req, res) => {
   const data = await getOrSet(CACHE_KEY, async () => {
     const snapshot = await db.collection("tracking").orderBy("updatedAt", "desc").get();
     const entries = [];
+    const seen = new Set();
     snapshot.forEach(doc => {
       const docData = doc.data() || {};
       const docId = String(doc.id || docData.id || docData._id || '');
+      const awbNorm = String(docData.awb || '').trim().toLowerCase();
+      const statusNorm = String(docData.status || '').trim().toLowerCase();
+
       let cleanRemarks = docData.remarks;
       if (!cleanRemarks || String(cleanRemarks).trim().toLowerCase() === 'na' || String(cleanRemarks).trim() === '') {
         const loc = String(docData.location || 'ORIGIN').toUpperCase();
-        if (String(docData.status || '').toLowerCase().includes('book')) {
+        if (statusNorm.includes('book')) {
           cleanRemarks = `SHIPMENT BOOKED AT ${loc}. LORRY RECEIPT (LR) GENERATED.`;
-        } else if (String(docData.status || '').toLowerCase().includes('transit')) {
+        } else if (statusNorm.includes('transit')) {
           cleanRemarks = `DISPATCHED FROM ${loc}`;
         }
       }
+
+      const remarksNorm = String(cleanRemarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const locNorm = String(docData.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      // Deduplication signature: awb + status + (remarks or loc)
+      const dedupKey = `${awbNorm}__${statusNorm}__${remarksNorm || locNorm}`;
+      if (seen.has(dedupKey)) return;
+      seen.add(dedupKey);
+
       entries.push({
         id: docId,
         _id: docId,
@@ -79,10 +92,11 @@ exports.get_awb_2 = async (req, res) => {
         });
       }
 
-      const hasTransit = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
-      if (hasTransit || minutesSinceBooking >= 2.5) {
+      const bookingStatusNorm = String(booking.status || booking.transitStatus || '').toLowerCase().trim();
+      const isTransitEligible = hasTransit || minutesSinceBooking >= 30 || (bookingStatusNorm !== 'booked' && bookingStatusNorm !== '');
+      if (isTransitEligible) {
         if (!hasTransit) {
-          const transitDate = new Date(bookingTimeMs + 2.5 * 60 * 1000).toISOString();
+          const transitDate = new Date(bookingTimeMs + 30 * 60 * 1000).toISOString();
           entries.push({
             id: `transit-${booking.id || cleanAwb}`,
             awb: cleanAwb,
@@ -118,18 +132,43 @@ exports.get_awb_2 = async (req, res) => {
           delEntry.podUrl = booking.podUrl;
         }
       }
-
-      entries.sort((a, b) => {
-        const timeA = new Date(a.date || a.updatedAt || 0).getTime();
-        const timeB = new Date(b.date || b.updatedAt || 0).getTime();
-        return timeB - timeA;
-      });
     }
   } catch (err) {
     console.error("[get_awb_2 booking check error]:", err);
   }
 
-  return success(res, "Tracking entries fetched successfully", entries);
+  // Deduplicate entries in-memory to guarantee no repeated milestones in the timeline
+  const dedupMap = new Map();
+  for (const e of entries) {
+    const sNorm = String(e.status || '').trim().toLowerCase();
+    const rNorm = String(e.remarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const lNorm = String(e.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+    let dedupKey;
+    if (sNorm.includes('book')) {
+      dedupKey = `booked`;
+    } else if (sNorm.includes('deliver')) {
+      dedupKey = `delivered`;
+    } else {
+      dedupKey = `${sNorm}__${rNorm || lNorm}`;
+    }
+
+    if (!dedupMap.has(dedupKey)) {
+      dedupMap.set(dedupKey, e);
+    } else {
+      const existing = dedupMap.get(dedupKey);
+      if (e.podUrl && !existing.podUrl) existing.podUrl = e.podUrl;
+    }
+  }
+
+  const cleanEntries = Array.from(dedupMap.values());
+  cleanEntries.sort((a, b) => {
+    const timeA = new Date(a.date || a.updatedAt || 0).getTime();
+    const timeB = new Date(b.date || b.updatedAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return success(res, "Tracking entries fetched successfully", cleanEntries);
 };
 
 exports.postRoot_3 = async (req, res) => {
@@ -158,6 +197,29 @@ exports.postRoot_3 = async (req, res) => {
   const existingEntries = [];
   existingTrackingSnap.forEach(d => existingEntries.push({ id: d.id, ...d.data() }));
 
+  const targetStatusNorm = String(entry.status || '').trim().toLowerCase();
+  const targetRemarksNorm = String(entry.remarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const targetLocationNorm = String(entry.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  // DUPLICATE CHECK: Prevent duplicate updates with same remarks / same status
+  const isDuplicate = existingEntries.some(e => {
+    const eStatusNorm = String(e.status || '').trim().toLowerCase();
+    const eRemarksNorm = String(e.remarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const eLocNorm = String(e.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+    if (eStatusNorm === targetStatusNorm) {
+      if (targetStatusNorm.includes('book')) return true; // only 1 Booked allowed
+      if (targetStatusNorm.includes('deliver')) return true; // only 1 Delivered allowed
+      if (targetRemarksNorm && eRemarksNorm === targetRemarksNorm) return true; // duplicate remarks
+      if (targetLocationNorm && eLocNorm === targetLocationNorm) return true; // duplicate location status
+    }
+    return false;
+  });
+
+  if (isDuplicate) {
+    return error(res, `A tracking update with status "${entry.status}" and matching remarks/location already exists for this shipment.`, 400);
+  }
+
   // FLOW RULE 1: If shipment is already Delivered, all update options are strictly locked!
   const isAlreadyDelivered = existingEntries.some(e => String(e.status || '').toLowerCase().includes("delivered")) ||
     (existingBooking && String(existingBooking.status || existingBooking.transitStatus || '').toLowerCase() === 'delivered');
@@ -171,8 +233,6 @@ exports.postRoot_3 = async (req, res) => {
     const s = String(e.status || '').toLowerCase();
     return s.includes("out for delivery") || s.includes("out_for_delivery");
   }) || (existingBooking && (String(existingBooking.status || '').toLowerCase().includes("out for delivery") || String(existingBooking.transitStatus || '').toLowerCase().includes("out for delivery")));
-
-  const targetStatusNorm = String(entry.status || '').trim().toLowerCase();
 
   if (isAlreadyOutForDelivery && (targetStatusNorm.includes("transit") || targetStatusNorm.includes("book") || targetStatusNorm.includes("pickup"))) {
     return error(res, "Shipment is already Out for Delivery and cannot be moved backward to In Transit or Booked.", 400);

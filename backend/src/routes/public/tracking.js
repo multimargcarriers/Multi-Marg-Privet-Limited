@@ -172,13 +172,14 @@ router.get('/:awb', async (req, res) => {
         : bookingDateObj.getTime();
       const minutesSinceBooking = (Date.now() - bookingTimeMs) / (60 * 1000);
 
-      // 2. Second Milestone: In Transit (Auto-generated after 2-3 minutes with separate origin note)
+      // 2. Second Milestone: In Transit (Auto-generated after 30 minutes with origin note)
       const hasInTransitStatus = entries.some(e => String(e.status || '').toLowerCase().includes("transit"));
-      const isAutoTransit = minutesSinceBooking >= 2.5;
+      const bookingStatusNorm = String(booking.status || booking.transitStatus || '').toLowerCase().trim();
+      const isAutoTransit = minutesSinceBooking >= 30 || (bookingStatusNorm !== 'booked' && bookingStatusNorm !== '');
 
       if (hasInTransitStatus || isAutoTransit) {
         if (!hasInTransitStatus) {
-          const transitDateObj = new Date(bookingTimeMs + 2.5 * 60 * 1000);
+          const transitDateObj = new Date(bookingTimeMs + 30 * 60 * 1000);
           const transitDateISO = transitDateObj.toISOString();
           entries.push({
             id: `transit-${booking.id || baseAwb}`,
@@ -207,7 +208,7 @@ router.get('/:awb', async (req, res) => {
           ).catch(e => console.error("[Auto In Transit DB Update Error]:", e));
         }
       } else {
-        // Less than 2-3 minutes: status is strictly Booked
+        // Less than 30 minutes: status is strictly Booked
         booking.currentLocation = originName;
         booking.transitStatus = 'Booked';
         booking.status = 'Booked';
@@ -281,14 +282,39 @@ router.get('/:awb', async (req, res) => {
       });
     }
 
-    entries.forEach(e => {
+    // Deduplicate entries so timeline never repeats duplicate milestones
+    const dedupMap = new Map();
+    for (const e of entries) {
+      const sNorm = String(e.status || '').trim().toLowerCase();
+      const rNorm = String(e.remarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      const lNorm = String(e.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+      let dedupKey;
+      if (sNorm.includes('book')) {
+        dedupKey = `booked`;
+      } else if (sNorm.includes('deliver')) {
+        dedupKey = `delivered`;
+      } else {
+        dedupKey = `${sNorm}__${rNorm || lNorm}`;
+      }
+
+      if (!dedupMap.has(dedupKey)) {
+        dedupMap.set(dedupKey, e);
+      } else {
+        const existing = dedupMap.get(dedupKey);
+        if (e.podUrl && !existing.podUrl) existing.podUrl = e.podUrl;
+      }
+    }
+
+    const cleanEntries = Array.from(dedupMap.values());
+    cleanEntries.forEach(e => {
       if (e.remarks) e.remarks = String(e.remarks).toUpperCase();
     });
 
     return res.json({
       success: true,
-      message: entries.length > 0 ? "Tracking data found" : "No tracking data found",
-      data: entries,
+      message: cleanEntries.length > 0 ? "Tracking data found" : "No tracking data found",
+      data: cleanEntries,
       booking: booking
     });
   } catch (err) {

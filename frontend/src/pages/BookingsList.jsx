@@ -482,8 +482,8 @@ const BookingsList = () => {
         return { status: 'RETURNED', displayStatus: 'RETURNED', isDelivered: false, isPending: true };
       }
       
-      // If marked as booked or unassigned, auto-mark as In Transit once 2-3 minutes have passed
-      if (minutesSinceBooking >= 2.5) {
+      // If marked as booked or unassigned, auto-mark as In Transit once 30 minutes have passed
+      if (minutesSinceBooking >= 30) {
         return { status: 'IN TRANSIT', displayStatus: 'IN TRANSIT', isDelivered: false, isPending: true };
       }
 

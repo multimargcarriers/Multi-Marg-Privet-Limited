@@ -299,61 +299,8 @@ exports.postRoot_1 = async (req, res) => {
   
   const createdBooking = { id: docRefId, ...booking };
   
-  // Create initial tracking entries: 1st Booked, then In Transit
-  try {
-    const awbVal = String(booking.consignment || booking.awb || booking.lrNo || docRefId).trim();
-    if (awbVal) {
-      const now = new Date();
-      const nowStr = now.toISOString();
-      let bookingDate = nowStr;
-      if (booking.dispatch_date) {
-        if (booking.dispatch_date.includes('T')) {
-          bookingDate = booking.dispatch_date;
-        } else if (/^\d{4}-\d{2}-\d{2}$/.test(booking.dispatch_date)) {
-          bookingDate = `${booking.dispatch_date}T${nowStr.split('T')[1]}`;
-        }
-      }
-
-      // Transit date set slightly after booking date (+2 minutes or current time)
-      const bookingDateObj = new Date(bookingDate);
-      const transitDateObj = new Date(bookingDateObj.getTime() + 2 * 60 * 1000);
-      const transitDate = !isNaN(transitDateObj.getTime()) ? transitDateObj.toISOString() : nowStr;
-
-      const initialOrigin = String(booking.origin || "").trim().toUpperCase() || "ORIGIN";
-      
-      // 1. Initial Milestone: Booked (Shipment Booked at origin)
-      const bookedTracking = {
-        awb: awbVal,
-        status: "Booked",
-        location: initialOrigin,
-        date: bookingDate,
-        remarks: `SHIPMENT BOOKED AT ${initialOrigin}. LORRY RECEIPT (LR) GENERATED.`,
-        enteredBy: req.user?.name || req.user?.email || "Admin",
-        enteredById: req.user?.id || null,
-        enteredByRole: req.user?.role || "Admin",
-        createdAt: bookingDate,
-        updatedAt: bookingDate
-      };
-      await db.collection("tracking").add(bookedTracking);
-
-      // 2. Second Milestone: In Transit (Origin city, 2.5 minutes after booking)
-      const transitTracking = {
-        awb: awbVal,
-        status: "In Transit",
-        location: initialOrigin,
-        date: transitDate,
-        remarks: `DISPATCHED FROM ${initialOrigin}`,
-        enteredBy: "System",
-        enteredById: null,
-        enteredByRole: "System",
-        createdAt: transitDate,
-        updatedAt: transitDate
-      };
-      await db.collection("tracking").add(transitTracking);
-    }
-  } catch (trkErr) {
-    console.error("[Booking Create Auto Tracking Error]:", trkErr);
-  }
+  // Initial Booked and In Transit milestones are generated dynamically on-demand by tracking endpoints
+  // without cluttering the database tracking collection.
   
   await delCache(CACHE_KEY);
   await delCache("tracking");

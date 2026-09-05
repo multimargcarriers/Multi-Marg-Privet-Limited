@@ -257,35 +257,44 @@ const Tracking = () => {
         return 50;
       };
 
-      if (fullId && fullId !== actualAwbToSearch) {
+      if (fullId && fullId !== actualAwbToSearch && (!data || data.length === 0 || !bookingDetails)) {
           try {
               const res2 = await axios.get(`${API}/public/tracking/${fullId}`);
               if (res2.data.success) {
-                  const merged = [...data, ...res2.data.data];
-                  merged.sort((a, b) => {
-                      const dateA = parseDateSecurely(a.date || a.updatedAt);
-                      const dateB = parseDateSecurely(b.date || b.updatedAt);
-                      const timeA = dateA ? dateA.getTime() : 0;
-                      const timeB = dateB ? dateB.getTime() : 0;
-                      if (timeA !== timeB) return timeB - timeA;
-                      return getStatusWeight(b.status) - getStatusWeight(a.status);
-                  });
-                  const unique = [];
-                  const ids = new Set();
-                  for(let item of merged) {
-                      if(!ids.has(item.id)) {
-                          ids.add(item.id);
-                          unique.push(item);
-                      }
+                  if (!data || data.length === 0) {
+                      data = res2.data.data || [];
                   }
-                  data = unique;
-                  // Merge booking details if they exist in the full ID fetch
                   if (res2.data.booking) bookingDetails = res2.data.booking;
               }
           } catch(err) {
               console.error("Error fetching for full ID", err);
           }
       }
+
+      // Deduplicate milestones to guarantee no duplicate status/remarks in timeline
+      const dedupMap = new Map();
+      for (const item of (data || [])) {
+        const sNorm = String(item.status || '').trim().toLowerCase();
+        const rNorm = String(item.remarks || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        const lNorm = String(item.location || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+        let sig;
+        if (sNorm.includes('book')) {
+          sig = 'booked';
+        } else if (sNorm.includes('deliver')) {
+          sig = 'delivered';
+        } else {
+          sig = `${sNorm}__${rNorm || lNorm}`;
+        }
+
+        if (!dedupMap.has(sig)) {
+          dedupMap.set(sig, item);
+        } else {
+          const existing = dedupMap.get(sig);
+          if (item.podUrl && !existing.podUrl) existing.podUrl = item.podUrl;
+        }
+      }
+      data = Array.from(dedupMap.values());
 
       data.sort((a, b) => {
         const dateA = parseDateSecurely(a.date || a.updatedAt);
