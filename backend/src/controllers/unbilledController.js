@@ -74,7 +74,10 @@ exports.getRoot_1 = async (req, res) => {
                                (lr2 && billedLrs.has(lr2)) || 
                                (lr3 && billedLrs.has(lr3)) || 
                                (lr4 && billedLrs.has(lr4)) ||
-                               (bNo && billedBillNos.has(bNo));
+                               (bNo && billedBillNos.has(bNo)) ||
+                               b.billed === true ||
+                               String(b.status || '').toLowerCase() === 'billed' ||
+                               Boolean(b.billNo && String(b.billNo).trim() !== '');
 
         if (!isBilledInBill) {
           unbilledBookings.push({
@@ -141,7 +144,10 @@ exports.get_search_2 = async (req, res) => {
                              (lr2 && billedLrs.has(lr2)) || 
                              (lr3 && billedLrs.has(lr3)) || 
                              (lr4 && billedLrs.has(lr4)) ||
-                             (bNo && billedBillNos.has(bNo));
+                             (bNo && billedBillNos.has(bNo)) ||
+                             b.billed === true ||
+                             String(b.status || '').toLowerCase() === 'billed' ||
+                             Boolean(b.billNo && String(b.billNo).trim() !== '');
 
       if (!isBilledInBill) {
         bookings.push({

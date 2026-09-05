@@ -2413,24 +2413,8 @@ async function syncAllBookingsBillingStatusFromSql() {
           });
           updatedCount++;
         }
-      } else {
-        if (isBilledInMongo || currentBillNo !== "") {
-          bulkOps.push({
-            updateOne: {
-              filter: { _id: b._id },
-              update: {
-                $set: {
-                  status: "Booked",
-                  billed: false,
-                  billNo: "",
-                  updatedAt: new Date().toISOString()
-                }
-              }
-            }
-          });
-          updatedCount++;
-        }
       }
+      // Never unbill MongoDB bookings from SQL because MongoDB is primary and contains direct bookings
     }
 
     if (bulkOps.length > 0) {

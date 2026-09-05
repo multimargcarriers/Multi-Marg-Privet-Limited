@@ -71,8 +71,15 @@ const getBoxCount = (b) => {
 
 // Get Freight Amount across all possible DB field names
 const getFreightAmount = (b) => {
-  const val = b.freight_charge || b.freight || b.frieght || b.total_amount || b.amount || b.awb_charge || 0;
-  return parseFloat(val) || 0;
+  const val = parseFloat(b.freight_charge || b.freight || b.frieght || b.total_amount || b.amount || b.awb_charge || 0) || 0;
+  // If freight matches client's commercial goods value or exceeds realistic freight with no rate, safeguard it
+  if (b.invoiceDetails && Array.isArray(b.invoiceDetails) && b.invoiceDetails.length > 0) {
+    const invTotal = b.invoiceDetails.reduce((sum, inv) => sum + (parseFloat(inv.invoiceValue || inv.value || 0) || 0), 0);
+    if (invTotal > 0 && Math.abs(val - invTotal) < 1) {
+      return 0;
+    }
+  }
+  return val;
 };
 
 // Get Billed To / Client across all possible DB field names
@@ -105,7 +112,12 @@ const UnbilledReports = () => {
       if (res.data.success) {
         let bookings = res.data.data || [];
         // Keep only bookings that are NOT billed
-        bookings = bookings.filter((b) => b.billed === false || (b.billed !== true && String(b.status || "").toLowerCase() !== "billed"));
+        bookings = bookings.filter((b) => {
+          const isBilled = b.billed === true || 
+                           String(b.status || "").toLowerCase() === "billed" || 
+                           Boolean(b.billNo && String(b.billNo).trim() !== "");
+          return !isBilled;
+        });
         setData(bookings);
       }
     } catch (err) {
