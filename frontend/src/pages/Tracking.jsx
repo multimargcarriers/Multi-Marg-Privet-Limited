@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send, Lock } from "lucide-react";
+import { CheckCircle, Loader2, Search, Package, Truck, MapPin, XCircle, Clock, PlusCircle, AlertCircle, Trash2, Edit, FileText, Eye, Download, X, Check, ChevronDown, ChevronUp, ExternalLink, ShieldCheck, FileSpreadsheet, Layers, Send, Lock, Filter, RotateCcw } from "lucide-react";
 import CreatableDropdown from "../components/CreatableDropdown";
 import TrackingLocationInput from "../components/TrackingLocationInput";
 import QuickAddModal from "../components/QuickAddModal";
@@ -119,6 +119,8 @@ const Tracking = () => {
   const [trackingHistory, setTrackingHistory] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
+  const [tableStatusFilter, setTableStatusFilter] = useState("all");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -1793,15 +1795,135 @@ const Tracking = () => {
                 ];
 
             // Only show user manual updates; POD-based auto deliveries are handled dynamically
-            const displayUpdates = (allUpdates || []).filter(u => {
+            const rawUpdates = (allUpdates || []).filter(u => {
               const isAutoPod = u.enteredBy?.includes("Auto POD") || String(u.remarks || '').startsWith("Proof of Delivery (POD) uploaded");
               return !isAutoPod;
             });
 
+            const userScoped = isAdmin
+              ? rawUpdates
+              : rawUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email);
+
+            const filteredUpdates = userScoped.filter(u => {
+              if (tableSearch) {
+                const s = tableSearch.toLowerCase();
+                const matches = (u.awb || '').toLowerCase().includes(s) ||
+                  (u.location || '').toLowerCase().includes(s) ||
+                  (u.enteredBy || '').toLowerCase().includes(s) ||
+                  (u.remarks || '').toLowerCase().includes(s);
+                if (!matches) return false;
+              }
+
+              if (tableStatusFilter && tableStatusFilter !== 'all') {
+                const norm = String(u.status || '').toLowerCase();
+                if (tableStatusFilter === 'pending') {
+                  if (norm.includes('deliver')) return false;
+                } else if (tableStatusFilter === 'delivered') {
+                  if (!norm.includes('deliver')) return false;
+                } else if (tableStatusFilter === 'booked') {
+                  if (!norm.includes('book')) return false;
+                } else if (tableStatusFilter === 'transit') {
+                  if (!norm.includes('transit')) return false;
+                } else if (tableStatusFilter === 'out_for_delivery') {
+                  if (!norm.includes('out for delivery') && !norm.includes('out_for_delivery')) return false;
+                } else if (tableStatusFilter === 'delayed') {
+                  if (!norm.includes('delay')) return false;
+                } else if (tableStatusFilter === 'returned') {
+                  if (!norm.includes('return') && !norm.includes('rto')) return false;
+                }
+              }
+
+              return true;
+            });
+
             return (
-              <Table 
-                headers={tableHeaders} 
-                data={isAdmin ? displayUpdates : displayUpdates.filter(u => u.enteredById === user?.id || u.enteredBy === user?.name || u.enteredBy === user?.email)} 
+              <>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', flex: '1 1 300px' }}>
+                    <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '200px' }}>
+                      <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                      <input
+                        type="text"
+                        placeholder="Search updates by AWB, location, remarks..."
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem 0.75rem 0.5rem 2.2rem',
+                          borderRadius: '8px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.85rem',
+                          outline: 'none'
+                        }}
+                      />
+                      {tableSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setTableSearch('')}
+                          style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 0.65rem' }}>
+                      <Filter size={15} color="#64748b" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>Status:</span>
+                      <select
+                        value={tableStatusFilter}
+                        onChange={(e) => setTableStatusFilter(e.target.value)}
+                        style={{
+                          border: 'none',
+                          outline: 'none',
+                          padding: '0.5rem 0.25rem',
+                          fontSize: '0.85rem',
+                          fontWeight: tableStatusFilter !== 'all' ? '600' : 'normal',
+                          color: tableStatusFilter !== 'all' ? '#1e40af' : '#1e293b',
+                          background: 'transparent',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="all">All Updates ({userScoped.length})</option>
+                        <option value="pending">⏳ Pending (Undelivered)</option>
+                        <option value="booked">📦 Booked</option>
+                        <option value="transit">🚚 In Transit</option>
+                        <option value="out_for_delivery">🛵 Out for Delivery</option>
+                        <option value="delivered">✅ Delivered</option>
+                        <option value="delayed">⚠️ Delayed</option>
+                        <option value="returned">↩️ Returned / RTO</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(tableSearch || tableStatusFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => { setTableSearch(''); setTableStatusFilter('all'); }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.45rem 0.75rem',
+                        borderRadius: '7px',
+                        border: '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#334155',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                      title="Reset update filters"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Reset ({filteredUpdates.length})</span>
+                    </button>
+                  )}
+                </div>
+
+                <Table 
+                  headers={tableHeaders} 
+                  data={filteredUpdates} 
                 pagination={true}
                 defaultEntries={25}
                 minWidth={isAdmin ? "1080px" : "920px"}
@@ -1908,10 +2030,11 @@ const Tracking = () => {
                           <span style={{ color: "#94a3b8", fontSize: "0.8rem" }}>—</span>
                         )}
                       </td>
-                    </tr>
-                  );
-                }}
-              />
+                      </tr>
+                    );
+                  }}
+                />
+              </>
             );
           })()}
         </div>

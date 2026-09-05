@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2, Plus, RefreshCw } from "lucide-react";
+import { Search, Eye, Printer, Trash2, Edit, ChevronLeft, ChevronRight, PackageOpen, FileCheck, Package, IndianRupee, Box, FileText, Clock, Download, Copy, Check, Truck, Calendar, X, MapPin, CheckCircle2, Plus, RefreshCw, Filter, RotateCcw } from "lucide-react";
 import { TablePageSkeleton } from '../components/SkeletonLoader';
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -139,6 +139,7 @@ const BookingsList = () => {
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // POD modal state & lookup map
   const [podModalOpen, setPodModalOpen] = useState(false);
@@ -391,57 +392,6 @@ const BookingsList = () => {
     return isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const filtered = useMemo(() => {
-    return displayBookings.filter(b => {
-      const matchesSearch = !search ||
-        (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.destination || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.invoiceNo || b.invoice_no || b.invNo || b.invoice || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.invoiceDetails && Array.isArray(b.invoiceDetails) && b.invoiceDetails.some(inv => 
-          (inv.invoiceNo || inv.invoice_no || inv.invNo || inv.invoice || "").toLowerCase().includes(search.toLowerCase())
-        ));
-
-      if (!matchesSearch) return false;
-
-      if (startDate || endDate) {
-        const bDate = getBookingDateObj(b);
-        if (bDate) {
-          if (startDate) {
-            const start = new Date(startDate);
-            start.setHours(0, 0, 0, 0);
-            if (bDate < start) return false;
-          }
-          if (endDate) {
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            if (bDate > end) return false;
-          }
-        } else {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [displayBookings, search, startDate, endDate]);
-
-  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght", dateKey: "dispatch_date" });
-
-  // Pagination logic
-  const totalPages = Math.ceil(sortedData.length / entriesPerPage);
-  const indexOfLast = currentPage * entriesPerPage;
-  const indexOfFirst = indexOfLast - entriesPerPage;
-  const currentEntries = sortedData.slice(indexOfFirst, indexOfLast);
-
-  // Ensure current page is valid when filtering changes
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [sortedData.length, totalPages, currentPage]);
-
   const checkIsDelivered = useMemo(() => {
     return (item) => {
       if (!item) return false;
@@ -489,9 +439,122 @@ const BookingsList = () => {
     };
   }, [podMap, trackingMap]);
 
-  // SuperAdmin Only: Full / Lifetime & Monthly AWB Status Metrics
+  const getBookingStatusInfo = useMemo(() => {
+    return (item) => {
+      if (!item) return { status: 'BOOKED', displayStatus: 'BOOKED', isDelivered: false, isPending: true };
+      const awbStr = String(item.awb || item.consignment || item.lrNo || item.lrNumber || '').trim();
+      const awbClean = awbStr.toLowerCase();
+      const awbStripped = awbClean.replace(/^(mmc|lr|awb)[-_ ]*/i, '');
+
+      const isDelivered = checkIsDelivered(item);
+      if (isDelivered) {
+        return { status: 'DELIVERED', displayStatus: 'DELIVERED', isDelivered: true, isPending: false };
+      }
+
+      const track = (trackingMap && (trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped])) || null;
+      const trackStatus = typeof track === 'object' ? track?.status : track;
+      const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status || item.status || '';
+      const norm = String(explicitStatus).trim().toLowerCase();
+
+      if (norm.includes('out for delivery') || norm.includes('out_for_delivery')) {
+        return { status: 'OUT FOR DELIVERY', displayStatus: 'OUT FOR DELIVERY', isDelivered: false, isPending: true };
+      }
+      if (norm.includes('deliver')) {
+        return { status: 'DELIVERED', displayStatus: 'DELIVERED', isDelivered: true, isPending: false };
+      }
+      if (norm.includes('reach') || norm.includes('hub') || norm.includes('arrive')) {
+        return { status: 'REACHED HUB', displayStatus: 'REACHED HUB', isDelivered: false, isPending: true };
+      }
+      if (norm.includes('transit')) {
+        return { status: 'IN TRANSIT', displayStatus: 'IN TRANSIT', isDelivered: false, isPending: true };
+      }
+      if (norm.includes('delay')) {
+        return { status: 'DELAYED', displayStatus: 'DELAYED', isDelivered: false, isPending: true };
+      }
+      if (norm.includes('return') || norm.includes('rto')) {
+        return { status: 'RETURNED', displayStatus: 'RETURNED', isDelivered: false, isPending: true };
+      }
+      if (norm.includes('book')) {
+        return { status: 'BOOKED', displayStatus: 'BOOKED', isDelivered: false, isPending: true };
+      }
+
+      return { status: 'BOOKED', displayStatus: 'BOOKED', isDelivered: false, isPending: true };
+    };
+  }, [checkIsDelivered, trackingMap]);
+
+  const filtered = useMemo(() => {
+    return displayBookings.filter(b => {
+      const matchesSearch = !search ||
+        (b.client || b.consignor || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.awb || b.lrNo || b.consignment || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.origin || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.destination || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.invoiceNo || b.invoice_no || b.invNo || b.invoice || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.invoiceDetails && Array.isArray(b.invoiceDetails) && b.invoiceDetails.some(inv => 
+          (inv.invoiceNo || inv.invoice_no || inv.invNo || inv.invoice || "").toLowerCase().includes(search.toLowerCase())
+        ));
+
+      if (!matchesSearch) return false;
+
+      if (startDate || endDate) {
+        const bDate = getBookingDateObj(b);
+        if (bDate) {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (bDate < start) return false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (bDate > end) return false;
+          }
+        } else {
+          return false;
+        }
+      }
+
+      if (statusFilter && statusFilter !== 'all') {
+        const info = getBookingStatusInfo(b);
+        const norm = info.status.toLowerCase();
+        if (statusFilter === 'pending') {
+          if (!info.isPending) return false;
+        } else if (statusFilter === 'delivered') {
+          if (!info.isDelivered) return false;
+        } else if (statusFilter === 'booked') {
+          if (!norm.includes('book')) return false;
+        } else if (statusFilter === 'transit') {
+          if (!norm.includes('transit')) return false;
+        } else if (statusFilter === 'out_for_delivery') {
+          if (!norm.includes('out for delivery') && !norm.includes('out_for_delivery')) return false;
+        } else if (statusFilter === 'delayed') {
+          if (!norm.includes('delay')) return false;
+        } else if (statusFilter === 'returned') {
+          if (!norm.includes('return') && !norm.includes('rto')) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [displayBookings, search, startDate, endDate, statusFilter, getBookingStatusInfo]);
+
+  const { sortedData, sortOption, setSortOption } = useTableSort(filtered, "awb_desc", { nameKey: "client", amountKey: "frieght", dateKey: "dispatch_date" });
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedData.length / entriesPerPage);
+  const indexOfLast = currentPage * entriesPerPage;
+  const indexOfFirst = indexOfLast - entriesPerPage;
+  const currentEntries = sortedData.slice(indexOfFirst, indexOfLast);
+
+  // Ensure current page is valid when filtering changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [sortedData.length, totalPages, currentPage]);
+
+  // Full / Lifetime & Monthly AWB Status Metrics with full breakdowns
   const awbStats = useMemo(() => {
-    if (!isSuperAdmin) return null;
     const list = displayBookings;
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -499,18 +562,34 @@ const BookingsList = () => {
     const currentMonthName = now.toLocaleString('default', { month: 'long' });
 
     let fullDelivered = 0;
+    let fullBooked = 0;
+    let fullTransit = 0;
+    let fullOut = 0;
+    let fullDelayed = 0;
+    let fullReturned = 0;
+
     let monthTotal = 0;
     let monthDelivered = 0;
 
     for (const item of list) {
-      const isDeliv = checkIsDelivered(item);
-      if (isDeliv) fullDelivered++;
+      const info = getBookingStatusInfo(item);
+      if (info.isDelivered) {
+        fullDelivered++;
+      } else {
+        const s = info.status;
+        if (s === 'BOOKED') fullBooked++;
+        else if (s === 'IN TRANSIT') fullTransit++;
+        else if (s === 'OUT FOR DELIVERY') fullOut++;
+        else if (s === 'DELAYED') fullDelayed++;
+        else if (s === 'RETURNED') fullReturned++;
+        else fullBooked++;
+      }
 
       const dateObj = getBookingDateObj(item);
       if (dateObj && !isNaN(dateObj.getTime())) {
         if (dateObj.getFullYear() === currentYear && dateObj.getMonth() === currentMonth) {
           monthTotal++;
-          if (isDeliv) monthDelivered++;
+          if (info.isDelivered) monthDelivered++;
         }
       }
     }
@@ -524,7 +603,12 @@ const BookingsList = () => {
       full: {
         total: fullTotal,
         delivered: fullDelivered,
-        pending: fullPending
+        pending: fullPending,
+        booked: fullBooked,
+        transit: fullTransit,
+        out: fullOut,
+        delayed: fullDelayed,
+        returned: fullReturned
       },
       monthly: {
         total: monthTotal,
@@ -532,7 +616,7 @@ const BookingsList = () => {
         pending: monthPending
       }
     };
-  }, [isSuperAdmin, displayBookings, checkIsDelivered]);
+  }, [displayBookings, getBookingStatusInfo]);
 
   return (
     <div className="bookings-page-wrapper">
@@ -622,10 +706,31 @@ const BookingsList = () => {
             <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", marginBottom: "0.5rem" }}>
               ALL AWB STATUS
             </div>
-            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-              <span><span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.full.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span></span>
-              <span><span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.full.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span></span>
-              <span><span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.full.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span></span>
+            <div style={{ fontSize: "1.05rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={() => { setStatusFilter('delivered'); setCurrentPage(1); }}
+                style={{ background: statusFilter === 'delivered' ? '#ecfdf5' : 'transparent', border: statusFilter === 'delivered' ? '1px solid #10b981' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
+                title="Filter: Delivered Shipments"
+              >
+                <span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.full.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+                style={{ background: statusFilter === 'pending' ? '#fffbeb' : 'transparent', border: statusFilter === 'pending' ? '1px solid #f59e0b' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
+                title="Filter: Pending AWBs"
+              >
+                <span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.full.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStatusFilter('all'); setStartDate(''); setEndDate(''); setCurrentPage(1); }}
+                style={{ background: statusFilter === 'all' && !startDate && !endDate ? '#f0f9ff' : 'transparent', border: statusFilter === 'all' && !startDate && !endDate ? '1px solid #0ea5e9' : '1px solid transparent', borderRadius: '6px', padding: '3px 6px', cursor: 'pointer' }}
+                title="View All Bookings"
+              >
+                <span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.full.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span>
+              </button>
             </div>
           </div>
 
@@ -633,10 +738,40 @@ const BookingsList = () => {
             <div style={{ fontSize: "0.85rem", color: "#6b7280", fontWeight: "600", marginBottom: "0.5rem" }}>
               Current ({awbStats.currentMonthName})
             </div>
-            <div style={{ fontSize: "1.1rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-              <span><span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.monthly.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span></span>
-              <span><span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.monthly.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span></span>
-              <span><span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.monthly.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span></span>
+            <div style={{ fontSize: "1.05rem", fontWeight: "600", color: "#374151", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              {(() => {
+                const now = new Date();
+                const mStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const mEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('delivered'); setCurrentPage(1); }}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
+                      title={`Filter: ${awbStats.currentMonthName} Delivered`}
+                    >
+                      <span style={{ color: "#10b981", fontWeight: "700" }}>D:</span> {awbStats.monthly.delivered.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Delivered)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('pending'); setCurrentPage(1); }}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
+                      title={`Filter: ${awbStats.currentMonthName} Pending`}
+                    >
+                      <span style={{ color: "#f59e0b", fontWeight: "700" }}>P:</span> {awbStats.monthly.pending.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Pending)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setStartDate(mStart); setEndDate(mEnd); setStatusFilter('all'); setCurrentPage(1); }}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '3px 6px' }}
+                      title={`Filter: ${awbStats.currentMonthName} All`}
+                    >
+                      <span style={{ color: "#0ea5e9", fontWeight: "700" }}>T:</span> {awbStats.monthly.total.toLocaleString()} <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: "500" }}>(Total)</span>
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -737,6 +872,76 @@ const BookingsList = () => {
             </div>
           </div>
 
+          {/* Status Filter Dropdown & Reset Action */}
+          <div className="premium-status-filter-row" style={{ display: "flex", alignItems: "center", gap: "0.65rem", flexWrap: "wrap" }}>
+            <div className="premium-filter-group" style={{ flex: "1 1 210px", minWidth: "190px" }}>
+              <Filter size={15} style={{ color: "#64748b", flexShrink: 0 }} />
+              <span className="premium-filter-label">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="premium-filter-input"
+                style={{
+                  cursor: "pointer",
+                  flex: 1,
+                  fontWeight: statusFilter !== 'all' ? '600' : 'normal',
+                  color: statusFilter !== 'all' ? '#1e40af' : 'inherit'
+                }}
+              >
+                <option value="all">All Statuses ({awbStats?.full?.total || displayBookings.length})</option>
+                <option value="pending">⏳ Pending AWB ({awbStats?.full?.pending ?? 0})</option>
+                <option value="booked">📦 Booked ({awbStats?.full?.booked ?? 0})</option>
+                <option value="transit">🚚 In Transit ({awbStats?.full?.transit ?? 0})</option>
+                <option value="out_for_delivery">🛵 Out for Delivery ({awbStats?.full?.out ?? 0})</option>
+                <option value="delivered">✅ Delivered ({awbStats?.full?.delivered ?? 0})</option>
+                <option value="delayed">⚠️ Delayed ({awbStats?.full?.delayed ?? 0})</option>
+                <option value="returned">↩️ Returned / RTO ({awbStats?.full?.returned ?? 0})</option>
+              </select>
+              {statusFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+                  title="Clear Status Filter"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {(statusFilter !== 'all' || startDate || endDate || search) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setStartDate("");
+                  setEndDate("");
+                  setSearch("");
+                  setCurrentPage(1);
+                }}
+                className="btn-reset-filters"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '7px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontSize: '0.82rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                title="Reset all filters and search query"
+              >
+                <RotateCcw size={13} />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
 
         </div>
       </div>
@@ -869,80 +1074,58 @@ const BookingsList = () => {
                     {/* Status badge & Location in top right */}
                     {(() => {
                       const track = trackingMap[awbStr] || trackingMap[awbClean] || trackingMap[awbStripped];
-                      const trackStatus = typeof track === 'object' ? track?.status : track;
-                      const isDelivered = checkIsDelivered(item);
+                      const statusInfo = getBookingStatusInfo(item);
+                      const isDelivered = statusInfo.isDelivered;
 
                       const rawLocation = isDelivered 
                         ? (item.destination || (typeof track === 'object' ? track?.location : null) || item.currentLocation || 'Destination')
                         : ((typeof track === 'object' ? track?.location : null) || item.currentLocation || item.origin || 'Origin Facility');
 
                       const location = String(rawLocation || '').trim().toUpperCase();
+                      const displayStatus = statusInfo.displayStatus;
+                      const normStatus = statusInfo.status.toLowerCase();
 
-                      // Determine actual transit status, ignoring billing values like "unbilled" or "billed" and treating initial status as "In Transit"
-                      const explicitStatus = trackStatus || item.transitStatus || item.trackingStatus || item.delivery_status;
-
-                      let resolvedStatus = 'In Transit';
-                      if (isDelivered) {
-                        resolvedStatus = 'Delivered';
-                      } else if (explicitStatus && !['unbilled', 'billed', 'booked', 'picked up', 'shipment booked'].includes(String(explicitStatus).toLowerCase())) {
-                        resolvedStatus = explicitStatus;
-                      } else if (item.status && !['unbilled', 'billed', 'booked', 'picked up', 'shipment booked'].includes(String(item.status).toLowerCase())) {
-                        resolvedStatus = item.status;
-                      } else {
-                        resolvedStatus = 'In Transit';
-                      }
-
-                      const normStatus = String(resolvedStatus || '').trim().toLowerCase();
-
-                      let bg = '#fffbeb';
-                      let color = '#d97706';
-                      let border = '#fde68a';
-                      let icon = <Truck size={13} />;
-                      let displayStatus = 'IN TRANSIT';
+                      let bg = '#eff6ff';
+                      let color = '#2563eb';
+                      let border = '#bfdbfe';
+                      let icon = <Package size={13} />;
 
                       if (normStatus.includes('out for delivery') || normStatus.includes('out_for_delivery')) {
                         bg = '#f5f3ff';
                         color = '#7c3aed';
                         border = '#ddd6fe';
                         icon = <Truck size={13} />;
-                        displayStatus = 'OUT FOR DELIVERY';
                       } else if (normStatus.includes('deliver')) {
                         bg = '#ecfdf5';
                         color = '#059669';
                         border = '#a7f3d0';
                         icon = <CheckCircle2 size={13} />;
-                        displayStatus = 'DELIVERED';
                       } else if (normStatus.includes('reach') || normStatus.includes('hub') || normStatus.includes('arrive')) {
                         bg = '#f0fdfa';
                         color = '#0d9488';
                         border = '#99f6e4';
                         icon = <MapPin size={13} />;
-                        displayStatus = 'REACHED HUB';
-                      } else if (normStatus.includes('transit') || normStatus.includes('book') || normStatus.includes('pickup') || normStatus.includes('picked')) {
+                      } else if (normStatus.includes('transit')) {
                         bg = '#fffbeb';
                         color = '#d97706';
                         border = '#fde68a';
                         icon = <Truck size={13} />;
-                        displayStatus = 'IN TRANSIT';
                       } else if (normStatus.includes('delay')) {
                         bg = '#fff7ed';
                         color = '#ea580c';
                         border = '#fed7aa';
                         icon = <Clock size={13} />;
-                        displayStatus = 'DELAYED';
                       } else if (normStatus.includes('return') || normStatus.includes('rto')) {
                         bg = '#fef2f2';
                         color = '#dc2626';
                         border = '#fecaca';
-                        icon = <Clock size={13} />;
-                        displayStatus = 'RETURNED';
+                        icon = <RotateCcw size={13} />;
                       } else {
-                        // Custom status
-                        bg = '#fffbeb';
-                        color = '#d97706';
-                        border = '#fde68a';
-                        icon = <Truck size={13} />;
-                        displayStatus = String(resolvedStatus || 'IN TRANSIT').toUpperCase();
+                        // Default to BOOKED
+                        bg = '#eff6ff';
+                        color = '#2563eb';
+                        border = '#bfdbfe';
+                        icon = <Package size={13} />;
                       }
 
                       return (
